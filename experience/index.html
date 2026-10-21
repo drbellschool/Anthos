@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f1e9">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Experience Demo | Anthos · Threefold</title>
+  <meta name="description" content="Preview the first Threefold experience: Love Whispers, adventures, a Deep Dive, and a story that grows with you.">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../content.js" defer></script>
+  <script src="../app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to experience</a>
+  <div class="app">
+    <aside class="sidebar" aria-label="Threefold navigation">
+      <div class="logo-block"><span class="logo-mark" aria-hidden="true">✳</span><div class="logo-type">threefold<span>THE MARRIAGE PROJECT</span></div></div>
+      <div class="side-label">YOUR EXPERIENCE</div>
+      <nav class="side-nav" aria-label="Sections">
+        <button class="nav-link active" type="button" data-view="home" aria-current="page"><span class="nav-symbol">⌂</span><span>Our beginning</span></button>
+        <button class="nav-link" type="button" data-view="whispers"><span class="nav-symbol">✧</span><span>Love Whispers</span></button>
+        <button class="nav-link" type="button" data-view="dates"><span class="nav-symbol">↗</span><span>Date Adventures</span></button>
+        <button class="nav-link" type="button" data-view="dive"><span class="nav-symbol">≋</span><span>Deep Dives</span></button>
+        <button class="nav-link" type="button" data-view="journey"><span class="nav-symbol">◌</span><span>Our story grows</span></button>
+      </nav>
+      <div class="side-bottom">
+        <div class="intro-rule"></div>
+        <p class="side-verse">“A cord of three strands<br>is not quickly broken.”</p>
+        <span class="side-source">ECCLESIASTES 4:12</span>
+        <a class="back-site" href="../">← Back to Anthos</a>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu" id="menuToggle" type="button" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+        <div class="breadcrumb">THREEFOLD <span>/</span> <strong id="breadcrumb">OUR BEGINNING</strong></div>
+        <div class="top-actions"><span class="demo-pill"><span class="pulse"></span> INTERACTIVE DEMO</span><button id="resetDemo" type="button" class="reset-btn" title="Erase demonstration progress">Reset demo</button></div>
+      </header>
+      <main id="main">
+        <div class="notice" role="note"><strong>Preview experience</strong><span>These are fictional sample accounts and activities. Progress stays only in this browser; nothing is sent to your partner, Telnyx, OpenAI, or a database.</span></div>
+
+        <section class="view" data-page="home">
+          <div class="intro-copy"><div class="overline">A STORY WORTH WEAVING</div><h1>The adventure<br><em>awaits.</em></h1><p>Not a checklist for a better marriage. An invitation to discover one another again, one unexpected moment at a time.</p></div>
+          <div class="home-grid">
+            <div class="feature-card art-card">
+              <div class="art-label">THE LIFE YOU'RE WEAVING</div>
+              <div class="blossom-wrap" id="homeArt" aria-label="A threefold cord and growing petals"></div>
+              <div class="art-foot"><div><strong id="homePetalCount">0</strong><span>Petals opened</span></div><div class="vertical-line"></div><div><strong id="homeBraidCount">0 / 8</strong><span>Story crossings</span></div></div>
+            </div>
+            <div class="next-column">
+              <div class="quote-card"><span class="small-gold">✦ A SMALL BEGINNING</span><h2>Keep choosing<br><em>each other.</em></h2><p>Start with a quiet thought, make something together, or step inside a story. There is no perfect pace.</p><button class="button primary" type="button" data-go="whispers">Begin with a Whisper <span>↗</span></button></div>
+              <div class="mini-list"><button type="button" data-go="dates"><span>01</span><div><strong>Plan a little adventure</strong><small>A first braid, a new memory</small></div><b>↗</b></button><button type="button" data-go="dive"><span>02</span><div><strong>Step into a Deep Dive</strong><small>Eight chapters, one meaningful choice</small></div><b>↗</b></button></div>
+            </div>
+          </div>
+          <div class="section-caption">FOUR WAYS TO GROW TOGETHER</div>
+          <div class="feature-grid">
+            <button data-go="whispers" type="button" class="feature-tile"><span class="tile-glyph">✧</span><strong>Love Whispers</strong><small>Words worth saying</small><span class="tile-arrow">↗</span></button>
+            <button data-go="dates" type="button" class="feature-tile"><span class="tile-glyph">↗</span><strong>Date Adventures</strong><small>Novelty with intention</small><span class="tile-arrow">↗</span></button>
+            <button data-go="dive" type="button" class="feature-tile"><span class="tile-glyph">≋</span><strong>Deep Dives</strong><small>Learn inside a story</small><span class="tile-arrow">↗</span></button>
+            <button data-go="journey" type="button" class="feature-tile"><span class="tile-glyph">◌</span><strong>Your Threefold</strong><small>See what you've woven</small><span class="tile-arrow">↗</span></button>
+          </div>
+        </section>
+
+        <section class="view" data-page="whispers" hidden>
+          <div class="page-heading"><div class="overline">01 / NOTICE &amp; DESIRE</div><h1>A little whisper.<br><em>A lot of meaning.</em></h1><p>Sometimes the most romantic thing is noticing what you've stopped saying aloud.</p></div>
+          <div class="two-column">
+            <article class="content-card whisper-paper">
+              <span id="whisperTheme" class="eyebrow-tag">NOTICE</span>
+              <div class="paper-ornament">“</div>
+              <h2 id="whisperQuestion"></h2>
+              <p id="whisperNudge" class="soft"></p>
+              <label class="field-label" for="whisperAnswer">A thought just for you</label>
+              <textarea id="whisperAnswer" rows="5" maxlength="900" placeholder="Write what comes to mind..."></textarea>
+              <div class="field-bottom"><small id="wordCount">0 / 900 characters</small><span>PRIVATE UNTIL YOU CHOOSE</span></div>
+              <div class="button-row"><button class="button primary" id="saveWhisper" type="button">Save this Whisper <span>↗</span></button><button class="button ghost" id="nextWhisper" type="button">Different prompt</button></div>
+              <p id="whisperFeedback" class="feedback" role="status"></p>
+            </article>
+            <aside class="content-card history-card">
+              <div class="section-caption">YOUR PRIVATE COLLECTION</div>
+              <h3>Words you've held onto.</h3>
+              <p class="soft">Saved Whispers are private. Preview and confirm each share. In this demo, sharing only records your choice locally.</p>
+              <div id="whisperHistory" class="history-list"></div>
+              <p class="microcopy">In the live product, one spouse will never see the other's private Whispers without explicit permission.</p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" data-page="dates" hidden>
+          <div class="page-heading"><div class="overline">02 / SHARED NOVELTY</div><h1>Make a memory<br><em>on purpose.</em></h1><p>Good adventures aren't always expensive. They're unexpected, shared, and actually planned.</p></div>
+          <div class="two-column date-layout">
+            <article class="content-card">
+              <div class="section-caption">TELL THREEFOLD WHAT WORKS</div>
+              <div class="field"><label for="dateMood">What kind of evening?</label><select id="dateMood"><option value="romantic">Romantic &amp; meaningful</option><option value="playful">Playful &amp; surprising</option><option value="quiet">Quiet &amp; unrushed</option><option value="creative">Creative &amp; hands-on</option></select></div>
+              <div class="field"><label for="dateBudget">Your comfortable spending range</label><select id="dateBudget"><option value="0">Free</option><option value="25">Up to $25</option><option value="50" selected>Up to $50</option><option value="100">Up to $100</option></select></div>
+              <div class="field"><label for="dateChildcare">Childcare plans</label><select id="dateChildcare"><option value="not-needed">Not needed</option><option value="arranged">Already arranged</option><option value="needed">Still need arrangements</option></select></div>
+              <div class="field"><label for="dateLocation">City or neighborhood (optional)</label><input id="dateLocation" maxlength="80" placeholder="For your own planning notes"></div>
+              <button type="button" class="button primary full-width" id="planDate">Make our plan <span>↗</span></button>
+              <p class="microcopy">Prototype plans come from curated ideas—not live restaurant searches, bookings, or AI.</p>
+            </article>
+            <article class="content-card planned-card">
+              <div class="eyebrow-tag">YOUR NEXT ADVENTURE</div>
+              <h2 id="dateTitle">The First Braid</h2>
+              <p class="date-intro" id="dateIntro"></p>
+              <div class="detail-row"><span>Estimated materials</span><strong id="dateCost"></strong></div>
+              <div class="detail-row"><span>Time together</span><strong id="dateTime"></strong></div>
+              <div class="detail-row"><span>Bring along</span><strong id="dateSupplies"></strong></div>
+              <div id="childcareNote" class="tip"></div>
+              <h3>Make it happen</h3>
+              <div id="dateSteps" class="step-list"></div>
+              <button id="finishDate" type="button" class="button primary full-width">Complete this adventure <span>✦</span></button>
+              <p id="dateFeedback" class="feedback" role="status"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" data-page="dive" hidden>
+          <div class="page-heading"><div class="overline">03 / A STORY YOU STEP INTO</div><h1>Every choice<br><em>weaves a strand.</em></h1><p>An interactive fictional experience in eight milestones. The choices are yours; the consequences belong to the story.</p></div>
+          <article class="content-card dive-card">
+            <div class="dive-head"><div><span class="eyebrow-tag">DEEP DIVE NO. 01</span><h2>Christmas Tug-of-War</h2><p class="soft">A story about making decisions as a team—and holding them with kindness.</p></div><span id="diveFraction" class="fraction">01 / 08</span></div>
+            <div id="milestoneRail" class="rail" aria-label="Eight story milestones"></div>
+            <div class="story-body">
+              <p class="chapter-location" id="chapterLocation"></p>
+              <h3 id="chapterTitle"></h3>
+              <p id="chapterStory" class="story-text"></p>
+              <div id="choiceBlock" hidden><h4 id="chapterPrompt"></h4><div id="choiceOptions" class="options-list"></div></div>
+              <div id="choiceOutcome" class="outcome" hidden><span class="eyebrow-tag" id="outcomeLabel">THE CONSEQUENCE</span><p id="consequence"></p><div class="coach"><strong>What this moment teaches</strong><p id="coaching"></p></div></div>
+              <div id="storyLesson" class="lesson" hidden><span class="eyebrow-tag">A MOMENT TO NOTICE</span><p id="lessonText"></p></div>
+              <p id="chapterTransition" class="soft"></p>
+            </div>
+            <div class="dive-footer"><div><strong id="braidCount">0 crossings woven</strong><small id="diveStatus">Each finished milestone adds a new fold to the cord.</small></div><button id="nextChapter" type="button" class="button primary">Complete this chapter <span>↗</span></button></div>
+          </article>
+        </section>
+
+        <section class="view" data-page="journey" hidden>
+          <div class="page-heading"><div class="overline">04 / THE ART OF US</div><h1>Look what you've<br><em>started weaving.</em></h1><p>Whispers and adventures open petals. Each Deep Dive milestone adds a new crossing to the cord. Every fold holds a story.</p></div>
+          <div class="two-column journey-layout">
+            <article class="content-card journey-art"><div class="section-caption">YOUR THREEFOLD</div><div class="blossom-wrap large" id="journeyArt" aria-label="Your progress flower and threefold cord"></div><div class="legend"><span><i class="swatch gold"></i> Whispers</span><span><i class="swatch rose"></i> Date adventures</span><span><i class="swatch sage"></i> Deep Dive braid</span></div></article>
+            <article class="content-card journey-summary">
+              <div class="section-caption">WHAT YOU'VE MADE</div>
+              <div class="milestone-stat"><span>Petals opened</span><strong id="journeyPetals">0 / 8</strong></div>
+              <div class="milestone-stat"><span>Deep Dive crossings</span><strong id="journeyBraid">0 / 8</strong></div>
+              <div class="milestone-stat"><span>Love Whispers kept</span><strong id="journeyWhispers">0</strong></div>
+              <div class="milestone-stat"><span>Date adventures enjoyed</span><strong id="journeyDates">0</strong></div>
+              <div class="line-quote"><span>✦</span><p>One day, this will be more than a picture. It will be the story of what you kept choosing together.</p></div>
+              <button type="button" class="button outline full-width" data-go="dates">Plan the next chapter <span>↗</span></button>
+            </article>
+          </div>
+        </section>
+      </main>
+      <footer class="app-footer"><span>THE MARRIAGE PROJECT <i>✦</i> THE ADVENTURE AWAITS</span><span>Educational &amp; recreational experience, not counseling or therapy.</span></footer>
+    </div>
+  </div>
+
+  <div id="shareOverlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareHeading">
+      <span class="eyebrow-tag">YOUR CHOICE MATTERS</span><h2 id="shareHeading">Share this Whisper?</h2>
+      <p>Your words are private unless you intentionally share them. This demo will only mark the Whisper as shared locally; it cannot notify anyone.</p>
+      <blockquote id="shareText"></blockquote>
+      <div class="button-row"><button id="confirmShare" type="button" class="button primary">Confirm demo share</button><button id="cancelShare" type="button" class="button ghost">Keep private</button></div>
+    </div>
+  </div>
+</body>
+</html>
