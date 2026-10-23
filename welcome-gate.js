@@ -18,13 +18,13 @@
  document.head.append(style);
  const overlay=document.createElement("div");overlay.className="anthos-gate";overlay.setAttribute("role","dialog");overlay.setAttribute("aria-modal","true");overlay.setAttribute("aria-labelledby","anthos-gate-heading");
  overlay.innerHTML=`<div class="anthos-gate-panel"><div class="anthos-gate-mark" aria-hidden="true">✳</div><div class="anthos-gate-brand">anthos</div><div class="anthos-gate-eyebrow">THE BEGINNING OF YOUR STORY</div>
- <h2 id="anthos-gate-heading">Every love story has a beginning.</h2><p>Before we begin, tell us two important dates in yours.</p>
+ <h2 id="anthos-gate-heading">Every love story has a beginning.</h2><p>The best adventures begin when we know a little about you. These dates will help Anthos celebrate your milestones and, once personal accounts launch, suggest experiences that fit your season of life.</p>
  <form id="anthos-gate-form"><div class="anthos-gate-fields">
- <label>Your date of birth <small>To confirm this experience is right for adults 18 and older.</small><input name="birthday" type="date" required autocomplete="bday"></label>
- <label>Your wedding date <small>A special day worth remembering.</small><input name="wedding" type="date" required></label></div>
+ <label>Your date of birth <small>Helps us understand your stage of life, remember your birthday, and confirm that Anthos is for adults 18 and older.</small><input name="birthday" type="date" required autocomplete="bday"></label>
+ <label>Your wedding date <small>Helps us celebrate anniversaries and the story you've built together.</small><input name="wedding" type="date" required></label></div>
  <p class="anthos-gate-error" id="anthos-gate-error" role="alert"></p>
  <button type="submit">Begin our story &rarr;</button></form>
- <p class="anthos-gate-footer">Your dates aren't sent or saved by this welcome screen. <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p></div>`;
+ <p class="anthos-gate-footer">This preview only checks the dates in your browser; it doesn't save them or personalize the demo yet. <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></p></div>`;
  document.body.append(overlay);
  const today=new Date(),todayStr=[today.getFullYear(),String(today.getMonth()+1).padStart(2,"0"),String(today.getDate()).padStart(2,"0")].join("-");
  const b=overlay.querySelector('[name="birthday"]'),w=overlay.querySelector('[name="wedding"]'),error=overlay.querySelector("#anthos-gate-error");
