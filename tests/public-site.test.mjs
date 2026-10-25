@@ -62,3 +62,15 @@ test("admin implementation progress is authenticated, labeled and linked to trac
  assert.match(studio,/progress:"IMPLEMENTATION PROGRESS"/);
  assert.match(studio,/dashboard/);
 });
+
+test("admin operations redesign stays compact and removes test SMS controls",()=>{
+ assert.match(admin,/Implementation command center/);
+ assert.match(admin,/compact-phase/);
+ assert.match(admin,/progress-kpis/);
+ assert.doesNotMatch(admin,/id="sendTestSMS"|id="smsConfirm"|test-sms-panel/);
+ const adminJs=read("admin/admin.js");
+ assert.doesNotMatch(adminJs,/sendTestSMS|smsTestReady|smsConfirm/);
+ const css=read("admin/admin.css");
+ assert.match(css,/progress-console/);
+ assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+});
