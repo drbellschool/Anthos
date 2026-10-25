@@ -258,3 +258,7 @@ h1{font-size:clamp(34px,4vw,52px)}h2{font-size:clamp(23px,2.5vw,31px)}
 .feature-empty{padding:16px;font-size:12px;color:#485b4c}
 .compact-phase[role="button"]{cursor:pointer}.compact-phase[role="button"]:hover{background:#edf4ee}.compact-phase[role="button"]:focus-visible{outline:2px solid #215b3a;outline-offset:-2px}
 @media(max-width:620px){.feature-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.feature-toolbar label:first-child{grid-column:1/-1}.feature-row-head{gap:6px;padding:10px 8px}.feature-detail{padding:10px 12px}.feature-row-head strong{font-size:11px}}
+
+.feature-checklist{margin:5px 0 12px;padding-left:17px;display:grid;gap:5px}
+.feature-checklist li{font:600 11px/1.5 system-ui;color:#24452f}
+.feature-checklist li::marker{color:#8c9f91}
