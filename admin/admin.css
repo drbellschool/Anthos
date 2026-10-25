@@ -163,3 +163,22 @@ footer{border-top:1px solid var(--line);padding:20px clamp(22px,4.3vw,73px);lett
   .nav .identity{margin-right:0}
 }
 @media(max-width:630px){.objective-cards{grid-template-columns:1fr}#sampleStats{grid-template-columns:1fr}.handoff-row{grid-template-columns:1fr}.handoff-row small{grid-column:auto}.studio-lead{font-size:14px}}
+
+
+/* Implementation progress — read-only, evidence-led roadmap */
+.progress-phases{display:grid;gap:12px;margin:22px 0 36px}
+.progress-phase{display:grid;grid-template-columns:52px minmax(0,1fr);gap:16px;align-items:start;padding:20px;background:var(--paper);border:1px solid var(--line);border-radius:14px}
+.phase-letter{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#e8ede4;color:#51694f;font:italic 27px var(--serif)}
+.progress-phase h3,.progress-register h3,.progress-next h3{font:normal 23px/1.25 var(--serif);margin:0 0 9px}
+.progress-phase p,.progress-register p,.progress-next p{margin:0;color:#666e64;font-size:13px;line-height:1.65}
+.progress-phase small{display:block;margin-top:8px;color:#8a765c;font-size:12px}
+.progress-status{display:inline-block;vertical-align:middle;padding:5px 9px;border-radius:99px;background:#eeeae2;color:#716a5e;font:700 10px/1.4 system-ui;letter-spacing:.03em;white-space:nowrap}
+.progress-status.progress-active{background:#f5e8c8;color:#8a6227}
+.progress-status.progress-done{background:#e4eee3;color:#466d4a}
+.progress-status.progress-review{background:#f4e8db;color:#996d43}
+.progress-register{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:22px 0 30px}
+.progress-register article{padding:20px;background:var(--paper);border:1px solid var(--line);border-radius:13px}
+.progress-register h3{margin-top:13px}
+.progress-next{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:25px;border-radius:15px;background:#edf0e8;border:1px solid #d9e1d4;margin-bottom:18px}
+.progress-next .button{flex-shrink:0;text-decoration:none}
+@media(max-width:700px){.progress-register{grid-template-columns:1fr}.progress-next{flex-direction:column;align-items:stretch}.progress-phase{grid-template-columns:42px minmax(0,1fr);padding:15px}.phase-letter{width:40px;height:40px}.progress-phase h3{font-size:20px}.progress-status{margin-top:5px}}
