@@ -262,3 +262,6 @@ h1{font-size:clamp(34px,4vw,52px)}h2{font-size:clamp(23px,2.5vw,31px)}
 .feature-checklist{margin:5px 0 12px;padding-left:17px;display:grid;gap:5px}
 .feature-checklist li{font:600 11px/1.5 system-ui;color:#24452f}
 .feature-checklist li::marker{color:#8c9f91}
+
+.feature-live{padding:8px 13px;background:#dce9df;border-bottom:1px solid #b5cbbb;color:#204b30;font:700 11px/1.5 system-ui}
+.feature-issue-status{font:750 10px/1.5 system-ui!important;color:#256044!important;padding:5px 8px;background:#e5f1e8;border-radius:4px;display:inline-block}

@@ -56,7 +56,7 @@ test("admin implementation progress is authenticated, labeled and linked to trac
  assert.match(admin,/data-studio-tab="progress"/);
  assert.match(admin,/data-studio-page="progress"/);
  assert.match(admin,/Tracked snapshot/);
- assert.match(admin,/Not a live GitHub or Vercel feed/i);
+ assert.match(admin,/GitHub issue state and timestamps update live/);
  assert.match(admin,/github\.com\/drbellschool\/Anthos\/issues\/4/);
  const studio=read("admin/studio.js");
  assert.match(studio,/progress:"IMPLEMENTATION PROGRESS"/);
@@ -96,4 +96,15 @@ test("feature details preserve concrete acceptance criteria for Petal Journeys a
  assert.match(progress,/Individual progress when the other spouse pauses/);
  assert.match(progress,/Marriage duration calculated from confirmed wedding date/);
  assert.match(progress,/never auto-post/);
+});
+
+test("live GitHub issue sync is admin-gated and does not imply completion",()=>{
+ const api=read("api/admin.mjs");
+ const progress=read("admin/progress.js");
+ assert.match(api,/view"\)==="development"/);
+ assert.match(api,/if \(!isAdmin\(request\)\)/);
+ assert.match(api,/getDevelopmentStatus/);
+ assert.match(admin,/id="featureLiveStatus"/);
+ assert.match(progress,/Issue closure does not prove a feature is shipped/);
+ assert.match(progress,/Live GitHub status unavailable/);
 });
