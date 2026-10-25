@@ -27,7 +27,7 @@ const json = (body, status = 200, extra = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...HEADERS, ...extra } });
 function env(name) { return process.env[name]?.trim() || ""; }
 const configured = () =>
-  (process.env.THREEFOLD_ADMIN_PASSWORD || "").length >= 16 && env("THREEFOLD_SESSION_SECRET").length >= 32;
+  (process.env.THREEFOLD_ADMIN_PASSWORD || "").length >= 10 && env("THREEFOLD_SESSION_SECRET").length >= 32;
 
 function parseCookie(request, name) {
   const raw = request.headers.get("cookie") || "";
