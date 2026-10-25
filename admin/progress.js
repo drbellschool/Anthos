@@ -53,7 +53,7 @@ function render(){
 search.addEventListener("input",render);phase.addEventListener("change",render);status.addEventListener("change",render);
 document.querySelectorAll(".compact-phase").forEach(row=>{
  row.tabIndex=0;row.setAttribute("role","button");row.title="Filter features by phase";
- const go=()=>{phase.value=row.querySelector("b").textContent;render();list.scrollIntoView({block:"start",behavior:"smooth"});};
+ const go=()=>{phase.value=row.querySelector("b").textContent;phase.dispatchEvent(new Event("change"));list.scrollIntoView({block:"start",behavior:"smooth"});};
  row.addEventListener("click",go);row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});
 });
 render();
@@ -77,7 +77,6 @@ async function refreshGitHub(){
     info.textContent="GitHub #"+issue.number+" · "+issue.state.toUpperCase()+" · Updated "+new Date(issue.updatedAt).toLocaleDateString();
    }
   };
-  const oldRender=render;
   // Refresh status labels after every search/filter render.
   search.addEventListener("input",apply);
   phase.addEventListener("change",apply);
@@ -87,5 +86,5 @@ async function refreshGitHub(){
   live.textContent="Live GitHub status unavailable. Showing the dated planning snapshot; no statuses have been inferred.";
  }
 }
-refreshGitHub();
+document.addEventListener("threefold-auth",event=>{if(event.detail?.authenticated)refreshGitHub();});
 })();
