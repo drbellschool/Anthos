@@ -188,6 +188,10 @@ async function sendOneTestSMS() {
 export default {
   async fetch(request) {
     if (!["GET","POST"].includes(request.method)) return json({error:"Method not allowed."},405,{Allow:"GET, POST"});
+    if (request.method==="GET" && new URL(request.url).searchParams.get("view")==="development") {
+      if (!isAdmin(request)) return json({error:"Administrator sign-in required."},401);
+      return json(await getDevelopmentStatus());
+    }
     if (request.method==="GET") {
       // Development status is read-only; the admin session remains mandatory.
       return json({authenticated:isAdmin(request),adminConfigured:configured(), 
