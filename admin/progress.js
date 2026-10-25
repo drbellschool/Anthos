@@ -32,6 +32,19 @@ function render(){
   content.append(node("p","",t[3]),node("h4","","Next action"),node("p","",t[4]));
   const a=node("a","feature-link","View detailed GitHub specification #"+t[5]+" ↗");
   a.href="https://github.com/drbellschool/Anthos/issues/"+t[5];a.target="_blank";a.rel="noopener noreferrer";content.append(a);
+  const checklists={
+   "Themed Petal Journeys":["Petal objectives and completion criteria","Themed Deep Dives, Whispers and Adventures","Revisit history and one collage per petal"],
+   "Different spouse priorities":["Private priorities from both partners","Mutual opt-in for shared adventures","Individual progress when the other spouse pauses"],
+   "A Day Through Our Eyes":["Photo schedule agreed by both","Two separate labeled timelines","Secure upload, retention and deletion"],
+   "One collage per petal":["Both partners represented","Marriage duration calculated from confirmed wedding date","Joint review and approval"],
+   "Instagram sharing and referrals":["Legible 4:5 export","Explicit approval from both partners","Optional referral attribution; never auto-post"]
+  };
+  if(checklists[t[1]]){
+   content.append(node("h4","","Acceptance criteria · not yet completed"));
+   const ul=node("ul","feature-checklist");
+   for(const check of checklists[t[1]])ul.append(node("li","",check));
+   content.append(ul);
+  }
   details.append(content);list.append(details);
  }
  if(!rows.length)list.append(node("p","feature-empty","No matching features."));
