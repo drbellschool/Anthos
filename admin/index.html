@@ -22,6 +22,7 @@
       <button type="button" class="nav-item" data-studio-tab="threefold"><span class="nav-icon">◌</span> Threefold</button>
       <button type="button" class="nav-item" data-studio-tab="deepdives"><span class="nav-icon">≋</span> Deep Dive objectives</button>
       <button type="button" class="nav-item" data-studio-tab="couples"><span class="nav-icon">♧</span> Couple insights</button>
+      <button type="button" class="nav-item" data-studio-tab="progress"><span class="nav-icon">◷</span> Implementation progress</button>
     </nav>
     <a class="nav-item" href="/experience/"><span class="nav-icon">↗</span> Couple experience demo</a>
     <div class="aside-footer">
@@ -181,6 +182,40 @@
               <p class="hint">The future live dashboard will distinguish *completed story objectives* from participants' overall relationship health. No marital quality scores.</p>
             </article>
           </div>
+        </section>
+
+        <section data-studio-page="progress" class="studio-page" hidden>
+          <div class="page-kicker">06 / PRODUCT DEVELOPMENT</div>
+          <h2 class="studio-title">From conversation <em>to creation.</em></h2>
+          <p class="studio-lead">A transparent view of what Anthos has built, what is being designed, and what comes next. Planning is never counted as shipped software.</p>
+          <div class="notice"><strong>Tracked snapshot · October 25, 2026.</strong> This is a versioned roadmap, not a live GitHub or Vercel feed. Verified items refer to repository changes and successful automated checks; third-party integrations and customer workflows still need end-to-end verification. <a href="https://github.com/drbellschool/Anthos/issues/4" target="_blank" rel="noopener noreferrer">Open master tracker ↗</a></div>
+          <div class="stats-grid">
+            <article class="stat"><span class="stat-caption">VERIFIED FOUNDATION</span><div class="stat-value">3</div><small>Repository, admin login, and admin asset fix</small></article>
+            <article class="stat"><span class="stat-caption">DESIGN WORKSTREAMS</span><div class="stat-value">8</div><small>Defined in our product conversations</small></article>
+            <article class="stat"><span class="stat-caption">CURRENT PHASE</span><div class="stat-value">A</div><small>Foundation audit and integrations</small></article>
+            <article class="stat"><span class="stat-caption">NEXT RELEASE</span><div class="stat-value">Audit</div><small>Confirm production behavior before features</small></article>
+          </div>
+          <div class="section-line"><div class="eyebrow">01 / RELEASE ROADMAP</div><h2>Five phases. One journey.</h2><p>Each phase advances only when its actual acceptance tests and production evidence are recorded.</p></div>
+          <div class="progress-phases">
+            <article class="progress-phase"><span class="phase-letter">A</span><div><h3>Foundation <span class="progress-status progress-active">In progress</span></h3><p>Domain, authentication, consent, Supabase, Telnyx, Vercel, admin access and cost telemetry.</p><small>Next: verify actual database, carrier approval, and production workflows.</small></div></article>
+            <article class="progress-phase"><span class="phase-letter">B</span><div><h3>Core experiences <span class="progress-status">Designed</span></h3><p>Sophia, Paraclete, eight-milestone Deep Dives, individual mastery, and Love Whispers.</p></div></article>
+            <article class="progress-phase"><span class="phase-letter">C</span><div><h3>Petal Journeys <span class="progress-status">Designing</span></h3><p>Couple-led priorities, themed sequences, individual growth, shared consent and petal completion.</p></div></article>
+            <article class="progress-phase"><span class="phase-letter">D</span><div><h3>Anthos Moments <span class="progress-status">Designed concept</span></h3><p>Photo Adventures, per-petal collages, labeled timelines, anniversary headlines, approved sharing and referrals.</p></div></article>
+            <article class="progress-phase"><span class="phase-letter">E</span><div><h3>Launch <span class="progress-status">Planned</span></h3><p>End-to-end tests, pricing validation, privacy review and first customer onboarding.</p></div></article>
+          </div>
+          <div class="section-line"><div class="eyebrow">02 / IMPLEMENTATION REGISTER</div><h2>What is actually done?</h2><p>These statuses are deliberately conservative. A design decision does not mean a production feature exists.</p></div>
+          <div class="progress-register">
+            <article><span class="progress-status progress-done">Verified in repository</span><h3>Anthos GitHub repository</h3><p>Source code, issue tracker and pull-request history are present.</p></article>
+            <article><span class="progress-status progress-done">Code verified</span><h3>Administrator sign-in</h3><p>Admin login code and credential-length correction merged; user confirmed access.</p></article>
+            <article><span class="progress-status progress-done">Checks passed</span><h3>Admin styling and navigation</h3><p>Absolute asset paths fixed and automated tests passed; user confirmed the studio works.</p></article>
+            <article><span class="progress-status progress-review">Needs verification</span><h3>Supabase, Telnyx and live messaging</h3><p>Secrets and setup were discussed; working integrations and campaign status require direct tests.</p></article>
+            <article><span class="progress-status">Designed</span><h3>Sophia and Paraclete</h3><p>Separate coaching and concierge roles, with planned contextual handoff.</p></article>
+            <article><span class="progress-status">Designed</span><h3>Deep Dives and Love Whispers</h3><p>Eight visible milestones, independent mastery, private per-spouse Whispers and repair loops.</p></article>
+            <article><span class="progress-status">Designing</span><h3>Petal sequence and couple priorities</h3><p>Couple-driven themes, differing preferences, voluntary shared activities and independent progress.</p></article>
+            <article><span class="progress-status">Designed concept</span><h3>Petal collages and referrals</h3><p>Private memories, optional social editions, both-spouse approval and invitation tracking.</p></article>
+          </div>
+          <div class="progress-next"><div><span class="eyebrow">03 / NEXT DEVELOPMENT ACTION</span><h3>Audit the working foundation</h3><p>Confirm production routes, Supabase permissions, messaging consent and webhook handling. Then convert each designed feature into a testable implementation issue.</p></div><a class="button primary" href="https://github.com/drbellschool/Anthos/issues/4" target="_blank" rel="noopener noreferrer">View development tracker ↗</a></div>
+          <p class="hint">This dashboard is a read-only roadmap snapshot. GitHub issue #4 remains the source of truth for changes, blockers and implementation evidence.</p>
         </section>
       </div>
       <p class="global-message" id="globalStatus" role="status"></p>
