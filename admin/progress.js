@@ -45,6 +45,7 @@ function render(){
    for(const check of checklists[t[1]])ul.append(node("li","",check));
    content.append(ul);
   }
+  details.dataset.issue=String(t[5]);
   details.append(content);list.append(details);
  }
  if(!rows.length)list.append(node("p","feature-empty","No matching features."));
@@ -52,8 +53,38 @@ function render(){
 search.addEventListener("input",render);phase.addEventListener("change",render);status.addEventListener("change",render);
 document.querySelectorAll(".compact-phase").forEach(row=>{
  row.tabIndex=0;row.setAttribute("role","button");row.title="Filter features by phase";
- const go=()=>{phase.value=row.querySelector("b").textContent;render();list.scrollIntoView({block:"start",behavior:"smooth"});};
+ const go=()=>{phase.value=row.querySelector("b").textContent;phase.dispatchEvent(new Event("change"));list.scrollIntoView({block:"start",behavior:"smooth"});};
  row.addEventListener("click",go);row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});
 });
 render();
+async function refreshGitHub(){
+ const live=document.getElementById("featureLiveStatus");
+ if(!live)return;
+ try{
+  const res=await fetch("/api/admin?view=development",{credentials:"same-origin",cache:"no-store"});
+  if(!res.ok)throw new Error("unavailable");
+  const data=await res.json();
+  if(!data.ok)throw new Error("unavailable");
+  const byNumber=new Map(data.issues.map(i=>[i.number,i]));
+  const updated=new Date(data.checkedAt).toLocaleString();
+  live.textContent="GitHub issues synced "+updated+" · "+data.issues.filter(i=>i.state==="open").length+" open / "+data.issues.length+" tracked. Issue closure does not prove a feature is shipped.";
+  const apply=()=>{
+   for(const row of list.querySelectorAll("[data-issue]")){
+    const issue=byNumber.get(Number(row.dataset.issue));
+    if(!issue)continue;
+    let info=row.querySelector(".feature-issue-status");
+    if(!info){info=node("p","feature-issue-status");row.querySelector(".feature-detail").prepend(info);}
+    info.textContent="GitHub #"+issue.number+" · "+issue.state.toUpperCase()+" · Updated "+new Date(issue.updatedAt).toLocaleDateString();
+   }
+  };
+  // Refresh status labels after every search/filter render.
+  search.addEventListener("input",apply);
+  phase.addEventListener("change",apply);
+  status.addEventListener("change",apply);
+  apply();
+ }catch{
+  live.textContent="Live GitHub status unavailable. Showing the dated planning snapshot; no statuses have been inferred.";
+ }
+}
+document.addEventListener("threefold-auth",event=>{if(event.detail?.authenticated)refreshGitHub();});
 })();
