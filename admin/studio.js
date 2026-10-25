@@ -18,7 +18,7 @@
     }
   };
   function showTab(tab) {
-    if($("dashboard").hidden || !["overview","sophia","paraclete","threefold","deepdives","couples"].includes(tab))return;
+    if($("dashboard").hidden || !["overview","sophia","paraclete","threefold","deepdives","couples","progress"].includes(tab))return;
     document.querySelectorAll("[data-studio-page]").forEach(el=>el.hidden=el.dataset.studioPage!==tab);
     document.querySelectorAll("[data-studio-tab]").forEach(button=>{
       const active=button.dataset.studioTab===tab;
@@ -27,7 +27,7 @@
     });
     $("studioIntro").hidden=tab!=="overview";
     $("studioBreadcrumb").textContent=tab==="overview"?"PRIVATE STUDIO":
-      ({sophia:"SOPHIA",paraclete:"PARACLETE",threefold:"THREEFOLD",deepdives:"DEEP DIVE OBJECTIVES",couples:"COUPLE INSIGHTS"})[tab];
+      ({sophia:"SOPHIA",paraclete:"PARACLETE",threefold:"THREEFOLD",deepdives:"DEEP DIVE OBJECTIVES",couples:"COUPLE INSIGHTS",progress:"IMPLEMENTATION PROGRESS"})[tab];
     window.scrollTo(0,0);
   }
   const personaNames=["sophia","paraclete","threefold"];
