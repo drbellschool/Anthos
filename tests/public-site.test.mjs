@@ -88,3 +88,12 @@ test("feature drilldown preserves themed journeys and collage specifications",()
  assert.match(features,/issues\/"/);
  assert.match(features,/addEventListener/);
 });
+
+test("feature details preserve concrete acceptance criteria for Petal Journeys and Moments",()=>{
+ const progress=read("admin/progress.js");
+ assert.match(progress,/Acceptance criteria/);
+ assert.match(progress,/Two separate labeled timelines/);
+ assert.match(progress,/Individual progress when the other spouse pauses/);
+ assert.match(progress,/Marriage duration calculated from confirmed wedding date/);
+ assert.match(progress,/never auto-post/);
+});
