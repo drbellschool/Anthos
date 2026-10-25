@@ -185,6 +185,22 @@ async function sendOneTestSMS() {
   }finally{clearTimeout(timeout);}
 }
 
+async function getDevelopmentStatus() {
+  try {
+    const response = await fetch("https://api.github.com/repos/drbellschool/Anthos/issues?state=all&per_page=100", {
+      headers: {Accept:"application/vnd.github+json", "User-Agent":"Anthos-Admin"},
+      signal: AbortSignal.timeout(6500)
+    });
+    if (!response.ok) return {ok:false,error:"GitHub status unavailable."};
+    const issues = await response.json();
+    if (!Array.isArray(issues)) return {ok:false,error:"Unexpected issue data."};
+    return {ok:true,checkedAt:new Date().toISOString(),issues:issues.filter(x=>!x.pull_request).map(x=>({
+      number:x.number,title:x.title,state:x.state,updatedAt:x.updated_at,
+      labels:(x.labels||[]).map(l=>l.name).filter(Boolean),
+      url:"https://github.com/drbellschool/Anthos/issues/"+x.number
+    }))};
+  } catch {return {ok:false,error:"GitHub status unavailable."};}
+}
 export default {
   async fetch(request) {
     if (!["GET","POST"].includes(request.method)) return json({error:"Method not allowed."},405,{Allow:"GET, POST"});
