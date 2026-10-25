@@ -79,34 +79,15 @@
             <div class="service-output" id="telnyxOutput" role="status">No live check has been run.</div>
           </article>
         </div>
-        <section class="panel test-sms-panel">
-          <div class="panel-top"><div><div class="eyebrow">02 / DELIVERY REHEARSAL</div><h2>Send one test text.</h2></div><span class="ornament">↗</span></div>
-          <p>Try a single, predefined Threefold message on your own mobile phone. The recipient must be privately allowlisted in Vercel and your Telnyx 10DLC campaign must already be approved with the sender number assigned. No real couple is contacted.</p>
-          <div class="test-readiness">
-            <div><span>Recipient allowlisted</span><strong id="smsTestRecipient">Not configured</strong></div>
-            <div><span>10DLC approval confirmed</span><strong id="smsTestCarrier">Awaiting verification</strong></div>
-            <div><span>SMS test switch</span><strong id="smsTestEnabled">Off</strong></div>
-          </div>
-          <div class="test-preview"><span class="eyebrow">EXACT MESSAGE TO SEND</span><p id="smsTestPreview">Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.</p></div>
-          <div class="test-checks">
-            <label class="check-row"><input id="smsOwner" type="checkbox"><span>This is my own mobile number, and I am the intended recipient.</span></label>
-            <label class="check-row"><input id="smsConsent" type="checkbox"><span>I consent to receiving this one test SMS from Threefold.</span></label>
-            <label class="check-row"><input id="smsCarrierConfirmed" type="checkbox"><span>I verified that Telnyx approved the 10DLC campaign and assigned this sender number.</span></label>
-          </div>
-          <label for="smsConfirm">Type <code>SEND ONE TEST</code> to authorize the message</label>
-          <input id="smsConfirm" autocomplete="off" spellcheck="false" placeholder="SEND ONE TEST" maxlength="24">
-          <div class="buttons"><button type="button" class="button primary" id="sendTestSMS" disabled>Send test SMS ↗</button><span class="hint">Each click requests a billable SMS. Do not repeat after uncertain results.</span></div>
-          <div class="service-output" id="testSMSOutput" role="status">SMS test is locked until the approved sending number and your phone are configured.</div>
-        </section>
         <section class="panel playground">
-          <div class="panel-top"><div><div class="eyebrow">03 / TRY THE VOICE</div><h2>A private AI rehearsal.</h2></div><span class="ornament">“</span></div>
+          <div class="panel-top"><div><div class="eyebrow">02 / TRY THE VOICE</div><h2>A private AI rehearsal.</h2></div><span class="ornament">“</span></div>
           <p>Explore the relationship-adventure tone with a fictional situation. This sends your test prompt to OpenAI, may incur API charges and does not read or store any couple's conversation.</p>
           <label for="aiPrompt">Fictional sample prompt</label>
           <textarea id="aiPrompt" maxlength="500" rows="4">Help two fictional spouses turn an ordinary Saturday night into a playful, affordable shared adventure.</textarea>
           <div class="buttons"><button type="button" class="button primary" id="tryOpenAI">Try the Threefold voice <span>✦</span></button><span class="hint">Maximum 500 characters. No real participant information.</span></div>
           <div class="ai-response" id="aiResponse" role="status"><span>THE RESPONSE WILL APPEAR HERE</span><p>Threefold's AI response is ready to rehearse once the OpenAI key is connected.</p></div>
         </section>
-        <div class="section-line"><div class="eyebrow">04 / LAUNCH CONTROL</div><h2>Before the first couple</h2></div>
+        <div class="section-line"><div class="eyebrow">03 / LAUNCH CONTROL</div><h2>Before the first couple</h2></div>
         <section class="launch-grid">
           <article class="launch-step"><span>01</span><div><strong>Connect the secure database</strong><p>Restore or replace Supabase, apply the reviewed SQL migrations, and enforce individual spouse privacy.</p></div></article>
           <article class="launch-step"><span>02</span><div><strong>Complete messaging compliance</strong><p>Verify Telnyx 10DLC approval, independent opt-in, STOP handling and reliable outbound logging.</p></div></article>
@@ -184,38 +165,33 @@
           </div>
         </section>
 
-        <section data-studio-page="progress" class="studio-page" hidden>
-          <div class="page-kicker">06 / PRODUCT DEVELOPMENT</div>
-          <h2 class="studio-title">From conversation <em>to creation.</em></h2>
-          <p class="studio-lead">A transparent view of what Anthos has built, what is being designed, and what comes next. Planning is never counted as shipped software.</p>
-          <div class="notice"><strong>Tracked snapshot · October 25, 2026.</strong> This is a versioned roadmap, not a live GitHub or Vercel feed. Verified items refer to repository changes and successful automated checks; third-party integrations and customer workflows still need end-to-end verification. <a href="https://github.com/drbellschool/Anthos/issues/4" target="_blank" rel="noopener noreferrer">Open master tracker ↗</a></div>
-          <div class="stats-grid">
-            <article class="stat"><span class="stat-caption">VERIFIED FOUNDATION</span><div class="stat-value">3</div><small>Repository, admin login, and admin asset fix</small></article>
-            <article class="stat"><span class="stat-caption">DESIGN WORKSTREAMS</span><div class="stat-value">8</div><small>Defined in our product conversations</small></article>
-            <article class="stat"><span class="stat-caption">CURRENT PHASE</span><div class="stat-value">A</div><small>Foundation audit and integrations</small></article>
-            <article class="stat"><span class="stat-caption">NEXT RELEASE</span><div class="stat-value">Audit</div><small>Confirm production behavior before features</small></article>
+        <section data-studio-page="progress" class="studio-page progress-console" hidden>
+          <div class="progress-heading"><div><div class="page-kicker">PRODUCT OPERATIONS / 25 OCT 2026</div><h2 class="studio-title">Implementation <em>command center.</em></h2><p>Evidence-based roadmap · Snapshot, not live sync</p></div><a href="https://github.com/drbellschool/Anthos/issues/4" class="button primary" target="_blank" rel="noopener noreferrer">GitHub tracker ↗</a></div>
+          <div class="stats-grid progress-kpis">
+            <article class="stat"><span class="stat-caption">CODE VERIFIED</span><div class="stat-value">3<span class="kpi-unit"> items</span></div><small>Repository · Auth · Assets</small></article>
+            <article class="stat"><span class="stat-caption">DESIGN TRACKS</span><div class="stat-value">8<span class="kpi-unit"> active</span></div><small>Not shipped</small></article>
+            <article class="stat"><span class="stat-caption">RELEASE PHASE</span><div class="stat-value">A<span class="kpi-unit"> / 5</span></div><small>Foundation audit</small></article>
+            <article class="stat"><span class="stat-caption">NEXT GATE</span><div class="stat-value">Audit</div><small>Integrations + consent</small></article>
           </div>
-          <div class="section-line"><div class="eyebrow">01 / RELEASE ROADMAP</div><h2>Five phases. One journey.</h2><p>Each phase advances only when its actual acceptance tests and production evidence are recorded.</p></div>
-          <div class="progress-phases">
-            <article class="progress-phase"><span class="phase-letter">A</span><div><h3>Foundation <span class="progress-status progress-active">In progress</span></h3><p>Domain, authentication, consent, Supabase, Telnyx, Vercel, admin access and cost telemetry.</p><small>Next: verify actual database, carrier approval, and production workflows.</small></div></article>
-            <article class="progress-phase"><span class="phase-letter">B</span><div><h3>Core experiences <span class="progress-status">Designed</span></h3><p>Sophia, Paraclete, eight-milestone Deep Dives, individual mastery, and Love Whispers.</p></div></article>
-            <article class="progress-phase"><span class="phase-letter">C</span><div><h3>Petal Journeys <span class="progress-status">Designing</span></h3><p>Couple-led priorities, themed sequences, individual growth, shared consent and petal completion.</p></div></article>
-            <article class="progress-phase"><span class="phase-letter">D</span><div><h3>Anthos Moments <span class="progress-status">Designed concept</span></h3><p>Photo Adventures, per-petal collages, labeled timelines, anniversary headlines, approved sharing and referrals.</p></div></article>
-            <article class="progress-phase"><span class="phase-letter">E</span><div><h3>Launch <span class="progress-status">Planned</span></h3><p>End-to-end tests, pricing validation, privacy review and first customer onboarding.</p></div></article>
+          <div class="progress-panel"><div class="progress-panel-head"><h3>Delivery pipeline</h3><span>5 phases · not completion percentages</span></div>
+            <div class="compact-phase"><b>A</b><strong>Foundation</strong><span class="progress-status progress-active">IN PROGRESS</span><small>Auth, database, Telnyx, consent, telemetry</small></div>
+            <div class="compact-phase"><b>B</b><strong>Core experiences</strong><span class="progress-status">DESIGNED</span><small>Sophia, Paraclete, Deep Dives, Whispers</small></div>
+            <div class="compact-phase"><b>C</b><strong>Petal Journeys</strong><span class="progress-status">DESIGNING</span><small>Priorities, personal/shared progress</small></div>
+            <div class="compact-phase"><b>D</b><strong>Anthos Moments</strong><span class="progress-status">CONCEPT</span><small>Photo adventures, collages, sharing</small></div>
+            <div class="compact-phase"><b>E</b><strong>Launch</strong><span class="progress-status">PLANNED</span><small>Tests, pricing, first couple</small></div>
           </div>
-          <div class="section-line"><div class="eyebrow">02 / IMPLEMENTATION REGISTER</div><h2>What is actually done?</h2><p>These statuses are deliberately conservative. A design decision does not mean a production feature exists.</p></div>
-          <div class="progress-register">
-            <article><span class="progress-status progress-done">Verified in repository</span><h3>Anthos GitHub repository</h3><p>Source code, issue tracker and pull-request history are present.</p></article>
-            <article><span class="progress-status progress-done">Code verified</span><h3>Administrator sign-in</h3><p>Admin login code and credential-length correction merged; user confirmed access.</p></article>
-            <article><span class="progress-status progress-done">Checks passed</span><h3>Admin styling and navigation</h3><p>Absolute asset paths fixed and automated tests passed; user confirmed the studio works.</p></article>
-            <article><span class="progress-status progress-review">Needs verification</span><h3>Supabase, Telnyx and live messaging</h3><p>Secrets and setup were discussed; working integrations and campaign status require direct tests.</p></article>
-            <article><span class="progress-status">Designed</span><h3>Sophia and Paraclete</h3><p>Separate coaching and concierge roles, with planned contextual handoff.</p></article>
-            <article><span class="progress-status">Designed</span><h3>Deep Dives and Love Whispers</h3><p>Eight visible milestones, independent mastery, private per-spouse Whispers and repair loops.</p></article>
-            <article><span class="progress-status">Designing</span><h3>Petal sequence and couple priorities</h3><p>Couple-driven themes, differing preferences, voluntary shared activities and independent progress.</p></article>
-            <article><span class="progress-status">Designed concept</span><h3>Petal collages and referrals</h3><p>Private memories, optional social editions, both-spouse approval and invitation tracking.</p></article>
+          <div class="progress-panel"><div class="progress-panel-head"><h3>Implementation register</h3><span>Verified ≠ designed</span></div>
+            <div class="compact-item"><strong>GitHub repository</strong><span class="progress-status progress-done">VERIFIED</span></div>
+            <div class="compact-item"><strong>Admin authentication</strong><span class="progress-status progress-done">VERIFIED</span></div>
+            <div class="compact-item"><strong>Admin assets / navigation</strong><span class="progress-status progress-done">VERIFIED</span></div>
+            <div class="compact-item"><strong>Supabase, Telnyx & live SMS</strong><span class="progress-status progress-review">AUDIT NEEDED</span></div>
+            <div class="compact-item"><strong>Sophia / Paraclete</strong><span class="progress-status">DESIGNED</span></div>
+            <div class="compact-item"><strong>Deep Dives / Whispers</strong><span class="progress-status">DESIGNED</span></div>
+            <div class="compact-item"><strong>Petal priorities & sequence</strong><span class="progress-status">DESIGNING</span></div>
+            <div class="compact-item"><strong>Photo collages / referrals</strong><span class="progress-status">CONCEPT</span></div>
           </div>
-          <div class="progress-next"><div><span class="eyebrow">03 / NEXT DEVELOPMENT ACTION</span><h3>Audit the working foundation</h3><p>Confirm production routes, Supabase permissions, messaging consent and webhook handling. Then convert each designed feature into a testable implementation issue.</p></div><a class="button primary" href="https://github.com/drbellschool/Anthos/issues/4" target="_blank" rel="noopener noreferrer">View development tracker ↗</a></div>
-          <p class="hint">This dashboard is a read-only roadmap snapshot. GitHub issue #4 remains the source of truth for changes, blockers and implementation evidence.</p>
+          <div class="progress-action"><strong>NEXT: Foundation audit</strong><span>Verify production routes, Supabase permissions, messaging consent, webhook handling, and real operating costs.</span><a href="https://github.com/drbellschool/Anthos/issues/4" target="_blank" rel="noopener noreferrer">Open tasks ↗</a></div>
+          <p class="hint">Tracked snapshot · October 25, 2026. Not a live GitHub or Vercel feed. Status changes require evidence in the master tracker.</p>
         </section>
       </div>
       <p class="global-message" id="globalStatus" role="status"></p>

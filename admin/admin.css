@@ -182,3 +182,56 @@ footer{border-top:1px solid var(--line);padding:20px clamp(22px,4.3vw,73px);lett
 .progress-next{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:25px;border-radius:15px;background:#edf0e8;border:1px solid #d9e1d4;margin-bottom:18px}
 .progress-next .button{flex-shrink:0;text-decoration:none}
 @media(max-width:700px){.progress-register{grid-template-columns:1fr}.progress-next{flex-direction:column;align-items:stretch}.progress-phase{grid-template-columns:42px minmax(0,1fr);padding:15px}.phase-letter{width:40px;height:40px}.progress-phase h3{font-size:20px}.progress-status{margin-top:5px}}
+
+
+/* Anthos Studio: high-contrast, information-dense operations UI. Scoped to admin stylesheet only. */
+:root{--bg:#e7e9e5;--paper:#fff;--line:#bac6bd;--ink:#17251e;--soft:#405449;--sage:#214f3c;--rose:#945458;--gold:#71501e}
+body{background:var(--bg);color:var(--ink);font-size:13px;line-height:1.45}
+.nav{background:#142b22;border-right:1px solid #0d2018;padding:21px 13px}
+.identity{color:#fff;margin-bottom:28px}.identity-name small,.chapter-label,.aside-footer span{color:#b3cfc0}
+.nav-item{color:#d7e4db;padding:9px 11px;margin-bottom:3px;font-size:12px}
+.nav-item.active{background:#e1eee5;color:#153a28;border:0;box-shadow:none}
+.nav-item:not(.active):hover{background:#2b4939;color:#fff}
+.nav-icon{color:#9cc6a9}.aside-footer{border-color:#385447}.aside-footer p{color:#c5d5cb;font-size:13px}
+.topbar{height:52px;background:#fff;border-color:#cbd4ce;padding:0 clamp(14px,2vw,32px)}
+main{padding:22px clamp(12px,2vw,32px) 35px;max-width:1500px}
+.crumb,.eyebrow,.stat-caption,.page-kicker{color:#42584b;letter-spacing:.1em;font-weight:850}
+.private-pill{background:#dcece0;color:#215437;border-color:#94baa0}
+.section-line{margin:25px 0 12px}.section-line h2{margin:5px 0}
+.panel,.stat,.provider,.launch-step{box-shadow:none;border:1px solid #b9c8bd;border-radius:8px}
+.panel{padding:18px;margin:10px 0}.provider{padding:16px}.provider>p{min-height:0}
+.stats-grid{gap:8px;margin-top:12px}
+.stat{min-height:0;padding:12px 14px}.stat-value{font:750 26px/1.1 system-ui;margin:8px 0 4px;color:#173f2b}
+.stat small{color:#44564a}.stat-caption{font-size:10px}
+.notice{border:1px solid #b5c9b7;background:#e5efe6;color:#314d39;margin-bottom:15px}
+.notice strong{color:#183f29}.hint{color:#4c6053!important}
+h1{font-size:clamp(34px,4vw,52px)}h2{font-size:clamp(23px,2.5vw,31px)}
+.studio-title{font-size:clamp(26px,3vw,36px);margin:4px 0}.studio-lead{font-size:13px}
+.button.primary{background:#1a4d34}.button.primary:hover{background:#0f3724}
+.progress-console{color:#17251e}
+.progress-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:12px}
+.progress-heading p{margin:0;color:#435b4c;font-size:12px}
+.progress-heading .button{white-space:nowrap}
+.progress-kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin:10px 0}
+.progress-kpis .stat{background:#183b2a;color:#fff;border-color:#183b2a}
+.progress-kpis .stat-caption{color:#b8d6c2}.progress-kpis .stat-value{color:#fff;font-size:clamp(24px,3vw,38px);margin:5px 0}
+.progress-kpis .stat small{color:#d5e7da;font-size:10px}
+.kpi-unit{font:500 11px system-ui;color:#c4dfcb}
+.progress-panel{background:#fff;border:1px solid #b6c7bb;border-radius:9px;margin:10px 0;overflow:hidden}
+.progress-panel-head{background:#e2ebe4;border-bottom:1px solid #b6c7bb;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.progress-panel-head h3{font:800 13px system-ui;margin:0;color:#173e2a}
+.progress-panel-head span{font-size:10px;color:#486150}
+.compact-phase{display:grid;grid-template-columns:26px minmax(120px,1fr) auto minmax(160px,1.25fr);align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid #e1e8e2}
+.compact-phase:last-child,.compact-item:last-child{border-bottom:0}
+.compact-phase b{display:grid;place-items:center;background:#d8e8dd;color:#235039;width:24px;height:24px;border-radius:5px;font-size:12px}
+.compact-phase strong,.compact-item strong{font-size:12px}
+.compact-phase small{font-size:11px;color:#475c4d}
+.progress-status{font:800 9px system-ui;padding:4px 7px;border-radius:4px;background:#e3e8e4;color:#405649;letter-spacing:.02em}
+.progress-status.progress-active{background:#ffedbf;color:#714700}
+.progress-status.progress-done{background:#d0ead7;color:#15562c}
+.progress-status.progress-review{background:#f7dfd1;color:#873b1b}
+.compact-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 13px;border-bottom:1px solid #e1e8e2}
+.progress-action{display:flex;align-items:center;gap:13px;background:#d7e6db;border-left:4px solid #1b6740;padding:11px 13px;margin:12px 0}
+.progress-action strong{white-space:nowrap;font-size:12px}.progress-action span{flex:1;font-size:11px;color:#3e5545}.progress-action a{white-space:nowrap;font-weight:800;color:#15552f;font-size:11px}
+@media(max-width:900px){.nav{padding:11px}.identity{margin-bottom:10px}.aside-footer{display:none}main{padding:12px 11px 28px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.progress-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.compact-phase{grid-template-columns:24px minmax(0,1fr) auto}.compact-phase small{grid-column:2 / -1}.progress-heading{align-items:flex-start}.progress-heading .button{font-size:10px;padding:9px}}
+@media(max-width:530px){.progress-heading{flex-wrap:wrap}.progress-heading .button{margin-left:auto}.compact-phase{gap:5px;padding:8px}.progress-panel-head{padding:8px}.progress-action{align-items:flex-start;flex-direction:column;gap:5px}.stat{padding:11px}.progress-kpis .stat-value{font-size:27px}}
