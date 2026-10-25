@@ -56,7 +56,7 @@ test("admin implementation progress is authenticated, labeled and linked to trac
  assert.match(admin,/data-studio-tab="progress"/);
  assert.match(admin,/data-studio-page="progress"/);
  assert.match(admin,/Tracked snapshot/);
- assert.match(admin,/not a live GitHub or Vercel feed/);
+ assert.match(admin,/Not a live GitHub or Vercel feed/i);
  assert.match(admin,/github\.com\/drbellschool\/Anthos\/issues\/4/);
  const studio=read("admin/studio.js");
  assert.match(studio,/progress:"IMPLEMENTATION PROGRESS"/);
@@ -64,7 +64,7 @@ test("admin implementation progress is authenticated, labeled and linked to trac
 });
 
 test("admin operations redesign stays compact and removes test SMS controls",()=>{
- assert.match(admin,/Implementation command center/);
+ assert.match(admin,/Implementation <em>command center/);
  assert.match(admin,/compact-phase/);
  assert.match(admin,/progress-kpis/);
  assert.doesNotMatch(admin,/id="sendTestSMS"|id="smsConfirm"|test-sms-panel/);
