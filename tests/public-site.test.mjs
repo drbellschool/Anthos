@@ -74,3 +74,17 @@ test("admin operations redesign stays compact and removes test SMS controls",()=
  assert.match(css,/progress-console/);
  assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
+
+
+test("feature drilldown preserves themed journeys and collage specifications",()=>{
+ assert.match(admin,/id="featureList"/);
+ assert.match(admin,/id="featureSearch"/);
+ assert.match(admin,/src="\/admin\/progress.js"/);
+ const features=read("admin/progress.js");
+ assert.match(features,/Themed Petal Journeys/);
+ assert.match(features,/One collage per petal/);
+ assert.match(features,/A Day Through Our Eyes/);
+ assert.match(features,/Different spouse priorities/);
+ assert.match(features,/issues\/"/);
+ assert.match(features,/addEventListener/);
+});
