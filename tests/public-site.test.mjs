@@ -51,3 +51,14 @@ test("No credentials, webhook URLs, or nonexistent enrollment forms on the publi
   assert.doesNotMatch(page,/sk-proj-|TELNYX_API_KEY|OPENAI_API_KEY|SUPABASE_SERVICE_ROLE_KEY|<input[^>]*name=["']phone/);
  }
 });
+
+test("admin implementation progress is authenticated, labeled and linked to tracker",()=>{
+ assert.match(admin,/data-studio-tab="progress"/);
+ assert.match(admin,/data-studio-page="progress"/);
+ assert.match(admin,/Tracked snapshot/);
+ assert.match(admin,/not a live GitHub or Vercel feed/);
+ assert.match(admin,/github\.com\/drbellschool\/Anthos\/issues\/4/);
+ const studio=read("admin/studio.js");
+ assert.match(studio,/progress:"IMPLEMENTATION PROGRESS"/);
+ assert.match(studio,/dashboard/);
+});
