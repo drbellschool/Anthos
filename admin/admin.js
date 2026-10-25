@@ -35,14 +35,6 @@
     button.textContent=loading?"Checking…":(button.dataset.original||button.textContent);
   };
   const safeNum=n=>Number.isFinite(Number(n))?Number(n):0;
-  let smsTestReady=false;
-  let smsAlreadyRequested=false;
-  function refreshSMSButton(){
-    const confirmations=$("smsOwner").checked&&$("smsConsent").checked&&
-      $("smsCarrierConfirmed").checked&&$("smsConfirm").value.trim()==="SEND ONE TEST";
-    $("sendTestSMS").disabled=!smsTestReady||!confirmations||smsAlreadyRequested;
-  }
-
   const updateServices=s=>{
     if(!s)return;
     const a=s.openai,t=s.telnyx;
@@ -56,19 +48,6 @@
     $("checkOpenAI").disabled=!a?.configured;
     $("tryOpenAI").disabled=!a?.configured;
     $("checkTelnyx").disabled=!t?.configured;
-    const test=s.testSMS||{};
-    smsTestReady=!!(t?.configured&&t?.senderConfigured&&test.recipientReady&&
-      test.carrierApproved&&test.enabled);
-    $("smsTestRecipient").textContent=test.recipientReady?
-      "Approved test phone ending "+test.recipientLast4:"Not allowlisted";
-    $("smsTestCarrier").textContent=test.carrierApproved?"Confirmed in settings":"Not confirmed";
-    $("smsTestEnabled").textContent=test.enabled?"On (restricted)":"Off";
-    if(test.messagePreview)$("smsTestPreview").textContent=test.messagePreview;
-    if(!smsTestReady){
-      say("testSMSOutput","Test sending is locked. In Vercel configure THREEFOLD_TEST_SMS_TO, "+
-        "THREEFOLD_10DLC_APPROVED and THREEFOLD_TEST_SMS_ENABLED after Telnyx campaign approval.");
-    }
-    refreshSMSButton();
   };
   async function init(){
     say("globalStatus","");
@@ -128,34 +107,6 @@
   }
   $("checkOpenAI").addEventListener("click",()=>runCheck("openai"));
   $("checkTelnyx").addEventListener("click",()=>runCheck("telnyx"));
-  for(const id of ["smsOwner","smsConsent","smsCarrierConfirmed","smsConfirm"]){
-    $(id).addEventListener(id==="smsConfirm"?"input":"change",refreshSMSButton);
-  }
-  $("sendTestSMS").addEventListener("click",async()=>{
-    if(!smsTestReady||smsAlreadyRequested)return;
-    refreshSMSButton();
-    if($("sendTestSMS").disabled)return;
-    if(!window.confirm("Send one potentially billable Threefold test SMS to your preapproved personal number? Only proceed if your 10DLC campaign is approved."))return;
-    // Lock immediately before the network operation. No automatic retries.
-    smsAlreadyRequested=true;
-    refreshSMSButton();
-    say("testSMSOutput","Contacting Telnyx once. Please wait…");
-    try{
-      const data=await post({action:"send-test-sms",confirmation:"SEND ONE TEST",
-        ownPhone:true,expressConsent:true,carrierStatusVerified:true});
-      if(data.httpStatus===401){
-        show("login");
-        say("globalStatus","Your admin session expired. Please sign in again.",true);return;
-      }
-      const msg=(data.message||data.error||"Telnyx did not confirm the result.")+
-        (data.providerMessageId?"\nTelnyx message ID: "+data.providerMessageId:"")+
-        (data.note?"\n"+data.note:"");
-      say("testSMSOutput",msg,!data.ok);
-    }catch{
-      say("testSMSOutput","The request could not be confirmed. Check Telnyx messaging activity before trying again.",true);
-    }
-  });
-
   $("tryOpenAI").addEventListener("click",async()=>{
     const button=$("tryOpenAI"),prompt=$("aiPrompt").value.trim();
     if(prompt.length<3||prompt.length>500){say("globalStatus","Enter 3–500 characters of fictional test text.",true);return;}
