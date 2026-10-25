@@ -42,8 +42,8 @@ test("existing routes remain intact, and the demo is clearly isolated",()=>{
  assert.match(experience,/\.\.\/app\.js/);
  assert.match(experience,/\.\.\/content\.js/);
  assert.match(experience,/\.\.\/styles\.css/);
- assert.match(admin,/\.\/admin\.js/);
- assert.match(admin,/\.\.\/experience\//);
+ assert.match(admin,/src="\/admin\/admin\.js"/);
+ assert.match(admin,/href="\/experience\//);
  assert.match(read("vercel.json"),/\/api\/\(\.\*\)/);
 });
 test("No credentials, webhook URLs, or nonexistent enrollment forms on the public pages",()=>{
