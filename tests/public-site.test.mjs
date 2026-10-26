@@ -108,3 +108,16 @@ test("live GitHub issue sync is admin-gated and does not imply completion",()=>{
  assert.match(progress,/Issue closure does not prove a feature is shipped/);
  assert.match(progress,/Live GitHub status unavailable/);
 });
+
+test("commercial readiness is weighted, visible and explicitly estimated",()=>{
+ const progress=read("admin/progress.js");
+ assert.match(admin,/id="productCompletion"/);
+ assert.match(admin,/id="paidReadiness"/);
+ assert.match(admin,/id="releaseBlockers"/);
+ assert.match(admin,/PRIVATE PILOT/);
+ assert.match(admin,/PAID BETA/);
+ assert.match(progress,/workstreams\.reduce/);
+ assert.match(progress,/Math\.round/);
+ assert.match(progress,/weight:20,progress:10/);
+ assert.match(admin,/Scope-adjusted planning estimate/);
+});
