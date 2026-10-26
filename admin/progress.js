@@ -15,6 +15,28 @@ const tasks=[
 ["D","Instagram sharing and referrals","designed","4:5 export, optional share and Anthos referral link.","Build approved export and share-sheet flow.",10],
 ["E","First-couple launch","planned","Pricing, privacy and end-to-end acceptance testing.","Run full customer journey tests.",4]
 ];
+// Versioned, scope-weighted planning estimates. Add a new workstream or increase
+// an existing workstream's scope weight when a new approved feature expands the product.
+// Do not mark progress without implementation/test evidence.
+const workstreams=[
+ {name:"Website and brand",weight:12,progress:85},
+ {name:"Admin and development tracking",weight:10,progress:75},
+ {name:"Product experience design",weight:15,progress:65},
+ {name:"Database and couple accounts",weight:20,progress:10},
+ {name:"Real SMS and AI delivery",weight:20,progress:10},
+ {name:"Payments and subscriptions",weight:10,progress:0},
+ {name:"Testing and customer launch",weight:13,progress:5}
+];
+function scoreReadiness(){
+ const total=workstreams.reduce((sum,w)=>sum+w.weight,0);
+ const earned=workstreams.reduce((sum,w)=>sum+w.weight*w.progress/100,0);
+ const score=total?Math.round(earned/total*100):0;
+ const product=document.getElementById("productCompletion");
+ const scope=document.getElementById("readinessScope");
+ if(product)product.textContent=score+"%";
+ if(scope)scope.textContent=workstreams.length+" workstreams · "+total+" weighted scope points · Baseline: 25 Oct 2026 · Estimates reviewed manually";
+}
+scoreReadiness();
 const labels={verified:"VERIFIED",audit:"AUDIT NEEDED",planned:"PLANNED",designed:"DESIGNED",designing:"DESIGNING"};
 const list=document.getElementById("featureList"),summary=document.getElementById("featureSummary"),search=document.getElementById("featureSearch"),phase=document.getElementById("featurePhase"),status=document.getElementById("featureStatus");
 if(!list||!summary||!search||!phase||!status)return;
