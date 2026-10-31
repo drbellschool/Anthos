@@ -50,7 +50,7 @@ test("no network, storage or sensitive disclosure path is included in client dem
   const page=fs.readFileSync(path.join(root,"discovery/index.html"),"utf8");
   const script=fs.readFileSync(path.join(root,"discovery/app.mjs"),"utf8");
   const core=fs.readFileSync(path.join(root,"discovery/engine.mjs"),"utf8");
-  assert.match(page,/Same-device demo/);
+  assert.match(page,/same-device demo/i);
   assert.match(page,/No responses are sent or saved/);
   assert.doesNotMatch(script+core,/localStorage|sessionStorage|indexedDB|fetch\(|XMLHttpRequest|navigator\.sendBeacon/);
   assert.match(script,/textContent/);
