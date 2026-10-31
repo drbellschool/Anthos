@@ -153,11 +153,11 @@ test("restore supports saved sessions, clips impossible progress, and resets a d
 
 test("UI uses the new engine and keeps all interactions in a clearly marked browser-only demo",()=>{
   const app=source("app.js"),html=source("experience/index.html");
-  assert.match(html,/\\.\\.\\/deep-dive\\/engine\\.js/);
-  assert.match(app,/DiveEngine\\.transition/);
-  assert.match(app,/DiveEngine\\.view/);
+  assert.match(html,/\.\.\/deep-dive\/engine\.js/);
+  assert.match(app,/DiveEngine\.transition/);
+  assert.match(app,/DiveEngine\.view/);
   assert.match(app,/repairResponse/);
   assert.match(app,/data-repair-id/);
   assert.match(html,/nothing is sent to your partner, Telnyx, OpenAI, or a database/);
-  assert.doesNotMatch(app,/supabase\\.co|TELNYX_API_KEY|OPENAI_API_KEY/);
+  assert.doesNotMatch(app,/supabase\.co|TELNYX_API_KEY|OPENAI_API_KEY/);
 });
