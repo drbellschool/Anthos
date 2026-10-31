@@ -4,7 +4,7 @@ const stages=["intro","answer","handoff","reveal","plan"];
 const state={first:null,second:null,active:"first"};
 function show(name){
   for(const id of stages)$(id).hidden=id!==name;
-  window.scrollTo?.({top:0,behavior:"instant"});
+  window.scrollTo?.({top:0,behavior:"auto"});
 }
 function optionInputs(container,name){
   container.replaceChildren();
