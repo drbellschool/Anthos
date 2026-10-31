@@ -27,6 +27,31 @@
     } catch {return emptyState();}
   }
   let state=load();
+  const DiveEngine=window.ANTHOS_DEEP_DIVE_ENGINE;
+  const diveStory=DiveEngine.storyCheck(CONTENT.dive);
+  let diveState=DiveEngine.restore(diveStory,state.deepDive || {
+    version:1,storyKey:diveStory.id,storyVersion:diveStory.storyVersion||1,
+    chapter:state.diveChapter,completed:state.diveCompleted,
+    choices:state.choices,repairs:state.repairs
+  });
+  function syncDiveState() {
+    state.deepDive=diveState;
+    state.diveCompleted=diveState.completed;
+    state.diveChapter=diveState.chapter;
+    state.choices=diveState.choices;
+    state.repairs=diveState.repairs;
+  }
+  syncDiveState();
+  function applyDive(action) {
+    const result=DiveEngine.transition(diveStory,diveState,action);
+    if(result.changed){
+      diveState=result.state;
+      syncDiveState();
+      store();
+      renderDive();
+    }
+    return result;
+  }
   let activeView="home";
   let pendingShare=null;
   const escape = val => String(val??"").replace(/[&<>"']/g,c=>({
@@ -232,127 +257,112 @@
     $("dateFeedback").textContent="One more petal opened. Your memory has been added to the demo journey.";
   }
   function renderDive(){
-    const chapters=CONTENT.dive.chapters;
-    state.diveChapter=Math.min(Math.max(state.diveChapter,0),7);
-    const i=state.diveChapter,c=chapters[i],v=state.choices[String(i)];
+    const v=DiveEngine.view(diveStory,diveState);
+    const i=v.index,c=v.chapter,chosen=v.choiceIndex;
     $("chapterTitle").textContent=c.title;
     $("chapterLocation").textContent=c.location;
-    // The final chapter respects the earlier independent mastery choice.
-    const finalChoice=state.choices["6"];
-    const finalPaths=[
-      "Christmas morning belongs to Jack and Jill's home, as they agreed. The cinnamon rolls burn, and his mother is still disappointed. Jack checks on Jill and they laugh over breakfast, knowing holding a boundary doesn't erase other people's feelings.",
-      "Christmas morning at home feels quieter than either hoped. Jack's sharp words on the phone hang over the day. He apologizes to his mother for the insult without withdrawing the shared plan, and tells Jill that defending her should not mean escalating conflict. The repair has begun, but trust needs follow-through.",
-      "Jack and Jill stay home for Christmas morning, but Jill feels exposed after being blamed. Jack admits he made her carry a decision they had made together. He offers to correct that with his mother. Their morning isn't magically repaired, yet they're finally naming the real hurt.",
-      "Jack follows through on the promised second conversation before Christmas. His mother remains disappointed but hears a clear, kind boundary. Jill appreciates the follow-through. Their quiet morning is imperfect, and progress depends on repeating that choice next time.",
-      "Jack and Jill go to his mother's breakfast after he changed their plan alone. Jill is hurt. Later, Jack acknowledges that he let pressure undo a joint decision and listens instead of demanding instant forgiveness. They agree to revisit the next holiday together. Repair is possible, not automatic.",
-      "Jack and Jill spend Christmas morning at home, keeping their shared plan. His mother remains sad, but Jack is both warm and clear. After the cinnamon rolls burn, he and Jill laugh and begin a small tradition of their own. It isn't perfect, but it belongs to them."
-    ];
-    $("chapterStory").textContent=i===7 && typeof finalChoice==="number"?
-      finalPaths[finalChoice]||c.story:c.story;
+    $("chapterStory").textContent=v.storyText;
     $("chapterTransition").textContent=c.transition||"";
     $("diveFraction").textContent=String(i+1).padStart(2,"0")+" / 08";
-    const rail=$("milestoneRail");
-    rail.innerHTML=chapters.map((chapter,n)=>{
-      const done=n<state.diveCompleted,here=n===i;
-      return '<button type="button" data-milestone="'+n+'" '+(n>state.diveCompleted?"disabled":"")+
+    $("milestoneRail").innerHTML=diveStory.chapters.map((chapter,n)=>{
+      const done=n<diveState.completed,here=n===i;
+      return '<button type="button" data-milestone="'+n+'" '+(n>diveState.completed?"disabled":"")+
         ' aria-label="Chapter '+(n+1)+': '+escape(chapter.title)+(done?", completed":"")+'" '+
         'class="'+(done?"complete ":"")+(here?"current":"")+'"></button>';
     }).join("");
-    $("braidCount").textContent=state.diveCompleted+(state.diveCompleted===1?" crossing woven":" crossings woven");
-    const choices=!!c.options;
-    $("choiceBlock").hidden=!choices;
+    $("braidCount").textContent=diveState.completed+
+      (diveState.completed===1?" crossing woven":" crossings woven");
+    $("choiceBlock").hidden=!c.options;
     $("choiceOutcome").hidden=true;
-    $("choiceOutcome").querySelectorAll(".repair-action,.repair-note").forEach(node=>node.remove());
-    $("storyLesson").hidden=choices;
-    if(choices){
+    $("choiceOutcome").querySelectorAll(".repair-action,.repair-note,.repair-choice-list").forEach(node=>node.remove());
+    $("storyLesson").hidden=Boolean(c.options);
+    if(c.options){
       $("chapterPrompt").textContent=c.prompt;
       $("choiceOptions").innerHTML=c.options.map((opt,j)=>
-        '<button type="button" class="option '+(j===v?"chosen":"")+'" data-choice-index="'+j+'" '+
-        (typeof v==="number"?"disabled":"")+
-        '><span class="option-number">'+String.fromCharCode(65+j)+'</span><span>'+escape(opt.text)+'</span></button>').join("");
-      if(typeof v==="number"){
-        const o=c.options[v],mastery=c.mastery;
+        '<button type="button" class="option '+(j===chosen?"chosen":"")+'" data-choice-index="'+j+'" '+
+        (!v.canChoose?"disabled":"")+
+        '><span class="option-number">'+String.fromCharCode(65+j)+'</span><span>'+escape(opt.text)+'</span></button>'
+      ).join("");
+      if(v.choice){
         $("choiceOutcome").hidden=false;
-        $("outcomeLabel").textContent=mastery?"INDEPENDENT CHOICE · REFLECTION":"THE CONSEQUENCE";
-        $("consequence").textContent=o.impact;
-        let feedback=o.coach;
-        if(mastery)feedback+=" "+(o.quality===2?
-          "This choice meets the chapter's core objective.":
-          o.quality===1?"This shows partial mastery; consistent follow-through still matters.":
-          "This choice did not demonstrate the chapter's goal yet. The next step is a respectful repair.");
-        $("coaching").textContent=feedback;
-        if(o.quality===0&&!mastery){
-          const repaired=state.repairs[String(i)]===true;
-          const repair=document.createElement("button");
-          repair.type="button";repair.className="button ghost";
-          repair.id="repairChoice";repair.classList.add("repair-action");repair.textContent=repaired?
-            "Repair practiced ✓":"Practice a respectful repair";
-          repair.disabled=repaired;
-          repair.addEventListener("click",()=>{
-            if(state.repairs[String(i)])return;
-            state.repairs[String(i)]=true;
-            store();renderDive();
+        $("outcomeLabel").textContent=c.mastery?"INDEPENDENT CHOICE · REFLECTION":"THE CONSEQUENCE";
+        $("consequence").textContent=v.outcome;
+        $("coaching").textContent=v.coaching+(c.mastery && v.mastery?
+          " Independent mastery: "+(v.mastery.status==="demonstrated"?"Demonstrated.":
+            v.mastery.status==="developing"?"Developing.":"Not yet demonstrated.")+
+          " "+v.mastery.summary:"");
+        if(v.needsRepair){
+          const note=document.createElement("p");
+          note.className="soft repair-note";
+          note.textContent="A hurtful choice calls for practice before you continue. Choose one repair. This does not erase the original consequence.";
+          $("choiceOutcome").appendChild(note);
+          const options=document.createElement("div");
+          options.className="repair-choice-list";
+          v.repairOptions.forEach(item=>{
+            const button=document.createElement("button");
+            button.type="button";button.className="button ghost repair-action";
+            button.dataset.repairId=item.id;
+            button.textContent=item.text;
+            options.appendChild(button);
           });
-          $("choiceOutcome").appendChild(repair);
-          if(repaired){
+          $("choiceOutcome").appendChild(options);
+        }else if(v.repair){
+          const item=v.repairOptions.find(x=>x.id===v.repair.selected);
+          if(item){
             const note=document.createElement("p");
             note.className="soft repair-note";
-            note.textContent="Jack returns to the conversation: 'I was unfair. I'm sorry for blaming you. Can we try that again?' The original hurt still matters, but he's taking responsibility.";
+            note.textContent="Repair practice: "+item.consequence+" "+item.coach+
+              (v.repair.guided?" Sophia offers a clear model: 'I blamed you instead of owning my choice. I'm sorry. I want to listen and try again.'":"");
             $("choiceOutcome").appendChild(note);
           }
         }
-      } else {
+      }else{
         $("chapterTransition").textContent=c.mastery?
-          "Choose before reading any feedback. This moment is yours to consider.":"Choose a response to see a realistic consequence.";
+          "Choose without advance hints. Your first response will determine the independent mastery result.":
+          "Choose a response to see its consequence and research-informed coaching.";
       }
     }else{
-      if(i===7 && typeof finalChoice==="number"){
-        const mastery=CONTENT.dive.chapters[6].options[finalChoice].quality;
-        const label=mastery===2?"Demonstrated":mastery===1?"Developing":"Not yet demonstrated";
-        $("lessonText").textContent="Independent mastery: "+label+". "+c.takeaway+
-          (mastery===2?" The choice showed respectful joint ownership under pressure.":
-           " The story offers a path toward repair, but repair requires accountability and real follow-through.");
-      } else {
-        $("lessonText").textContent=c.takeaway;
-      }
+      $("lessonText").textContent=i===7 && v.mastery?
+        "Independent mastery: "+(v.mastery.status==="demonstrated"?"Demonstrated":
+          v.mastery.status==="developing"?"Developing":"Not yet demonstrated")+
+        ". "+c.takeaway+" "+v.mastery.summary:
+        c.takeaway||"";
     }
-    let label;
-    if(state.diveCompleted===8){
-      label="Deep Dive complete ✓";
-    }else if(i<state.diveCompleted){
-      label="Return to your next chapter ↗";
-    }else if(choices && typeof v!=="number"){
-      label="Choose a response above";
-    }else{
-      label=i===7?"Finish this Deep Dive ✦":"Complete chapter "+(i+1)+" ↗";
-    }
-    $("nextChapter").textContent=label;
-    $("nextChapter").disabled=state.diveCompleted===8 || (i===state.diveCompleted&&choices&&typeof v!=="number");
-    $("diveStatus").textContent=state.diveCompleted===8?
-      "You've finished all eight story milestones. Your cord is complete for this Deep Dive.":
-      "Every completed milestone adds one visible crossing.";
+    const reviewing=v.readOnly;
+    $("nextChapter").textContent=v.complete?"Deep Dive complete ✓":
+      reviewing?"Return to your next chapter ↗":
+      v.canChoose?"Choose a response above":
+      v.needsRepair?"Practice a repair before continuing":
+      v.finishLabel+(i===7?" ✦":" ↗");
+    $("nextChapter").disabled=v.complete || (!reviewing && !v.canAdvance);
+    $("diveStatus").textContent=v.complete?
+      "All eight milestones are finished. Completion does not guarantee mastery.":
+      v.mastery && i===7?
+      "Independent result: "+v.mastery.status.replaceAll("-"," ")+". You may continue with the realistic ending.":
+      "Each completed milestone adds one crossing. Private demo data stays in this browser.";
   }
   function chooseResponse(index){
-    const i=state.diveChapter,c=CONTENT.dive.chapters[i],key=String(i);
-    if(i!==state.diveCompleted||!c.options||state.choices[key]!==undefined||
-      !Number.isInteger(index)||index<0||index>=c.options.length)return;
-    state.choices[key]=index;
-    store();renderDive();
-    $("choiceOutcome").scrollIntoView({behavior:"smooth",block:"nearest"});
+    const result=applyDive({type:"choose",index});
+    if(result.changed)$("choiceOutcome").scrollIntoView({behavior:"smooth",block:"nearest"});
   }
-  function completeChapter() {
-    const i=state.diveChapter,c=CONTENT.dive.chapters[i];
-    if(state.diveCompleted===8)return;
-    if(i<state.diveCompleted){state.diveChapter=Math.min(7,state.diveCompleted);store();renderDive();return;}
-    if(i!==state.diveCompleted||(c.options&&typeof state.choices[String(i)]!=="number"))return;
-    state.diveCompleted=Math.min(8,i+1);
-    state.diveChapter=Math.min(7,state.diveCompleted);
-    store();renderDive();
-    $("chapterTitle").scrollIntoView({behavior:"smooth",block:"center"});
+  function repairResponse(id){
+    const result=applyDive({type:"repair",repair:id});
+    if(result.changed)$("choiceOutcome").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+  function completeChapter(){
+    const v=DiveEngine.view(diveStory,diveState);
+    if(v.readOnly){
+      applyDive({type:"navigate",chapter:Math.min(7,diveState.completed)});
+      return;
+    }
+    const result=applyDive({type:"advance"});
+    if(result.changed)$("chapterTitle").scrollIntoView({behavior:"smooth",block:"center"});
   }
   function resetDemo() {
     if(!window.confirm("Erase only this browser's Threefold demonstration progress? No live account will be changed."))return;
     state=emptyState();
+    diveState=DiveEngine.fresh(diveStory);
+    syncDiveState();
     $("whisperAnswer").value="";
     $("whisperFeedback").textContent="";
     store();goto("home");
@@ -367,13 +377,11 @@
       if(share)previewShare(share.dataset.shareId);
       const choice=ev.target.closest("[data-choice-index]");
       if(choice)chooseResponse(Number(choice.dataset.choiceIndex));
+      const repair=ev.target.closest("[data-repair-id]");
+      if(repair && !repair.disabled)repairResponse(repair.dataset.repairId);
       const milestone=ev.target.closest("[data-milestone]");
-      if(milestone && !milestone.disabled){
-        const chapter=Number(milestone.dataset.milestone);
-        if(chapter>=0&&chapter<=state.diveCompleted&&chapter<=7){
-          state.diveChapter=chapter;store();renderDive();
-        }
-      }
+      if(milestone && !milestone.disabled)
+        applyDive({type:"navigate",chapter:Number(milestone.dataset.milestone)});
     });
     $("menuToggle").addEventListener("click",()=>{
       const nav=document.querySelector(".sidebar");
