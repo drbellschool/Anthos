@@ -69,5 +69,15 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/dive-review",
+      "destination": "/dive-review/index.html"
+    },
+    {
+      "source": "/dive-review/",
+      "destination": "/dive-review/index.html"
+    }
   ]
 }
