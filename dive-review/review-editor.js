@@ -234,7 +234,7 @@ function init(){
  $("reviewSignIn").addEventListener("click",signIn);
  $("closeComment").addEventListener("click",()=>$("commentDialog").close());
  $("closeQueue").addEventListener("click",()=>$("queueDialog").close());
- $("queueButton").addEventListener("click",async()=>{await load();drawQueue();$("queueDialog").showModal()});
+ $("queueButton").addEventListener("click",async()=>{loadedStory="";await load();drawQueue();$("queueDialog").showModal()});
  $("approveLowRisk").addEventListener("click",acceptLowRisk);
  $("copyChatGPTRequest").addEventListener("click",async()=>{
    try{
