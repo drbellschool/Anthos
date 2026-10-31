@@ -1,0 +1,195 @@
+{
+  "id": "the-offer-he-didnt-mention",
+  "storyVersion": 1,
+  "title": "The Offer He Didn't Mention",
+  "petal": "trust-commitment",
+  "petalName": "Trust & Commitment",
+  "eyebrow": "Trust & Commitment · A decision with consequences",
+  "overview": "A job offer, an unspoken plan, and a marriage where both people have reasons to feel trapped. What does honesty require when the truth may change everything?",
+  "objective": "Practice accountable disclosure, noncoercive boundaries and joint decisions when a spouse has withheld a consequential possibility.",
+  "chapters": [
+    {
+      "title": "The Envelope",
+      "location": "Tuesday · 9:42 p.m.",
+      "story": "The house is finally quiet when Lena sees the envelope on the counter. Daniel's name is printed under a university seal. Inside is an offer for a position six hours away, with a salary almost twice what he earns now.\n\nThe letter is dated eleven days ago. The acceptance deadline is Friday.\n\nLena reads it twice. Last week, when she asked whether he still wanted to move someday, he'd said, 'Not worth talking about right now.'\n\nHer father lives twelve minutes away. Since his stroke, she is the person he calls when he cannot remember whether he has taken his medication.\n\nDaniel comes downstairs and stops when he sees the envelope open. He looks frightened, then angry. 'I was going to tell you,' he says.\n\nLena believes he might have. She also knows he chose not to, eleven days in a row.",
+      "takeaway": "Withholding a life-changing possibility damages trust even before a decision is made. A person's reason for hiding something matters, but it doesn't erase the impact.",
+      "transition": "Daniel sits across from Lena. Neither reaches for the letter.",
+      "mastery": false
+    },
+    {
+      "title": "Eleven Days",
+      "location": "Tuesday · The kitchen table",
+      "story": "'How far along was this?' Lena asks.\n\nDaniel admits there were two interviews. He says the first felt impossible to mention because she'd been exhausted caring for her father. The second felt harder to mention because he had already kept the first secret.\n\nLena's throat tightens. For two years Daniel has watched colleagues receive promotions while he works weekends. She knows he has felt invisible. But an interview is one thing. Eleven days with an offer is another.\n\n'Were you going to accept without me?' she asks.\n\n'I didn't know how to bring it up,' he says. It isn't an answer.",
+      "prompt": "What is the most responsible first response Daniel could give?",
+      "options": [
+        {
+          "text": "I kept this from you because I was scared of hearing no. That was wrong. I haven't accepted, and I want to answer every question you have.",
+          "impact": "Lena remains hurt, but Daniel has finally named the concealment and given her concrete information.",
+          "coach": "Owning behavior without demanding immediate forgiveness makes repair possible.",
+          "quality": 2
+        },
+        {
+          "text": "You're proving why I couldn't tell you. Look how upset you are.",
+          "impact": "Lena realizes her pain is being used as proof she deserves less honesty. She leaves the table.",
+          "coach": "Blaming a spouse's response for your secrecy is another breach of trust.",
+          "quality": 0
+        },
+        {
+          "text": "I've already done the hard work of getting this offer. You should at least be happy for me.",
+          "impact": "Lena hears that his accomplishment matters more than their ability to decide together.",
+          "coach": "A real achievement does not grant unilateral authority over a shared life.",
+          "quality": 0
+        },
+        {
+          "text": "I need ten minutes to gather my thoughts. I will come back and tell you exactly what I've done.",
+          "impact": "His pause frustrates her, but he returns as promised with the emails and a clear timeline.",
+          "coach": "A time-out is constructive only when followed by specific accountability.",
+          "quality": 1
+        },
+        {
+          "text": "I should have told you about both interviews. Can I explain my fears after I answer whether I've accepted?",
+          "impact": "Lena can distinguish an explanation from an excuse. She asks him to start with the dates.",
+          "coach": "Answer the consequential facts first; discuss the emotions without using them to cancel responsibility.",
+          "quality": 2
+        },
+        {
+          "text": "Nothing is final, so technically I didn't keep a decision from you.",
+          "impact": "The argument shifts to semantics. Lena no longer knows whether she can trust his descriptions.",
+          "coach": "Partial truths can keep a couple trapped in arguments about what counts as lying.",
+          "quality": 0
+        }
+      ],
+      "mastery": false
+    },
+    {
+      "title": "The Price of Staying",
+      "location": "Wednesday · 6:15 a.m.",
+      "story": "At dawn, Daniel sits alone in his car before work. He has pictured a new office, colleagues who use his ideas, a paycheck that could finally clear their debts.\n\nHe has also pictured telling Lena. In every version, her father's health ends the conversation before his hopes begin. He hates that he has begun to think of her father as the reason he can't breathe.\n\nLena, inside, reads the letter again. She wants Daniel to be proud of what he earned. She also remembers turning down a training program last year because Daniel's schedule couldn't change. She never told him how bitter she'd become.\n\nBoth have been making sacrifices. Neither has been brave enough to say what those sacrifices are costing them.",
+      "takeaway": "A couple can have real competing obligations without either spouse becoming the villain. Hidden resentment and hidden plans both deserve honest attention.",
+      "transition": "That afternoon, they make a list of what moving would actually mean—not what either hopes it means.",
+      "mastery": false
+    },
+    {
+      "title": "The List of Names",
+      "location": "Wednesday · Dining room",
+      "story": "They fill a page with possibilities: a care coordinator for Lena's father, a trial commute, a delayed start, a local job search, a conversation with the employer.\n\nThen Lena notices Daniel has written 'Dad—assisted living' beside her father's name. He has never discussed that option with her father.\n\n'You don't get to decide where he lives,' she says.\n\nDaniel rubs his forehead. 'I was trying to find solutions.'\n\nLena puts down her pen. The offer is no longer the only thing on the table. She needs to know whether Daniel sees her father as a person or as a logistical problem.",
+      "prompt": "How should they handle this new boundary?",
+      "options": [
+        {
+          "text": "Daniel removes the note and says, 'I treated your father's life as a problem to solve. Let's ask what he wants before we build plans around him.'",
+          "impact": "The conversation slows. Lena still fears what the list reveals, but her father is returned to the center of decisions about his care.",
+          "coach": "Consent and dignity apply to family members affected by a couple's plans.",
+          "quality": 2
+        },
+        {
+          "text": "Lena says, 'If you mention assisted living again, our marriage is over.'",
+          "impact": "The ultimatum silences Daniel for the moment, but their real fears remain unspoken.",
+          "coach": "Threats can force silence without generating mutual understanding.",
+          "quality": 0
+        },
+        {
+          "text": "Daniel says, 'It's just a list. You're being too sensitive.'",
+          "impact": "Lena shuts the notebook. The apology she needed has been replaced with a verdict on her feelings.",
+          "coach": "Defensiveness prevents repair even when the original idea was not intended as harm.",
+          "quality": 0
+        },
+        {
+          "text": "Daniel says, 'I was brainstorming, not deciding. But you're right: we should ask your father before considering anything involving his life.'",
+          "impact": "Lena can accept that the idea wasn't an order while still asking for a better process.",
+          "coach": "Clarifying intent helps only when it comes with responsibility for impact.",
+          "quality": 1
+        },
+        {
+          "text": "Lena says, 'I need to hear that his wishes count. Then I can talk seriously about what a move might require of us.'",
+          "impact": "They agree to speak with her father and a professional about options he would actually consider.",
+          "coach": "A boundary can be firm without making an entire conversation forbidden.",
+          "quality": 2
+        },
+        {
+          "text": "Daniel says, 'Fine. I'll turn down the job and you can stop making me the bad guy.'",
+          "impact": "The apparent sacrifice becomes a debt Daniel can later demand payment for.",
+          "coach": "Self-erasure offered with resentment is not a sustainable joint decision.",
+          "quality": 0
+        }
+      ],
+      "mastery": false
+    },
+    {
+      "title": "The Call",
+      "location": "Thursday · 2:04 p.m.",
+      "story": "Lena's father calls while she is at work. He has fallen in the kitchen. He says he is fine, but she hears the strain in his voice.\n\nAt the hospital, the doctor says he can go home with additional support. Her father looks at Lena and says quietly, 'I hate being the reason you two don't have a life.'\n\nShe hadn't realized he noticed.\n\nLater Daniel arrives with food and a phone charger. He does not mention the university letter. He sits with her father and listens to him complain about the hospital television.\n\nLena is grateful. She is also afraid that gratitude will make it harder to tell Daniel how deeply he hurt her.",
+      "takeaway": "Care in a hard moment can be genuine without canceling an unresolved breach. Gratitude and accountability are allowed to exist together.",
+      "transition": "On Thursday night, less than one day remains before the offer expires.",
+      "mastery": false
+    },
+    {
+      "title": "An Answer By Friday",
+      "location": "Thursday · 11:37 p.m.",
+      "story": "The employer has offered Daniel one more day to respond. His hands shake when he tells Lena.\n\n'I need to know whether this is even possible,' he says. 'I can't keep disappearing inside this job.'\n\nLena says she wants his work to matter. She also needs him to understand that she cannot agree to move because a deadline has finally forced the truth into the open.\n\nThey sit in silence. Daniel reaches for the laptop, then stops. He could email and ask for a later start. He could decline. He could accept without a shared decision and hope forgiveness follows.\n\nNone of those choices guarantees that the marriage will feel safe tomorrow.",
+      "takeaway": "Urgency should not become a substitute for consent. A credible next step may protect both an individual's ambition and a couple's shared decision-making.",
+      "transition": "At breakfast, the decision will have to become more than another conversation.",
+      "mastery": false
+    },
+    {
+      "title": "Before He Hits Send",
+      "location": "Friday · 7:08 a.m.",
+      "story": "Daniel's employer wants an answer by noon. Lena has to take her father to a follow-up appointment. They have agreed to speak for fifteen minutes before either leaves.\n\nDaniel opens an email draft. The cursor blinks beside 'Dear Professor Wells.'\n\nHe wants to say yes. Lena knows this. She also wants him to be able to want something that doesn't fit neatly into their current life.\n\nBut she will not pretend the secrecy was harmless, and he cannot ask her to rewrite her own life before they've examined what it would cost.\n\nHe turns the laptop toward her. 'I need us to decide what kind of answer we can stand behind,' he says.\n\nThe clock reads 7:14.",
+      "prompt": "What should Daniel and Lena decide to send?",
+      "options": [
+        {
+          "text": "Daniel asks for a later decision deadline, makes no commitment to move, and says they need to discuss family care and trust before a joint decision.",
+          "impact": "They risk losing the offer, but both people retain agency. Daniel has to accept that honesty may not produce the outcome he hoped for.",
+          "coach": "Mastery means naming what is uncertain and refusing to manufacture agreement.",
+          "quality": 2
+        },
+        {
+          "text": "Lena tells Daniel to accept now so he won't resent her, even though she knows she cannot agree to move.",
+          "impact": "Lena's apparent generosity hides her lack of consent. The conflict has been postponed, not settled.",
+          "coach": "Fear of disappointing someone is not informed, freely given consent.",
+          "quality": 0
+        },
+        {
+          "text": "Daniel accepts secretly and plans to explain it after the appointment.",
+          "impact": "A unilateral commitment repeats the original breach at the most consequential moment.",
+          "coach": "A secret acceptance cannot be redeemed by good intentions after the fact.",
+          "quality": 0
+        },
+        {
+          "text": "Daniel declines immediately, then tells Lena she owes him for giving up the opportunity.",
+          "impact": "The job disappears, but the marriage inherits an accusation disguised as sacrifice.",
+          "coach": "Resentful compliance keeps score instead of building trustworthy partnership.",
+          "quality": 0
+        },
+        {
+          "text": "They agree Daniel may ask for a remote or delayed-start arrangement, with no move or resignation until both have meaningful input.",
+          "impact": "They put a real option forward without treating a possibility as permission to uproot the family.",
+          "coach": "Protecting optionality while honoring boundaries can be a courageous joint decision.",
+          "quality": 2
+        },
+        {
+          "text": "They tell the employer they're moving, assuming Lena's father will agree to whatever care arrangement they choose.",
+          "impact": "They commit other people's lives without consent, creating several new breaches at once.",
+          "coach": "Trust is not restored by moving the consequences onto people who have not agreed.",
+          "quality": 0
+        }
+      ],
+      "mastery": true
+    },
+    {
+      "title": "The Answer They Can Live With",
+      "location": "Friday · Evening",
+      "story": "The decision has been made. The consequences have not finished arriving.\n\nNo perfect speech fixes the eleven days Daniel kept quiet. No argument makes Lena's father suddenly independent. And a job offer doesn't become less meaningful because marriage makes it complicated.\n\nWhat happens next will depend less on how eloquently they explain themselves than on whether their next actions are consistent with what they said mattered.",
+      "takeaway": "Repair is demonstrated through clear ownership, freely made decisions, and repeated follow-through—not a forced happy ending.",
+      "transition": "This story ends here. The work of trust continues in ordinary decisions.",
+      "mastery": false
+    }
+  ],
+  "endings": [
+    "Daniel asks the university for more time and receives a brief reply: the committee can't promise anything. He is disappointed, and Lena can see it. That evening he says, 'I wish there were a way to keep both possibilities open.' She answers, 'I do too.' They begin a conversation about how much he has been sacrificing, and how much she has. The deadline passes without certainty. For the first time this week, neither person has to pretend that uncertainty is the other's failure.",
+    "Lena tells Daniel to accept, and he does. Later, while she packs her father's medication into a travel bag, she feels the weight of a promise she didn't freely make. Daniel notices her silence and says, 'I thought you wanted this.' Both know the words were spoken under pressure. They must revisit the decision before making any move, this time without asking her to conceal the cost of saying yes.",
+    "Daniel sends his acceptance while Lena is out. The confirmation email arrives before she gets home. He tells himself he has saved the opportunity. When he finally tells her, she reads the message and asks only, 'Was there ever going to be a point where my answer mattered?' There is no convincing response. Repair now begins with naming a second breach and accepting that she may not trust his next assurance.",
+    "Daniel declines the offer. Lena thanks him, and he says, 'Remember this the next time you say I never do anything for us.' She stops speaking. The opportunity is gone, but the pressure has not left the room. A healthier conversation will require Daniel to own his choice without using it as a bill Lena must repay.",
+    "Daniel asks whether the university would consider a delayed or partly remote arrangement. The answer is cautious, not enthusiastic. He and Lena bring in her father before making care plans for him. Daniel remains hurt that his future is uncertain; Lena remains hurt about the secrecy. That evening, however, they can each describe the other's fear accurately, and they have not committed anyone to a life they didn't choose.",
+    "They announce the move as if it is settled. Lena's father listens politely and later asks her, 'When did you all decide?' She cannot answer. Daniel realizes the speed of their plan has made the family less honest, not more hopeful. They may still find a path forward, but first they will have to undo promises they had no right to make."
+  ]
+}
