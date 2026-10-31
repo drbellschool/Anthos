@@ -7,7 +7,7 @@ test("mobile Deep Dive landing route resolves explicitly to existing static HTML
  for(const path of ["/dive-review","/dive-review/"])
    assert.ok(rewrites.some(r=>r.source===path&&r.destination==="/dive-review/index.html"),path);
  const h=readFileSync(new URL("../dive-review/index.html",import.meta.url),"utf8");
- assert.match(h,/Deep Dive Mobile Review/);
+ assert.match(h,/Anthos — Deep Dive/);
  for(const relative of ["review.css","review.js","engine.js"])
    assert.ok(h.includes("/dive-review/"+relative),"missing asset reference "+relative);
 });
