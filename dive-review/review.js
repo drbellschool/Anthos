@@ -223,7 +223,7 @@
     });
   }
   globalThis.ANTHOS_REVIEW_CONTEXT=()=>story&&state?{story,chapter:state.chapter,
-    chosen:E.view(story,state).choiceIndex,completed:state.completed}:null;
+    chosen:E.view(story,state).choiceIndex,endingIndex:state.choices?.["6"],completed:state.completed}:null;
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
   else init();
 })();
