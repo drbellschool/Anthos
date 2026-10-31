@@ -1,88 +1,108 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f6f2e9">
-  <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Anthos — Deep Dive Mobile Review</title>
-  <meta name="description" content="Local-only reviewer preview of authored Anthos Deep Dive stories.">
-  <link rel="stylesheet" href="/dive-review/review.css">
-  <script defer src="/dive-review/engine.js"></script>
-  <script defer src="/dive-review/review.js"></script>
-  <script defer src="/dive-review/review-editor.js"></script>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <meta name="theme-color" content="#f7f5ed">
+ <meta name="robots" content="noindex,nofollow,noarchive">
+ <meta name="description" content="Mobile Anthos Deep Dive reader — fictional stories and local review progress.">
+ <title>Anthos — Deep Dive</title>
+ <link rel="stylesheet" href="/dive-review/review.css">
+ <script defer src="/dive-review/engine.js"></script>
+ <script defer src="/dive-review/review.js"></script>
+ <script defer src="/dive-review/review-editor.js"></script>
 </head>
 <body>
  <div class="shell">
-  <main class="phone" id="app">
-   <header class="brandbar">
-    <div class="brand"><span class="brandmark" aria-hidden="true">✦</span><span><strong>Anthos</strong><small>A DEEPER US</small></span></div>
-    <button type="button" id="storiesButton" class="iconbtn" aria-label="Choose another story" title="Choose another story"><span aria-hidden="true">☷</span></button>
+  <div class="phone" id="app">
+   <header class="compact-header">
+    <div class="header-row">
+     <button id="storiesButton" class="brand-icon" type="button" aria-label="Choose another Deep Dive" title="Choose story">✿</button>
+     <div class="brand-label"><strong>Anthos</strong><span id="petalName">Friendship &amp; Admiration</span></div>
+     <div class="header-controls">
+      <div id="flower" class="flower" role="img" aria-label="Petal progress"></div>
+      <button type="button" id="toolsButton" class="tools-button" aria-label="Open review tools">⋯</button>
+     </div>
+    </div>
+    <div class="header-meta" aria-label="Story and sample journey statistics">
+      <span id="storyTitle" class="mini-story-name">The Questions We Stopped Asking</span>
+      <span id="progressStat" class="chapter-count">0 / 8</span>
+      <span class="sample-stat" title="Illustrative, not real account data">14 years*</span>
+      <span class="sample-stat" title="Illustrative, not real partner data">Partner 3 / 8*</span>
+    </div>
    </header>
-   <div id="resetNotice" class="reset-notice" hidden role="status"></div>
-   <section class="toplabel">
-     <span class="eyebrow">DEEP DIVE · MOBILE REVIEW</span>
-     <span class="demo-pill">REVIEW PROTOTYPE</span>
-   </section>
-   <section class="heading">
-    <div><h1 id="storyTitle">The Questions We Stopped Asking</h1><div id="petalName" class="petal-label">Friendship &amp; Admiration</div></div>
-    <div id="flower" class="flower" role="img" aria-label="A miniature petal representing story progress"></div>
-   </section>
-   <section class="preview-copy" id="overview">
-     <p id="storyOverview">A guided story about rediscovering curiosity in ordinary marriage.</p>
-     <button type="button" id="startButton" class="btn primary">Begin Deep Dive <span aria-hidden="true">↗</span></button>
-     <span class="subnote">Eight chapters · six choices at major decisions · fictional experience</span>
-   </section>
-   <section class="stats" aria-label="Sample journey statistics">
-    <div><span class="stat-label">YOUR STORY</span><strong id="progressStat">0 / 8</strong></div>
-    <div><span class="stat-label">MARRIED</span><strong>14 years<span class="muted">*</span></strong></div>
-    <div><span class="stat-label">PARTNER</span><strong>3 / 8<span class="muted">*</span></strong></div>
-   </section>
-   <p class="sample-note">* Sample marriage and partner stats for design review; not real account data.</p>
-   <section id="reader" class="reader" hidden>
-    <div class="rail-header"><span id="chapterEyebrow" class="eyebrow">CHAPTER 1 OF 8</span><span id="chapterState" class="muted small">In progress</span></div>
-    <nav id="chapterRail" class="chapter-rail" aria-label="Story chapters"></nav>
-    <div class="storycard">
-      <span id="storyLocation" class="eyebrow story-location"></span>
-      <div class="item-head"><h2 id="chapterTitle"></h2><button type="button" class="comment-chip" data-comment-target="chapter_title">Comment</button></div>
-      <p id="storyText" class="story-text"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="narrative">Comment on scene</button></div>
-    </div>
-    <section id="decision" class="decision" hidden>
-      <div class="item-head"><h3 id="question"></h3><button type="button" class="comment-chip" data-comment-target="prompt">Comment</button></div>
-      <p class="decision-hint" id="decisionHint"></p>
-      <div id="options" class="choices"></div>
-      <section id="result" class="consequence" hidden aria-live="polite">
-        <span class="eyebrow">WHAT HAPPENED NEXT</span>
-        <p id="impact"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="option_impact">Comment on consequence</button></div>
-        <div class="coaching"><span class="eyebrow">SOPHIA'S REFLECTION</span><p id="coach"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="option_coach">Comment on reflection</button></div></div>
-        <div id="repair" hidden></div>
-      </section>
-    </section>
-    <section id="lesson" class="lesson" hidden><span class="eyebrow">A MOMENT TO NOTICE</span><p id="takeaway"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="takeaway">Comment</button></div></section>
-    <p id="transitionText" class="transition"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="transition">Comment on transition</button></div>
-    <div class="reader-actions">
-      <button type="button" id="previousButton" class="btn outline" disabled>← Previous</button>
-      <button type="button" id="advanceButton" class="btn primary">Complete chapter ↗</button>
-    </div>
-    <p id="readerFeedback" role="status" class="feedback"></p><div class="review-queue-link"><button id="queueButton" type="button" class="btn outline">Review comments <span id="queueCount">0</span></button><span id="reviewConnection" class="muted small">Comments can be saved to your editorial queue.</span></div>
-    <details class="review-notes" id="reviewNotes">
-      <summary>✎ Editorial notes <span id="notesCount" class="notescount">0 saved</span></summary>
-      <p>Keep notes on pacing, wording, choices, or research alignment. Notes stay on this device until copied.</p>
-      <label for="chapterNote">Notes for this chapter</label>
-      <textarea id="chapterNote" rows="3" maxlength="3000" placeholder="What should we improve in this chapter?"></textarea>
-      <div class="note-actions"><button type="button" id="saveNote" class="btn outline">Save note</button><button type="button" id="copyNotes" class="btn textbtn">Copy all notes</button></div>
-      <p id="noteFeedback" class="feedback" role="status"></p>
-    </details>
-   </section>
-   <section id="petalGlimpse" class="petal-glimpse">
-     <div class="glimpse-top"><div><span class="eyebrow">YOUR PETAL</span><h3 id="petalHeading">Friendship &amp; Admiration</h3></div><span class="mini-bloom" aria-hidden="true">✿</span></div>
-     <div class="track"><span aria-hidden="true"></span></div><p>2 of 10 Deep Dives completed <span class="muted">· sample preview</span></p>
-   </section>
-   <section class="review-footer"><span><span aria-hidden="true">🔒</span> Fictional story · local progress only</span><span class="reset-actions"><button type="button" id="resetButton" class="reset">Reset this story</button><button type="button" id="resetAllButton" class="reset">Reset both stories</button></span></section>
-   <div class="review-legal">No SMS is sent. Story choices and personal notes stay on this device. Editorial comments are sent to the protected Anthos review queue only when signed in and the connection is active.</div>
-  </main>
+   <main class="reading-window" id="storyViewport">
+     <div id="resetNotice" class="reset-notice" hidden role="status"></div>
+     <section id="overview" class="error-overview" hidden>
+       <p id="storyOverview"></p>
+       <button type="button" id="startButton" class="btn primary">Begin Deep Dive</button>
+     </section>
+     <section id="reader" class="reader" hidden aria-label="Deep Dive reading experience">
+      <div class="screen-label"><span id="chapterEyebrow" class="eyebrow">CHAPTER 1 OF 8</span><span id="chapterState" class="screen-status">In progress</span></div>
+      <div id="slideWindow" class="slide-window" role="region" aria-label="Current Deep Dive story screen">
+       <section class="slide-part storycard" data-stage="scene" id="scenePane">
+        <span id="storyLocation" class="eyebrow story-location"></span>
+        <div class="item-head"><h2 id="chapterTitle"></h2><button type="button" class="comment-chip" data-comment-target="chapter_title">Comment</button></div>
+        <p id="storyText" class="story-text"></p>
+        <div class="item-actions"><button type="button" class="comment-chip" data-comment-target="narrative">Comment on scene</button></div>
+       </section>
+       <section class="slide-part decision" data-stage="choice" id="decision" hidden>
+         <div class="item-head"><h3 id="question"></h3><button type="button" class="comment-chip" data-comment-target="prompt">Comment</button></div>
+         <p class="decision-hint" id="decisionHint"></p>
+         <div id="options" class="choices"></div>
+       </section>
+       <section class="slide-part consequence" data-stage="outcome" id="result" hidden aria-label="Consequence and reflection">
+         <span class="eyebrow">WHAT HAPPENED NEXT</span>
+         <p id="impact" class="outcome-text"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="option_impact">Comment on consequence</button></div>
+         <div class="coaching"><span class="eyebrow">SOPHIA'S REFLECTION</span><p id="coach"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="option_coach">Comment on reflection</button></div></div>
+         <div id="repair" hidden></div>
+       </section>
+       <section class="slide-part lesson" data-stage="insight" id="lesson" hidden>
+         <span class="eyebrow">A MOMENT TO NOTICE</span>
+         <p id="takeaway"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="takeaway">Comment</button></div>
+         <p id="transitionText" class="transition"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="transition">Comment on transition</button></div>
+       </section>
+       <section class="slide-part finish" data-stage="finished" id="finishPane" hidden>
+        <span class="finish-bloom" aria-hidden="true">✿</span>
+        <span class="eyebrow">EIGHT CHAPTERS COMPLETED</span>
+        <h2>A story worth carrying forward.</h2>
+        <p>You've reached the end of this fictional Deep Dive. Your choices remain on this device for review.</p>
+        <button type="button" class="btn outline" id="reviewAgainButton">Review earlier chapters</button>
+       </section>
+      </div>
+      <p id="readerFeedback" class="feedback" role="status"></p>
+     </section>
+    </main>
+    <footer class="reader-footer">
+     <div class="footer-progress"><span id="footerMilestone">Chapter 1 · Story</span><span class="demo-caption">* sample stats</span></div>
+     <nav id="chapterRail" class="chapter-rail" aria-label="Chapter progress"></nav>
+     <div class="reader-actions">
+      <button type="button" id="previousButton" class="btn outline" disabled aria-label="Previous screen"><span aria-hidden="true">←</span> Back</button>
+      <button type="button" id="advanceButton" class="btn primary">Next <span aria-hidden="true">→</span></button>
+     </div>
+    </footer>
+   </div>
  </div>
- <dialog id="storyDialog" class="story-dialog" aria-labelledby="selectHeading">
+ <dialog id="toolsDialog" class="story-dialog" aria-labelledby="toolsHeading">
+  <div class="dialog-inner">
+    <div class="dialog-top"><h2 id="toolsHeading">Review tools</h2><button type="button" id="closeTools" class="close-dialog" aria-label="Close review tools">✕</button></div>
+    <p class="tools-explainer">Keep the story uncluttered. Turn on comments only when you want to annotate an item.</p>
+    <button type="button" id="reviewModeButton" class="btn outline" aria-pressed="false">Show comment buttons</button>
+    <p class="tools-review-warning">Editorial submissions still require Anthos admin sign-in. Couple reviewers will have separate, permission-limited access in a future release.</p>
+    <div class="review-queue-link"><button id="queueButton" class="btn outline" type="button">Review comments <span id="queueCount">0</span></button><span id="reviewConnection" class="muted small">Comments sync after admin login.</span></div>
+    <details class="review-notes" id="reviewNotes">
+ <summary>✎ Chapter notes <span id="notesCount" class="notescount">0 saved</span></summary>
+ <p>Private notes stay on this phone until copied.</p>
+ <label for="chapterNote">Editorial notes</label>
+ <textarea id="chapterNote" rows="4" maxlength="3000" placeholder="What should we improve?"></textarea>
+ <div class="note-actions"><button type="button" id="saveNote" class="btn outline">Save note</button><button type="button" id="copyNotes" class="btn textbtn">Copy all notes</button></div>
+ <p id="noteFeedback" class="feedback" role="status"></p>
+</details>
+    <section class="review-footer"><span>Fictional story · local progress only</span><span class="reset-actions"><button type="button" id="resetButton" class="reset">Reset this story</button><button type="button" id="resetAllButton" class="reset">Reset both stories</button></span></section>
+    <div class="review-legal">No SMS or spouse data is used. Story choices stay on this phone. Signed-in editorial comments are stored in Supabase.</div>
+  </div>
+ </dialog>
+  <dialog id="storyDialog" class="story-dialog" aria-labelledby="selectHeading">
   <div class="dialog-inner">
     <div class="dialog-top"><h2 id="selectHeading">Review a Deep Dive</h2><button id="closeDialog" class="close-dialog" aria-label="Close story selection" type="button">✕</button></div>
     <p>Choose one of the two fully authored stories. Each has eight chapters and branching endings.</p>
@@ -116,5 +136,6 @@
      <p id="queueFeedback" role="status" class="feedback"></p>
    </div>
  </dialog>
+
 </body>
 </html>
