@@ -68,7 +68,7 @@ function openComment(kind,index,clicked){
 function overlayKey(c){return [c.chapter,c.targetKind,c.index??"-"].join(":")}
 function paint(){
  const ctx=current();if(!ctx)return;
- const edits=comments.filter(c=>c.status==="accepted"&&c.proposedText&&c.chapter===ctx.chapter+1);
+ const edits=comments.filter(c=>["suggested","accepted"].includes(c.status)&&c.proposedText&&c.chapter===ctx.chapter+1).reverse();
  for(const e of edits){
    const index=e.index,kind=e.targetKind,value=e.proposedText;
    if(kind==="chapter_title")$("chapterTitle").textContent=value;
@@ -142,6 +142,7 @@ function itemCard(c,localOnly=false){
  if(c.status==="suggested"&&!localOnly){
   const actions=document.createElement("div");actions.className="queue-actions";
   const yes=document.createElement("button");yes.className="btn primary";yes.textContent="Use in review preview";
+  yes.textContent="Accept suggested wording";
   yes.addEventListener("click",()=>decide(c.id,"accepted"));
   const no=document.createElement("button");no.className="btn outline";no.textContent="Dismiss";
   no.addEventListener("click",()=>decide(c.id,"dismissed"));
@@ -155,7 +156,7 @@ function drawQueue(){
    ...comments.map(x=>({row:x,local:false}))];
  if(!entries.length){const p=document.createElement("p");p.textContent="No comments yet. Tap Comment beside any story item to begin.";box.append(p)}
  else entries.forEach(x=>box.append(itemCard(x.row,x.local)));
- $("queueFeedback").textContent=connected?"Changes are suggestions until you approve them. Nothing is published.":"Offline notes are queued on this phone. Central syncing needs the admin connection.";
+ $("queueFeedback").textContent=connected?"AI suggestions are visible in the review copy automatically. Accept low-risk edits together; nothing is published.":"Offline notes are queued on this phone. Central syncing needs the admin connection.";
 }
 async function decide(id,decision){
  $("queueFeedback").textContent="Updating editorial review…";
@@ -206,12 +207,29 @@ async function signIn(){
  }catch{$("commentState").textContent="Could not sign in."}
  finally{$("reviewSignIn").disabled=false}
 }
+async function acceptLowRisk(){
+ if(!connected||!auth){$("queueFeedback").textContent="Sign in and connect Supabase to accept suggestions.";return;}
+ const todo=comments.filter(c=>c.status==="suggested"&&c.risk==="low").slice(0,30);
+ if(!todo.length){$("queueFeedback").textContent="No low-risk suggestions ready to accept.";return;}
+ $("approveLowRisk").disabled=true;
+ let accepted=0;
+ for(const c of todo){
+   try{
+     const r=await post({action:"review-resolve",id:c.id,decision:"accepted"});
+     if(r.ok){c.status="accepted";accepted++;}
+   }catch{}
+ }
+ $("approveLowRisk").disabled=false;
+ $("queueFeedback").textContent=accepted+" of "+todo.length+" low-risk suggestions accepted for the reviewer preview. Canonical story unchanged.";
+ drawQueue();paint();refreshStatus();
+}
 function init(){
  $("reviewForm").addEventListener("submit",submit);
  $("reviewSignIn").addEventListener("click",signIn);
  $("closeComment").addEventListener("click",()=>$("commentDialog").close());
  $("closeQueue").addEventListener("click",()=>$("queueDialog").close());
  $("queueButton").addEventListener("click",async()=>{await load();drawQueue();$("queueDialog").showModal()});
+ $("approveLowRisk").addEventListener("click",acceptLowRisk);
  document.addEventListener("click",e=>{
    const b=e.target.closest("[data-comment-target]");
    if(!b||!current())return;
