@@ -27,6 +27,7 @@ test("editor parses and supports protected server sync, local unsynced drafts an
  assert.match(js,/review-resolve/);
  assert.match(js,/\["suggested","accepted"\]/);
  assert.match(js,/acceptLowRisk/);
+ assert.match(js,/paint\(\);drawQueue\(\);/);
  assert.match(html,/Nothing gets published automatically/);
 });
 test("server review routes retain admin protection, CSRF check and request size limits",()=>{
