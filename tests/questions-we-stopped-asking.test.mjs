@@ -14,7 +14,8 @@ test("Friendship story contains a full authored eight-chapter narrative",()=>{
   assert.equal(c.number,i+1);
   assert.ok(c.title.length>5);
   assert.ok(c.narrative.length>150);
-  assert.ok(c.takeaway.length>45);
+  if(c.options)assert.ok(c.options.every(o=>o.coach.length>40));
+  else assert.ok(c.takeaway.length>45);
  }
 });
 test("six coached choices at three decision chapters and chapter 7 no advance hints",()=>{
