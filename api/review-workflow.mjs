@@ -103,3 +103,14 @@ export async function reviewResolve(id,status){
    {status,resolved_at:new Date().toISOString(),updated_at:new Date().toISOString()},"PATCH");
  return {ok:true,status,notice:"Original authored story preserved. An accepted suggestion is shown as a reviewer overlay only."};
 }
+
+/* Temporary authenticated preview generation while server-side Supabase credentials
+ * are being configured. This only returns draft text to the browser; it saves nothing. */
+export async function reviewLocalDraft(data){
+ valid(data);
+ const story={title:data.storyId.replaceAll("-"," ")};
+ const result=await generate(story,data.chapter,data.targetKind,data.sourceText,data.feedback.trim());
+ if(!result)return {ok:true,suggested:false,message:"Comment remains saved on this device. AI suggestion unavailable."};
+ return {ok:true,suggested:true,proposedText:result.replacement,reason:result.reason,risk:result.risk,
+   notice:"AI suggestion is a local reviewer draft; it has not been centrally saved or published."};
+}
