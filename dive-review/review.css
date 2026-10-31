@@ -52,3 +52,8 @@ button,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:defaul
 .queue-actions .btn{min-height:41px;font-size:12px;padding:8px 12px}
 .queue-status{color:#45674d;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:1px}
 @media(max-width:380px){.choice-row .comment-chip{max-width:68px;padding:6px;font-size:10px}.repair-row .comment-chip{max-width:66px;padding:6px}}
+
+.reset-notice{border:1px solid #a7c3a0;background:#edf6e9;color:#35593b;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5;margin:15px 0}
+.reset-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.reset-actions .reset{font-weight:650}
+@media(max-width:410px){.review-footer{align-items:flex-start;flex-direction:column}.reset-actions{justify-content:flex-start}}

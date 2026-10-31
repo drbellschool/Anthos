@@ -10,11 +10,30 @@
     questions:"/dive-review/stories/questions.v1.json",
     christmas:"/dive-review/stories/christmas.v1.json"
   });
-  const selected=new URLSearchParams(location.search).get("story");
+  const params=new URLSearchParams(location.search);
+  const selected=params.get("story");
+  const resetOnOpen=params.get("reset")==="stories";
   let currentKey=Object.hasOwn(STORY_URLS,selected)?selected:"questions";
   let stories={},story=null,state=null,notes={},started=false;
   const stateKey=()=> "anthos_dive_review_v1_"+story.id+"_v"+story.storyVersion;
   const notesKey=()=> stateKey()+"_editorial_notes";
+  function resetAllStoryProgress(){
+    try {
+      // Each story is a distinct local progress snapshot. Preserve every editorial
+      // note and local/central reviewer comment while resetting choices and chapters.
+      for(const entry of Object.values(stories)){
+        localStorage.removeItem("anthos_dive_review_v1_"+entry.id+"_v"+entry.storyVersion);
+      }
+      return true;
+    }catch{return false;}
+  }
+  function showResetResult(ok){
+    const el=$("resetNotice");
+    el.hidden=false;
+    el.textContent=ok?
+      "Both Deep Dives have been reset to Chapter 1 on this device. Editorial notes and comments were kept.":
+      "The browser blocked clearing saved story progress. Use the same browser and allow local storage.";
+  }
   function readLocal(key,otherwise){
     try {const raw=localStorage.getItem(key);return raw?JSON.parse(raw):otherwise;}
     catch{return otherwise;}
@@ -206,6 +225,12 @@
       if(writeLocal(notesKey(),notes)){put("noteFeedback",text?"Saved on this device.":"Note cleared.");put("notesCount",Object.keys(notes).length+" saved");}
     });
     $("copyNotes").addEventListener("click",copyAllNotes);
+    $("resetAllButton").addEventListener("click",()=>{
+      if(!confirm("Start both Deep Dives over at Chapter 1 on this device? Choices and progress will be cleared. Editorial notes and comments will remain."))return;
+      const ok=resetAllStoryProgress();
+      if(ok)applyStory(currentKey);
+      showResetResult(ok);
+    });
     $("resetButton").addEventListener("click",()=>{
       if(!story||!confirm("Reset only this story's chapter progress on this device? Editorial notes are kept."))return;
       try{localStorage.removeItem(stateKey());}catch{}
@@ -217,7 +242,9 @@
       return [key,E.storyCheck(await response.json())];
     })).then(entries=>{
       stories=Object.fromEntries(entries);
+      const cleared=resetOnOpen?resetAllStoryProgress():null;
       applyStory(currentKey);
+      if(resetOnOpen)showResetResult(cleared);
     }).catch(()=>{
       error("The story preview could not load. Please try refreshing the page.");
     });
