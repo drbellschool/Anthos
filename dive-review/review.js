@@ -76,6 +76,7 @@
     $("overview").hidden=started;
     $("reader").hidden=!started;
     if(started)renderReader();
+    document.dispatchEvent(new Event("anthos-review-render"));
   }
   function button(label,cls,fn,disabled=false){
     const b=document.createElement("button");b.type="button";b.className=cls;b.textContent=label;b.disabled=disabled;b.addEventListener("click",fn);
@@ -115,7 +116,11 @@
         b.addEventListener("click",()=>{
           if(run({type:"choose",index:n}))$("result").scrollIntoView({block:"nearest",behavior:"smooth"});
         });
-        choices.append(b);
+        const row=document.createElement("div");row.className="choice-row";
+      row.append(b);
+      const comment=document.createElement("button");comment.type="button";comment.className="comment-chip";
+      comment.dataset.commentTarget="option_text";comment.dataset.commentIndex=String(n);comment.textContent="Comment";
+      row.append(comment);choices.append(row);
       });
       if(v.choice){
         put("impact",v.outcome);
@@ -136,11 +141,15 @@
               {id:"own",text:"Eli acknowledges the pressure he created and gives Mara room to decide what to share."},
               {id:"deflect",text:"Eli says he was only trying to help, then insists Mara overreacted."}
             ]:null;
-          v.repairOptions.forEach(choice=>{
+          v.repairOptions.forEach((choice,repairIndex)=>{
             const label=options?.find(o=>o.id===choice.id)?.text||choice.text;
-            repairs.append(button(label,"btn outline",()=>{
+            const row=document.createElement("div");row.className="repair-row";
+            row.append(button(label,"btn outline",()=>{
               if(run({type:"repair",repair:choice.id}))$("result").scrollIntoView({block:"nearest",behavior:"smooth"});
             }));
+            const note=document.createElement("button");note.type="button";note.className="comment-chip";
+            note.dataset.commentTarget="repair_text";note.dataset.commentIndex=String(repairIndex);note.textContent="Comment";
+            row.append(note);repairs.append(row);
           });
         }else if(v.repair){
           repairs.hidden=false;
@@ -213,6 +222,8 @@
       error("The story preview could not load. Please try refreshing the page.");
     });
   }
+  globalThis.ANTHOS_REVIEW_CONTEXT=()=>story&&state?{story,chapter:state.chapter,
+    chosen:E.view(story,state).choiceIndex,completed:state.completed}:null;
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
   else init();
 })();
