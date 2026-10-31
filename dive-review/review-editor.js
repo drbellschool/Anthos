@@ -95,7 +95,7 @@ function paint(){
  const id=current()?.story?.id;
  if(id)document.querySelectorAll("[data-comment-target]").forEach(el=>el.title="Comment on this "+label(el.dataset.commentTarget).toLowerCase());
  // In chapter eight, the visible narrative is an authored branching ending.
- const storyBtn=document.querySelector('[data-comment-target="narrative"]');
+ const storyBtn=document.querySelector("#scenePane .item-actions .comment-chip");
  if(storyBtn){
    storyBtn.dataset.commentTarget=ctx.chapter===7?"ending":"narrative";
    if(ctx.chapter===7&&Number.isInteger(ctx.endingIndex))storyBtn.dataset.commentIndex=ctx.endingIndex;
