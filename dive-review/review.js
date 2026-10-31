@@ -8,7 +8,8 @@ const E=globalThis.ANTHOS_DEEP_DIVE_ENGINE;
 const $=id=>document.getElementById(id);
 const STORY_URLS=Object.freeze({
  questions:"/dive-review/stories/questions.v1.json",
- christmas:"/dive-review/stories/christmas.v1.json"
+ christmas:"/dive-review/stories/christmas.v1.json",
+ offer:"/dive-review/stories/offer.v1.json"
 });
 const params=new URLSearchParams(location.search);
 const requested=params.get("story"),resetOnOpen=params.get("reset")==="stories";
