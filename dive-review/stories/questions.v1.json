@@ -1,0 +1,195 @@
+{
+  "id": "the-questions-we-stopped-asking",
+  "storyVersion": 1,
+  "title": "The Questions We Stopped Asking",
+  "petal": "friendship-admiration",
+  "petalName": "Friendship & Admiration",
+  "eyebrow": "Deep Dive 02 · The questions we keep asking",
+  "overview": "An ordinary marriage has become a calendar of tasks. Can Mara and Eli rediscover the person beside the schedule?",
+  "objective": "Rediscover curiosity when conversations become routine",
+  "chapters": [
+    {
+      "title": "The Question on the Counter",
+      "location": "Thursday · The kitchen",
+      "story": "Mara and Eli have been married for fourteen years. They know which coffee each other drinks, which bills fall due, and who needs the car on Tuesday. At breakfast, Eli mentions the bakery near his office is closing. Mara answers without looking up: 'Remember to pick up the prescription.' He nods and leaves. Neither is deliberately unkind. Yet as the door closes, Mara notices that their conversation was a checklist. She remembers when they could talk for an hour about a sign on the highway.",
+      "takeaway": "Familiarity can make daily life efficient while leaving curiosity unattended. Noticing the pattern is an invitation, not a verdict on the marriage.",
+      "transition": "That evening, an ordinary question opens a larger conversation.",
+      "mastery": false
+    },
+    {
+      "title": "The Answer She Already Knew",
+      "location": "Thursday · Dinner dishes",
+      "story": "As Eli stacks the dishes, Mara asks, 'How was work?' 'Fine,' he replies. She could name his colleagues, his commute, and his usual frustrations. But earlier she'd heard he was considering joining a community choir; he hasn't mentioned it. She realizes she has been waiting for something interesting to happen rather than making room for him to tell her. Eli sees her pause and says, 'What?'",
+      "prompt": "What should Mara say next?",
+      "options": [
+        {
+          "text": "I realized I haven't asked what has been interesting to you lately. What's been on your mind?",
+          "impact": "Eli is surprised. He initially hesitates, then mentions the choir audition and why he is nervous.",
+          "coach": "A specific, open invitation creates room for a new answer without demanding an impressive story.",
+          "quality": 2
+        },
+        {
+          "text": "You never tell me anything anymore.",
+          "impact": "Eli hears a criticism about his character and begins defending himself.",
+          "coach": "A global accusation can bury a genuine bid for connection. Repair starts with owning the accusation.",
+          "quality": 0
+        },
+        {
+          "text": "I know everything about you already. Let's just watch our show.",
+          "impact": "The television fills the silence. Neither has to risk a fresh conversation.",
+          "coach": "Comfortable routine is not inherently bad, but it can become an automatic exit from curiosity.",
+          "quality": 0
+        },
+        {
+          "text": "I'd like to listen, but I'm tired. Can we sit together after I put the dishes away?",
+          "impact": "Eli agrees. Mara follows through and returns ready to listen.",
+          "coach": "A specific, honored return time protects both honesty about energy and a partner's bid.",
+          "quality": 1
+        },
+        {
+          "text": "I heard about a choir. Is that something you're considering, or would you rather tell me another time?",
+          "impact": "Eli appreciates the option to decline and begins explaining why singing matters to him.",
+          "coach": "Curiosity and choice can coexist; an invitation is stronger when disclosure remains voluntary.",
+          "quality": 2
+        },
+        {
+          "text": "Why didn't you tell me about the choir? Are you hiding things from me?",
+          "impact": "Eli is startled and pulls back. A harmless new interest suddenly feels like an accusation.",
+          "coach": "Converting a discovery into suspicion discourages honest sharing and mistakes autonomy for secrecy.",
+          "quality": 0
+        }
+      ],
+      "mastery": false
+    },
+    {
+      "title": "The Person Beside the Schedule",
+      "location": "Friday · A short walk",
+      "story": "Eli explains that he sang with his grandfather as a child. A conductor at the choir rehearsal reminded him of those afternoons. Mara didn't know the story. She feels briefly embarrassed, then relieved: after fourteen years, there is still something to discover. Eli asks whether she has been thinking about anything besides school schedules and the weekend repairs. Mara tells him she has been sketching again, privately, and has not decided whether she wants to show anyone.",
+      "takeaway": "Good questions allow a spouse to be known without requiring constant access to every private thought. Listening is an ongoing practice, not proof that one spouse has failed.",
+      "transition": "On Saturday, they make a modest plan to spend thirty uninterrupted minutes together.",
+      "mastery": false
+    },
+    {
+      "title": "The Thirty-Minute Experiment",
+      "location": "Saturday · The front porch",
+      "story": "They choose the porch rather than a restaurant: two drinks, no phones, and no chores for half an hour. Eli asks about Mara's sketches. She hesitates; the work feels unfinished, and she doesn't want encouragement that turns into a performance expectation. Eli wants to be interested without taking over.",
+      "prompt": "How should Eli respond?",
+      "options": [
+        {
+          "text": "Would you like to tell me what drawing has been like for you, or keep it yours for now?",
+          "impact": "Mara describes the pleasure of drawing without feeling compelled to show her work.",
+          "coach": "Respecting privacy and remaining genuinely interested makes curiosity emotionally safer.",
+          "quality": 2
+        },
+        {
+          "text": "You should post them online. I'll set up an account for you.",
+          "impact": "Mara becomes quiet. Eli has treated a private interest as a project to manage.",
+          "coach": "Helpful enthusiasm becomes pressure when it outruns the person's consent.",
+          "quality": 0
+        },
+        {
+          "text": "If you won't show me, I guess you don't trust me.",
+          "impact": "Mara feels forced to defend a personal boundary instead of sharing what she enjoys.",
+          "coach": "A spouse can be committed and loving while keeping a hobby or thought private.",
+          "quality": 0
+        },
+        {
+          "text": "I don't really get art, but I like that you've found something for yourself.",
+          "impact": "Mara relaxes, though she wonders whether Eli might someday ask what she loves about it.",
+          "coach": "Affirmation is valuable; a little more curiosity could help the conversation deepen.",
+          "quality": 1
+        },
+        {
+          "text": "What draws you into it? I don't need to see a page to understand what you love about it.",
+          "impact": "Mara talks about noticing shadows and the feeling of slowing down. Eli learns something new.",
+          "coach": "Questions about meaning invite self-disclosure without demanding proof or an outcome.",
+          "quality": 2
+        },
+        {
+          "text": "Let's make a rule that we each reveal a secret every Saturday.",
+          "impact": "Mara laughs nervously. The pleasant experiment now feels like a compulsory disclosure schedule.",
+          "coach": "Predictable rituals can help, but forced vulnerability undermines willingness.",
+          "quality": 0
+        }
+      ],
+      "mastery": false
+    },
+    {
+      "title": "The Unfinished Story",
+      "location": "Sunday · A phone call",
+      "story": "Mara's sister calls about a family celebration. Eli overhears Mara decline an invitation because of a class she wants to attend. Later, he says he didn't realize that the sketches had become important enough for a class. Mara explains that she only decided that morning. Their plans have not always needed a joint announcement, but important calendar decisions do need coordination. They work out the date without demanding that every new idea become a committee vote.",
+      "takeaway": "Curiosity is not surveillance. Couples can ask about each other's emerging interests while retaining individual agency and coordinating shared commitments.",
+      "transition": "An unexpectedly quiet Tuesday gives Mara the chance to make the next invitation.",
+      "mastery": false
+    },
+    {
+      "title": "A Small Discovery",
+      "location": "Tuesday · Drive home",
+      "story": "They stop at the closing bakery. Eli orders the pastry his grandfather loved. Mara asks what other moments from childhood he still carries. He tells her about riding the bus alone to rehearsal; she tells him about an art teacher who once kept her drawings on the classroom wall. The conversation is neither spectacular nor perfectly balanced. On the ride home, Mara notices they have spoken about the people they are becoming, not only the tasks awaiting them.",
+      "takeaway": "Positive shared experiences can create opportunities to discover one another. The novelty need not be expensive; attentiveness and mutual enjoyment matter.",
+      "transition": "Then an everyday interruption tests whether curiosity survives inconvenience.",
+      "mastery": false
+    },
+    {
+      "title": "The Question Under Pressure",
+      "location": "Wednesday · A rushed evening",
+      "story": "Eli arrives home late after a rehearsal he forgot to put on their shared calendar. Mara has had a difficult day and has been waiting to eat. She feels disappointed. He is excited to tell her how the rehearsal went, but he also realizes his mistake. He asks, 'Can I tell you about it?' She wants to be fair without pretending that the missed plan didn't matter.",
+      "prompt": "What should Mara do next? Choose independently. You will not receive hints before this decision.",
+      "options": [
+        {
+          "text": "I'm frustrated we didn't coordinate dinner, and I want to work that out. I'm also glad rehearsal mattered to you. Tell me about it after we eat.",
+          "impact": "Eli hears both the genuine hurt and a continued invitation to share. They agree to update the calendar afterward.",
+          "coach": "Demonstrates truthful self-expression, a practical boundary, and curiosity about a partner's emerging interest.",
+          "quality": 2
+        },
+        {
+          "text": "Maybe the choir cares more about you than I do. Go tell them.",
+          "impact": "Eli feels punished for sharing an interest. He becomes defensive instead of addressing the missed calendar plan.",
+          "coach": "Sarcasm replaces a direct need with accusation and closes the door to connection.",
+          "quality": 0
+        },
+        {
+          "text": "Fine. Tell me everything, but don't expect me to be happy about it.",
+          "impact": "Eli talks for a minute, then stops. Mara feels unheard too, because she never expressed the concrete problem.",
+          "coach": "Surface compliance without an honest request can sustain resentment rather than connection.",
+          "quality": 0
+        },
+        {
+          "text": "I'm too upset to listen well tonight. Can we fix tomorrow's schedule now and talk about rehearsal over breakfast?",
+          "impact": "They update the calendar. The next morning, Mara asks about the song as promised.",
+          "coach": "A clear pause with specific follow-through demonstrates partial mastery when the invitation is honored.",
+          "quality": 1
+        },
+        {
+          "text": "You always forget me when you find something new.",
+          "impact": "Eli withdraws. A single missed plan has become a broad indictment of their marriage.",
+          "coach": "Global blame obscures the specific lapse and makes it harder to celebrate the partner's growth.",
+          "quality": 0
+        },
+        {
+          "text": "I missed you and I'm upset about dinner. I'm willing to hear what excited you, but first I need you to acknowledge the missed plan.",
+          "impact": "Eli apologizes for forgetting to update the calendar. Mara asks about rehearsal, and they make a better plan.",
+          "coach": "Demonstrates honest vulnerability, accountability, and interest without demanding either person suppress a feeling.",
+          "quality": 2
+        }
+      ],
+      "mastery": true
+    },
+    {
+      "title": "A Door Still Open",
+      "location": "The following weekend",
+      "story": "The next weekend is not magically different. There are errands, a pile of laundry, and one conversation cut short by a phone call. Yet on the porch, one person asks a question the other cannot answer with a chore list. It feels small, but both are practicing the choice to remain curious.",
+      "takeaway": "A marriage can be familiar without being finished. The aim is not endless novelty or constant disclosure, but a sustainable willingness to notice and know one another again.",
+      "transition": "The eighth crossing recognizes practice, not perfection.",
+      "mastery": false
+    }
+  ],
+  "endings": [
+    "After the direct conversation, Eli asks which part of the rehearsal Mara wants to hear about. They work out a better schedule, and neither has to give up an important interest to feel connected.",
+    "Mara hears how sharp her sarcasm sounded. She later apologizes without dismissing the missed dinner, and Eli acknowledges his mistake. The next invitation comes cautiously.",
+    "Mara notices that saying 'fine' did not help Eli understand her hurt. She returns to name the problem clearly. Their conversation begins again with more honesty.",
+    "Mara follows through over breakfast. Eli shares a song he hopes to learn; Mara names why the scheduling lapse mattered. A pause becomes a doorway back.",
+    "After calling the missed plan proof that he 'always' forgets her, Mara sees Eli become distant. She corrects the exaggeration and states the specific disappointment. Repair takes more than one conversation.",
+    "Eli acknowledges the calendar error without treating Mara's need for coordination as a rejection of the choir. Mara listens to his excitement, and they make room for both priorities."
+  ]
+}
