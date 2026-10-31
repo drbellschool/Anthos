@@ -87,6 +87,10 @@ function paint(){
      if(el)el.textContent=value;
    }
  }
+ if(edits.some(e=>e.status==="suggested")){
+   const label=$("chapterState");
+   if(!label.textContent.includes("AI draft preview"))label.textContent+=" · AI draft preview";
+ }
  const id=current()?.story?.id;
  if(id)document.querySelectorAll("[data-comment-target]").forEach(el=>el.title="Comment on this "+label(el.dataset.commentTarget).toLowerCase());
  // In chapter eight, the visible narrative is an authored branching ending.
