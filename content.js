@@ -52,7 +52,7 @@ window.THREEFOLD_CONTENT = Object.freeze({
     }
   ],
   dive: {
-    id:"christmas-tug-of-war",title:"Christmas Tug-of-War",
+    id:"christmas-tug-of-war",storyVersion:1,title:"Christmas Tug-of-War",
     eyebrow:"Deep Dive 01 · A story about choosing together",
     overview:"Two people. One holiday. Competing family traditions. Explore how connection, boundaries, and repair shape the next chapter.",
     characters:"Jack and Jill are fictional. Your choices shape their next conversation, not your own partner's behavior.",
@@ -127,6 +127,14 @@ window.THREEFOLD_CONTENT = Object.freeze({
         takeaway:"A satisfying ending need not be a perfect one. Partnership grows through repeated choices, ordinary repair, and moments of shared discovery.",
         transition:"Complete this Deep Dive to add the eighth crossing to your threefold cord."
       }
+    ],
+    endings:[
+      "Christmas morning belongs to Jack and Jill's home, as they agreed. The cinnamon rolls burn, and his mother is still disappointed. Jack checks on Jill and they laugh over breakfast, knowing holding a boundary doesn't erase other people's feelings.",
+      "Christmas morning at home feels quieter than either hoped. Jack's sharp words on the phone hang over the day. He apologizes to his mother for the insult without withdrawing the shared plan, and tells Jill that defending her should not mean escalating conflict. The repair has begun, but trust needs follow-through.",
+      "Jack and Jill stay home for Christmas morning, but Jill feels exposed after being blamed. Jack admits he made her carry a decision they had made together. He offers to correct that with his mother. Their morning isn't magically repaired, yet they're finally naming the real hurt.",
+      "Jack follows through on the promised second conversation before Christmas. His mother remains disappointed but hears a clear, kind boundary. Jill appreciates the follow-through. Their quiet morning is imperfect, and progress depends on repeating that choice next time.",
+      "Jack and Jill go to his mother's breakfast after he changed their plan alone. Jill is hurt. Later, Jack acknowledges that he let pressure undo a joint decision and listens instead of demanding instant forgiveness. They agree to revisit the next holiday together. Repair is possible, not automatic.",
+      "Jack and Jill spend Christmas morning at home, keeping their shared plan. His mother remains sad, but Jack is both warm and clear. After the cinnamon rolls burn, he and Jill laugh and begin a small tradition of their own. It isn't perfect, but it belongs to them."
     ]
   }
 });
