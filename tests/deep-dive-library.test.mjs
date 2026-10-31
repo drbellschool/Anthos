@@ -11,7 +11,7 @@ const catalog=read("supabase/migrations/20261031050001_seed_twelve_petals_and_12
 const chapters=read("supabase/migrations/20261031050002_seed_christmas_tug_of_war.sql");
 
 test("exactly twelve agreed curriculum petals, with ten draft outlines each",()=>{
-  const rows=[...catalog.matchAll(/^\('([a-z0-9-]+)', 1, '([a-z0-9-]+)', '[^']+', '[^']+(?:''[^']+)*', '(draft|in_review)', ARRAY\[/gm)];
+  const rows=[...catalog.matchAll(/^\('([a-z0-9-]+)', 1, '([a-z0-9-]+)', '(?:[^']|'')+', '(?:[^']|'')+', '(draft|in_review)', ARRAY\[/gm)];
   assert.equal(rows.length,120);
   const grouped=new Map();
   for(const [,slug,petal,status] of rows){
@@ -56,6 +56,6 @@ test("authored story satisfies eight milestones and chapter-seven mastery",()=>{
   assert.match(schema,/seventh_chapter_requires_choices/);
   assert.match(schema,/eighth_chapter_not_a_choice/);
   assert.match(schema,/endings_only_on_eight/);
-  assert.match(chapters,/Christmas Tug-of-War/i);
+  assert.match(chapters,/christmas-tug-of-war/i);
   assert.match(chapters,/on conflict \(story_id,chapter_number\) do nothing/);
 });
