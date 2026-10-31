@@ -99,3 +99,12 @@ test("mobile demo never requires private data or exposes a secret-bearing token"
  assert.doesNotMatch(html,/data-auth-user|data-spouse-id|SUPABASE_SERVICE_ROLE/);
  assert.doesNotMatch(review,/fetch\s*\(\s*["'\`]https:\/\/.*\/rest\/v1\//);
 });
+
+test("Friendship review repair buttons use the actual Mara and Eli characters",()=>{
+ const engine=read("dive-review/engine.js");
+ assert.doesNotMatch(engine,/Jill|Jack/);
+ assert.match(review,/Mara acknowledges the accusation/);
+ assert.match(review,/Eli acknowledges the pressure/);
+ assert.match(review,/Mara says she's sorry Eli took it badly/);
+ assert.doesNotMatch(review,/sorry Jill was upset/);
+});
