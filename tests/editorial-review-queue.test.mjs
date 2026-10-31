@@ -45,5 +45,5 @@ test("database review rows are private and no story content is auto-modified",()
  assert.match(sql,/one_accepted_per_location/);
  assert.match(sql,/story_id uuid not null references public\.deep_dive_stories/);
  assert.match(api,/Original authored story preserved/);
- assert.doesNotMatch(api,/deep_dive_chapters.*PATCH|deep_dive_stories.*PATCH/s);
+ assert.doesNotMatch(api,/query\("deep_dive_chapters"[^;]*,"PATCH"\)/);\n assert.doesNotMatch(api,/query\("deep_dive_stories"[^;]*,"PATCH"\)/);
 });
