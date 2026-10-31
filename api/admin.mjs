@@ -1,7 +1,7 @@
 // Threefold private admin API — server only, never import this from client JavaScript.
 // Vercel Node.js Function (.mjs); no persistent customer state until Supabase is provisioned.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { reviewConnected, reviewList, reviewSubmit, reviewResolve, reviewLocalDraft } from "./review-workflow.mjs";
+import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -235,10 +235,6 @@ export default {
     }
     if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
     if(action==="logout")return json({ok:true},200,{"Set-Cookie":clearedCookie()});
-    if(action==="review-suggest-local"){
-      try{return json(await reviewLocalDraft(body));}
-      catch(err){return json({error:err.message||"Unable to generate draft."},err.code||502);}
-    }
     if(action==="review-submit"||action==="review-resolve"){
       try{
         const result=action==="review-submit"?await reviewSubmit(body):await reviewResolve(body.id,body.decision);

@@ -9,6 +9,7 @@ const API="/api/admin",PENDING_KEY="anthos_editor_unsynced_comments_v1";
 let auth=false,connected=false,comments=[],context=null,target=null,loadedStory="";
 const local=()=>{try{return JSON.parse(localStorage.getItem(PENDING_KEY)||"[]")}catch{return []}};
 const setLocal=x=>{try{localStorage.setItem(PENDING_KEY,JSON.stringify(x))}catch{}};
+const REVIEW_REQUEST="Review all pending Anthos Deep Dive editorial comments in my connected Supabase project. Analyze each comment with the exact story, chapter, selected option and original wording. Propose a focused natural rewrite, preserve characters and learning objectives, flag questionable changes for my approval, and save your suggested revisions to the editorial comments table without publishing the stories or changing mastery scores.";
 const label=k=>({chapter_title:"Chapter heading",narrative:"Story scene",prompt:"Decision question",
   option_text:"Choice wording",option_impact:"Consequence",option_coach:"Sophia reflection",
   takeaway:"Learning takeaway",transition:"Transition",repair_text:"Repair choice",ending:"Chapter 8 ending"})[k]||k;
@@ -27,7 +28,7 @@ async function session(){
 function refreshStatus(){
  const count=comments.filter(c=>["pending","suggested","needs_review"].includes(c.status)).length+local().length;
  $("queueCount").textContent=String(count);
- $("reviewConnection").textContent=connected?"Saved comments and suggestions sync with Anthos.":
+ $("reviewConnection").textContent=connected?"Your comments sync to Supabase for ChatGPT review.":
    auth?"Database connection pending — comments will stay on this phone until synced.":
    "Sign in with your Anthos admin password to store and auto-revise comments.";
 }
@@ -160,7 +161,7 @@ function drawQueue(){
    ...comments.map(x=>({row:x,local:false}))];
  if(!entries.length){const p=document.createElement("p");p.textContent="No comments yet. Tap Comment beside any story item to begin.";box.append(p)}
  else entries.forEach(x=>box.append(itemCard(x.row,x.local)));
- $("queueFeedback").textContent=connected?"AI suggestions are visible in the review copy automatically. Accept low-risk edits together; nothing is published.":"Offline notes are queued on this phone. Central syncing needs the admin connection.";
+ $("queueFeedback").textContent=connected?"Ask ChatGPT to review all pending Anthos comments. Proposed rewrites appear here after review; no content is published automatically.":"Comments are local to this phone until your Supabase server connection is configured.";
 }
 async function decide(id,decision){
  $("queueFeedback").textContent="Updating editorial review…";
@@ -182,23 +183,15 @@ async function submit(e){
  try{
   if(!connected){
     const entry={...payload,status:"pending",createdAt:new Date().toISOString()};
-    if(auth){
-      $("commentState").textContent="Creating a suggested rewrite…";
-      const response=await post({action:"review-suggest-local",...payload});
-      if(response.suggested){entry.proposedText=response.proposedText;entry.reason=response.reason;
-        entry.risk=response.risk;entry.status="suggested";}
-    }
     const pending=local();pending.push(entry);setLocal(pending);
-    $("commentState").textContent=entry.proposedText?
-      "Saved on this phone with an AI rewrite for review. Database sync is pending.":
-      "Queued on this phone. Sign in and connect Supabase to sync automatically.";
+    $("commentState").textContent="Saved on this phone; sign in and connect Supabase to sync for ChatGPT review.";
   }else{
     const r=await post({action:"review-submit",...payload});
     if(!r.ok){
       $("commentState").textContent=r.error||"Could not save comment. It remains in the text box.";return;
     }
     if(r.comment)comments.unshift(r.comment);
-    $("commentState").textContent=r.suggested?"Comment saved and Anthos suggested a revision. Open Review comments to see it.":"Comment saved centrally; an AI suggestion can be generated later.";
+    $("commentState").textContent="Saved in Supabase for review in ChatGPT. No paid AI API request was made.";
   }
   $("commentText").value="";refreshStatus();
   $("commentDialog").close();
@@ -241,8 +234,16 @@ function init(){
  $("reviewSignIn").addEventListener("click",signIn);
  $("closeComment").addEventListener("click",()=>$("commentDialog").close());
  $("closeQueue").addEventListener("click",()=>$("queueDialog").close());
- $("queueButton").addEventListener("click",async()=>{await load();drawQueue();$("queueDialog").showModal()});
+ $("queueButton").addEventListener("click",async()=>{loadedStory="";await load();drawQueue();$("queueDialog").showModal()});
  $("approveLowRisk").addEventListener("click",acceptLowRisk);
+ $("copyChatGPTRequest").addEventListener("click",async()=>{
+   try{
+     await navigator.clipboard.writeText(REVIEW_REQUEST);
+     $("queueFeedback").textContent="Copied. Paste this request in our ChatGPT conversation to review the entire pending queue at once.";
+   }catch{
+     $("queueFeedback").textContent="Copy unavailable. Tell ChatGPT: Review my pending Anthos editorial comments.";
+   }
+ });
  document.addEventListener("click",e=>{
    const b=e.target.closest("[data-comment-target]");
    if(!b||!current())return;

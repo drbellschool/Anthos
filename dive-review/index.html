@@ -96,21 +96,21 @@
     <p id="commentContext" class="context-preview"></p>
     <label for="commentText">What needs fixing?</label>
     <textarea id="commentText" maxlength="1400" required minlength="3" rows="4" placeholder="e.g. Eli isn't actually trying to help here. Make his defensive response more believable."></textarea>
-    <p class="comment-explainer">Anthos saves your comment and, when connected, suggests a focused rewrite. Nothing gets published automatically.</p>
+    <p class="comment-explainer">Save comments to Supabase for one batch review in ChatGPT. No paid OpenAI API call occurs when you submit a comment. Nothing gets published automatically.</p>
     <div id="commentAuth" class="comment-auth" hidden>
       <label for="reviewPassword">Admin password</label>
       <input id="reviewPassword" type="password" autocomplete="current-password" placeholder="Enter your Anthos admin password"/>
       <button type="button" id="reviewSignIn" class="btn outline">Unlock editorial reviews</button>
     </div>
     <p id="commentState" role="status" class="feedback"></p>
-    <button id="sendComment" class="btn primary" type="submit">Save &amp; suggest a correction</button>
+    <button id="sendComment" class="btn primary" type="submit">Save comment for ChatGPT review</button>
   </form>
  </dialog>
  <dialog id="queueDialog" class="story-dialog" aria-labelledby="queueHeading">
    <div class="dialog-inner">
      <div class="dialog-top"><h2 id="queueHeading">Editorial review queue</h2><button type="button" id="closeQueue" class="close-dialog" aria-label="Close review queue">✕</button></div>
      <p>Read the original, comment, and proposed rewrite. Accepting changes updates the reviewer preview only; the master chapter isn't silently overwritten.</p>
-     <div class="queue-actions"><button id="approveLowRisk" class="btn primary" type="button">Accept all low-risk suggestions</button></div>
+     <div class="queue-actions"><button id="copyChatGPTRequest" class="btn outline" type="button">Copy ChatGPT review request</button><button id="approveLowRisk" class="btn primary" type="button">Accept all low-risk suggestions</button></div>
      <div id="queueItems"></div>
      <p id="queueFeedback" role="status" class="feedback"></p>
    </div>
