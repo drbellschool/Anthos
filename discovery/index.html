@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f5f1e9">
+  <title>Couple Discovery | Anthos Preview</title>
+  <meta name="description" content="An interactive, same-device preview of Anthos Couple Discovery.">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the experience</a>
+  <header class="topbar">
+    <a class="brand" href="/experience/" aria-label="Anthos experience home">✳ <span>anthos</span></a>
+    <div class="header-right"><span class="status">SAME-DEVICE DEMO</span><a href="/experience/">← Back to the experience</a></div>
+  </header>
+  <main id="main" class="shell">
+    <div class="section-label">ANTHOS <span>/</span> SOPHIA & PARACLETE <span>/</span> COUPLE DISCOVERY</div>
+    <section id="intro" class="stage">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">A LITTLE MORE ABOUT US</p>
+          <h1>Two perspectives.<br><em>One lovely surprise.</em></h1>
+          <p class="lede">A small invitation to notice what each of you enjoys, discover what you might have missed, and turn it into an afternoon worth sharing.</p>
+          <button class="button primary" id="start" type="button">Begin with Sophia <span>↗</span></button>
+        </div>
+        <div class="flower" aria-hidden="true"><div class="flower-center">✳</div><span class="flower-caption">DISCOVER · UNDERSTAND · ENJOY</span></div>
+      </div>
+      <div class="privacy"><strong>Preview, not a private account.</strong> This is a same-device demo: use sample or non-sensitive answers. No responses are sent or saved. A real couple experience will require individual accounts and private sharing controls.</div>
+    </section>
+    <section id="answer" class="stage" hidden>
+      <div class="columns">
+        <div class="side-note">
+          <p class="eyebrow">A NOTE FROM SOPHIA</p>
+          <h2>There's no perfect answer.</h2>
+          <p>Think about a day when you have a little time just for yourselves. Choose the thing that sounds most enjoyable to you, then take a gentle guess about your partner.</p>
+          <p class="small">Your choices are held on this screen until you choose to share. Neither response appears in the comparison until both people submit.</p>
+          <div class="stage-marker"><span id="stage-index">01</span><span>/ 03</span></div>
+        </div>
+        <div class="form-card">
+          <span class="eyebrow" id="person-label">PARTNER ONE</span>
+          <h2>What feels like a good afternoon?</h2>
+          <form id="discovery-form">
+            <fieldset><legend>1. Which activity would you enjoy most?</legend><div id="self-options" class="option-grid"></div></fieldset>
+            <fieldset><legend>2. Which activity do you think your spouse would choose?</legend><div id="prediction-options" class="option-grid"></div></fieldset>
+            <label class="freeform" for="reason">What makes your choice enjoyable? <small>Optional · 360 characters max</small></label>
+            <textarea id="reason" name="why" maxlength="360" rows="3" placeholder="I love this because..."></textarea>
+            <label class="consent"><input type="checkbox" name="share" required> <span>I'm ready to share these choices and my optional explanation with my spouse after both of us answer.</span></label>
+            <p id="form-error" class="error" role="alert" aria-live="polite"></p>
+            <button class="button primary full" type="submit" id="submit-answer">Save my answer & continue ↗</button>
+          </form>
+        </div>
+      </div>
+    </section>
+    <section id="handoff" class="stage centered" hidden>
+      <div class="handoff-icon" aria-hidden="true">✿</div>
+      <p class="eyebrow">ONE VOICE HEARD · ONE TO GO</p>
+      <h1>A little room<br><em>for another perspective.</em></h1>
+      <p class="lede">Partner One has finished. Now hand this device to Partner Two without discussing the answers yet. The first response is hidden from the page.</p>
+      <button class="button primary" id="next-person" type="button">I'm Partner Two — begin ↗</button>
+      <p class="small">This is a same-device demonstration, not a secure privacy boundary. Use only non-sensitive answers.</p>
+    </section>
+    <section id="reveal" class="stage" hidden>
+      <p class="eyebrow">SOPHIA · MUTUAL DISCOVERY</p>
+      <h1>Here's what <em>you discovered.</em></h1>
+      <p class="lede">You each chose something for yourself—and imagined what the other might love. Both perspectives belong here.</p>
+      <div class="reveal-grid">
+        <article class="reveal-card">
+          <h2>Partner One</h2>
+          <span class="eyebrow">I WOULD ENJOY</span><p class="answer" id="a-self"></p>
+          <span class="eyebrow">I PREDICTED</span><p id="a-prediction"></p>
+          <span class="eyebrow">WHY</span><p id="a-why"></p>
+        </article>
+        <article class="reveal-card">
+          <h2>Partner Two</h2>
+          <span class="eyebrow">I WOULD ENJOY</span><p class="answer" id="b-self"></p>
+          <span class="eyebrow">I PREDICTED</span><p id="b-prediction"></p>
+          <span class="eyebrow">WHY</span><p id="b-why"></p>
+        </article>
+      </div>
+      <div class="coach-card"><div class="eyebrow">✦ SOPHIA'S REFLECTION</div><p id="sophia-reflection"></p><p class="question" id="sophia-question"></p></div>
+      <button class="button primary" id="ask-paraclete" type="button">See what Paraclete has in mind ↗</button>
+    </section>
+    <section id="plan" class="stage" hidden>
+      <p class="eyebrow">PARACLETE · A LITTLE ADVENTURE</p>
+      <h1>Something for <em>both of you.</em></h1>
+      <article class="adventure-card">
+        <span class="eyebrow">A SUGGESTION, NOT A BOOKING</span>
+        <h2 id="plan-title"></h2>
+        <p id="plan-intro" class="lede"></p>
+        <ol id="plan-steps"></ol>
+        <p class="plan-footnote" id="plan-note"></p>
+      </article>
+      <p class="closing">“Your time together shouldn't feel like an assignment. This is just a place to begin.” — Paraclete</p>
+      <button class="button secondary" id="restart" type="button">Try another discovery ↻</button>
+    </section>
+  </main>
+  <footer>ANTHOS · CHRISTIAN MARRIAGE ENRICHMENT <span>Preview only · No AI messages or reservations</span></footer>
+</body>
+</html>

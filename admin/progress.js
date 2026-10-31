@@ -7,6 +7,7 @@ const tasks=[
 ["A","Telnyx and messaging","audit","Real SMS integration requires end-to-end verification.","Confirm carrier status, webhooks and opt-outs.",4],
 ["A","Cost telemetry","planned","Per-couple usage tracking for SMS, AI and images.","Specify cost events and admin charts.",4],
 ["B","Sophia and Paraclete","designed","Companion coaching and concierge handoff.","Implement shared context and privacy rules.",4],
+["B","Couple Discovery","designing","Two-way answers, mutual reveal and sample adventures have a browser prototype and private schema.","Build secure separate-spouse accounts, consented reveal and real planning.",28],
 ["B","Deep Dives and Whispers","designed","Eight milestones, independent mastery and personal whispers.","Implement story engine and cadence.",4],
 ["C","Themed Petal Journeys","designing","Deep Dives teach, Whispers reinforce, Adventures practice.","Finalize petal objectives and themed sequencing.",9],
 ["C","Different spouse priorities","designing","Each spouse can choose, pause and grow independently.","Define fair joint sequencing and mutual opt-in.",9],
@@ -57,6 +58,7 @@ function render(){
   const checklists={
    "Themed Petal Journeys":["Petal objectives and completion criteria","Themed Deep Dives, Whispers and Adventures","Revisit history and one collage per petal"],
    "Different spouse priorities":["Private priorities from both partners","Mutual opt-in for shared adventures","Individual progress when the other spouse pauses"],
+   "Couple Discovery":["Separate personal choice and partner prediction","Both spouses explicitly approve answer reveal","Paraclete receives actual shared preferences only","Customer auth, revocation and cross-couple privacy tests before launch"],
    "A Day Through Our Eyes":["Photo schedule agreed by both","Two separate labeled timelines","Secure upload, retention and deletion"],
    "One collage per petal":["Both partners represented","Marriage duration calculated from confirmed wedding date","Joint review and approval"],
    "Instagram sharing and referrals":["Legible 4:5 export","Explicit approval from both partners","Optional referral attribution; never auto-post"]
