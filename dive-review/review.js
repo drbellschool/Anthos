@@ -227,7 +227,7 @@ function init(){
  $("reviewModeButton").addEventListener("click",()=>{
   const on=$("app").classList.toggle("review-on");
   $("reviewModeButton").setAttribute("aria-pressed",String(on));
-  $("reviewModeButton").textContent=on?"Hide comment buttons":"Show comment buttons";
+  $("reviewModeButton").textContent=on?"Normal comment appearance":"Highlight comment buttons";
   $("toolsDialog").close();
  });
  $("startButton").addEventListener("click",()=>{started=true;render()});

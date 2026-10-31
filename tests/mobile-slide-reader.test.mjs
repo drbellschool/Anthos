@@ -38,7 +38,7 @@ test("Navigation animates but reduced-motion users retain instant transitions",(
 test("Editor is hidden behind review tools and still anchors exact choices, consequences, repairs, and endings",()=>{
  assert.match(html,/id="toolsButton"/);
  assert.match(html,/id="reviewModeButton"/);
- assert.match(css,/\.phone:not\(\.review-on\) \.comment-chip\{display:none!important\}/);
+ assert.match(css,/\.phone:not\(\.review-on\) \.comment-chip\{opacity:\.83\}/);
  assert.match(js,/id==="the-questions-we-stopped-asking"/);
  assert.match(js,/dataset\.commentTarget="option_text"/);
  assert.match(js,/dataset\.commentTarget="repair_text"/);
