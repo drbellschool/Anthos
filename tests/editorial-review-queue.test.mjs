@@ -36,8 +36,13 @@ test("server review routes retain admin protection, CSRF check and request size 
  assert.match(admin,/if\(action==="review-submit"\|\|action==="review-resolve"\)/);
  assert.match(admin,/get\("view"\)==="reviews"/);
  assert.match(api,/SUPABASE_SECRET_KEY/);
- assert.match(api,/OPENAI_API_KEY/);
- assert.match(api,/store:false/);
+ assert.doesNotMatch(api,/OPENAI_API_KEY|api\\.openai\\.com|generate\\(/);
+ assert.doesNotMatch(js,/review-suggest-local/);
+ assert.doesNotMatch(admin,/review-suggest-local/);
+ assert.match(html,/Save comment for ChatGPT review/);
+ assert.match(html,/id="copyChatGPTRequest"/);
+ assert.match(js,/REVIEW_REQUEST/);
+ assert.match(api,/Comment saved centrally for ChatGPT editorial review/);
  assert.match(api,/new review version/);
  assert.doesNotMatch(js,/SUPABASE_SECRET_KEY|OPENAI_API_KEY/);
 });
