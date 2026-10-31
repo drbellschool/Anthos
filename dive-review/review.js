@@ -123,10 +123,22 @@
         put("coach",v.coaching+score);
         if(v.needsRepair){
           repairs.hidden=false;
-          const p=document.createElement("p");p.textContent="This choice caused hurt. Practice a repair before continuing. Your original choice stays on record.";
-          repairs.append(p);
+          const character=story.id==="the-questions-we-stopped-asking"?
+            (i===1?"Mara":"Eli"):(i===1?"Jack":"Jack");
+          const question=document.createElement("p");
+          question.textContent="The response hurt the conversation. How could "+character+" try again? Choose a repair to continue.";
+          repairs.append(question);
+          const options=story.id==="the-questions-we-stopped-asking"?
+            i===1?[
+              {id:"own",text:"Mara acknowledges the accusation and asks Eli what has been on his mind."},
+              {id:"deflect",text:"Mara says she's sorry Eli took it badly, then insists she had a good reason."}
+            ]:[
+              {id:"own",text:"Eli acknowledges the pressure he created and gives Mara room to decide what to share."},
+              {id:"deflect",text:"Eli says he was only trying to help, then insists Mara overreacted."}
+            ]:null;
           v.repairOptions.forEach(choice=>{
-            repairs.append(button(choice.text,"btn outline",()=>{
+            const label=options?.find(o=>o.id===choice.id)?.text||choice.text;
+            repairs.append(button(label,"btn outline",()=>{
               if(run({type:"repair",repair:choice.id}))$("result").scrollIntoView({block:"nearest",behavior:"smooth"});
             }));
           });
@@ -134,8 +146,8 @@
           repairs.hidden=false;
           const item=v.repairOptions.find(x=>x.id===v.repair.selected);
           const p=document.createElement("p");
-          p.textContent="Repair practiced: "+(item?item.consequence:"The characters begin to repair the harm.")+
-            (v.repair.guided?" Sophia offers one clearer model: 'I was unfair. I'm sorry for my words. Can we try again?'":"");
+          p.textContent=(v.repair.guided?"That response still deflected responsibility. Sophia models a more specific apology. ":"Repair practiced. ")+
+            (item?item.consequence:"The characters begin to repair the harm.");
           repairs.append(p);
         }
       }
