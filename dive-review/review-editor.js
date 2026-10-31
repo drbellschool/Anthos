@@ -175,10 +175,9 @@ async function submit(e){
  $("sendComment").disabled=true;
  $("commentState").textContent="Saving your comment…";
  try{
-  if(!auth){$("commentAuth").hidden=false;$("commentState").textContent="Sign in first, then save your comment.";return}
   if(!connected){
     const pending=local();pending.push(payload);setLocal(pending);
-    $("commentState").textContent="Saved on this phone only; central syncing is waiting for the Supabase connection.";
+    $("commentState").textContent="Queued on this phone only. Sign in and connect Supabase to sync these comments automatically.";
   }else{
     const r=await post({action:"review-submit",...payload});
     if(!r.ok){
