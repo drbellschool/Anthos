@@ -14,8 +14,8 @@ test("mobile reviewer exposes both-story reset control and intentional reset URL
  assert.match(app,/confirm\("Start both Deep Dives over at Chapter 1/);
 });
 test("reset removes only per-story reading state and leaves editorial notes and comments untouched",()=>{
- const start=app.indexOf("  function resetAllStoryProgress(){");
- const end=app.indexOf("  function showResetResult",start);
+ const start=app.indexOf("function resetAllStoryProgress(){");
+ const end=app.indexOf("function showResetResult",start);
  assert.ok(start>0&&end>start);
  const snippet=app.slice(start,end);
  const fake=new Map([
@@ -36,8 +36,8 @@ test("reset removes only per-story reading state and leaves editorial notes and 
  assert.equal(fake.get("unrelated_login_preference"),"keep");
 });
 test("storage failure cannot be presented as a successful reset",()=>{
- const start=app.indexOf("  function resetAllStoryProgress(){");
- const end=app.indexOf("  function showResetResult",start);
+ const start=app.indexOf("function resetAllStoryProgress(){");
+ const end=app.indexOf("function showResetResult",start);
  const snippet=app.slice(start,end);
  const stories={questions:{id:"the-questions-we-stopped-asking",storyVersion:1}};
  const storage={removeItem:()=>{throw new Error("storage unavailable")}};
