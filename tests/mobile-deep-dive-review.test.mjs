@@ -33,14 +33,14 @@ function readyForMastery(story){
 test("mobile review loads both complete authored stories and only review UI",()=>{
  assert.match(html,/dive-review\/engine\.js/);
  assert.match(html,/dive-review\/review\.js/);
- assert.match(html,/REVIEW PROTOTYPE/);
- assert.match(html,/Sample marriage and partner stats/);
- assert.match(html,/No SMS is sent/);
+ assert.match(html,/mobile Anthos Deep Dive reader|Mobile Anthos Deep Dive reader/i);
+ assert.match(html,/Illustrative, not real account data/);
+ assert.match(html,/No SMS or spouse data is used/);
  assert.match(html,/name="robots" content="noindex/);
  assert.match(html,/id="reviewNotes"/);
  assert.match(html,/id="storyDialog"/);
- assert.match(css,/min-height:47px/);
- assert.match(css,/max-width:min\(calc\(100% - 22px\),460px\)/);
+ assert.match(css,/min-height:43px/);
+ assert.match(css,/width:min\(calc\(100vw - 20px\),470px\)/);
  assert.doesNotMatch(review,/fetch\([^)]*supabase|telnyx\.com|service_role|OPENAI_API_KEY/);
 });
 test("review JavaScript compiles and story assets satisfy state-engine contract",()=>{
