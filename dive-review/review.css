@@ -23,3 +23,32 @@ button,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:defaul
 @media(max-width:600px){.shell{padding:0;display:block}.phone{box-shadow:none;border:none;border-radius:0;width:100%;min-height:100svh;padding:18px 20px max(22px,env(safe-area-inset-bottom))}.heading h1{font-size:clamp(32px,8.4vw,42px)}.flower{flex-basis:69px}.stats strong{font-size:19px}}
 @media(max-width:360px){.phone{padding-inline:15px}.heading h1{font-size:31px}.flower{flex-basis:57px}.petal-label{font-size:10px}.stats strong{font-size:17px}.choice span{font-size:14px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Editor controls: small beside each inspectable story element. */
+.item-head{display:flex;gap:12px;align-items:baseline;justify-content:space-between}.item-head h2,.item-head h3{flex:1;min-width:0}
+.comment-chip{flex:0 0 auto;border:1px solid #c7d2c4;border-radius:99px;background:#f6fbf3;color:#3c6847;font-size:11px;padding:6px 10px;font-weight:700;line-height:1.3}
+.comment-chip:hover,.comment-chip:focus-visible{background:#dfece0}
+.item-actions{display:flex;justify-content:flex-end;margin-top:7px}.item-actions .comment-chip{background:transparent;border-color:transparent;text-decoration:underline}
+.choice-row{display:flex;gap:5px;align-items:center}.choice-row .choice{flex:1;min-width:0}.choice-row .comment-chip{max-width:84px}
+.repair-row{display:flex;align-items:center;gap:5px;margin-top:9px}.repair-row>.btn{flex:1;min-width:0;margin-top:0!important}.repair-row>.comment-chip{flex:0 0 auto;max-width:90px}
+.review-queue-link{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-top:1px solid #dcd7ca;margin-top:16px;padding-top:15px}
+.review-queue-link .btn{min-height:42px}
+.review-queue-link span{font-size:11px}
+.story-dialog{max-height:min(90svh,850px);overflow-y:auto}
+.story-dialog label{display:block;margin:14px 0 8px;font-size:13px;font-weight:750}
+.story-dialog input,.story-dialog textarea{display:block;width:100%;border:1px solid #cfd4cb;border-radius:12px;background:#fffdf9;color:#344738;padding:12px;font-size:15px;line-height:1.5}
+.story-dialog textarea{resize:vertical}.story-dialog form>.primary{display:block;width:100%;margin-top:15px}
+.context-preview{padding:13px;background:#f0f0e5;border:1px solid #e0dfd0;border-radius:12px;font:normal 14px/1.5 Georgia,serif;max-height:170px;overflow:auto;white-space:pre-wrap}
+.comment-explainer{font-size:12px;line-height:1.5;color:#707a71}
+.comment-auth{padding:12px;background:#f1ece2;border-radius:13px}
+.comment-auth .btn{margin-top:10px}
+.queue-entry{padding:14px;margin:11px 0;border:1px solid #d6d9cd;border-radius:13px;background:#fffefa;overflow-wrap:anywhere}
+.queue-entry small{display:block;color:#788477;letter-spacing:1px;font-weight:700}
+.queue-entry .orig,.queue-entry .proposed{padding:10px;border-radius:10px;background:#f0f0e9;white-space:pre-wrap;font:normal 14px/1.5 Georgia,serif;margin:8px 0}
+.queue-entry .proposed{background:#e7efe4;border-left:3px solid #8ca58b}
+.queue-entry p{line-height:1.5;font-size:13px}
+.queue-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.queue-actions .btn{min-height:41px;font-size:12px;padding:8px 12px}
+.queue-status{color:#45674d;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:1px}
+@media(max-width:380px){.choice-row .comment-chip{max-width:68px;padding:6px;font-size:10px}.repair-row .comment-chip{max-width:66px;padding:6px}}
