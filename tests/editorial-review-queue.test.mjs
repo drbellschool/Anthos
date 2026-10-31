@@ -25,7 +25,8 @@ test("editor parses and supports protected server sync, local unsynced drafts an
  assert.match(js,/x-threefold-admin|X-Threefold-Admin/i);
  assert.match(js,/review-submit/);
  assert.match(js,/review-resolve/);
- assert.match(js,/status==="accepted"/);
+ assert.match(js,/\["suggested","accepted"\]/);
+ assert.match(js,/acceptLowRisk/);
  assert.match(html,/Nothing gets published automatically/);
 });
 test("server review routes retain admin protection, CSRF check and request size limits",()=>{
