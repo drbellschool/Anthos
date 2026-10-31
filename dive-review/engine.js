@@ -14,7 +14,7 @@
     {id:"own",text:"Own the harm, apologize specifically, and ask to try the conversation again.",
       consequence:"The person who caused the hurt owns their words and invites a new conversation. The original impact still matters, and trust takes follow-through.",
       coach:"A repair names your own behavior, takes responsibility, and invites a fresh start. The original choice is not erased."},
-    {id:"deflect",text:"Say you are sorry Jill was upset, then explain why she misunderstood.",
+    {id:"deflect",text:"Offer a vague apology, then explain why the other person misunderstood.",
       consequence:"The other person hears a defense instead of an apology. The storyteller acknowledges the harm and models a clearer repair.",
       coach:"A non-apology can make repair harder. Sophia models a better response once; the practice loop ends here."}
   ]);
