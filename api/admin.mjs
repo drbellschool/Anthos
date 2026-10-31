@@ -1,6 +1,7 @@
 // Threefold private admin API — server only, never import this from client JavaScript.
 // Vercel Node.js Function (.mjs); no persistent customer state until Supabase is provisioned.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -204,6 +205,15 @@ async function getDevelopmentStatus() {
 export default {
   async fetch(request) {
     if (!["GET","POST"].includes(request.method)) return json({error:"Method not allowed."},405,{Allow:"GET, POST"});
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="reviews"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      const params=new URL(request.url).searchParams;
+      const slug=params.get("story")||"",version=Number(params.get("version")||"1");
+      if(!/^[a-z0-9-]{3,100}$/.test(slug)||!Number.isInteger(version)||version<1)
+        return json({error:"Invalid story."},400);
+      try{return json(await reviewList(slug,version));}
+      catch(err){return json({error:err.message||"Review queue unavailable."},err.code||502);}
+    }
     if (request.method==="GET" && new URL(request.url).searchParams.get("view")==="development") {
       if (!isAdmin(request)) return json({error:"Administrator sign-in required."},401);
       return json(await getDevelopmentStatus());
@@ -211,7 +221,7 @@ export default {
     if (request.method==="GET") {
       // Development status is read-only; the admin session remains mandatory.
       return json({authenticated:isAdmin(request),adminConfigured:configured(), 
-        ...(isAdmin(request)?{services:providerStatus()}:{})});
+        ...(isAdmin(request)?{services:providerStatus(),reviewConnected:reviewConnected()}:{})});
     }
     if (!validOrigin(request)) return json({error:"Origin verification failed."},403);
     let body;
@@ -225,6 +235,12 @@ export default {
     }
     if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
     if(action==="logout")return json({ok:true},200,{"Set-Cookie":clearedCookie()});
+    if(action==="review-submit"||action==="review-resolve"){
+      try{
+        const result=action==="review-submit"?await reviewSubmit(body):await reviewResolve(body.id,body.decision);
+        return json(result);
+      }catch(err){return json({error:err.message||"Review action failed."},err.code||502);}
+    }
     if(action==="status")return json({ok:true,services:providerStatus()});
     if(action==="check-openai")return json(await openAIRequest(""));
     if(action==="try-openai"){
