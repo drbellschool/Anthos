@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/dive-review/review.css">
   <script defer src="/dive-review/engine.js"></script>
   <script defer src="/dive-review/review.js"></script>
+  <script defer src="/dive-review/review-editor.js"></script>
 </head>
 <body>
  <div class="shell">
@@ -42,27 +43,27 @@
     <nav id="chapterRail" class="chapter-rail" aria-label="Story chapters"></nav>
     <div class="storycard">
       <span id="storyLocation" class="eyebrow story-location"></span>
-      <h2 id="chapterTitle"></h2>
-      <p id="storyText" class="story-text"></p>
+      <div class="item-head"><h2 id="chapterTitle"></h2><button type="button" class="comment-chip" data-comment-target="chapter_title">Comment</button></div>
+      <p id="storyText" class="story-text"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="narrative">Comment on scene</button></div>
     </div>
     <section id="decision" class="decision" hidden>
-      <h3 id="question"></h3>
+      <div class="item-head"><h3 id="question"></h3><button type="button" class="comment-chip" data-comment-target="prompt">Comment</button></div>
       <p class="decision-hint" id="decisionHint"></p>
       <div id="options" class="choices"></div>
       <section id="result" class="consequence" hidden aria-live="polite">
         <span class="eyebrow">WHAT HAPPENED NEXT</span>
-        <p id="impact"></p>
-        <div class="coaching"><span class="eyebrow">SOPHIA'S REFLECTION</span><p id="coach"></p></div>
+        <p id="impact"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="option_impact">Comment on consequence</button></div>
+        <div class="coaching"><span class="eyebrow">SOPHIA'S REFLECTION</span><p id="coach"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="option_coach">Comment on reflection</button></div></div>
         <div id="repair" hidden></div>
       </section>
     </section>
-    <section id="lesson" class="lesson" hidden><span class="eyebrow">A MOMENT TO NOTICE</span><p id="takeaway"></p></section>
-    <p id="transitionText" class="transition"></p>
+    <section id="lesson" class="lesson" hidden><span class="eyebrow">A MOMENT TO NOTICE</span><p id="takeaway"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="takeaway">Comment</button></div></section>
+    <p id="transitionText" class="transition"></p><div class="item-actions"><button type="button" class="comment-chip" data-comment-target="transition">Comment on transition</button></div>
     <div class="reader-actions">
       <button type="button" id="previousButton" class="btn outline" disabled>← Previous</button>
       <button type="button" id="advanceButton" class="btn primary">Complete chapter ↗</button>
     </div>
-    <p id="readerFeedback" role="status" class="feedback"></p>
+    <p id="readerFeedback" role="status" class="feedback"></p><div class="review-queue-link"><button id="queueButton" type="button" class="btn outline">Review comments <span id="queueCount">0</span></button><span id="reviewConnection" class="muted small">Comments can be saved to your editorial queue.</span></div>
     <details class="review-notes" id="reviewNotes">
       <summary>✎ Editorial notes <span id="notesCount" class="notescount">0 saved</span></summary>
       <p>Keep notes on pacing, wording, choices, or research alignment. Notes stay on this device until copied.</p>
@@ -77,7 +78,7 @@
      <div class="track"><span aria-hidden="true"></span></div><p>2 of 10 Deep Dives completed <span class="muted">· sample preview</span></p>
    </section>
    <section class="review-footer"><span><span aria-hidden="true">🔒</span> Fictional story · local progress only</span><button type="button" id="resetButton" class="reset">Reset review</button></section>
-   <div class="review-legal">No SMS is sent. No account or spouse data is read. Your chapter choices and editorial notes are stored only in this browser for review.</div>
+   <div class="review-legal">No SMS is sent. Story choices and personal notes stay on this device. Editorial comments are sent to the protected Anthos review queue only when signed in and the connection is active.</div>
   </main>
  </div>
  <dialog id="storyDialog" class="story-dialog" aria-labelledby="selectHeading">
@@ -87,6 +88,32 @@
     <button type="button" class="story-pick" data-story="questions"><span>FRIENDSHIP &amp; ADMIRATION</span><strong>The Questions We Stopped Asking</strong><small>Mara and Eli rediscover curiosity</small></button>
     <button type="button" class="story-pick" data-story="christmas"><span>CONFLICT &amp; REPAIR</span><strong>Christmas Tug-of-War</strong><small>Jack and Jill practice kind boundaries</small></button>
   </div>
+ </dialog>
+
+ <dialog id="commentDialog" class="story-dialog" aria-labelledby="commentHeading">
+  <form id="reviewForm" class="dialog-inner">
+    <div class="dialog-top"><h2 id="commentHeading">Comment on this item</h2><button type="button" id="closeComment" class="close-dialog" aria-label="Close comment dialog">✕</button></div>
+    <p id="commentContext" class="context-preview"></p>
+    <label for="commentText">What needs fixing?</label>
+    <textarea id="commentText" maxlength="1400" required minlength="3" rows="4" placeholder="e.g. Eli isn't actually trying to help here. Make his defensive response more believable."></textarea>
+    <p class="comment-explainer">Anthos saves your comment and, when connected, suggests a focused rewrite. Nothing gets published automatically.</p>
+    <div id="commentAuth" class="comment-auth" hidden>
+      <label for="reviewPassword">Admin password</label>
+      <input id="reviewPassword" type="password" autocomplete="current-password" placeholder="Enter your Anthos admin password"/>
+      <button type="button" id="reviewSignIn" class="btn outline">Unlock editorial reviews</button>
+    </div>
+    <p id="commentState" role="status" class="feedback"></p>
+    <button id="sendComment" class="btn primary" type="submit">Save &amp; suggest a correction</button>
+  </form>
+ </dialog>
+ <dialog id="queueDialog" class="story-dialog" aria-labelledby="queueHeading">
+   <div class="dialog-inner">
+     <div class="dialog-top"><h2 id="queueHeading">Editorial review queue</h2><button type="button" id="closeQueue" class="close-dialog" aria-label="Close review queue">✕</button></div>
+     <p>Read the original, comment, and proposed rewrite. Accepting changes updates the reviewer preview only; the master chapter isn't silently overwritten.</p>
+     <div class="queue-actions"><button id="approveLowRisk" class="btn primary" type="button">Accept all low-risk suggestions</button></div>
+     <div id="queueItems"></div>
+     <p id="queueFeedback" role="status" class="feedback"></p>
+   </div>
  </dialog>
 </body>
 </html>
