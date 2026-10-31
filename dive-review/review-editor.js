@@ -202,7 +202,7 @@ async function submit(e){
   }
   $("commentText").value="";refreshStatus();
   $("commentDialog").close();
-  drawQueue();$("queueDialog").showModal();
+  paint();drawQueue();$("queueDialog").showModal();
  }catch{$("commentState").textContent="Network failed. Your comment is still in this box."}
  finally{$("sendComment").disabled=false}
 }
