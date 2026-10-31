@@ -68,7 +68,7 @@ function openComment(kind,index,clicked){
 function overlayKey(c){return [c.chapter,c.targetKind,c.index??"-"].join(":")}
 function paint(){
  const ctx=current();if(!ctx)return;
- const edits=comments.filter(c=>["suggested","accepted"].includes(c.status)&&c.proposedText&&c.chapter===ctx.chapter+1).reverse();
+ const edits=[...comments,...local().filter(c=>c.storyId===ctx.story.id)].filter(c=>["suggested","accepted"].includes(c.status)&&c.proposedText&&c.chapter===ctx.chapter+1).reverse();
  for(const e of edits){
    const index=e.index,kind=e.targetKind,value=e.proposedText;
    if(kind==="chapter_title")$("chapterTitle").textContent=value;
@@ -177,8 +177,17 @@ async function submit(e){
  $("commentState").textContent="Saving your comment…";
  try{
   if(!connected){
-    const pending=local();pending.push(payload);setLocal(pending);
-    $("commentState").textContent="Queued on this phone only. Sign in and connect Supabase to sync these comments automatically.";
+    const entry={...payload,status:"pending",createdAt:new Date().toISOString()};
+    if(auth){
+      $("commentState").textContent="Creating a suggested rewrite…";
+      const response=await post({action:"review-suggest-local",...payload});
+      if(response.suggested){entry.proposedText=response.proposedText;entry.reason=response.reason;
+        entry.risk=response.risk;entry.status="suggested";}
+    }
+    const pending=local();pending.push(entry);setLocal(pending);
+    $("commentState").textContent=entry.proposedText?
+      "Saved on this phone with an AI rewrite for review. Database sync is pending.":
+      "Queued on this phone. Sign in and connect Supabase to sync automatically.";
   }else{
     const r=await post({action:"review-submit",...payload});
     if(!r.ok){
