@@ -30,7 +30,8 @@
       customer.append(el("strong","",person.name),el("span","",person.email));cell(tr,customer);
       cell(tr,pill(person.program==="pilot"?"Pilot":"Standard","program"));
       cell(tr,pill(person.status,person.status==="archived"?"archive":"status"));
-      cell(tr,el("span","customer-muted",person.groupId?"Grouped · "+person.groupId.slice(0,8):"Individual"));
+      const partner=person.groupId?rows.find(other=>other.id!==person.id&&other.groupId===person.groupId):null;
+      cell(tr,el("span","customer-muted",partner?"With "+partner.name:person.groupId?"Grouped household":"Individual"));
       cell(tr,el("span","customer-muted",person.staffNomination==="admin_pending"?"Admin candidate":"Member"));
       const button=el("button","button customer-manage","Edit");button.type="button";
       button.addEventListener("click",()=>edit(person));cell(tr,button);
