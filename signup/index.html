@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Join Anthos · A little more us</title>
+<style>
+:root{color-scheme:light;--ink:#263d33;--accent:#345a45;--line:#d7e0d8}
+*{box-sizing:border-box}body{margin:0;background:#f6f4ef;color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:750px;margin:28px auto;padding:0 18px 45px}header{text-align:center;padding:17px 0 22px}
+.logo{font:38px Georgia,serif;letter-spacing:-.05em}.sub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8b755f}
+h1{font:normal 34px Georgia,serif;margin:3px 0 8px}h2{font:normal 22px Georgia,serif;margin:0 0 12px}
+p{color:#67766d;margin:5px 0 15px}section{background:white;padding:22px 25px;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px #3e4e3e0a;margin-bottom:15px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;color:#977d5e}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block;font-size:12px;font-weight:650;color:#35493d}
+input[type=date],input[type=tel],input[type=text]{width:100%;margin:5px 0 0;padding:11px 12px;border:1px solid #c8d5c9;border-radius:8px;font:inherit}
+.checks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.check{display:flex;align-items:flex-start;gap:10px;padding:10px;background:#f5f8f5;border-radius:8px;font-size:12px;cursor:pointer;line-height:1.4}
+.check input{flex:0 0 auto;width:17px;height:17px;margin:0;accent-color:#345a45}
+.phone{background:#eaf1eb;border:1px solid #d0ded3;padding:14px;border-radius:10px;margin:14px 0}
+.phone strong{font-size:18px}.note{font-size:11px;color:#647a6b;line-height:1.6}
+button{font:700 13px system-ui;border-radius:9px;border:0;padding:14px 19px;background:var(--accent);color:#fff;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}.status{border-radius:10px;background:#e8f0e9;padding:14px;font-size:13px;margin-bottom:15px}
+.error{background:#fcefe9;color:#963e36}
+#signupForm[hidden],#done[hidden],#loading[hidden]{display:none!important}a{color:#355f4a}
+footer{font-size:10px;color:#75827a;text-align:center;margin:22px}
+@media(max-width:570px){.grid,.checks{grid-template-columns:1fr}section{padding:18px}h1{font-size:28px}}
+</style></head>
+<body><main><header><div class="logo">✳ anthos</div><div class="sub">the adventure awaits</div></header>
+<div id="loading" class="status" role="status">Checking your private invitation…</div>
+<section id="done" hidden><h1>Your Anthos profile is saved.</h1><p id="doneMessage"></p><p class="note">This does not activate Sophia texts. The phone number must be verified and messaging approval completed before any automated SMS.</p></section>
+<form id="signupForm" hidden>
+<section><div class="eyebrow">PERSONAL INVITATION</div><h1>A little more us.</h1>
+<p>Hi <strong id="inviteName"></strong> — this is your personal Anthos setup. A few details help Sophia and Paraclete remember what matters to you.</p>
+<div class="phone">Invitation sent to: <strong id="inviteEmail"></strong></div></section>
+<section><div class="eyebrow">01 / YOUR IMPORTANT DATES</div><h2>What should Anthos remember?</h2>
+<div class="grid"><label>Your birthday<input name="birthDate" type="date" required></label>
+<label>Your wedding date<input name="weddingDate" type="date" required></label></div>
+<p class="note">Your full date of birth is used to confirm adult eligibility; Anthos stores your birthday month/day for celebrations, not your birth year in this directory.</p>
+<label>Meaningful holidays (choose any that matter to you)</label>
+<div class="checks" id="holidays">
+<label class="check"><input type="checkbox" value="valentines">Valentine's Day</label>
+<label class="check"><input type="checkbox" value="easter">Easter</label>
+<label class="check"><input type="checkbox" value="mothers_day">Mother's Day</label>
+<label class="check"><input type="checkbox" value="fathers_day">Father's Day</label>
+<label class="check"><input type="checkbox" value="thanksgiving">Thanksgiving</label>
+<label class="check"><input type="checkbox" value="christmas">Christmas</label>
+<label class="check"><input type="checkbox" value="new_year">New Year's Day</label>
+<label class="check"><input type="checkbox" value="other">Other meaningful dates</label>
+<label class="check"><input type="checkbox" value="none">No additional holidays</label>
+</div>
+<label class="check"><input name="holidaysReviewed" type="checkbox" required>I've reviewed my meaningful dates.</label>
+</section>
+<section><div class="eyebrow">02 / YOUR PHONE NUMBER</div><h2>Where may Sophia reach you?</h2>
+<label>Mobile phone number<input name="phone" id="phone" type="tel" autocomplete="tel" placeholder="+1 903 555 1234" required></label>
+<div class="phone">You're confirming: <strong id="numberPreview">Enter your number above</strong></div>
+<label class="check"><input name="confirmPhone" type="checkbox" required>I confirm this is my own mobile number, and the number above is correct.</label>
+<label class="check"><input name="smsConsent" type="checkbox">Yes, I agree to receive recurring text messages from Anthos/Sophia about my marriage adventure, including Love Whispers and Deep Dive prompts, at the number above. Frequency varies; message and data rates may apply. Reply STOP to opt out or HELP for assistance. Consent is optional and is not a condition of purchase.</label>
+<p class="note">Your choice is saved with a timestamp. Checking this box does not verify phone ownership or enable texting. No Sophia message will be sent until number verification, carrier approval and activation are complete. See <a href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a> and <a href="/terms/" target="_blank" rel="noopener noreferrer">Terms</a>.</p>
+</section>
+<section><div class="eyebrow">03 / EMAIL AND FINAL CONFIRMATION</div>
+<label class="check"><input name="emailConsent" type="checkbox">Yes, Anthos may email me optional product updates and marriage-adventure reminders. I can unsubscribe later.</label>
+<label class="check"><input name="adultAgreement" type="checkbox" required>I confirm I am at least 18 years old.</label>
+<label class="check"><input name="privacyAgreement" type="checkbox" required>I have read the <a href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a> and agree to the <a href="/terms/" target="_blank" rel="noopener noreferrer">Terms</a>.</label>
+<p id="formStatus" class="note" role="status"></p><button id="submit" type="submit">Save my Anthos profile →</button>
+</section></form><footer>Private by design · Your partner will not see your personal consent choices.</footer></main>
+<script>
+(()=>{
+ const $=id=>document.getElementById(id);
+ const token=new URLSearchParams(location.hash.slice(1)).get("t")||"";
+ async function post(body){
+  const res=await fetch("/api/signup",{method:"POST",credentials:"omit",cache:"no-store",
+    headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const value=await res.json().catch(()=>({error:"Unexpected server response."}));
+  if(!res.ok||!value.ok)throw Error(value.error||"Request failed.");
+  return value;
+ }
+ function status(msg,error=false){$("loading").textContent=msg;$("loading").classList.toggle("error",error);}
+ async function start(){
+  try{
+   if(!/^[a-f0-9]{64}$/.test(token))throw Error("This invitation link is missing or invalid.");
+   const data=await post({action:"preview",token});
+   $("inviteName").textContent=data.name;$("inviteEmail").textContent=data.email;
+   $("phone").value=data.phone||"";$("numberPreview").textContent=$("phone").value||"Enter your number above";
+   $("loading").hidden=true;$("signupForm").hidden=false;
+  }catch(e){status(e.message,true)}
+ }
+ $("phone").addEventListener("input",()=>{$("numberPreview").textContent=$("phone").value.trim()||"Enter your number above";});
+ $("holidays").addEventListener("change",e=>{
+  if(e.target.value==="none"&&e.target.checked)
+   $("holidays").querySelectorAll('input:not([value="none"])').forEach(x=>x.checked=false);
+  else if(e.target.checked)$("holidays").querySelector('[value="none"]').checked=false;
+ });
+ $("signupForm").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("submit");b.disabled=true;$("formStatus").textContent="Saving your choices…";
+  try{
+   const form=e.currentTarget,f=new FormData(form);
+   const fields=["birthDate","weddingDate","phone","holidaysReviewed","confirmPhone","smsConsent","emailConsent","adultAgreement","privacyAgreement"];
+   const data={action:"submit",token,holidays:[...$("holidays").querySelectorAll("input:checked")].map(x=>x.value)};
+   for(const k of fields)data[k]=["holidaysReviewed","confirmPhone","smsConsent","emailConsent","adultAgreement","privacyAgreement"].includes(k)?f.has(k):f.get(k);
+   const result=await post(data);
+   $("signupForm").hidden=true;$("done").hidden=false;$("loading").hidden=true;
+   $("doneMessage").textContent=result.message;
+   history.replaceState(null,"",location.pathname);
+  }catch(err){$("formStatus").textContent=err.message;b.disabled=false;}
+ });start();
+})();
+</script></body></html>
