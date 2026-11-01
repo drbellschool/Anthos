@@ -3,7 +3,7 @@
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const key=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
-const columns="id,email,display_name,program,staff_nomination,record_status,group_id,auth_user_id,created_at,updated_at,birthday_month_day,wedding_date,holidays_reviewed_at,questionnaire_submitted_at,phone_e164,phone_owner_attested_at,phone_verified_at,sms_consent_at,email_opt_in_at";
+const columns="id,email,display_name,program,staff_nomination,record_status,group_id,auth_user_id,created_at,updated_at,birthday_month_day,wedding_date,holidays_reviewed_at,questionnaire_submitted_at,phone_e164,phone_owner_attested_at,phone_verified_at,sms_consent_at,email_opt_in_at,spouse_first_name,spouse_phone_e164,special_dates";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function nameOf(value){
  if(typeof value!=="string")fail("Enter the customer's name.");
@@ -54,6 +54,8 @@ const clean=row=>({
  smsConsent:row.sms_consent_at?"recorded_unverified":"not_recorded",
  phone:row.phone_e164||null,phoneVerified:!!row.phone_verified_at,
  emailConsent:row.email_opt_in_at?"recorded":"not_recorded",emailVerified:false,
+ spousePending:!!row.spouse_phone_e164,spouseFirstName:row.spouse_first_name||null,
+ customCelebrationCount:Array.isArray(row.special_dates)?row.special_dates.length:0,
  billingStatus:"not_connected",billingHistory:[],
  flowerStatus:"not_launched",photoBuckets:"not_launched"
 });
