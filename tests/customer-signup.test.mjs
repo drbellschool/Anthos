@@ -73,7 +73,7 @@ test("Minor, malformed dates, unconfirmed phone and invalid holiday choices are 
  await assert.rejects(()=>submitSignup({...data,token,birthDate:"2015-04-20"}),/adult/);
  await assert.rejects(()=>submitSignup({...data,token,weddingDate:"2020-02-30"}),/valid/);
  await assert.rejects(()=>submitSignup({...data,token,confirmPhone:false}),/Confirm/);
- await assert.rejects(()=>submitSignup({...data,token,holidays:["none","christmas"]}),/holidays/);
+ await assert.rejects(()=>submitSignup({...data,token,holidays:["none","christmas"]}),/celebration/);
  await assert.rejects(()=>submitSignup({...data,token,phone:"not-a-number"}),/phone/);
  assert.equal(count(),0);
 });
