@@ -71,7 +71,7 @@ export async function status(invite){
   scene:storyFor(c.room)[beatNumber(c.room)-1],storyFormat:c.room.story_format||"short",
   revealedChapters:storyFor(c.room).slice(0,beatNumber(c.room)),
   proposal:["proposed","completed"].includes(c.room.status)?{text:c.room.proposed_answer,by:c.room.proposed_by}:null,
-  messages:consent?await messages(c.room.id):[],
+  messages:consent?await messages(c.room.id,c.room.story_format==="full"?200:75):[],
   myComments:c.person.consented_at?await db("anthos_pilot_comments",
     {select:"id,chapter_number,target_kind,target_index,feedback,created_at",
      room_id:"eq."+c.room.id,author_role:"eq."+c.person.role,order:"created_at.desc",limit:150}):[]};
