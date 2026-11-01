@@ -7,7 +7,10 @@ const tasks=[
 ["A","Telnyx and messaging","audit","Real SMS integration requires end-to-end verification.","Confirm carrier status, webhooks and opt-outs.",4],
 ["A","Cost telemetry","planned","Per-couple usage tracking for SMS, AI and images.","Specify cost events and admin charts.",4],
 ["B","Sophia and Paraclete","designed","Companion coaching and concierge handoff.","Implement shared context and privacy rules.",4],
-["B","Deep Dives and Whispers","designed","Eight milestones, independent mastery and personal whispers.","Implement story engine and cadence.",4],
+["B","Monthly journey: survey → team dive → solo dive → adventure","designing","New local-only /journey/ prototype follows the monthly cadence. No live spouse accounts, SMS or concierge booking.","Test prototype, then connect individually authenticated couples and consent boundaries.",31],
+["B","Team Deep Dive and personality discovery","designing","Shared three-person conversation demo includes optional free-form responses and provisional planning hints.","Implement protected live messaging, bounded Sophia AI and mutually agreed shared insights.",31],
+["B","Private solo Deep Dive and Love Whispers","designing","Three options plus fourth free-text choice are demonstrated locally. Solo replies are not revealed.","Implement individualized private delivery and editable AI boundaries.",31],
+["B","Deep Dives and Whispers","designed","Eight-chapter story reviewer exists, but the customer flow is being redesigned around two shorter weekly dives.","Do not treat the legacy eight-chapter engine as the customer-ready experience.",4],
 ["C","Themed Petal Journeys","designing","Deep Dives teach, Whispers reinforce, Adventures practice.","Finalize petal objectives and themed sequencing.",9],
 ["C","Different spouse priorities","designing","Each spouse can choose, pause and grow independently.","Define fair joint sequencing and mutual opt-in.",9],
 ["D","A Day Through Our Eyes","designed","Photo prompts across the day with two labeled spouse timelines.","Set photo limits, secure intake and consent.",10],
@@ -21,11 +24,12 @@ const tasks=[
 const workstreams=[
  {name:"Website and brand",weight:12,progress:85},
  {name:"Admin and development tracking",weight:10,progress:75},
- {name:"Product experience design",weight:15,progress:65},
- {name:"Database and couple accounts",weight:20,progress:10},
+ {name:"Product experience design",weight:19,progress:50},
+ {name:"Database and couple accounts",weight:20,progress:12},
  {name:"Real SMS and AI delivery",weight:20,progress:10},
  {name:"Payments and subscriptions",weight:10,progress:0},
- {name:"Testing and customer launch",weight:13,progress:5}
+ {name:"Testing and customer launch",weight:13,progress:7},
+ {name:"Monthly orchestration and planning",weight:13,progress:15}
 ];
 function scoreReadiness(){
  const total=workstreams.reduce((sum,w)=>sum+w.weight,0);
@@ -34,7 +38,7 @@ function scoreReadiness(){
  const product=document.getElementById("productCompletion");
  const scope=document.getElementById("readinessScope");
  if(product)product.textContent=score+"%";
- if(scope)scope.textContent=workstreams.length+" workstreams · "+total+" weighted scope points · Baseline: 25 Oct 2026 · Estimates reviewed manually";
+ if(scope)scope.textContent=workstreams.length+" workstreams · "+total+" weighted scope points · Updated: 31 Oct 2026 · Scoped planning estimates, not live completion";
 }
 scoreReadiness();
 const labels={verified:"VERIFIED",audit:"AUDIT NEEDED",planned:"PLANNED",designed:"DESIGNED",designing:"DESIGNING"};
