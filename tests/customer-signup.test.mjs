@@ -13,7 +13,7 @@ test.after(()=>{
 function mock(){
  process.env.SUPABASE_SECRET_KEY="sb_secret_test_no_real_data";
  let saved={id,email:"sample@example.test",display_name:"Sample Participant",
-  phone_e164:null,record_status:"pending",signup_token_hash:null,signup_token_consumed_at:null,signup_token_expires_at:null};
+  phone_e164:null,email_opt_in_at:null,record_status:"pending",signup_token_hash:null,signup_token_consumed_at:null,signup_token_expires_at:null};
  const requests=[];
  globalThis.fetch=async(url,init)=>{
    if(String(url).includes("anthos_signup_invitations"))return new Response("[]",{status:200});
