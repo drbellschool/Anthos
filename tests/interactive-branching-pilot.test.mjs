@@ -21,7 +21,7 @@ test("Gottman, Schnarch and Aron shape story outcomes privately, never choice gr
  assert.match(core,/do not erase major cast/);
  assert.match(core,/room_id:c\.room\.id,chapter_number:chapter/);
  assert.match(core,/if\(c\.room\.story_format==="full"&&!/);
- assert.match(core,/if\(current\.some\(m=>m\.author==="sophia"\)\)return/);
+ assert.match(core,/const lastSophia=current\.findLastIndex/);
  const gen=core.split("async function generate(")[1].split("async function maybeSophia")[0];
  assert.doesNotMatch(gen,/anthos_pilot_comments/);
 });
