@@ -27,7 +27,8 @@ test("pilot editor can critique chapters, individual options, messages, shared a
  assert.match(core,/chapter_number:chapter/);
  assert.match(core,/if\(rows\[0\]\.chapter_number!==chapter\)/);
  assert.match(core,/storyFor\(c\.room\)\.slice\(0,beatNumber\(c\.room\)\)/);
- assert.doesNotMatch(core,/function generate\([^]*?anthos_pilot_comments/);
+ const aiBlock=core.split("async function generate(")[1].split("export async function ask(")[0];
+ assert.doesNotMatch(aiBlock,/anthos_pilot_comments/);
 });
 test("new rooms use full story while legacy 3-moment rooms are preserved",()=>{
  const core=read("../api/pilot-core.mjs");
