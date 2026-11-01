@@ -97,7 +97,7 @@ test("customer page only uses text nodes and shows accurate access labels",()=>{
  for(const id of ["customerOpenAdd","customerAddForm","customerRows","customerEditForm",
    "customerFilterProgram","customerFilterStatus"])assert.ok(html.includes('id="'+id+'"'));
  assert.match(client,/\.textContent=/);assert.doesNotMatch(client,/\.innerHTML\s*=/);
- assert.match(html,/Standard \(not paid\)/);
+ assert.match(html,/Standard contact/);
  assert.match(sql,/enable row level security/);
  assert.match(sql,/revoke all on public\.anthos_customer_directory from anon,authenticated/);
  assert.match(sql,/staff_nomination in \('none','admin_pending'\)/);
