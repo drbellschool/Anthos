@@ -157,7 +157,7 @@
             <div class="page-kicker">OPERATIONS / CUSTOMER HEALTH</div>
             <h2 class="studio-title">People <em>&amp; couples.</em></h2>
             <p class="customer-subtitle">One live directory · setup, consents, subscriptions, flowers and photos. Unconnected features stay unverified.</p>
-          </div><button class="button primary" id="customerOpenAdd" type="button">+ Add person</button></div>
+          </div><button class="button primary" id="customerCreateInvite" type="button">+ Create signup link</button></div>
           <div id="customerNotice" class="customer-notice" role="status">Loading live status…</div>
           <div class="customer-metrics" aria-label="Customer onboarding totals">
             <div class="customer-metric"><span>Contacts</span><strong id="customerCountAll">—</strong></div>
@@ -178,19 +178,6 @@
             <tbody id="customerRows"><tr><td colspan="9">No data loaded.</td></tr></tbody>
           </table></div>
           <div class="customer-pagination"><span id="customerPageStatus">—</span><div><button class="button" type="button" id="customerPrev" disabled>Previous</button> <button class="button" type="button" id="customerNext" disabled>Next</button></div></div>
-          <form id="customerAddForm" class="customer-editor" hidden>
-            <div class="customer-editor-heading"><h3>Add customer</h3><button class="text-button" id="customerCloseAdd" type="button">Close</button></div>
-            <div class="customer-form-grid">
-              <label>Name<input name="name" required maxlength="80" autocomplete="off"></label>
-              <label>Email<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
-              <label>Access<select name="program"><option value="pilot">Pilot contact</option><option value="standard">Standard contact</option></select></label>
-              <label>Staff<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (not privileged)</option></select></label>
-              <label>Spouse name (optional)<input name="partnerName" maxlength="80" autocomplete="off"></label>
-              <label>Spouse email (optional)<input name="partnerEmail" type="email" maxlength="254" autocomplete="off"></label>
-            </div>
-            <p class="customer-footnote">Creates pending contacts. Use each contact's Invite button to issue a secure signup link; nobody receives an automatic message. Pilot designation is not product access.</p>
-            <div class="customer-actions"><button type="submit" class="button primary" id="customerAddSubmit">Save contacts</button></div>
-          </form>
           <form id="customerEditForm" class="customer-editor" hidden>
             <div class="customer-editor-heading"><h3 id="customerEditTitle">Customer record</h3><button class="text-button" type="button" id="customerCloseEdit">Close</button></div>
             <input name="id" type="hidden"><p id="customerEditEmail" class="customer-footnote"></p>
@@ -205,10 +192,10 @@
             <div class="customer-actions"><button type="submit" class="button primary" id="customerSave">Save changes</button></div>
           </form>
           <section id="customerInvitePanel" class="customer-editor" hidden>
-            <div class="customer-editor-heading"><h3>Send an invitation</h3><button class="text-button" type="button" id="customerCloseInvite">Close</button></div>
+            <div class="customer-editor-heading"><h3>Share a signup link</h3><button class="text-button" type="button" id="customerCloseInvite">Close</button></div>
             <p id="customerInviteRecipient" class="customer-footnote"></p>
             <label>Private signup link<input id="customerInviteLink" readonly aria-label="Private signup link"></label>
-            <p class="customer-footnote">Single use · expires after 72 hours. Copy into an email or a text for a recipient who has agreed to be contacted. This panel does not send an automatic message. Generating a new link invalidates the old one.</p>
+            <p class="customer-footnote">Each link is single-use and expires after 72 hours. You can email, text, or copy it for someone who has agreed to be contacted. No contact is added to Anthos until they complete the entire form. Nothing is sent automatically.</p>
             <div class="customer-actions">
               <button type="button" class="button" id="customerCopyLink">Copy link</button>
               <button type="button" class="button" id="customerEmailLink">Email →</button>
