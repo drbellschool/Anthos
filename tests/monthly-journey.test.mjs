@@ -26,5 +26,5 @@ test("admin progress includes new scope and does not call a demo customer-ready"
  assert.match(admin,/Monthly orchestration and planning/);
  assert.match(admin,/Monthly journey: survey/);
  assert.match(admin,/Scoped planning estimates, not live completion/);
- assert.match(admin,/not the customer-ready experience|not the customer-ready experience|not the customer-ready/);
+ assert.match(admin,/Do not treat the legacy eight-chapter engine as the customer-ready experience/);
 });
