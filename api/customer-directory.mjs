@@ -65,11 +65,13 @@ export async function listCustomers(opts={}){
  const page=Math.max(0,Math.min(10000,Number(opts.page)||0));
  const program=["pilot","standard"].includes(opts.program)?opts.program:null;
  const state=["pending","paused","archived"].includes(opts.status)?opts.status:null;
+ const groupId=typeof opts.groupId==="string"&&UUID.test(opts.groupId)?opts.groupId:null;
  const search=String(opts.search||"").trim().slice(0,70);
  if(search&&!/^[\p{L}\p{N} .@'_+-]+$/u.test(search))fail("Search contains unsupported characters.");
  const params={select:columns,order:"created_at.desc",limit:40,offset:page*40};
  if(program)params.program="eq."+program;
  if(state)params.record_status="eq."+state;
+ if(groupId)params.group_id="eq."+groupId;
  if(search)params.or="(email.ilike.*"+search+"*,display_name.ilike.*"+search+"*)";
  const [result,...counts]=await Promise.all([
    query("anthos_customer_directory",params),
