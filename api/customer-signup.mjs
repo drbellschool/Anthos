@@ -2,7 +2,7 @@
 import {randomBytes,createHash} from "node:crypto";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/anthos_customer_directory";
 const FIELDS="id,email,display_name,phone_e164,record_status,signup_token_expires_at,signup_token_consumed_at";
-const UUID=/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i,TOKEN=/^[0-9a-f]{64}$/;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,TOKEN=/^[0-9a-f]{64}$/;
 const HOLIDAYS=new Set(["valentines","easter","mothers_day","fathers_day","thanksgiving","christmas","new_year","other","none"]);
 const fail=(m,c=400)=>{throw Object.assign(new Error(m),{status:c});};
 const SHA=s=>createHash("sha256").update(s).digest("hex");
@@ -29,7 +29,7 @@ async function active(token){
  return {row,hash};
 }
 function validDate(raw,title){
- if(typeof raw!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(raw))fail("Enter a valid "+title+".");
+ if(typeof raw!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(raw))fail("Enter a valid "+title+".");
  const d=new Date(raw+"T00:00:00Z");
  if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==raw||d.getTime()>Date.now())
   fail("Enter a valid "+title+" that is not in the future.");
@@ -37,10 +37,10 @@ function validDate(raw,title){
 }
 function phoneOf(raw){
  if(typeof raw!=="string")fail("Enter your phone number.");
- let number=raw.trim().replace(/[\\s().-]/g,"");
- if(/^\\d{10}$/.test(number))number="+1"+number;
- else if(/^1\\d{10}$/.test(number))number="+"+number;
- if(!/^\\+[1-9]\\d{7,14}$/.test(number))fail("Enter a phone number with country code.");
+ let number=raw.trim().replace(/[\s().-]/g,"");
+ if(/^\d{10}$/.test(number))number="+1"+number;
+ else if(/^1\d{10}$/.test(number))number="+"+number;
+ if(!/^\+[1-9]\d{7,14}$/.test(number))fail("Enter a phone number with country code.");
  return number;
 }
 export async function createSignupLink({id}={}){
