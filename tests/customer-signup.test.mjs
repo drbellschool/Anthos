@@ -33,7 +33,7 @@ function mock(){
  };
  return {get saved(){return saved},requests};
 }
-const data={birthDate:"1990-04-20",weddingDate:"2010-05-12",
+const data={birthDate:"1990-04-20",weddingDate:"2010-05-12",postalCode:"75501",
  holidays:["valentines","christmas"],holidaysReviewed:true,phone:"(903) 555-1234",
  spouseFirstName:"Alex",spouseLastName:"Partner",spousePhone:"+19035555678",
  confirmPhone:true,smsConsent:true,adultAgreement:true,marriageAgreement:true,privacyAgreement:true};
@@ -99,6 +99,7 @@ test("Customer UI offers explicit opt-ins without falsely labeling phone or bill
  assert.match(form,/Reply STOP/);assert.match(form,/number must still be independently verified/);
  assert.doesNotMatch(form,/name="emailConsent"/);
  assert.match(form,/Your birth date and wedding date are kept privately/);
+ assert.match(form,/id="postalCode"[^>]+required/);
  assert.match(form,/id="spouseFirstName"[^>]+required/);
  assert.match(form,/id="spouseLastName"[^>]+required/);
  assert.match(form,/id="spousePhone"[^>]+required/);
@@ -124,13 +125,14 @@ test("blank signup invitation creates no person until the recipient submits all 
        return new Response(JSON.stringify(invite&&invite.token_hash===hash?[{...invite,redeemed_at:null}]:[]),{status:200});
      }
    }
-   if(path.endsWith("/rpc/anthos_redeem_signup_v3")){
+   if(path.endsWith("/rpc/anthos_redeem_signup_v4")){
      assert.equal(opts.method,"POST");
      assert.equal(args.p_phone,"+19035551234");
      assert.equal(args.p_first_name,"Sample");
      assert.equal(args.p_last_name,"Participant");
      assert.equal(args.p_email,"sample@example.test");
      assert.equal(args.p_birth_date,"1990-04-20");
+     assert.equal(args.p_postal_code,"75501");
      assert.equal(args.p_spouse_first_name,"Alex");
      assert.equal(args.p_spouse_last_name,"Partner");
      assert.equal(args.p_spouse_phone,"+19035555678");
@@ -174,7 +176,7 @@ test("short links retain 96-bit randomness and old links remain recognized",asyn
  assert.match(html,/\[A-Za-z0-9_-\]\{16\}/);
  assert.match(api,/randomBytes\(12\)\.toString\("base64url"\)/);
  assert.match(api,/\[0-9a-f\]\{64\}/);
- assert.match(api,/anthos_redeem_signup_v3/);
+ assert.match(api,/anthos_redeem_signup_v4/);
 });
 test("spouse first name and mobile number are not silently treated as opt-in",()=>{
  const html=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
@@ -294,7 +296,7 @@ test("partner review submits without re-entering their spouse and cannot redirec
      return new Response(JSON.stringify([{token_hash:hash,expires_at:new Date(Date.now()+3600000).toISOString(),
        redeemed_at:null,invited_by_customer_id:id}]),{status:200});
    if(url.pathname.endsWith("/anthos_customer_directory"))return new Response(JSON.stringify([inviter]),{status:200});
-   if(url.pathname.endsWith("/rpc/anthos_redeem_signup_v3")){
+   if(url.pathname.endsWith("/rpc/anthos_redeem_signup_v4")){
      storedArgs=JSON.parse(opts.body);
      return new Response(JSON.stringify({customerId:"480ac509-5093-4180-8e44-d0f7d4647988",
        partnerInvitePrepared:false}),{status:200});
@@ -327,4 +329,18 @@ test("spouse review is short, reuses marriage dates, and does not require repeat
  assert.match(markup,/r\.specialDates/);
  assert.match(markup,/Confirm my details/);
  assert.match(markup,/correct a date/i);
+});
+
+test("ZIP validation is required and invalid ZIP never reaches signup RPC",async()=>{
+ process.env.SUPABASE_SECRET_KEY="sb_secret_test_no_real_data";
+ let called=false;
+ globalThis.fetch=async(uri,opts)=>{
+  const path=new URL(uri).pathname;
+  if(path.endsWith("/anthos_signup_invitations"))return new Response(JSON.stringify([{expires_at:new Date(Date.now()+60000).toISOString(),redeemed_at:null,invited_by_customer_id:null}]),{status:200});
+  called=true;throw Error("unexpected RPC");
+ };
+ for(const zip of ["","12","ABCDE","7550112","90210! "]){
+  await assert.rejects(()=>submitSignup({...data,token:"ABCDEFGHIJKLMNOP",postalCode:zip}),/ZIP/);
+ }
+ assert.equal(called,false);
 });
