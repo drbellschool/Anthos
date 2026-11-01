@@ -2,6 +2,7 @@
 // Vercel Node.js Function (.mjs); no persistent customer state until Supabase is provisioned.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
+import { createRoom as createPilotRoom } from "./pilot-core.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -240,6 +241,10 @@ export default {
         const result=action==="review-submit"?await reviewSubmit(body):await reviewResolve(body.id,body.decision);
         return json(result);
       }catch(err){return json({error:err.message||"Review action failed."},err.code||502);}
+    }
+    if(action==="pilot-create"){
+      try{return json(await createPilotRoom(new URL(request.url).origin));}
+      catch(e){return json({error:String(e.message||"Could not create pilot links.").slice(0,140)},e.status||502);}
     }
     if(action==="status")return json({ok:true,services:providerStatus()});
     if(action==="check-openai")return json(await openAIRequest(""));

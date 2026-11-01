@@ -8,7 +8,8 @@ const tasks=[
 ["A","Cost telemetry","planned","Per-couple usage tracking for SMS, AI and images.","Specify cost events and admin charts.",4],
 ["B","Sophia and Paraclete","designed","Companion coaching and concierge handoff.","Implement shared context and privacy rules.",4],
 ["B","Monthly journey: survey → team dive → solo dive → adventure","designing","New local-only /journey/ prototype follows the monthly cadence. No live spouse accounts, SMS or concierge booking.","Test prototype, then connect individually authenticated couples and consent boundaries.",31],
-["B","Team Deep Dive and personality discovery","designing","Shared three-person conversation demo includes optional free-form responses and provisional planning hints.","Implement protected live messaging, bounded Sophia AI and mutually agreed shared insights.",31],
+["B","Live two-invite Team Deep Dive pilot","designing","Real shared browser conversation, server-side OpenAI Sophia and Supabase transcript are implemented. Requires real two-device QA before marking verified.","Create a private pilot room, verify two-consent gates, live AI response and both-spouse answer confirmation.",31],
+["B","Team Deep Dive and personality discovery","designing","Real pilot captures a shared conversation, but structured relationship insights and Paraclete handoff are not yet wired.","Design consented shared preference extraction and separate partner-private profiles.",31],
 ["B","Private solo Deep Dive and Love Whispers","designing","Three options plus fourth free-text choice are demonstrated locally. Solo replies are not revealed.","Implement individualized private delivery and editable AI boundaries.",31],
 ["B","Deep Dives and Whispers","designed","Eight-chapter story reviewer exists, but the customer flow is being redesigned around two shorter weekly dives.","Do not treat the legacy eight-chapter engine as the customer-ready experience.",4],
 ["C","Themed Petal Journeys","designing","Deep Dives teach, Whispers reinforce, Adventures practice.","Finalize petal objectives and themed sequencing.",9],
@@ -24,11 +25,11 @@ const tasks=[
 const workstreams=[
  {name:"Website and brand",weight:12,progress:85},
  {name:"Admin and development tracking",weight:10,progress:75},
- {name:"Product experience design",weight:19,progress:50},
- {name:"Database and couple accounts",weight:20,progress:12},
- {name:"Real SMS and AI delivery",weight:20,progress:10},
+ {name:"Product experience design",weight:19,progress:53},
+ {name:"Database and couple accounts",weight:20,progress:14},
+ {name:"Real SMS and AI delivery",weight:20,progress:14},
  {name:"Payments and subscriptions",weight:10,progress:0},
- {name:"Testing and customer launch",weight:13,progress:7},
+ {name:"Testing and customer launch",weight:13,progress:8},
  {name:"Monthly orchestration and planning",weight:13,progress:15}
 ];
 function scoreReadiness(){

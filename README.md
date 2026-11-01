@@ -17,6 +17,20 @@ Anthos gives couples something fun and meaningful to do together. Threefold comb
 
 The public site is live, but **real couples, live enrollment, and recurring SMS have not launched**. The demo uses browser local storage only, and fake/local shares do not contact anyone.
 
+## Live two-spouse Deep Dive pilot (invite only)
+
+An authenticated administrator may create a pair of private invitation URLs at `/pilot/create/` after signing in at `/admin/`.
+Each URL opens the SAME group discussion at `/pilot/?invite=...`, but has a separate 256-bit bearer token, stored hashed in Supabase.
+Both spouses explicitly consent to shared transcript storage and OpenAI processing before chat unlocks.
+The shared room lets spouses speak freely to each other; either can invoke **real Sophia/OpenAI** deliberately (12 reply cap), and a shared answer is completed only after the OTHER spouse confirms it.
+This is **not** an SMS group chat, payment-backed service, partner authentication system, or private solo messaging.
+Each pilot expires after 14 days for access; database records remain until manually cleaned up.
+Do not share links publicly, and do not use this rehearsal for highly sensitive personal disclosures.
+
+Production needs `OPENAI_API_KEY`, `OPENAI_MODEL` (optional), `SUPABASE_SECRET_KEY`, and existing admin password/session secret.
+Supabase migration: `supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql`.
+Pilot storage tables enforce RLS and no anonymous/authenticated grants. All database access and AI calls are server-side.
+
 ## Local development
 
 This is a static HTML/JS/CSS project with a single Vercel serverless admin function. No package installation or build command is required.
