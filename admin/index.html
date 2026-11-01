@@ -172,6 +172,7 @@
             <span id="customerModeLabel">Couple directory · one row per household</span>
             <button type="button" class="customer-mini" id="customerShowPeople">Individual contacts</button>
             <button type="button" class="customer-mini" id="customerShowCouples" hidden>← All couples</button>
+            <button type="button" class="customer-mini" id="customerStartTeamPilot" hidden>✧ Start Team Deep Dive test</button>
           </div>
           <section id="customerHouseholdPanel">
             <div class="customer-couple-tools">
@@ -225,6 +226,14 @@
               <button type="button" class="button" id="customerEmailLink">Email →</button>
               <button type="button" class="button" id="customerTextLink">Text →</button>
             </div>
+          </section>
+          <section id="customerPilotPanel" class="customer-editor" hidden>
+            <div class="customer-editor-heading"><h3>Team Deep Dive · two private invitations</h3><button type="button" class="text-button" id="customerClosePilot">Close</button></div>
+            <p class="customer-footnote" id="customerPilotRecipient">Only intended spouses should receive these links. Each must consent separately before Sophia responds. No SMS, account activation or verification occurs here.</p>
+            <label>First spouse's private room link<input type="text" id="customerPilotLinkA" readonly></label>
+            <label>Second spouse's private room link<input type="text" id="customerPilotLinkB" readonly></label>
+            <div class="customer-actions"><button class="button" type="button" id="customerPilotCopyA">Copy first link</button>
+              <button class="button" type="button" id="customerPilotCopyB">Copy second link</button></div>
           </section>
         </section>
 
