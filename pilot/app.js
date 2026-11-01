@@ -23,6 +23,58 @@ async function request(action,payload={}){
  if(!res.ok)throw Object.assign(new Error(data.error||"Request failed."),{status:res.status});
  return data;
 }
+let commentTarget={kind:"general",chapter:1,index:null};
+function openComment(kind,chapter,index=null,excerpt=""){
+ if(!state?.myConsent){error("Accept the pilot consent before leaving feedback.");return}
+ commentTarget={kind,chapter,index};
+ text("commentTarget",excerpt?excerpt.slice(0,350):"General pilot experience");
+ $("commentText").value="";text("commentStatus","");
+ if(typeof $("commentDialog").showModal==="function")$("commentDialog").showModal();
+ else $("commentDialog").setAttribute("open","");
+}
+function makeCommentButton(label,kind,chapter,index,excerpt){
+ const button=document.createElement("button");button.type="button";
+ button.className="comment-chip";button.textContent=label;
+ button.addEventListener("click",()=>openComment(kind,chapter,index,excerpt));
+ return button;
+}
+function renderChoices(scene,chapter){
+ const host=$("choiceOptions");host.replaceChildren();
+ const options=Array.isArray(scene.options)?scene.options:[];
+ $("choicesBlock").hidden=!options.length;
+ options.forEach((option,i)=>{
+  const row=document.createElement("div");row.className="choice-row";
+  const button=document.createElement("button");button.type="button";
+  button.className="choice-option";button.textContent=(i+1)+". "+option;
+  button.disabled=state.roomStatus!=="active";
+  button.addEventListener("click",()=>{
+   $("message").value=option;
+   $("message").focus();
+   $("message").scrollIntoView({block:"nearest"});
+  });
+  row.append(button,makeCommentButton("✎ Comment","option",chapter,i,option));host.append(row);
+ });
+ $("customChoice").disabled=state.roomStatus!=="active";
+}
+function renderHistory(revealed){
+ const history=$("historyChapters"),list=Array.isArray(revealed)?revealed:[];
+ $("chapterHistory").hidden=list.length<2;history.replaceChildren();
+ for(let i=0;i<list.length-1;i++){
+  const scene=list[i],card=document.createElement("article");card.className="history-entry";
+  const h=document.createElement("h3");h.textContent="Chapter "+(i+1)+": "+scene.title;
+  const p=document.createElement("p");p.textContent=scene.story;
+  card.append(h,p,makeCommentButton("✎ Comment on chapter","chapter",i+1,null,scene.story));
+  if(Array.isArray(scene.options)){
+   scene.options.forEach((option,n)=>{
+    const line=document.createElement("div");line.className="history-option";
+    line.append(document.createTextNode((n+1)+". "+option+" "),
+     makeCommentButton("✎","option",i+1,n,option));card.append(line);
+   });
+  }
+  history.append(card);
+ }
+}
+
 function renderMessages(list){
  const signature=list.length+":"+(list.at(-1)?.id||"");
  if(seen===signature)return;
@@ -35,7 +87,9 @@ function renderMessages(list){
   bubble.className="bubble "+(m.author==="sophia"?"sophia":mine?"me":"partner");
   const label=document.createElement("small");
   label.textContent=m.author==="sophia"?"SOPHIA":mine?"YOU":"YOUR SPOUSE";
-  bubble.append(label,document.createTextNode(m.body));host.append(bubble);
+  bubble.append(label,document.createTextNode(m.body));
+  bubble.append(makeCommentButton("✎ Comment","message",state.storyBeat||1,m.id,m.body));
+  host.append(bubble);
  }
  if(wasNearEnd||list.length<5)host.scrollTop=host.scrollHeight;
 }
@@ -52,10 +106,13 @@ function render(){
  $("storyMoment").hidden=!isReady;
  if(!isReady){$("proposalPanel").hidden=true;return}
  const scene=state.scene||{};
- text("momentCount","MOMENT "+(state.storyBeat||1)+" OF "+(state.storyBeatCount||3));
+ text("momentCount",(state.storyFormat==="full"?"CHAPTER ":"MOMENT ")+(state.storyBeat||1)+" OF "+(state.storyBeatCount||3));
  text("momentTitle",scene.title||"The Saturday Surprise");
  text("momentStory",scene.story||"");
  text("momentQuestion",scene.prompt||"");
+ renderChoices(scene,state.storyBeat||1);
+ renderHistory(state.revealedChapters);
+ text("generalComment","✎ Comment"+(state.myComments?.length?" ("+state.myComments.length+")":""));
  text("identity",state.role==="a"?"Spouse A · shared room":"Spouse B · shared room");
  text("remaining",state.aiRepliesLeft+" Sophia replies left");
  renderMessages(state.messages);
@@ -86,6 +143,7 @@ function render(){
   $("reopen").hidden=proposer;
  }
  $("backChat").hidden=state.roomStatus!=="active";
+ $("answerComment").hidden=!proposed;
 }
 async function refresh(){
  if(busy||!token)return;
@@ -110,6 +168,24 @@ function init(){
  });
  $("message").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("send").click()}
+ });
+ $("generalComment").addEventListener("click",()=>openComment("general",state?.storyBeat||1));
+ $("chapterComment").addEventListener("click",()=>openComment("chapter",state?.storyBeat||1,null,state?.scene?.story||""));
+ $("customChoice").addEventListener("click",()=>{$("message").value="";$("message").focus();$("message").scrollIntoView({block:"nearest"})});
+ $("answerComment").addEventListener("click",()=>openComment("answer",state?.storyBeat||1,null,state?.proposal?.text||""));
+ $("closeComment").addEventListener("click",()=>$("commentDialog").close());
+ $("cancelComment").addEventListener("click",()=>$("commentDialog").close());
+ $("submitComment").addEventListener("click",async()=>{
+  if(busy)return;
+  const feedback=$("commentText").value.trim();
+  if(feedback.length<3){text("commentStatus","Please write at least 3 characters.");return}
+  text("commentStatus","Saving your comment…");
+  await act("comment",{...commentTarget,feedback});
+  if($("feedback").textContent){text("commentStatus",$("feedback").textContent);return}
+  text("commentStatus","Saved privately for Anthos beta review.");
+  $("commentText").value="";
+  $("submitComment").textContent="Saved ✓";
+  setTimeout(()=>{$("submitComment").textContent="Save comment";$("commentDialog").close()},650);
  });
  $("ask").addEventListener("click",()=>act("ask"));
  $("nextMoment").addEventListener("click",async()=>{
