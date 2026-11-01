@@ -33,6 +33,7 @@
    for(const p of rows){
      const tr=el("tr"),who=el("div","customer-person");
      who.append(el("strong","",p.name));
+     who.append(el("span","",p.phone?(p.phoneVerified?"✓ Verified phone · ":"Phone not verified · ")+p.phone:"Phone not supplied"));
      who.append(el("span","",p.email));
      const partner=p.groupId?rows.find(q=>q.id!==p.id&&q.groupId===p.groupId):null;
      who.append(el("small","", (p.program==="pilot"?"Pilot":"Standard")+(partner?" · "+partner.name:"")+
