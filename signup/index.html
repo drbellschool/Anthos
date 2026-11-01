@@ -20,7 +20,7 @@ input[type=date],input[type=tel],input[type=text]{width:100%;margin:5px 0 0;padd
 button{font:700 13px system-ui;border-radius:9px;border:0;padding:14px 19px;background:var(--accent);color:#fff;cursor:pointer}
 button:disabled{opacity:.6;cursor:wait}.status{border-radius:10px;background:#e8f0e9;padding:14px;font-size:13px;margin-bottom:15px}
 .error{background:#fcefe9;color:#963e36}
-#signupForm[hidden],#done[hidden],#loading[hidden]{display:none!important}a{color:#355f4a}
+#signupForm[hidden],#done[hidden],#loading[hidden],#newPersonFields[hidden],#existingInvite[hidden]{display:none!important}a{color:#355f4a}
 footer{font-size:10px;color:#75827a;text-align:center;margin:22px}
 @media(max-width:570px){.grid,.checks{grid-template-columns:1fr}section{padding:18px}h1{font-size:28px}}
 </style></head>
@@ -29,8 +29,12 @@ footer{font-size:10px;color:#75827a;text-align:center;margin:22px}
 <section id="done" hidden><h1>Your Anthos profile is saved.</h1><p id="doneMessage"></p><p class="note">This does not activate Sophia texts. The phone number must be verified and messaging approval completed before any automated SMS.</p></section>
 <form id="signupForm" hidden>
 <section><div class="eyebrow">PERSONAL INVITATION</div><h1>A little more us.</h1>
-<p>Hi <strong id="inviteName"></strong> — this is your personal Anthos setup. A few details help Sophia and Paraclete remember what matters to you.</p>
-<div class="phone">Invitation sent to: <strong id="inviteEmail"></strong></div></section>
+<p id="signupWelcome">Complete your personal signup. Anthos will create your customer record when you finish—not before.</p>
+<div class="grid" id="newPersonFields" hidden>
+  <label>Your name<input name="name" type="text" maxlength="80" autocomplete="name" required disabled></label>
+  <label>Your email<input name="email" type="email" maxlength="254" autocomplete="email" required disabled></label>
+</div>
+<div class="phone" id="existingInvite" hidden>Personal invitation for <strong id="inviteName"></strong> · <strong id="inviteEmail"></strong></div></section>
 <section><div class="eyebrow">01 / YOUR IMPORTANT DATES</div><h2>What should Anthos remember?</h2>
 <div class="grid"><label>Your birthday<input name="birthDate" type="date" required></label>
 <label>Your wedding date<input name="weddingDate" type="date" required></label></div>
@@ -78,7 +82,15 @@ footer{font-size:10px;color:#75827a;text-align:center;margin:22px}
   try{
    if(!/^[a-f0-9]{64}$/.test(token))throw Error("This invitation link is missing or invalid.");
    const data=await post({action:"preview",token});
-   $("inviteName").textContent=data.name;$("inviteEmail").textContent=data.email;
+   if(data.mode==="new"){
+     $("newPersonFields").hidden=false;
+     for(const x of $("newPersonFields").querySelectorAll("input"))x.disabled=false;
+     $("signupWelcome").textContent="Introduce yourself, then share the dates that matter. Your customer record will only be created when you finish.";
+   }else{
+     $("existingInvite").hidden=false;
+     $("inviteName").textContent=data.name;$("inviteEmail").textContent=data.email;
+     $("signupWelcome").textContent="Finish your personal Anthos setup to complete your profile.";
+   }
    $("phone").value=data.phone||"";$("numberPreview").textContent=$("phone").value||"Enter your number above";
    $("loading").hidden=true;$("signupForm").hidden=false;
   }catch(e){status(e.message,true)}
@@ -93,7 +105,7 @@ footer{font-size:10px;color:#75827a;text-align:center;margin:22px}
   e.preventDefault();const b=$("submit");b.disabled=true;$("formStatus").textContent="Saving your choices…";
   try{
    const form=e.currentTarget,f=new FormData(form);
-   const fields=["birthDate","weddingDate","phone","holidaysReviewed","confirmPhone","smsConsent","emailConsent","adultAgreement","privacyAgreement"];
+   const fields=["name","email","birthDate","weddingDate","phone","holidaysReviewed","confirmPhone","smsConsent","emailConsent","adultAgreement","privacyAgreement"];
    const data={action:"submit",token,holidays:[...$("holidays").querySelectorAll("input:checked")].map(x=>x.value)};
    for(const k of fields)data[k]=["holidaysReviewed","confirmPhone","smsConsent","emailConsent","adultAgreement","privacyAgreement"].includes(k)?f.has(k):f.get(k);
    const result=await post(data);
