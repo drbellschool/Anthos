@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {createRoom,consent,send,ask,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
+import {createRoom,consent,setName,send,ask,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
 import endpoint from "../api/pilot.mjs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 const sql=read("../supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql");
@@ -129,6 +129,11 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   await propose(a,"Ask first, then surprise each other together.");
   await assert.rejects(accept(a),/other spouse/);
   assert.equal((await accept(b)).roomStatus,"completed");
+  await setName(a,"Addie");
+  assert.equal((await status(a)).displayName,"Addie");
+  assert.equal((await status(b)).partnerName,"Addie");
+  assert.equal((await status(a)).partnerName,"Alissa");
+  await assert.rejects(setName(a,"123"),/nickname/);
   await assert.rejects(send(a,"still going"),/closed/);
  }finally{
   globalThis.fetch=formerFetch;
