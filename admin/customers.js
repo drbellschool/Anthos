@@ -95,7 +95,8 @@
      ["Meaningful holidays reviewed",!!q.holidays,"Choices recorded by the participant"],
      ["Questionnaire complete",!!q.completed,"Submitted through a unique link"],
      ["Customer account linked",!!p.registered,"Actual authenticated account"],
-     ["Phone number supplied",!!p.phone,"Not carrier-verified"],
+     ["Phone number supplied",!!p.phone,"Unverified until ownership check"],
+     ["Phone ownership verified",!!p.phoneVerified,"Requires separate phone verification; checkbox is insufficient"],
      ["Text consent recorded",p.smsConsent==="recorded_unverified","No Sophia SMS until verified and activated"],
      ["Email permission recorded",p.emailConsent==="recorded","Not proof email address is verified"]
    ]){
