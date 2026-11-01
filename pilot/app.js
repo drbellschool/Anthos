@@ -135,9 +135,25 @@ function render(){
  const full=state.storyFormat==="full";
  const current=state.messages.filter(m=>m.chapter_number===(state.storyBeat||1));
  const bothCurrent=current.some(m=>m.author==="a")&&current.some(m=>m.author==="b");
+ const sophiaJoined=current.some(m=>m.author==="sophia");
+ const bothReady=Boolean(state.myChapterReady&&state.partnerChapterReady);
+ const showReadiness=isActive&&full&&!state.chapterOutcome&&sophiaJoined&&bothCurrent;
+ $("readinessPanel").hidden=!showReadiness;
+ if(showReadiness){
+  const partner=state.partnerName||"Your spouse";
+  const myReady=Boolean(state.myChapterReady),theirReady=Boolean(state.partnerChapterReady);
+  text("readinessStatus",bothReady?"You're both ready. See what Jack and Jill do next!":
+   myReady?"You're ready. Waiting for "+partner+".":
+   theirReady?partner+" is ready. Would you like to continue talking?":
+   "Are you ready to see what happens, or should Sophia keep listening?");
+  $("readyButton").disabled=busy||myReady;
+  $("readyButton").textContent=myReady?"✓ You're ready":"✓ I'm ready";
+  $("continueButton").disabled=busy;
+ }
  $("resolve").hidden=!isActive||!full||!!state.chapterOutcome;
- $("resolve").disabled=busy||!bothCurrent;
- $("resolve").textContent=bothCurrent?"✧ See what happens":"Both spouses respond first";
+ $("resolve").disabled=busy||!bothCurrent||!sophiaJoined||!bothReady;
+ $("resolve").textContent=bothReady?"✧ See what happens":
+  !bothCurrent?"Both spouses respond first":"Waiting for both to be ready";
  $("nextMoment").hidden=!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3)||(full&&!state.chapterOutcome);
  $("nextMoment").disabled=busy||!isActive;
  const inReview=showProposal||state.roomStatus!=="active";
@@ -221,6 +237,10 @@ function init(){
   $("commentText").value="";
   $("submitComment").textContent="Saved ✓";
   setTimeout(()=>{$("submitComment").textContent="Save comment";$("commentDialog").close()},650);
+ });
+ $("readyButton").addEventListener("click",()=>act("readiness",{ready:true}));
+ $("continueButton").addEventListener("click",async()=>{
+  if(await act("readiness",{ready:false}))$("message").focus();
  });
  $("ask").addEventListener("click",()=>act("ask"));
  $("resolve").addEventListener("click",async()=>{if(await act("resolve")){$("storyMoment").scrollTop=$("storyMoment").scrollHeight;}});
