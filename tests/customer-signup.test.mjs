@@ -217,3 +217,22 @@ test("Full date of birth is stored privately and email marketing opt-in is not c
  assert.match(api,/p_birth_date:fields\.birth_date/);
  assert.doesNotMatch(api,/p_email_consent/);
 });
+
+test("the current signup requires both spouse names and phone with U.S. national formatting",()=>{
+ const form=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
+ const server=readFileSync(new URL("../api/customer-signup.mjs",import.meta.url),"utf8");
+ const headers=JSON.parse(readFileSync(new URL("../vercel.json",import.meta.url),"utf8"));
+ for(const id of ["spouseFirstName","spouseLastName","spousePhone"]){
+   assert.match(form,new RegExp('id="'+id+'"[^>]*required'));
+ }
+ assert.doesNotMatch(form,/Spouse's (first name|mobile number) \(optional\)/);
+ assert.doesNotMatch(form,/name="emailConsent"/);
+ assert.match(form,/formatUSPhone/);
+ assert.match(form,/placeholder="\(\d{3}\) \d{3}-\d{4}"/);
+ assert.match(server,/if\(\/\^\\d\{10\}\$\/\.test\(number\)\)number="\+1"\+number/);
+ for(const source of ["/signup","/signup/(.*)"]){
+   const h=headers.headers.find(x=>x.source===source);
+   assert.ok(h,"missing no-cache rule for "+source);
+   assert.match(h.headers.find(x=>x.key==="Cache-Control").value,/no-store/);
+ }
+});
