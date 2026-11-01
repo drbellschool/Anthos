@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {createRoom,consent,setName,send,ask,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
+import {createRoom,consent,setName,send,ask,chapterReadiness,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
 import endpoint from "../api/pilot.mjs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 const sql=read("../supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql");
@@ -60,7 +60,7 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   if(method==="POST"){
    const row={...body};
    if(table==="anthos_pilot_rooms"){row.id="f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0";row.status="active";row.expires_at=new Date(Date.now()+86400000).toISOString();row.ai_turns=0;row.story_beat=1;row.resolving_chapter=0}
-   if(table==="anthos_pilot_participants"){row.consented_at=null;row.last_sent_at=null;row.display_name=null}
+   if(table==="anthos_pilot_participants"){row.consented_at=null;row.last_sent_at=null;row.display_name=null;row.ready_chapter=0}
    if(table==="anthos_pilot_messages")row.id=messages.length+1;
    if(table==="anthos_pilot_comments")row.id="comment-"+(comments.length+1);
    all.push(row);return reply([row]);
@@ -101,6 +101,24 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   assert.equal(after.storyBeatCount,8);
   assert.equal(after.scene.options.length,3);
   await assert.rejects(nextMoment(a),/See what your decisions/);
+  await assert.rejects(resolveChapter(a),/Both spouses must choose ready/);
+  await chapterReadiness(a,true);
+  assert.equal((await status(a)).myChapterReady,true);
+  assert.equal((await status(b)).myChapterReady,false);
+  await chapterReadiness(b,false);
+  assert.equal((await status(a)).myChapterReady,false,"Either spouse may reopen dialogue.");
+  // A new exchange after Sophia's reply should produce ANOTHER organic response.
+  for(const p of people)p.last_sent_at=null;
+  await send(a,"I still think surprises should be spontaneous.");
+  assert.equal(aiRequests,1,"One-sided message does not interrupt.");
+  for(const p of people)p.last_sent_at=null;
+  await send(b,"And I still think listening comes first.");
+  assert.equal(aiRequests,2,"Sophia responds to new exchange in the same chapter.");
+  assert.equal((await status(a)).myChapterReady,false);
+  await chapterReadiness(a,true);
+  await assert.rejects(resolveChapter(a),/Both spouses must choose ready/);
+  await chapterReadiness(b,true);
+  assert.equal((await status(a)).partnerChapterReady,true);
   const impact=await resolveChapter(a);
   assert.equal(storyRequests,1);
   assert.match(impact.chapterOutcome.consequence,/Jack and Jill/);
@@ -119,6 +137,9 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
     await send(a,"I'd let the couple negotiate this themselves, chapter "+chapter);
     await send(b,"I'd choose a playful and realistic compromise, chapter "+chapter);
     assert.match((await status(a)).messages.at(-1).body,/You both care/);
+    await assert.rejects(resolveChapter(b),/Both spouses must choose ready/);
+    await chapterReadiness(a,true);
+    await chapterReadiness(b,true);
     const effect=await resolveChapter(b);
     assert.equal(effect.chapterOutcome.chapter_number,chapter);
     active=chapter%2?a:b;

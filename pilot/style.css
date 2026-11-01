@@ -75,3 +75,12 @@
 .room.is-live .conversation-head-actions{gap:5px}
 .room.is-live .conversation-head-actions #remaining{font-size:9px}
 @media(max-width:400px){.room.is-live .name-button{max-width:83px}.room.is-live #identity{font-size:10px}}
+
+/* A two-person answer to Sophia's invitation, without adding page height. */
+.readiness-panel{margin:3px 9px 4px;padding:8px 9px;background:#edf5e9;border:1px solid #c4d9bf;border-radius:11px;display:flex;justify-content:space-between;align-items:center;gap:9px}
+.readiness-copy{flex:1;min-width:0;font-size:11px;color:#45614b;font-weight:650;line-height:1.35}
+.readiness-actions{display:flex;flex:0 0 auto;gap:5px}
+.readiness-actions button{min-height:33px;padding:6px 9px;font-size:11px;white-space:nowrap}
+.readiness-actions button:first-child{background:#d6ebcf;color:#2e5b3a;border-color:#b6d3ad}
+.room.is-live .readiness-panel{flex:0 0 auto}
+@media(max-width:420px){.readiness-panel{flex-wrap:wrap}.readiness-copy{flex-basis:100%}.readiness-actions{width:100%}.readiness-actions button{flex:1}}

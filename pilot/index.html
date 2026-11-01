@@ -25,8 +25,9 @@
    <label for="message" class="sr-only">Your message to your spouse</label><textarea id="message" maxlength="700" rows="2" placeholder="Say what you actually think…"></textarea>
    <button id="send">Send <span aria-hidden="true">↗</span></button>
   </div>
+  <div id="readinessPanel" class="readiness-panel" hidden aria-live="polite"><div class="readiness-copy"><span id="readinessStatus">Sophia is listening. Take your time.</span></div><div class="readiness-actions"><button id="readyButton" class="outline" type="button">✓ I’m ready</button><button id="continueButton" class="outline" type="button">Keep talking</button></div></div>
   <div class="tools"><button id="ask" class="outline">✧ Ask Sophia</button><button id="resolve" type="button">✧ See what happens</button><button id="proposeButton" class="outline">We have an answer</button><button id="nextMoment" class="outline">Next chapter →</button></div>
-  <p class="muted helper">Sophia reads the shared conversation and can join naturally. Once you both respond, see how Jack and Jill react. Private beta Comments are for editorial review, not messages to Sophia.</p>
+  <p class="muted helper">Sophia reads the shared conversation and can join naturally. Sophia will check in as you talk. Each spouse chooses when ready; only then will See what happens unlock. Private beta Comments are for editorial review, not messages to Sophia.</p>
  </section>
  <section id="proposalPanel" class="panel" hidden>
   <div id="proposalStep" class="eyebrow">SHARED DECISION</div><h2 id="proposalHeading">Your shared answer</h2><p id="proposalInstruction" class="muted"></p><blockquote id="proposalText" class="answer-quote"></blockquote><button id="answerComment" class="comment-chip" type="button">✎ Comment on final answer</button><div id="proposeForm"><label for="answer">What answer have you agreed on?</label><textarea id="answer" maxlength="800" rows="3" placeholder="We think Jack and Jill should…"></textarea><button id="submitAnswer">Share answer for my spouse to confirm</button></div>
