@@ -225,7 +225,7 @@ export default {
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="customers"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
       const p=new URL(request.url).searchParams;
-      try{return json(await listCustomers({page:p.get("page"),search:p.get("search"),program:p.get("program"),status:p.get("status")}));}
+      try{return json(await listCustomers({page:p.get("page"),search:p.get("search"),program:p.get("program"),status:p.get("status"),groupId:p.get("groupId")}));}
       catch(e){return json({error:e.message||"Customer directory unavailable."},e.status||502);}
     }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="pilot-feedback"){
