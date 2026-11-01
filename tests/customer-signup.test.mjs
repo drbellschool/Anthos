@@ -16,6 +16,7 @@ function mock(){
   phone_e164:null,record_status:"pending",signup_token_hash:null,signup_token_consumed_at:null,signup_token_expires_at:null};
  const requests=[];
  globalThis.fetch=async(url,init)=>{
+   if(String(url).includes("anthos_signup_invitations"))return new Response("[]",{status:200});
    assert.match(String(url),/supabase.co\/rest\/v1\/anthos_customer_directory/);
    assert.equal(init.headers.apikey,"sb_secret_test_no_real_data");
    const u=new URL(url);requests.push({method:init.method,query:u.searchParams,body:init.body?JSON.parse(init.body):null});
