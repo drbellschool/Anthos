@@ -88,7 +88,7 @@ function renderMessages(list){
   const label=document.createElement("small");
   label.textContent=m.author==="sophia"?"SOPHIA":mine?"YOU":"YOUR SPOUSE";
   bubble.append(label,document.createTextNode(m.body));
-  bubble.append(makeCommentButton("✎ Comment","message",state.storyBeat||1,m.id,m.body));
+  bubble.append(makeCommentButton("✎ Comment","message",m.chapter_number||1,m.id,m.body));
   host.append(bubble);
  }
  if(wasNearEnd||list.length<5)host.scrollTop=host.scrollHeight;
