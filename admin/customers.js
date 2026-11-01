@@ -2,7 +2,7 @@
  "use strict";
  const $=id=>document.getElementById(id);
  if(!$("customerRows"))return;
- let page=0,busy=false,total=null,loaded=false,last=[],inviteCtx=null,searchDelay;
+ let page=0,busy=false,total=null,loaded=false,last=[],inviteCtx=null,searchDelay,personScopeGroupId=null,couplePage=0,coupleTotal=0,coupleSequence=0,coupleDelay;
  const number=(id,x)=>$(id).textContent=x===null||x===undefined?"—":String(x);
  function notice(text,bad=false){$("customerNotice").textContent=text;$("customerNotice").classList.toggle("is-error",bad);}
  async function api(query,body){
@@ -26,6 +26,84 @@
    const edit=el("button","customer-mini customer-mini-edit","✎");edit.type="button";
    edit.title="Edit "+p.name;edit.setAttribute("aria-label","Edit "+p.name);edit.addEventListener("click",()=>editable(p));
    wrap.append(invite,edit);return wrap;
+ }
+ // The default operational view is one row per couple, not two tall contact cards.
+ // Drilldowns retain the original individual edit and invitation controls.
+ function setMode(mode,group=null){
+   const people=mode==="people";
+   $("customerHouseholdPanel").hidden=people;
+   $("customerPersonPanel").hidden=!people;
+   $("customerShowPeople").hidden=people;
+   $("customerShowCouples").hidden=!people;
+   personScopeGroupId=people?group:null;
+   $("customerModeLabel").textContent=people
+     ?(group?"Two-person household · individual records":"Individual contacts · edit and invitations")
+     :"Couple directory · one row per household";
+   if(people){
+     page=0;$("customerSearch").value="";
+     $("customerFilterProgram").value="";
+     $("customerFilterStatus").value="";
+     refresh();
+   }else{
+     form(null);loadCouples();
+   }
+ }
+ function drawCouples(couples){
+   const tbody=$("customerCoupleRows");tbody.replaceChildren();
+   if(!couples.length){
+     const tr=el("tr"),cell=el("td","","No matching couple registrations.");cell.colSpan=7;
+     tr.append(cell);tbody.append(tr);return;
+   }
+   for(const c of couples){
+     const tr=el("tr"),people=Array.isArray(c.people)?c.people:[],
+       joined=people.filter(p=>p.setup).length,
+       phones=people.filter(p=>p.phoneVerified).length,
+       accounts=people.filter(p=>p.accountActive).length;
+     const name=el("div","customer-couple-names");
+     name.append(el("strong","",people.map(p=>p.name).join(" & ")||"Couple on file"));
+     if(people.length===1)name.append(el("small","","Awaiting spouse"));
+     td(tr,name);
+     td(tr,chip(joined+"/"+Math.max(2,people.length)+" done",
+        joined===2?"ok":"pending"));
+     td(tr,chip(accounts+"/"+Math.max(2,people.length)+" active",
+        accounts===2?"ok":"pending"));
+     td(tr,chip(phones+"/"+Math.max(2,people.length)+" verified",
+        phones===2?"ok":"pending"));
+     const zips=[...new Set(people.map(p=>p.postalCode).filter(Boolean))];
+     td(tr,el("span","",zips.length?zips.join(" / "):"—"));
+     td(tr,el("span","",c.marriedYears===null||c.marriedYears===undefined?"—":String(c.marriedYears)));
+     const manage=el("button","customer-mini","Manage");manage.type="button";
+     manage.setAttribute("aria-label","Manage "+(people.map(p=>p.name).join(" and ")||"couple"));
+     manage.addEventListener("click",()=>setMode("people",c.id));
+     td(tr,manage);tbody.append(tr);
+   }
+ }
+ async function loadCouples(){
+   const serial=++coupleSequence;
+   $("customerCoupleRefresh").disabled=true;
+   notice("Loading registered couples…");
+   const params=new URLSearchParams({view:"couples",page:String(couplePage)});
+   const search=$("customerCoupleSearch").value.trim();
+   if(search)params.set("search",search);
+   try{
+     const result=await api("?"+params);
+     if(serial!==coupleSequence)return;
+     const list=result.couples||[];
+     coupleTotal=Number(result.total)||0;
+     drawCouples(list);
+     const first=list.length?couplePage*25+1:0;
+     const last=couplePage*25+list.length;
+     number("customerCouplePageStatus",first+"–"+last+" of "+coupleTotal);
+     $("customerCouplePrev").disabled=couplePage===0;
+     $("customerCoupleNext").disabled=(couplePage+1)*25>=coupleTotal;
+     const counts=result.counts||{};
+     $("customerModeLabel").textContent=
+       coupleTotal+" couples · "+(counts.registered??"—")+" joined · "+(counts.pending??"—")+
+       " pending spouse · "+(counts.needingReview??"—")+" need review";
+     notice("Live registered couples. Phone and account verification are separate.");
+   }catch(e){
+     if(serial===coupleSequence){notice(e.message,true);drawCouples([]);}
+   }finally{if(serial===coupleSequence)$("customerCoupleRefresh").disabled=false;}
  }
  function draw(rows){
    const body=$("customerRows");body.replaceChildren();
@@ -66,6 +144,7 @@
    if(busy)return;busy=true;$("customerRefresh").disabled=true;notice("Loading verified customer statuses…");
    const params=new URLSearchParams({view:"customers",page:String(page)});
    const search=$("customerSearch").value.trim();if(search)params.set("search",search);
+   if(personScopeGroupId)params.set("groupId",personScopeGroupId);
    for(const [id,key] of [["customerFilterProgram","program"],["customerFilterStatus","status"]])
      if($(id).value)params.set(key,$(id).value);
    try{
@@ -166,13 +245,24 @@
    if(!inviteCtx)return;
    location.href="sms:?body="+encodeURIComponent(message());
  });
+ $("customerShowPeople").addEventListener("click",()=>setMode("people"));
+ $("customerShowCouples").addEventListener("click",()=>setMode("couples"));
+ $("customerCoupleRefresh").addEventListener("click",loadCouples);
+ $("customerCoupleSearch").addEventListener("input",()=>{
+   clearTimeout(coupleDelay);
+   coupleDelay=setTimeout(()=>{couplePage=0;loadCouples();},250);
+ });
+ $("customerCouplePrev").addEventListener("click",()=>{if(couplePage>0){couplePage--;loadCouples();}});
+ $("customerCoupleNext").addEventListener("click",()=>{
+   if((couplePage+1)*25<coupleTotal){couplePage++;loadCouples();}
+ });
  $("customerRefresh").addEventListener("click",refresh);
  $("customerSearch").addEventListener("input",()=>{clearTimeout(searchDelay);searchDelay=setTimeout(()=>{page=0;refresh();},250);});
  for(const id of ["customerFilterProgram","customerFilterStatus"])$(id).addEventListener("change",()=>{page=0;refresh();});
  $("customerPrev").addEventListener("click",()=>{if(page){page--;refresh();}});
  $("customerNext").addEventListener("click",()=>{if(total===null||(page+1)*40<total){page++;refresh();}});
- document.querySelector('[data-studio-tab="customers"]')?.addEventListener("click",()=>{if(!$("dashboard").hidden)refresh();});
+ document.querySelector('[data-studio-tab="customers"]')?.addEventListener("click",()=>{if(!$("dashboard").hidden){if($("customerPersonPanel").hidden)loadCouples();else refresh();}});
  document.addEventListener("threefold-auth",e=>{
-   if(!e.detail?.authenticated){last=[];loaded=false;inviteCtx=null;$("customerInviteLink").value="";form(null);draw([]);}
+   if(!e.detail?.authenticated){++coupleSequence;last=[];loaded=false;inviteCtx=null;$("customerInviteLink").value="";form(null);draw([]);drawCouples([]);}
  });
 })();

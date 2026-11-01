@@ -129,3 +129,30 @@ test("authenticated admin issues a standalone signup link without inserting any 
  assert.equal(attack.status,403);
  assert.equal(calls.length,1);
 });
+
+test("couple-first Customers view preserves server-grouped individual edits and 25-per-page navigation",async()=>{
+ setup();const groupId="33333333-3333-4333-8333-333333333333";
+ const urls=[];
+ globalThis.fetch=async(url,opts)=>{
+   urls.push(String(url));
+   if(opts.method==="HEAD")return new Response(null,{status:200,headers:{"content-range":"0-1/2"}});
+   return json([fakeRow({group_id:groupId})],200,{"content-range":"0-0/1"});
+ };
+ const results=await listCustomers({groupId});
+ assert.equal(results.customers.length,1);
+ assert.ok(urls.some(x=>x.includes("group_id=eq."+groupId)));
+ await assert.rejects(()=>listCustomers({groupId:"invalid"}),/Invalid couple identifier/);
+ const html=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
+ const js=readFileSync(new URL("../admin/customers.js",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../admin/customers.css",import.meta.url),"utf8");
+ for(const id of ["customerHouseholdPanel","customerPersonPanel","customerCoupleRows",
+   "customerShowPeople","customerShowCouples","customerCoupleSearch","customerCoupleNext"])
+   assert.ok(html.includes('id="'+id+'"'));
+ assert.match(html,/id="customerPersonPanel" hidden/);
+ assert.match(js,/view:"couples"/);
+ assert.match(js,/personScopeGroupId/);
+ assert.match(js,/groupId",personScopeGroupId/);
+ assert.match(js,/setMode\("people",c.id\)/);
+ assert.match(css,/height:38px/);
+ assert.doesNotMatch(js,/innerHTML/);
+});
