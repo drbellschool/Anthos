@@ -123,6 +123,7 @@ function render(){
  $("ask").disabled=busy||!isActive||countA<1||countB<1||state.aiRepliesLeft===0||state.messages.at(-1)?.author==="sophia";
  $("proposeButton").disabled=busy||(!isActive&&state.roomStatus!=="proposed")||(isActive&&(countA<1||countB<1));
  $("proposeButton").textContent=state.roomStatus==="active"?"We have an answer":"View our answer";
+ $("proposeButton").hidden=state.roomStatus==="active"&&state.storyFormat==="full"&&(state.storyBeat||1)<8;
  $("nextMoment").hidden=!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3);
  $("nextMoment").disabled=busy||!isActive;
  const inReview=showProposal||state.roomStatus!=="active";
