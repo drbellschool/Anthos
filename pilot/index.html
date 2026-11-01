@@ -25,10 +25,10 @@
   <p class="muted helper">Your messages go directly to your spouse. Sophia speaks only when asked. Open the next twist when you feel ready; there is no timer, grading, or A–F quiz.</p>
  </section>
  <section id="proposalPanel" class="panel" hidden>
-  <h2>One answer, together</h2><p id="proposalText"></p><div id="proposeForm"><label for="answer">What answer have you agreed on?</label><textarea id="answer" maxlength="800" rows="3" placeholder="We think Jack and Jill should…"></textarea><button id="submitAnswer">Share answer for my spouse to confirm</button></div>
-  <div id="confirmAnswer" hidden><p id="approvalMessage"></p><button id="approveAnswer">Yes, that's our shared answer</button><button id="reopen" class="outline">Keep talking instead</button></div>
+  <div id="proposalStep" class="eyebrow">SHARED DECISION</div><h2 id="proposalHeading">Your shared answer</h2><p id="proposalInstruction" class="muted"></p><blockquote id="proposalText" class="answer-quote"></blockquote><div id="proposeForm"><label for="answer">What answer have you agreed on?</label><textarea id="answer" maxlength="800" rows="3" placeholder="We think Jack and Jill should…"></textarea><button id="submitAnswer">Share answer for my spouse to confirm</button></div>
+  <div id="confirmAnswer" hidden><p id="approvalMessage"></p><button id="approveAnswer">Yes, I agree — finish Deep Dive</button><button id="reopen" class="outline">Let's discuss it more</button></div>
   <div id="finished" hidden><strong>Deep Dive complete. ✿</strong><p>You arrived at an answer together. No grades, no public reveal.</p></div>
-  <button id="backChat" class="outline">Back to conversation</button>
+  <button id="backChat" class="outline">Return to chat</button>
  </section>
  <p id="feedback" class="feedback" role="status"></p>
  <footer>PRIVATE ANTHOS PILOT · Links expire after 14 days · No SMS sent · Never share your invitation publicly</footer>
