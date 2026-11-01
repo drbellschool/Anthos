@@ -93,7 +93,7 @@ test("admin API rejects customer listing and mutation without authenticated admi
 test("customer page only uses text nodes and shows accurate access labels",()=>{
  const html=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
  const client=readFileSync(new URL("../admin/customers.js",import.meta.url),"utf8");
- const sql=readFileSync(new URL("../supabase/migrations/20261101160000_customer_directory_admin_only.sql",import.meta.url),"utf8");
+ const sql=readFileSync(new URL("../supabase/migrations/20261101153443_customer_directory_admin_only.sql",import.meta.url),"utf8");
  for(const id of ["customerOpenAdd","customerAddForm","customerRows","customerEditForm",
    "customerFilterProgram","customerFilterStatus"])assert.ok(html.includes('id="'+id+'"'));
  assert.match(client,/\.textContent=/);assert.doesNotMatch(client,/\.innerHTML\s*=/);
