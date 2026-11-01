@@ -2,7 +2,7 @@
  "use strict";
  const $=id=>document.getElementById(id);
  if(!$("customerRows"))return;
- let page=0,busy=false,total=null,loaded=false,last=[],inviteCtx=null,searchDelay,personScopeGroupId=null,couplePage=0,coupleTotal=0,coupleSequence=0,coupleDelay;
+ let page=0,busy=false,total=null,loaded=false,last=[],inviteCtx=null,searchDelay,personScopeGroupId=null,couplePage=0,coupleTotal=0,coupleSequence=0,coupleDelay,pilotCtx=null;
  const number=(id,x)=>$(id).textContent=x===null||x===undefined?"—":String(x);
  function notice(text,bad=false){$("customerNotice").textContent=text;$("customerNotice").classList.toggle("is-error",bad);}
  async function api(query,body){
@@ -35,6 +35,7 @@
    $("customerPersonPanel").hidden=!people;
    $("customerShowPeople").hidden=people;
    $("customerShowCouples").hidden=!people;
+   $("customerStartTeamPilot").hidden=!people||!group;
    personScopeGroupId=people?group:null;
    $("customerModeLabel").textContent=people
      ?(group?"Two-person household · individual records":"Individual contacts · edit and invitations")
@@ -166,7 +167,7 @@
    finally{busy=false;$("customerRefresh").disabled=false;}
  }
  function form(id){
-   for(const key of ["customerEditForm","customerInvitePanel"])$(key).hidden=id!==key;
+   for(const key of ["customerEditForm","customerInvitePanel","customerPilotPanel"])$(key).hidden=id!==key;
    if(id)$(id).scrollIntoView({block:"nearest",behavior:"smooth"});
  }
  function editable(p){
@@ -245,6 +246,33 @@
    if(!inviteCtx)return;
    location.href="sms:?body="+encodeURIComponent(message());
  });
+ async function startCustomerTeamPilot(){
+   if(!personScopeGroupId||busy)return;
+   busy=true;$("customerStartTeamPilot").disabled=true;
+   notice("Creating a private Team Deep Dive for this registered couple…");
+   try{
+     const r=await api("",{action:"pilot-create-couple",groupId:personScopeGroupId});
+     pilotCtx={a:r.invitations?.a,b:r.invitations?.b};
+     if(!pilotCtx.a||!pilotCtx.b)throw Error("Missing room invitations.");
+     $("customerPilotLinkA").value=pilotCtx.a;
+     $("customerPilotLinkB").value=pilotCtx.b;
+     $("customerPilotRecipient").textContent=
+       (r.participants?.a||"First spouse")+" and "+(r.participants?.b||"second spouse")+
+       " · Separate invitations · Consent required · No messages sent or phone verified.";
+     form("customerPilotPanel");
+     notice("Profile-linked Team room ready. Send the private links separately to the intended participants.");
+   }catch(e){notice(e.message,true);}
+   finally{busy=false;$("customerStartTeamPilot").disabled=false;}
+ }
+ async function copyPilotLink(which){
+   const link=pilotCtx?.[which];if(!link)return;
+   try{await navigator.clipboard.writeText(link);notice("Private Team link copied. Send it only to the intended spouse.");}
+   catch{const input=$(which==="a"?"customerPilotLinkA":"customerPilotLinkB");input.select();notice("Select and copy the highlighted link.");}
+ }
+ $("customerStartTeamPilot").addEventListener("click",startCustomerTeamPilot);
+ $("customerClosePilot").addEventListener("click",()=>form(null));
+ $("customerPilotCopyA").addEventListener("click",()=>copyPilotLink("a"));
+ $("customerPilotCopyB").addEventListener("click",()=>copyPilotLink("b"));
  $("customerShowPeople").addEventListener("click",()=>setMode("people"));
  $("customerShowCouples").addEventListener("click",()=>setMode("couples"));
  $("customerCoupleRefresh").addEventListener("click",loadCouples);
@@ -263,6 +291,6 @@
  $("customerNext").addEventListener("click",()=>{if(total===null||(page+1)*40<total){page++;refresh();}});
  document.querySelector('[data-studio-tab="customers"]')?.addEventListener("click",()=>{if(!$("dashboard").hidden){if($("customerPersonPanel").hidden)loadCouples();else refresh();}});
  document.addEventListener("threefold-auth",e=>{
-   if(!e.detail?.authenticated){++coupleSequence;last=[];loaded=false;inviteCtx=null;$("customerInviteLink").value="";form(null);draw([]);drawCouples([]);}
+   if(!e.detail?.authenticated){++coupleSequence;last=[];loaded=false;inviteCtx=null;pilotCtx=null;$("customerInviteLink").value="";$("customerPilotLinkA").value="";$("customerPilotLinkB").value="";form(null);draw([]);drawCouples([]);}
  });
 })();

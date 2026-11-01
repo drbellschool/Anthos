@@ -2,7 +2,7 @@
 // Vercel Node.js Function (.mjs); no persistent customer state until Supabase is provisioned.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
-import { createRoom as createPilotRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
+import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 
@@ -270,6 +270,10 @@ export default {
     if(action==="customer-update"){
       try{return json(await editCustomer(body));}
       catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
+    }
+    if(action==="pilot-create-couple"){
+      try{return json(await createCustomerRoom(new URL(request.url).origin,body.groupId));}
+      catch(e){return json({error:String(e.message||"Could not create customer-bound Team room.").slice(0,180)},e.status||502);}
     }
     if(action==="pilot-create"){
       try{return json(await createPilotRoom(new URL(request.url).origin));}
