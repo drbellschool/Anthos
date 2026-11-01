@@ -76,7 +76,7 @@ export async function listCustomers(opts={}){
  if(search)params.or="(email.ilike.*"+search+"*,display_name.ilike.*"+search+"*)";
  const [result,...counts]=await Promise.all([
    query("anthos_customer_directory",params),
-   query("anthos_customer_directory",{select:"id"}, "HEAD"),
+   query("anthos_customer_directory",{select:"id",record_status:"neq.archived"}, "HEAD"),
    query("anthos_customer_directory",{select:"id",program:"eq.pilot",record_status:"neq.archived"},"HEAD"),
    query("anthos_customer_directory",{select:"id",program:"eq.standard",record_status:"neq.archived"},"HEAD"),
    query("anthos_customer_directory",{select:"id",staff_nomination:"eq.admin_pending",record_status:"neq.archived"},"HEAD"),
