@@ -101,7 +101,7 @@ function phoneOf(raw){
  let number=raw.trim().replace(/[\s().-]/g,"");
  if(/^\d{10}$/.test(number))number="+1"+number;
  else if(/^1\d{10}$/.test(number))number="+"+number;
- if(!/^\+[1-9]\d{7,14}$/.test(number))fail("Enter a phone number with country code.");
+ if(!/^\+[1-9]\d{7,14}$/.test(number))fail("Enter a valid 10-digit U.S. mobile number (no +1 needed), or a full international number.");
  return number;
 }
 export async function createSignupLink({id}={}){
