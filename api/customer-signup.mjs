@@ -21,12 +21,12 @@ async function db(params,method="GET",body,table="anthos_customer_directory"){
 }
 async function findNewInvite(token){
  const hash=hashToken(token);
- const rows=await db({select:"token_hash,expires_at,redeemed_at",token_hash:"eq."+hash,limit:1},
+ const rows=await db({select:"token_hash,expires_at,redeemed_at,invited_by_customer_id",token_hash:"eq."+hash,limit:1},
    "GET",undefined,"anthos_signup_invitations");
  if(!rows.length)return null;
  if(rows[0].redeemed_at||Date.parse(rows[0].expires_at)<=Date.now())
    fail("This invitation has expired or already been used.",410);
- return {hash,expiresAt:rows[0].expires_at};
+ return {hash,expiresAt:rows[0].expires_at,invitedByCustomerId:rows[0].invited_by_customer_id||null};
 }
 export async function createOpenSignupLink(){
  const token=randomBytes(12).toString("base64url"),expiresAt=new Date(Date.now()+72*3600000).toISOString();
@@ -37,7 +37,7 @@ export async function createOpenSignupLink(){
    message:"Signup invitation ready. No customer record exists until the recipient completes the form. Nothing has been sent."};
 }
 
-async function redeemNewSignup(input,hash,fields){
+async function redeemNewSignup(input,hash,fields,isSpouseInvite=false){
  const secret=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!secret)fail("Signup database is not configured.",503);
  const first=String(input.firstName||"").trim().replace(/\s+/g," ");
@@ -46,24 +46,26 @@ async function redeemNewSignup(input,hash,fields){
  if(!first||!last||first.length>60||last.length>60||/[<>\u0000-\u001f]/.test(first+last))
   fail("Enter your first and last name.");
  if(email.length>254||!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))fail("Enter a valid email.");
- const spouseName=String(input.spouseFirstName||"").trim();
+ const spouseFirst=String(input.spouseFirstName||"").trim().replace(/\s+/g," ");
+ const spouseLast=String(input.spouseLastName||"").trim().replace(/\s+/g," ");
  const spousePhone=String(input.spousePhone||"").trim();
- if(Boolean(spouseName)!==Boolean(spousePhone))fail("Please enter both your spouse's name and mobile number, or leave both blank.");
- if(spouseName.length>60||/[<>\u0000-\u001f]/.test(spouseName))fail("Please enter a valid spouse first name.");
- const partner=spousePhone?phoneOf(spousePhone):null;
- if(partner&&partner===fields.phone_e164)fail("You and your spouse need separate mobile numbers.");
- const rawToken=partner?randomBytes(12).toString("base64url"):null;
- const url=BASE+"rpc/anthos_redeem_signup_v2";
+ if(!spouseFirst||!spouseLast||!spousePhone)fail("Your spouse's first name, last name and mobile number are required.");
+ if(spouseFirst.length>60||spouseLast.length>60||/[<>\u0000-\u001f]/.test(spouseFirst+spouseLast))
+   fail("Enter a valid spouse first and last name.");
+ const partner=phoneOf(spousePhone);
+ if(partner===fields.phone_e164)fail("You and your spouse need separate mobile numbers.");
+ const rawToken=isSpouseInvite?null:randomBytes(12).toString("base64url");
+ const url=BASE+"rpc/anthos_redeem_signup_v3";
  const headers={apikey:secret,"Content-Type":"application/json",Accept:"application/json"};
  if(!secret.startsWith("sb_secret_"))headers.Authorization="Bearer "+secret;
  let response;
  try{response=await fetch(url,{method:"POST",headers,cache:"no-store",signal:AbortSignal.timeout(9500),
   body:JSON.stringify({p_token_hash:hash,p_first_name:first,p_last_name:last,p_email:email,
-   p_birth_md:fields.birthday_month_day,p_wedding_date:fields.wedding_date,
+   p_birth_date:fields.birth_date,p_wedding_date:fields.wedding_date,
    p_holidays:fields.meaningful_holidays,p_special_dates:fields.special_dates,
-   p_phone:fields.phone_e164,p_spouse_first_name:partner?spouseName:null,
+   p_phone:fields.phone_e164,p_spouse_first_name:spouseFirst,p_spouse_last_name:spouseLast,
    p_spouse_phone:partner,p_partner_token_hash:rawToken?SHA(rawToken):null,
-   p_sms_consent:input.smsConsent===true,p_email_consent:input.emailConsent===true,
+   p_sms_consent:input.smsConsent===true,
    p_disclosure:input.smsConsent===true?"anthos-sms-2026-11-v1":null})});}
  catch{fail("Signup service is temporarily unavailable.",502);}
  if(!response.ok){
@@ -76,7 +78,7 @@ async function redeemNewSignup(input,hash,fields){
  const id=result?.customerId;
  if(typeof id!=="string"||!UUID.test(id))fail("Signup may have saved, but confirmation is unavailable. Contact Anthos.",502);
  return {customerId:id,partnerLink:rawToken?"https://anthos.love/signup/#t="+rawToken:null,
-  spouseName:partner?spouseName:null};
+  spouseName:spouseFirst};
 }
 function hashToken(token){if(typeof token!=="string"||!TOKEN.test(token))fail("Invalid signup link.",404);return SHA(token);}
 async function active(token){
@@ -147,23 +149,31 @@ export async function submitSignup(data){
  }
  const phone=phoneOf(data.phone);
  if(data.confirmPhone!==true)fail("Confirm that this is your phone number.");
- const sms=data.smsConsent===true,emails=data.emailConsent===true,now=new Date().toISOString();
- const body={birthday_month_day:data.birthDate.slice(5),wedding_date:data.weddingDate,
+ const sms=data.smsConsent===true,now=new Date().toISOString();
+ const body={birth_date:data.birthDate,birthday_month_day:data.birthDate.slice(5),wedding_date:data.weddingDate,
   meaningful_holidays:data.holidays,holidays_reviewed_at:now,special_dates:dates,questionnaire_submitted_at:now,
   phone_e164:phone,phone_owner_attested_at:now,
   sms_consent_at:sms?now:null,sms_disclosure_version:sms?"anthos-sms-2026-11-v1":null,
-  email_opt_in_at:emails?now:null,
   signup_token_hash:null,signup_token_expires_at:null,signup_token_consumed_at:now};
  if(fresh){
-   const complete=await redeemNewSignup(data,fresh.hash,body);
+   const complete=await redeemNewSignup(data,fresh.hash,body,!!fresh.invitedByCustomerId);
    return {ok:true,questionnaireComplete:true,partnerInviteLink:complete.partnerLink,spouseFirstName:complete.spouseName,
      smsConsent:sms?"recorded_unverified":"declined",
-     emailConsent:emails?"recorded":"declined",
      message:"Your completed signup is saved. Sophia will not text until phone verification, carrier approval and activation are confirmed."};
  }
+ // Legacy re-invitations also need spouse details, even though they do not create a new couple.
+ const spouseFirst=String(data.spouseFirstName||"").trim();
+ const spouseLast=String(data.spouseLastName||"").trim();
+ const spouseNumber=phoneOf(String(data.spousePhone||""));
+ if(!spouseFirst||!spouseLast||spouseFirst.length>60||spouseLast.length>60||
+    /[<>\u0000-\u001f]/.test(spouseFirst+spouseLast)||spouseNumber===phone)
+   fail("Enter your spouse's first name, last name and separate mobile number.");
+ body.spouse_first_name=spouseFirst;
+ body.spouse_last_name=spouseLast;
+ body.spouse_phone_e164=spouseNumber;
  const rows=await db({id:"eq."+row.id,signup_token_hash:"eq."+hash,
    signup_token_consumed_at:"is.null",signup_token_expires_at:"gt."+now,select:"id"},"PATCH",body);
  if(rows.length!==1)fail("This link was already completed. Request another signup link.",409);
  return {ok:true,questionnaireComplete:true,smsConsent:sms?"recorded_unverified":"declined",
-   emailConsent:emails?"recorded":"declined",message:"Your answers were saved. Sophia will not text until consent, phone verification, carrier approval and activation are confirmed."};
+   message:"Your answers were saved. Sophia will not text until consent, phone verification, carrier approval and activation are confirmed."};
 }

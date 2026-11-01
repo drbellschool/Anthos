@@ -72,7 +72,7 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
    <label class="field">Your birthday<input name="birthDate" type="date" required></label>
    <label class="field">Wedding anniversary<input name="weddingDate" type="date" required></label>
   </div>
-  <p class="note">Your full birthday is used for adult eligibility; only the month and day are retained in this customer directory.</p>
+  <p class="note">Your birth date and wedding date are kept privately so Anthos can personalize your experience and eventually understand age and years-married trends.</p>
   <div class="kicker" style="margin-top:8px">Celebrations you enjoy together (optional)</div>
   <div class="choices" id="holidays">
    <label><input type="checkbox" value="valentines">Valentine's Day</label>
@@ -87,16 +87,18 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
  <div class="section">
   <h2>Bring your spouse</h2>
   <div class="grid">
-   <label class="field">Spouse's first name (optional)<input name="spouseFirstName" id="spouseFirstName" type="text" maxlength="60" autocomplete="off"></label>
-   <label class="field">Spouse's mobile number (optional)<input name="spousePhone" id="spousePhone" type="tel" autocomplete="off" placeholder="+1 903 555 5678"></label>
+   <label class="field">Spouse's first name<input name="spouseFirstName" id="spouseFirstName" type="text" maxlength="60" autocomplete="off" required></label>
+   <label class="field">Spouse's last name<input name="spouseLastName" id="spouseLastName" type="text" maxlength="60" autocomplete="off" required></label>
   </div>
-  <p class="note">You can invite your spouse after saving. This doesn't enroll them, grant access to your responses, or authorize Sophia to text them.</p>
+  <div style="margin-top:9px">
+   <label class="field">Spouse's mobile number<input name="spousePhone" id="spousePhone" type="tel" autocomplete="off" placeholder="+1 903 555 5678" required></label>
+  </div>
+  <p class="note">After you join, you'll get a private link for your spouse. They'll complete their own details and consent; Anthos won't text them automatically.</p>
  </div>
  <div class="section">
   <h2>One last thing</h2>
   <label class="check"><input name="confirmPhone" type="checkbox" required>I confirm this is my own mobile number.</label>
   <label class="check"><input name="smsConsent" type="checkbox">Yes, Anthos may send me recurring texts about our marriage adventure, including Sophia's check-ins and Love Whispers. Frequency varies. Message/data rates may apply. Reply STOP to opt out or HELP for assistance. Optional; not a condition of purchase.</label>
-  <label class="check"><input name="emailConsent" type="checkbox">Yes, I'd also like optional Anthos email updates.</label>
   <label class="check"><input name="adultMarriageAgreement" type="checkbox" required>I am at least 18, and we are legally married.</label>
   <label class="check"><input name="privacyAgreement" type="checkbox" required>I agree to the <a href="/terms/" target="_blank" rel="noopener noreferrer">Terms</a> and have read the <a href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</label>
   <p class="note">Checking the text box records your choice. Your number must still be independently verified before Anthos can text you.</p>
@@ -153,11 +155,11 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
    const milestones=[...$("milestones").children].map(row=>({label:row.querySelector("input[type=text]").value.trim(),date:row.querySelector("input[type=date]").value}));
    const body={action:"submit",token,
     firstName:values.get("firstName"),lastName:values.get("lastName"),email:values.get("email"),
-    phone:values.get("phone"),spouseFirstName:values.get("spouseFirstName"),spousePhone:values.get("spousePhone"),
+    phone:values.get("phone"),spouseFirstName:values.get("spouseFirstName"),spouseLastName:values.get("spouseLastName"),spousePhone:values.get("spousePhone"),
     birthDate:values.get("birthDate"),weddingDate:values.get("weddingDate"),
     holidays:[...$("holidays").querySelectorAll("input:checked")].map(x=>x.value),specialDates:milestones,
     confirmPhone:values.has("confirmPhone"),smsConsent:values.has("smsConsent"),
-    emailConsent:values.has("emailConsent"),adultAgreement:values.has("adultMarriageAgreement"),
+    adultAgreement:values.has("adultMarriageAgreement"),
     marriageAgreement:values.has("adultMarriageAgreement"),privacyAgreement:values.has("privacyAgreement")};
    spousePhone=String(body.spousePhone||"").replace(/[\s().-]/g,"");
    const r=await api(body);
