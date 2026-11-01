@@ -2,7 +2,7 @@
 // Vercel Node.js Function (.mjs); no persistent customer state until Supabase is provisioned.
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
-import { createRoom as createPilotRoom } from "./pilot-core.mjs";
+import { createRoom as createPilotRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -214,6 +214,10 @@ export default {
         return json({error:"Invalid story."},400);
       try{return json(await reviewList(slug,version));}
       catch(err){return json({error:err.message||"Review queue unavailable."},err.code||502);}
+    }
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="pilot-feedback"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      try{return json(await listPilotFeedback());}catch{return json({error:"Pilot feedback unavailable."},502);}
     }
     if (request.method==="GET" && new URL(request.url).searchParams.get("view")==="development") {
       if (!isAdmin(request)) return json({error:"Administrator sign-in required."},401);
