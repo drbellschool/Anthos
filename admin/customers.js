@@ -35,6 +35,8 @@
      who.append(el("strong","",p.name));
      who.append(el("span","",p.phone?(p.phoneVerified?"✓ Verified phone · ":"Phone not verified · ")+p.phone:"Phone not supplied"));
      who.append(el("span","",p.email));
+     if(p.spousePending)who.append(el("small","", "Spouse "+(p.spouseFirstName||"")+" · verification pending"));
+     if(p.customCelebrationCount)who.append(el("small","",p.customCelebrationCount+" personal celebration"+(p.customCelebrationCount===1?"":"s")));
      const partner=p.groupId?rows.find(q=>q.id!==p.id&&q.groupId===p.groupId):null;
      who.append(el("small","", (p.program==="pilot"?"Pilot":"Standard")+(partner?" · "+partner.name:"")+
          (p.staffNomination==="admin_pending"?" · Admin candidate":"")));
