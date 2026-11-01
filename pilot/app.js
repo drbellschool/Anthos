@@ -76,7 +76,7 @@ function renderHistory(revealed){
 }
 
 function renderMessages(list){
- const signature=list.length+":"+(list.at(-1)?.id||"");
+ const signature=list.length+":"+(list.at(-1)?.id||"")+":"+(state?.displayName||"")+":"+(state?.partnerName||"");
  if(seen===signature)return;
  seen=signature;const host=$("thread");const wasNearEnd=host.scrollHeight-host.scrollTop-host.clientHeight<120;
  host.replaceChildren();
@@ -86,7 +86,7 @@ function renderMessages(list){
   const mine=m.author===state.role;
   bubble.className="bubble "+(m.author==="sophia"?"sophia":mine?"me":"partner");
   const label=document.createElement("small");
-  label.textContent=m.author==="sophia"?"SOPHIA":mine?"YOU":"YOUR SPOUSE";
+  label.textContent=m.author==="sophia"?"SOPHIA":mine?(state.displayName||"YOU").toUpperCase():(state.partnerName||"YOUR SPOUSE").toUpperCase();
   bubble.append(label,document.createTextNode(m.body));
   bubble.append(makeCommentButton("✎ Comment","message",m.chapter_number||1,m.id,m.body));
   host.append(bubble);
@@ -119,7 +119,8 @@ function render(){
  renderChoices(scene,state.storyBeat||1);
  renderHistory(state.revealedChapters);
  text("generalComment","✎ Comment"+(state.myComments?.length?" ("+state.myComments.length+")":""));
- text("identity",state.role==="a"?"Spouse A · shared room":"Spouse B · shared room");
+ text("identity",(state.displayName||("Spouse "+state.role.toUpperCase()))+" · with "+(state.partnerName||"your spouse"));
+ text("nameButton",state.displayName?"✎ "+state.displayName:"✎ Add your name");
  text("remaining",state.aiRepliesLeft+" Sophia replies left");
  $("connection").title="Sophia may join after both people speak in this chapter.";
  renderMessages(state.messages);
@@ -175,8 +176,27 @@ async function act(action,payload={}){
 }
 function init(){
  if(!/^[A-Za-z0-9_-]{43}$/.test(token)){blocked("Your personal invitation link must include an invitation token. Ask the pilot administrator for a new link.");return}
- $("consentCheck").addEventListener("change",e=>$("agree").disabled=!e.target.checked);
- $("agree").addEventListener("click",()=>act("consent"));
+ $("consentCheck").addEventListener("change",()=>{$("agree").disabled=!$("consentCheck").checked||!$("consentName").value.trim()});
+ $("consentName").addEventListener("input",()=>{$("agree").disabled=!$("consentCheck").checked||!$("consentName").value.trim()});
+ $("agree").addEventListener("click",()=>{
+  const name=$("consentName").value.trim();
+  if(!name){error("Enter the name or nickname Sophia should use.");$("consentName").focus();return;}
+  act("consent",{name});
+ });
+ $("nameButton").addEventListener("click",()=>{
+  $("editName").value=state?.displayName||"";
+  text("nameFeedback","");
+  $("nameDialog").showModal();
+ });
+ $("closeName").addEventListener("click",()=>$("nameDialog").close());
+ $("cancelName").addEventListener("click",()=>$("nameDialog").close());
+ $("saveName").addEventListener("click",async()=>{
+  const name=$("editName").value.trim();
+  if(!name){text("nameFeedback","Enter your first name or nickname.");return}
+  const ok=await act("name",{name});
+  if(ok)$("nameDialog").close();
+  else text("nameFeedback",$("feedback").textContent);
+ });
  $("send").addEventListener("click",async()=>{
   const value=$("message").value.trim();if(!value)return;
   if(await act("send",{message:value}))$("message").value="";

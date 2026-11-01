@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {createRoom,consent,send,ask,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
+import {createRoom,consent,setName,send,ask,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
 import endpoint from "../api/pilot.mjs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 const sql=read("../supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql");
@@ -37,13 +37,13 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
    assert.equal(body.store,false);
    if(body.text?.format?.name==="anthos_story_branch"){
      storyRequests++;
-     assert.ok(body.input.includes("Spouse A:"));assert.ok(body.input.includes("Spouse B:"));
+     assert.ok(body.input.includes("Adam:"));assert.ok(body.input.includes("Alissa:"));
      const content=JSON.stringify({consequence:"Jack and Jill are embarrassed, but Jack gives Jill the envelope and invites her to make a new plan. Their friends grin at the awkwardness.",
        next_scene:"Jack and Jill walk back into the kitchen as Maya arrives early with coffee. Jill is amused, Jack is nervous, and they change the plan without abandoning the unexpected adventure. The embarrassment remains, but now both spouses are speaking plainly.",
        lens:"gottman"});
      return reply({output:[{type:"message",content:[{type:"output_text",text:content}]}]});
    }
-   assert.ok(body.input.includes("Spouse A:"));assert.ok(body.input.includes("Spouse B:"));
+   assert.ok(body.input.includes("Adam:"));assert.ok(body.input.includes("Alissa:"));
    return reply({output:[{type:"message",content:[{type:"output_text",text:"You both care about the surprise. What would make it feel mutual?"}]}]});
   }
   const u=new URL(url),table=u.pathname.split("/").at(-1),method=init.method||"GET";
@@ -60,7 +60,7 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   if(method==="POST"){
    const row={...body};
    if(table==="anthos_pilot_rooms"){row.id="f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0";row.status="active";row.expires_at=new Date(Date.now()+86400000).toISOString();row.ai_turns=0;row.story_beat=1;row.resolving_chapter=0}
-   if(table==="anthos_pilot_participants"){row.consented_at=null;row.last_sent_at=null}
+   if(table==="anthos_pilot_participants"){row.consented_at=null;row.last_sent_at=null;row.display_name=null}
    if(table==="anthos_pilot_messages")row.id=messages.length+1;
    if(table==="anthos_pilot_comments")row.id="comment-"+(comments.length+1);
    all.push(row);return reply([row]);
@@ -82,10 +82,15 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   assert.equal(people[0].token_hash,createHash("sha256").update(a).digest("hex"));
   assert.notEqual(people[0].token_hash,a);
   assert.equal((await status(a)).ready,false);
-  await consent(a);
+  await consent(a,"Adam");
+  assert.equal((await status(a)).displayName,"Adam");
   await assert.rejects(send(a,"Hello"),/Both spouses/);
-  await consent(b);
+  await consent(b,"Alissa");
+  assert.equal((await status(a)).partnerName,"Alissa");
+  assert.equal((await status(b)).partnerName,"Adam");
   assert.equal((await status(a)).ready,true);
+  // Changing one nickname never changes the other spouse's name or consent.
+  // Keep original for recorded dialogue names in this test; change after the session.
   await send(a,"I think Jack meant well.");
   assert.equal(aiRequests,0,"Sophia waits for the second spouse.");
   await send(b,"He should have asked Jill first.");
@@ -124,6 +129,11 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   await propose(a,"Ask first, then surprise each other together.");
   await assert.rejects(accept(a),/other spouse/);
   assert.equal((await accept(b)).roomStatus,"completed");
+  await setName(a,"Addie");
+  assert.equal((await status(a)).displayName,"Addie");
+  assert.equal((await status(b)).partnerName,"Addie");
+  assert.equal((await status(a)).partnerName,"Alissa");
+  await assert.rejects(setName(a,"123"),/nickname/);
   await assert.rejects(send(a,"still going"),/closed/);
  }finally{
   globalThis.fetch=formerFetch;
