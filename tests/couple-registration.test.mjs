@@ -70,15 +70,25 @@ test("listCustomers retrieves group partners from server, not just visible filte
 test("real couple dashboard shows one registration and no fabricated program completion",async()=>{
  const old=globalThis.fetch,prior=process.env.SUPABASE_SECRET_KEY;
  process.env.SUPABASE_SECRET_KEY="sb_secret_fake_testing_only";
- globalThis.fetch=async(url,init)=>new Response(JSON.stringify([p1,p2]),{status:200,headers:{"content-range":"0-1/2"}});
+ globalThis.fetch=async(url,init)=>{
+   const u=new URL(url);assert.match(u.pathname,/rpc\/anthos_admin_couple_page$/);
+   const req=JSON.parse(init.body);assert.equal(req.p_limit,25);assert.equal(req.p_offset,0);
+   return new Response(JSON.stringify({total:1,registered:1,pending:0,needsReview:0,couples:[{
+    id:group,people:[{id:alice,name:"Partner One",postalCode:"75501",phoneVerified:false,accountActive:false},
+    {id:bob,name:"Partner Two",postalCode:null,phoneVerified:false,accountActive:false}],
+    state:"both_joined_pending_verification",marriedYears:16,accessGranted:false
+   }]}),{status:200});
+  };
  try{
   const data=await listCoupleRegistrations();
   assert.equal(data.counts.registered,1);
-  assert.equal(data.counts.completedForms,2);
+  assert.equal(data.total,1);
+  assert.equal(data.pageSize,25);
+  assert.equal(data.couples[0].people[0].postalCode,"75501");
   assert.equal(data.couples[0].people.length,2);
   assert.equal(data.couples[0].accessGranted,false);
   assert.equal(data.couples[0].marriedYears!==null,true);
-  assert.equal(data.truncated,false);
+  assert.equal(data.counts.pending,0);
   const html=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
   const client=readFileSync(new URL("../admin/couples.js",import.meta.url),"utf8");
   assert.match(html,/id="liveCoupleRows"/);
@@ -91,4 +101,20 @@ test("real couple dashboard shows one registration and no fabricated program com
   if(prior===undefined)delete process.env.SUPABASE_SECRET_KEY;
   else process.env.SUPABASE_SECRET_KEY=prior;
  }
+});
+
+test("couple admin search is bounded and uses server pagination",async()=>{
+ const old=globalThis.fetch,prior=process.env.SUPABASE_SECRET_KEY;
+ process.env.SUPABASE_SECRET_KEY="sb_secret_fake_testing_only";
+ let body;
+ globalThis.fetch=async(url,init)=>{
+  body=JSON.parse(init.body);
+  return new Response(JSON.stringify({total:10000,registered:8000,pending:1900,needsReview:100,couples:[]}),{status:200});
+ };
+ try{
+  const result=await listCoupleRegistrations({page:399,search:"75501"});
+  assert.equal(body.p_offset,9975);assert.equal(body.p_limit,25);assert.equal(body.p_search,"75501");
+  assert.equal(result.total,10000);assert.equal(result.couples.length,0);
+  await assert.rejects(()=>listCoupleRegistrations({page:-1}),/page/);
+ }finally{globalThis.fetch=old;if(prior===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=prior;}
 });
