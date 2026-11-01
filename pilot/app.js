@@ -49,7 +49,13 @@ function render(){
  if(state.myConsent&&!state.partnerConsent)text("consentStatus","You agreed. Waiting for the other invitation.");
  if(!state.myConsent)text("consentStatus",state.partnerConsent?"Your spouse has agreed. Your consent is needed.":"Both spouses must agree to begin.");
  $("conversation").hidden=!isReady;
+ $("storyMoment").hidden=!isReady;
  if(!isReady){$("proposalPanel").hidden=true;return}
+ const scene=state.scene||{};
+ text("momentCount","MOMENT "+(state.storyBeat||1)+" OF "+(state.storyBeatCount||3));
+ text("momentTitle",scene.title||"The Saturday Surprise");
+ text("momentStory",scene.story||"");
+ text("momentQuestion",scene.prompt||"");
  text("identity",state.role==="a"?"Spouse A · shared room":"Spouse B · shared room");
  text("remaining",state.aiRepliesLeft+" Sophia replies left");
  renderMessages(state.messages);
@@ -60,6 +66,8 @@ function render(){
  $("ask").disabled=busy||!isActive||countA<1||countB<1||state.aiRepliesLeft===0||state.messages.at(-1)?.author==="sophia";
  $("proposeButton").disabled=busy||(!isActive&&state.roomStatus!=="proposed")||(isActive&&(countA<1||countB<1));
  $("proposeButton").textContent=state.roomStatus==="active"?"We have an answer":"View our answer";
+ $("nextMoment").hidden=!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3);
+ $("nextMoment").disabled=busy||!isActive;
  const inReview=showProposal||state.roomStatus!=="active";
  $("proposalPanel").hidden=!inReview;
  if(!inReview)return;
@@ -101,6 +109,10 @@ function init(){
   if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("send").click()}
  });
  $("ask").addEventListener("click",()=>act("ask"));
+ $("nextMoment").addEventListener("click",async()=>{
+  await act("next");
+  if(state) $("storyMoment").scrollIntoView({block:"start",behavior:window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches?"instant":"smooth"});
+ });
  $("proposeButton").addEventListener("click",()=>{showProposal=true;render();$("proposalPanel").scrollIntoView({block:"nearest"})});
  $("submitAnswer").addEventListener("click",()=>{const value=$("answer").value.trim();if(value.length<3){error("Write a shared answer before submitting.");return}act("propose",{answer:value})});
  $("approveAnswer").addEventListener("click",()=>act("accept"));
