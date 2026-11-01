@@ -11,6 +11,7 @@
 <script src="/admin/admin.js" defer></script>
 <script src="/admin/studio.js" defer></script>
 <script src="/admin/customers.js" defer></script>
+<script src="/admin/couples.js" defer></script>
 <script src="/admin/progress.js" defer></script>
 </head>
 <body>
@@ -163,7 +164,7 @@
             <div class="customer-metric"><span>Contacts</span><strong id="customerCountAll">—</strong></div>
             <div class="customer-metric"><span>Profiles complete</span><strong id="customerCountQuestionnaire">—</strong><small id="customerPercentQuestionnaire">—</small></div>
             <div class="customer-metric"><span>SMS opted in</span><strong id="customerCountSms">—</strong><small>Unverified numbers</small></div>
-            <div class="customer-metric"><span>Accounts linked</span><strong id="customerCountLinked">—</strong></div>
+            <div class="customer-metric"><span>Couples shown</span><strong id="customerCountCouples">—</strong><small>Both signed up</small></div>
             <div class="customer-metric"><span>Pilot contacts</span><strong id="customerCountPilot">—</strong></div>
             <div class="customer-metric"><span>Paying subscribers</span><strong>—</strong><small>Billing not connected</small></div>
           </div>
@@ -174,7 +175,7 @@
             <button class="button" id="customerRefresh" type="button">↻ Refresh</button>
           </div>
           <div class="customer-table-scroll"><table class="customer-table">
-            <thead><tr><th>Customer / access</th><th>Account</th><th>Setup</th><th>SMS</th><th>Email</th><th>Billing</th><th>Flower</th><th>Photos</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Customer / spouse</th><th>Account</th><th>Setup</th><th>SMS</th><th>Couple</th><th>Billing</th><th>Flower</th><th>Photos</th><th>Actions</th></tr></thead>
             <tbody id="customerRows"><tr><td colspan="9">No data loaded.</td></tr></tbody>
           </table></div>
           <div class="customer-pagination"><span id="customerPageStatus">—</span><div><button class="button" type="button" id="customerPrev" disabled>Previous</button> <button class="button" type="button" id="customerNext" disabled>Next</button></div></div>
@@ -205,22 +206,25 @@
         </section>
 
         <section data-studio-page="couples" class="studio-page" hidden>
-          <div class="page-kicker">05 / PRIVACY-FIRST ANALYTICS</div>
-          <h2 class="studio-title">Every couple. <em>No guessing.</em></h2>
-          <p class="studio-lead">View enrollment, Love Whispers, date completions, Deep Dive milestones, and where experiences need attention—without turning intimate answers into administrative statistics.</p>
-          <div class="notice"><strong>Not connected to customer data.</strong> Live counts are unavailable until Supabase has been restored or replaced. The table below contains clearly fictional records solely to preview the reporting design.</div>
-          <div class="analytics-switch"><button type="button" class="button" id="showLiveStats" aria-pressed="true">Live data status</button><button type="button" class="button secondary" id="showDemoStats" aria-pressed="false">Illustrative sample cohort</button></div>
-          <div id="liveCouples">
-            <div class="stats-grid"><article class="stat"><span class="stat-caption">DATABASE CONNECTION</span><div class="stat-value muted">Not connected</div><small>No query has been run</small></article><article class="stat"><span class="stat-caption">ENROLLED COUPLES</span><div class="stat-value muted">—</div><small>Unknown; not zero</small></article><article class="stat"><span class="stat-caption">DEEP DIVE MASTERY</span><div class="stat-value muted">—</div><small>No learner records available</small></article><article class="stat"><span class="stat-caption">DATES COMPLETED</span><div class="stat-value muted">—</div><small>No events available</small></article></div>
-            <div class="panel"><h3 class="mini-title">Waiting for SQL</h3><p class="soft-text">When the database is connected, this page will show aggregated, consent-aware couple records and results. We will not invent real metrics or copy one spouse's private messages into this view.</p></div>
+          <div class="page-kicker">05 / LIVE CUSTOMER REGISTRATIONS</div>
+          <h2 class="studio-title">Couples <em>on their way.</em></h2>
+          <p class="studio-lead">Actual completed Anthos invitations, not sample data. Couple registration, phone ownership and customer account access are separate milestones.</p>
+          <div id="liveCoupleNotice" class="customer-notice" role="status">Select Couples to load live registrations.</div>
+          <div class="stats-grid">
+            <article class="stat"><span class="stat-caption">COUPLES REGISTERED</span><div id="liveCoupleRegistered" class="stat-value">—</div><small>Two completed partner signups</small></article>
+            <article class="stat"><span class="stat-caption">SPOUSES WITH COMPLETED SETUP</span><div id="liveCoupleForms" class="stat-value">—</div><small>Across registered/pending households</small></article>
+            <article class="stat"><span class="stat-caption">AWAITING PARTNER</span><div id="liveCouplePending" class="stat-value">—</div><small>Partner has not completed signup</small></article>
+            <article class="stat"><span class="stat-caption">REQUIRES REVIEW</span><div id="liveCoupleReview" class="stat-value">—</div><small>Unexpected or mismatched household information</small></article>
           </div>
-          <div id="demoCouples" hidden>
-            <div class="stats-grid" id="sampleStats"></div>
-            <article class="panel"><div class="panel-top"><div><span class="eyebrow">FICTIONAL EXAMPLES — NEVER REAL CUSTOMER RECORDS</span><h3 class="mini-title">Couple journey monitor</h3></div><span class="state-label">DEMO DATA</span></div>
-              <div class="routing-table"><table><thead><tr><th>Couple</th><th>Consent</th><th>Whispers</th><th>Dates</th><th>Deep Dive</th><th>Mastery</th><th>Next appropriate action</th></tr></thead><tbody id="sampleCoupleRows"></tbody></table></div>
-              <p class="hint">The future live dashboard will distinguish *completed story objectives* from participants' overall relationship health. No marital quality scores.</p>
-            </article>
-          </div>
+          <article class="panel">
+            <div class="panel-top"><div><span class="eyebrow">REAL HOUSEHOLD REGISTRATIONS / ADMIN ONLY</span><h3 class="mini-title">Couple enrollment overview</h3></div>
+            <button type="button" id="liveCoupleRefresh" class="button secondary">Refresh</button></div>
+            <div class="routing-table"><table>
+              <thead><tr><th>Couple</th><th>Registration</th><th>Account access</th><th>Phone verification</th><th>Years married</th><th>Next step</th></tr></thead>
+              <tbody id="liveCoupleRows"><tr><td colspan="6">No registrations loaded.</td></tr></tbody>
+            </table></div>
+            <p class="hint">Shared grouping confirms two submitted invitations—not verified mobile ownership or permission to see a spouse's private information. Deep Dives, petals, Whispers, adventures and billing will appear here when connected to real customer identities.</p>
+          </article>
         </section>
 
         <section data-studio-page="progress" class="studio-page progress-console" hidden>

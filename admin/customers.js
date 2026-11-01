@@ -35,20 +35,27 @@
      who.append(el("strong","",p.name));
      who.append(el("span","",p.phone?(p.phoneVerified?"✓ Verified phone · ":"Phone not verified · ")+p.phone:"Phone not supplied"));
      who.append(el("span","",p.email));
-     if(p.spousePending)who.append(el("small","", "Spouse "+(p.spouseFirstName||"")+" · verification pending"));
+     const coupling=p.couple||{};
+     if(coupling.partnerName)who.append(el("small","","Spouse: "+coupling.partnerName));
+     else if(p.spousePending)who.append(el("small","","Spouse: "+(p.spouseFirstName||"")+" · awaiting signup"));
      if(p.customCelebrationCount)who.append(el("small","",p.customCelebrationCount+" personal celebration"+(p.customCelebrationCount===1?"":"s")));
-     const partner=p.groupId?rows.find(q=>q.id!==p.id&&q.groupId===p.groupId):null;
-     who.append(el("small","", (p.program==="pilot"?"Pilot":"Standard")+(partner?" · "+partner.name:"")+
+     const partner=p.couple?.partnerName||null;
+     who.append(el("small","", (p.program==="pilot"?"Pilot":"Standard")+(partner?" · Couple on file":"")+
          (p.staffNomination==="admin_pending"?" · Admin candidate":"")));
      td(tr,who);
-     td(tr,status(p.registered,"✓ Linked","— Unlinked"));
+     td(tr,status(p.registered,"✓ Active","— Not activated"));
      const q=p.questionnaire||{};
      const setup=el("div","customer-setup");
      const parts=[q.birthday,q.wedding,q.holidays].filter(Boolean).length;
      setup.append(chip(q.completed?"✓ Complete":parts+"/3 dates",q.completed?"ok":"pending"));
      td(tr,setup);
      td(tr,status(p.smsConsent==="recorded_unverified","✓ Opt-in*","— No opt-in"));
-     td(tr,status(p.emailConsent==="recorded","✓ Opt-in","— No opt-in"));
+     const relation=p.couple?.state||"not_started";
+     td(tr,relation==="both_joined_pending_verification"
+       ?chip("✓ Both joined","ok")
+       :relation==="awaiting_spouse"?chip("⌛ Spouse pending","pending")
+       :relation==="needs_review"?chip("! Review pairing","pending")
+       :chip("— Not paired","future"));
      td(tr,chip("Not linked","future"));
      td(tr,chip("Later","future"));td(tr,chip("Later","future"));
      td(tr,cellActions(p));body.append(tr);
@@ -67,7 +74,7 @@
      number("customerCountAll",c.all);
      number("customerCountPilot",c.pilot);
      number("customerCountQuestionnaire",c.questionnaire);
-     number("customerCountSms",c.smsOptIns);number("customerCountLinked",c.accountsLinked);
+     number("customerCountSms",c.smsOptIns);number("customerCountCouples",c.registeredCouplesShown);
      const pct=c.all>0&&c.questionnaire!==null?Math.round(100*c.questionnaire/c.all):null;
      number("customerPercentQuestionnaire",pct===null?"No contacts yet":c.questionnaire+" of "+c.all+" ("+pct+"%)");
      const start=last.length?page*40+1:0,end=page*40+last.length;
@@ -92,15 +99,16 @@
    const checks=$("customerReadinessChecks");checks.replaceChildren();
    const q=p.questionnaire||{};
    for(const [name,yes,detail] of [
-     ["Birthday supplied",!!q.birthday,"Date collected; birth year not retained here"],
+     ["Birthday supplied",!!q.birthday,"Birth date stored privately when completed on the newer form"],
      ["Wedding date supplied",!!q.wedding,"Anniversary recorded"],
      ["Meaningful holidays reviewed",!!q.holidays,"Choices recorded by the participant"],
      ["Questionnaire complete",!!q.completed,"Submitted through a unique link"],
-     ["Customer account linked",!!p.registered,"Actual authenticated account"],
+     ["Couple registration complete",p.couple?.state==="both_joined_pending_verification","Both spouses signed up, awaiting phone verification"],
+     ["Customer account activated",!!p.registered,"Independent authenticated account, not spouse pairing"],
      ["Phone number supplied",!!p.phone,"Unverified until ownership check"],
      ["Phone ownership verified",!!p.phoneVerified,"Requires separate phone verification; checkbox is insufficient"],
      ["Text consent recorded",p.smsConsent==="recorded_unverified","No Sophia SMS until verified and activated"],
-     ["Email permission recorded",p.emailConsent==="recorded","Not proof email address is verified"]
+     ["Spouse phone verification",!!p.couple?.phoneVerificationComplete,"Still pending for either spouse until separately verified"]
    ]){
      const item=el("div","customer-check");
      const mark=el("span","customer-check-icon",yes?"☑":"☐");mark.setAttribute("aria-hidden","true");

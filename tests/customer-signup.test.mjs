@@ -103,7 +103,7 @@ test("Customer UI offers explicit opt-ins without falsely labeling phone or bill
  assert.match(form,/id="spouseLastName"[^>]+required/);
  assert.match(form,/id="spousePhone"[^>]+required/);
  assert.match(form,/location\.hash/);
- for(const id of ["customerCountQuestionnaire","customerCountSms","customerCountLinked",
+ for(const id of ["customerCountQuestionnaire","customerCountSms","customerCountCouples",
    "customerInvitePanel","customerEmailLink","customerTextLink"])assert.ok(admin.includes('id="'+id+'"'));
  assert.ok(!js.includes("innerHTML"));assert.match(js,/recorded_unverified/);
 });
