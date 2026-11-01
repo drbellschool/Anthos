@@ -140,7 +140,10 @@ export async function submitSignup(data){
   if(!event||typeof event!=="object"||Array.isArray(event))fail("Invalid special date.");
   const label=String(event.label||"").trim();
   if(!label||label.length>80||/[<>\u0000-\u001f]/.test(label))fail("Describe each special date in 80 characters or fewer.");
-  validDate(event.date,"special date");
+  if(typeof event.date!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(event.date)||
+     !Number.isFinite(new Date(event.date+"T00:00:00Z").getTime())||
+     new Date(event.date+"T00:00:00Z").toISOString().slice(0,10)!==event.date)
+    fail("Enter a real calendar date for each celebration.");
  }
  const phone=phoneOf(data.phone);
  if(data.confirmPhone!==true)fail("Confirm that this is your phone number.");
