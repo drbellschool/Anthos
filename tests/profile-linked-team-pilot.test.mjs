@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {createCustomerRoom,sharedProfileFor} from "../api/pilot-core.mjs";
+import {createCustomerRoom,sharedProfileFor,consent,send,status} from "../api/pilot-core.mjs";
 const a="adfd9634-8ae5-4e52-a624-3b8e92309511";
 const b="c86260a1-8ad4-4d05-b805-46afc260e1c2";
 const group="67625344-cfa3-41ad-bc55-2b18e885aac5";
@@ -107,4 +107,77 @@ test("real pilot AI and story prompts use only profile linked to authenticated i
  assert.match(html,/id="customerStartTeamPilot"/);
  assert.match(html,/id="customerPilotLinkA"/);
  assert.match(html,/id="customerPilotLinkB"/);
+});
+
+test("real two-spouse dialogue sends the matched customer facts to the actual Sophia API request",async()=>{
+ process.env.SUPABASE_SECRET_KEY="sb_secret_profile_conversation_test";
+ process.env.OPENAI_API_KEY="test-openai-never-sent";
+ const rooms=[],participants=[],messages=[],aiBodies=[];
+ const reply=(data,statusCode=200)=>new Response(JSON.stringify(data),{status:statusCode,headers:{"content-type":"application/json"}});
+ const matches=(row,params)=>{
+  for(const [k,v] of params){
+   if(["select","order","limit"].includes(k))continue;
+   if(v==="is.null"){if(row[k]!==null&&row[k]!==undefined)return false;}
+   else if(v.startsWith("eq.")&&String(row[k])!==v.slice(3))return false;
+  }
+  return true;
+ };
+ globalThis.fetch=async(url,init={})=>{
+  if(String(url).includes("api.openai.com")){
+   const body=JSON.parse(init.body);aiBodies.push(body);
+   return reply({output:[{type:"message",content:[{type:"output_text",
+     text:"Alex, Jack's plan could use some room for Sam's ideas too. How might Jill help him make the surprise their own?"}]}]});
+  }
+  const u=new URL(url),table=u.pathname.split("/").at(-1),method=init.method||"GET";
+  const body=init.body?JSON.parse(init.body):null;
+  if(table==="anthos_customer_directory"){
+   const select=u.searchParams.get("select")||"";
+   assert.doesNotMatch(select,/birth_date|email|postal_code|sms_consent|special_dates|solo/i);
+   return reply(people);
+  }
+  const all=table==="anthos_pilot_rooms"?rooms:
+    table==="anthos_pilot_participants"?participants:
+    table==="anthos_pilot_messages"?messages:table==="anthos_pilot_chapter_outcomes"||
+    table==="anthos_pilot_comments"?[]:null;
+  if(!all)throw Error("Unexpected table "+table);
+  if(method==="POST"){
+   const row={...body};
+   if(table==="anthos_pilot_rooms")Object.assign(row,{id:"f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0",
+    status:"active",story_beat:1,ai_turns:0,resolving_chapter:0,
+    expires_at:new Date(Date.now()+86400000).toISOString()});
+   if(table==="anthos_pilot_participants")Object.assign(row,{consented_at:null,last_sent_at:null,ready_chapter:0});
+   if(table==="anthos_pilot_messages")Object.assign(row,{id:messages.length+1});
+   all.push(row);return reply([row]);
+  }
+  let selected=all.filter(row=>matches(row,u.searchParams));
+  if(u.searchParams.get("order")==="id.desc")selected=selected.toReversed();
+  if(u.searchParams.has("limit"))selected=selected.slice(0,Number(u.searchParams.get("limit")));
+  if(method==="PATCH"){selected.forEach(row=>Object.assign(row,body));return reply(selected);}
+  if(method==="DELETE"){for(const row of selected){const n=all.indexOf(row);if(n>=0)all.splice(n,1)}return reply(selected);}
+  return reply(selected);
+ };
+ const created=await createCustomerRoom("https://anthos.love",group);
+ const tokenA=new URL(created.invitations.a).searchParams.get("invite");
+ const tokenB=new URL(created.invitations.b).searchParams.get("invite");
+ await consent(tokenA,"Alex");
+ assert.equal(aiBodies.length,0);
+ await consent(tokenB,"Sam");
+ await send(tokenA,"Jack's surprise could be lovely, but I prefer outdoor adventures.");
+ assert.equal(aiBodies.length,0);
+ await send(tokenB,"I'd rather talk before making plans, especially with friends.");
+ assert.equal(aiBodies.length,1);
+ const request=aiBodies[0];
+ assert.equal(request.store,false);
+ assert.ok(request.input.includes("Alex:"));
+ assert.ok(request.input.includes("Sam:"));
+ assert.match(request.instructions,/mutuallySelectedCelebrations/);
+ assert.match(request.instructions,/Christmas/);
+ assert.match(request.instructions,/yearsMarried/);
+ for(const forbidden of ["1983-04-12","private1@example.test","75501",
+   "+19035550001","private2@example.test"]){
+  assert.equal(JSON.stringify(request).includes(forbidden),false,forbidden+" must stay private");
+ }
+ const state=await status(tokenA);
+ assert.equal(state.messages.at(-1).author,"sophia");
+ assert.equal(state.storyBeatCount,8);
 });
