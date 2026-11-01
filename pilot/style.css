@@ -5,3 +5,27 @@
 .story-moment{border:1px solid #cfdccc;background:#fffefa;border-radius:15px;padding:16px 17px 14px;margin:0 0 13px;box-shadow:0 5px 15px #38553e0c}.moment-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.moment-no-grade{font-size:10px;color:#6e846f}.story-moment h2{font:normal 25px/1.19 Georgia,serif;margin:10px 0 13px}.moment-story{font:normal 17px/1.51 Georgia,serif;color:#304438;white-space:pre-line;margin:0}.moment-question{font-size:13px;font-weight:700;line-height:1.5;border-top:1px solid #dae3d8;margin:13px 0 0;padding:11px 0 0;color:#4a6b51}.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.tools #nextMoment{grid-column:1/-1;background:#e4efde;color:#2f593b;font-size:14px;min-height:46px}.tools #nextMoment:hover{background:#d3e5cd}
 
 .answer-quote{white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px;line-height:1.5;border-left:3px solid #95b49a;background:#f0f5eb;padding:14px;margin:12px 0 16px;border-radius:0 10px 10px 0}.answer-quote:empty{display:none}#proposalInstruction{font-size:14px;line-height:1.5}#confirmAnswer button{display:block;width:100%;margin:10px 0}#backChat{margin-top:15px}
+
+.bar-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.bar-tools .status{max-width:110px}
+.comment-chip{display:inline-flex;align-items:center;justify-content:center;padding:4px 10px;min-height:29px!important;border:1px solid #a2bca3;background:#fffef9;color:#315b3e;border-radius:9px;font-size:11px;font-weight:700;white-space:nowrap;flex:none;line-height:1.25}
+.comment-chip:hover{background:#e6f0e1}
+.story-moment #chapterComment{margin-top:11px}
+.choices-block{margin:14px 0 1px;border-top:1px solid #d7e2d4;padding-top:11px}
+.choice-intro{font-size:12px;color:#536e58;font-weight:700;line-height:1.5;margin:0 0 8px}
+.choice-row{display:flex;align-items:center;gap:7px;margin:7px 0}
+.choice-option{flex:1;min-width:0;text-align:left;padding:11px 12px;font-size:13px;line-height:1.45;font-weight:550;color:#31533c;background:#f8faf5;border:1px solid #ccd9c9;border-radius:10px;min-height:45px;white-space:normal}
+.choice-option:hover{background:#e4f0df}.choice-row .comment-chip{width:75px;white-space:normal;text-align:center}
+.custom-choice{width:100%;margin:8px 0 0;font-size:13px}
+.bubble .comment-chip{display:block;margin:9px 0 0 auto;background:transparent;padding:2px 7px;min-height:26px!important;border-color:#b1bea9;font-size:10px}
+.chapter-history{border:1px solid #d2ded0;background:#fffefb;border-radius:12px;padding:11px 14px;margin-bottom:13px}
+.chapter-history summary{cursor:pointer;font-size:13px;font-weight:750;color:#386247}
+.history-entry{padding:13px 3px;border-top:1px solid #e1e7de}
+.history-entry h3{font:normal 21px Georgia,serif;margin:3px 0 7px}.history-entry p{font:normal 15px/1.56 Georgia,serif;white-space:pre-line}
+.history-option{font-size:12px;line-height:1.5;margin:8px 0;padding:5px;background:#f8faf7;border-radius:7px}
+.history-option .comment-chip{margin-left:5px}
+.comment-dialog{width:min(92vw,520px);max-height:85dvh;overflow:auto;border-radius:15px;border:1px solid #c6d8c6;background:#fffef9;padding:22px;color:var(--ink);box-shadow:0 15px 70px #1b332b50}
+.comment-dialog::backdrop{background:#1b382e88}.comment-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.comment-head h2{font:normal 25px Georgia,serif;margin:0}
+.comment-close{min-width:38px;min-height:36px;padding:2px 8px;font-size:22px}.comment-target{font-size:13px;max-height:110px;overflow:auto;line-height:1.5;border-left:3px solid #91ab91;padding:10px;background:#f5f8f2;white-space:pre-wrap}
+.comment-dialog label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.comment-dialog textarea{width:100%;display:block;border:1px solid #b9cbb7;border-radius:9px;padding:12px;resize:vertical;background:#fff;color:#263f30}
+.comment-dialog button{margin:8px 7px 0 0}
+@media(max-width:390px){.bar-tools .status{font-size:10px}.choice-row{align-items:stretch}.choice-row .comment-chip{width:71px}.comment-chip{font-size:10px}}
