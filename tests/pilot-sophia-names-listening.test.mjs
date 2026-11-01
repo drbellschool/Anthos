@@ -10,7 +10,7 @@ test("Sophia is instructed to attend to actual disagreement and occasionally jok
  assert.match(core,/Don't force jokes each turn/);
  assert.match(core,/private beta editorial comments/);
  assert.match(core,/speakerName\(m\.author,names\)/);
- assert.match(core,/generate\(thread\.slice\(-26\),chapter,chapters,effects,namesFor\(c\)\)/);
+ assert.match(core,/generate\(thread\.slice\(-26\),chapter,chapters,effects,namesFor\(c\),lastSophia>=0\)/);
  assert.match(core,/generate\(thread\.slice\(-26\),beatNumber\(c\.room\),chapters,effects,namesFor\(c\)\)/);
 });
 test("name is user-controlled, consent-gated and persists in server-only pilot participant record",()=>{
