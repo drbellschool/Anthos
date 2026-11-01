@@ -207,3 +207,16 @@ export async function reopen(invite){
   {status:"active",proposed_answer:null,proposed_by:null},"PATCH");
  return status(invite);
 }
+
+// Admin-only query. Never mount this on the public invite-token API.
+export async function adminFeedback(){
+ const rows=await db("anthos_pilot_comments",{
+  select:"id,room_id,author_role,chapter_number,target_kind,target_index,target_excerpt,feedback,created_at",
+  order:"created_at.desc",limit:200
+ });
+ return {ok:true,comments:rows.map(r=>({
+  id:r.id,roomId:r.room_id,role:r.author_role,chapter:r.chapter_number,
+  target:r.target_kind,index:r.target_index,excerpt:r.target_excerpt,
+  feedback:r.feedback,createdAt:r.created_at
+ }))};
+}
