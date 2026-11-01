@@ -3,6 +3,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
+import {listCustomers,addCustomers,editCustomer} from "./customer-directory.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -215,6 +216,12 @@ export default {
       try{return json(await reviewList(slug,version));}
       catch(err){return json({error:err.message||"Review queue unavailable."},err.code||502);}
     }
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="customers"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      const p=new URL(request.url).searchParams;
+      try{return json(await listCustomers({page:p.get("page"),search:p.get("search"),program:p.get("program"),status:p.get("status")}));}
+      catch(e){return json({error:e.message||"Customer directory unavailable."},e.status||502);}
+    }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="pilot-feedback"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
       try{return json(await listPilotFeedback());}catch{return json({error:"Pilot feedback unavailable."},502);}
@@ -245,6 +252,10 @@ export default {
         const result=action==="review-submit"?await reviewSubmit(body):await reviewResolve(body.id,body.decision);
         return json(result);
       }catch(err){return json({error:err.message||"Review action failed."},err.code||502);}
+    }
+    if(action==="customer-add"||action==="customer-update"){
+      try{return json(action==="customer-add"?await addCustomers(body):await editCustomer(body));}
+      catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
     }
     if(action==="pilot-create"){
       try{return json(await createPilotRoom(new URL(request.url).origin));}
