@@ -35,7 +35,7 @@ test("new rooms use full story while legacy 3-moment rooms are preserved",()=>{
  assert.match(core,/story_format:"full"/);
  assert.match(core,/room\?\.story_format==="full"\?FULL_STORY:STORY_BEATS/);
  assert.match(core,/storyFormat:c\.room\.story_format\|\|"short"/);
- assert.match(core,/Finish the eight chapters/);
+ assert.match(core,/See the final chapter consequence before proposing your shared answer/);
  assert.match(core,/storyFor\(c\.room\)\.length/);
  const route=read("../api/pilot.mjs");
  assert.match(route,/next:\(\)=>nextMoment\(token\)/);
