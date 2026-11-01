@@ -5,10 +5,12 @@
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#f5f1e9">
 <title>Anthos | Threefold Private Studio</title>
 <link rel="stylesheet" href="/admin/admin.css">
+<link rel="stylesheet" href="/admin/customers.css">
 <script src="/content.js" defer></script>
 <script src="/admin/studio-blueprint.js" defer></script>
 <script src="/admin/admin.js" defer></script>
 <script src="/admin/studio.js" defer></script>
+<script src="/admin/customers.js" defer></script>
 <script src="/admin/progress.js" defer></script>
 </head>
 <body>
@@ -22,6 +24,7 @@
       <button type="button" class="nav-item" data-studio-tab="paraclete"><span class="nav-icon">↗</span> Paraclete</button>
       <button type="button" class="nav-item" data-studio-tab="threefold"><span class="nav-icon">◌</span> Threefold</button>
       <button type="button" class="nav-item" data-studio-tab="deepdives"><span class="nav-icon">≋</span> Deep Dive objectives</button>
+      <button type="button" class="nav-item" data-studio-tab="customers"><span class="nav-icon">◎</span> Customers</button>
       <button type="button" class="nav-item" data-studio-tab="couples"><span class="nav-icon">♧</span> Couple insights</button>
       <button type="button" class="nav-item" data-studio-tab="progress"><span class="nav-icon">◷</span> Implementation progress</button>
     </nav>
@@ -147,6 +150,59 @@
             <article class="panel no-top"><span class="eyebrow">FIXED-CHOICE MASTERY SIMULATOR</span><h3 class="mini-title">Review Chapter 7</h3><p class="soft-text">Select the fictional choice a participant might make. Threefold scores the fixed choice against the versioned rubric; Sophia may explain, but cannot override the result.</p><label for="masteryChoice">Participant's independent choice</label><select id="masteryChoice"></select><button type="button" class="button primary" id="scoreMastery">Preview rubric result ↗</button><div id="masteryOutcome" class="persona-reply" role="status">Select a choice to inspect the learning outcome.</div></article>
           </div>
           <article class="panel"><span class="eyebrow">WHAT THE ENGINE MUST RECORD</span><div id="diveTracking" class="tag-cloud"></div></article>
+        </section>
+
+        <section data-studio-page="customers" class="studio-page customer-page" hidden>
+          <div class="customer-title">
+            <div><div class="page-kicker">CUSTOMER OPERATIONS / PRIVATE</div>
+              <h2 class="studio-title">People <em>&amp; couples.</em></h2>
+              <p class="customer-subtitle">Real Supabase contact records. Program designation is not proof of payment or permission to view private reflections.</p></div>
+            <button class="button primary" id="customerOpenAdd" type="button">+ Add person</button>
+          </div>
+          <div id="customerNotice" class="customer-notice" role="status">Select Customers to load live records.</div>
+          <div class="customer-metrics" aria-label="Customer directory totals">
+            <div class="customer-metric"><span>All contacts</span><strong id="customerCountAll">—</strong></div>
+            <div class="customer-metric"><span>Pilot contacts</span><strong id="customerCountPilot">—</strong></div>
+            <div class="customer-metric"><span>Standard contacts</span><strong id="customerCountStandard">—</strong></div>
+            <div class="customer-metric"><span>Admin candidates</span><strong id="customerCountAdmin">—</strong></div>
+          </div>
+          <div class="customer-toolbar">
+            <label for="customerSearch">Find a contact<input id="customerSearch" type="search" maxlength="70" autocomplete="off" placeholder="Name or email"></label>
+            <label for="customerFilterProgram">Program<select id="customerFilterProgram"><option value="">All programs</option><option value="pilot">Pilot</option><option value="standard">Standard</option></select></label>
+            <label for="customerFilterStatus">Record status<select id="customerFilterStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
+            <button class="button" id="customerRefresh" type="button">↻ Refresh</button>
+          </div>
+          <div class="customer-table-scroll"><table class="customer-table">
+            <thead><tr><th>Person</th><th>Program</th><th>Record</th><th>Household</th><th>Staff</th><th>Manage</th></tr></thead>
+            <tbody id="customerRows"><tr><td colspan="6">No data loaded yet.</td></tr></tbody>
+          </table></div>
+          <div class="customer-pagination"><span id="customerPageStatus">—</span><div><button class="button" type="button" id="customerPrev" disabled>Previous</button> <button class="button" type="button" id="customerNext" disabled>Next</button></div></div>
+          <form id="customerAddForm" class="customer-editor" hidden>
+            <div class="customer-editor-heading"><h3>Add a person</h3><button class="text-button" id="customerCloseAdd" type="button">Close</button></div>
+            <div class="customer-form-grid">
+              <label>Name<input name="name" required maxlength="80" autocomplete="off" placeholder="First and last name"></label>
+              <label>Email<input name="email" type="email" required maxlength="254" autocomplete="off" placeholder="person@example.com"></label>
+              <label>Program<select name="program"><option value="pilot">Pilot tester</option><option value="standard">Standard (not paid)</option></select></label>
+              <label>Staff designation<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (no access yet)</option></select></label>
+              <label>Spouse/partner name (optional)<input name="partnerName" maxlength="80" autocomplete="off"></label>
+              <label>Spouse/partner email (optional)<input name="partnerEmail" type="email" maxlength="254" autocomplete="off"></label>
+            </div>
+            <p class="customer-footnote">Saving creates pending contacts only. It does not send invitations, grant admin privileges, activate pilot links, collect payment, or authorize SMS. Partner grouping is administrative until each spouse consents.</p>
+            <div class="customer-actions"><button type="submit" class="button primary" id="customerAddSubmit">Save pending contact(s)</button></div>
+          </form>
+          <form id="customerEditForm" class="customer-editor" hidden>
+            <div class="customer-editor-heading"><h3 id="customerEditTitle">Edit contact</h3><button class="text-button" type="button" id="customerCloseEdit">Close</button></div>
+            <input name="id" type="hidden">
+            <p id="customerEditEmail" class="customer-footnote"></p>
+            <div class="customer-form-grid">
+              <label>Name<input name="name" required maxlength="80"></label>
+              <label>Program<select name="program"><option value="pilot">Pilot tester</option><option value="standard">Standard (not paid)</option></select></label>
+              <label>Staff designation<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (no access yet)</option></select></label>
+              <label>Record status<select name="status"><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
+            </div>
+            <p class="customer-footnote">Changes affect this admin directory only. Archived records remain available for auditing. Billing and real account permissions are not changed.</p>
+            <div class="customer-actions"><button type="submit" class="button primary" id="customerSave">Save changes</button></div>
+          </form>
         </section>
 
         <section data-studio-page="couples" class="studio-page" hidden>
