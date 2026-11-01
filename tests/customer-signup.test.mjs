@@ -35,7 +35,8 @@ function mock(){
 }
 const data={birthDate:"1990-04-20",weddingDate:"2010-05-12",
  holidays:["valentines","christmas"],holidaysReviewed:true,phone:"(903) 555-1234",
- confirmPhone:true,smsConsent:true,emailConsent:false,adultAgreement:true,marriageAgreement:true,privacyAgreement:true};
+ spouseFirstName:"Alex",spouseLastName:"Partner",spousePhone:"+19035555678",
+ confirmPhone:true,smsConsent:true,adultAgreement:true,marriageAgreement:true,privacyAgreement:true};
 test("Secure 72-hour single-use links are generated, hashed at rest and do not send messages",async()=>{
  const m=mock();
  const invite=await createSignupLink({id});
@@ -53,17 +54,20 @@ test("Secure 72-hour single-use links are generated, hashed at rest and do not s
  const result=await submitSignup({action:"submit",token,...data});
  assert.equal(result.questionnaireComplete,true);
  assert.equal(result.smsConsent,"recorded_unverified");
- assert.equal(result.emailConsent,"declined");
+ assert.equal(result.emailConsent,undefined);
  assert.equal(m.saved.phone_e164,"+19035551234");
  assert.equal(m.saved.birthday_month_day,"04-20");
+ assert.equal(m.saved.birth_date,"1990-04-20");
+ assert.equal(m.saved.spouse_first_name,"Alex");
+ assert.equal(m.saved.spouse_last_name,"Partner");
  assert.equal(m.saved.wedding_date,"2010-05-12");
  assert.equal(m.saved.sms_disclosure_version,"anthos-sms-2026-11-v1");
  assert.equal(m.saved.signup_token_hash,null);
  await assert.rejects(()=>previewSignup(token),/expired or already been used/);
 });
-test("No consent is inferred when text and email boxes are unchecked",async()=>{
+test("No marketing email opt-in is inferred and SMS opt-in remains optional",async()=>{
  const m=mock(),link=await createSignupLink({id}),token=link.link.split("#t=")[1];
- const res=await submitSignup({...data,token,smsConsent:false,emailConsent:false});
+ const res=await submitSignup({...data,token,smsConsent:false});
  assert.equal(res.smsConsent,"declined");assert.equal(m.saved.sms_consent_at,null);
  assert.equal(m.saved.email_opt_in_at,null);assert.equal(m.saved.phone_e164,"+19035551234");
 });
@@ -90,9 +94,14 @@ test("Customer UI offers explicit opt-ins without falsely labeling phone or bill
  const form=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
  const admin=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
  const js=readFileSync(new URL("../admin/customers.js",import.meta.url),"utf8");
- for(const value of ["smsConsent","emailConsent","confirmPhone","adultAgreement","privacyAgreement",
-   "birthDate","weddingDate","spousePhone","specialDates","firstName","lastName"])assert.match(form,new RegExp(value));
+ for(const value of ["smsConsent","confirmPhone","adultAgreement","privacyAgreement",
+   "birthDate","weddingDate","spousePhone","spouseFirstName","spouseLastName","specialDates","firstName","lastName"])assert.match(form,new RegExp(value));
  assert.match(form,/Reply STOP/);assert.match(form,/number must still be independently verified/);
+ assert.doesNotMatch(form,/name="emailConsent"/);
+ assert.match(form,/Your birth date and wedding date are kept privately/);
+ assert.match(form,/id="spouseFirstName"[^>]+required/);
+ assert.match(form,/id="spouseLastName"[^>]+required/);
+ assert.match(form,/id="spousePhone"[^>]+required/);
  assert.match(form,/location\.hash/);
  for(const id of ["customerCountQuestionnaire","customerCountSms","customerCountLinked",
    "customerInvitePanel","customerEmailLink","customerTextLink"])assert.ok(admin.includes('id="'+id+'"'));
@@ -115,12 +124,17 @@ test("blank signup invitation creates no person until the recipient submits all 
        return new Response(JSON.stringify(invite&&invite.token_hash===hash?[{...invite,redeemed_at:null}]:[]),{status:200});
      }
    }
-   if(path.endsWith("/rpc/anthos_redeem_signup_v2")){
+   if(path.endsWith("/rpc/anthos_redeem_signup_v3")){
      assert.equal(opts.method,"POST");
      assert.equal(args.p_phone,"+19035551234");
      assert.equal(args.p_first_name,"Sample");
      assert.equal(args.p_last_name,"Participant");
      assert.equal(args.p_email,"sample@example.test");
+     assert.equal(args.p_birth_date,"1990-04-20");
+     assert.equal(args.p_spouse_first_name,"Alex");
+     assert.equal(args.p_spouse_last_name,"Partner");
+     assert.equal(args.p_spouse_phone,"+19035555678");
+     assert.equal(Object.hasOwn(args,"p_email_consent"),false);
      assert.equal(args.p_sms_consent,true);
      assert.equal(args.p_disclosure,"anthos-sms-2026-11-v1");
      customers.push({id,...args});invite=null;
@@ -160,14 +174,46 @@ test("short links retain 96-bit randomness and old links remain recognized",asyn
  assert.match(html,/\[A-Za-z0-9_-\]\{16\}/);
  assert.match(api,/randomBytes\(12\)\.toString\("base64url"\)/);
  assert.match(api,/\[0-9a-f\]\{64\}/);
- assert.match(api,/anthos_redeem_signup_v2/);
+ assert.match(api,/anthos_redeem_signup_v3/);
 });
 test("spouse first name and mobile number are not silently treated as opt-in",()=>{
  const html=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
  const sql=readFileSync(new URL("../supabase/migrations/20261101170113_compact_couple_signup_special_dates.sql",import.meta.url),"utf8");
- assert.match(html,/spouseFirstName/);assert.match(html,/spousePhone/);
+ assert.match(html,/spouseFirstName/);assert.match(html,/spouseLastName/);assert.match(html,/spousePhone/);
  assert.match(html,/share the link|Send this link yourself/i);
  assert.match(html,/legally married/);
  assert.match(sql,/intended_phone_e164/);
  assert.doesNotMatch(sql,/phone_verified_at\s*=/);
+});
+
+
+test("Incomplete spouse names or phone are rejected before signup completion",async()=>{
+ process.env.SUPABASE_SECRET_KEY="sb_secret_test_no_real_data";
+ let rpcCount=0;
+ globalThis.fetch=async(uri,init)=>{
+   const path=new URL(uri).pathname;
+   if(path.endsWith("/anthos_signup_invitations")&&init.method==="GET"){
+     return new Response(JSON.stringify([{token_hash:"x",expires_at:new Date(Date.now()+60000).toISOString(),redeemed_at:null,invited_by_customer_id:null}]),{status:200});
+   }
+   if(path.includes("/rpc/")){rpcCount++;throw Error("RPC should not be reached");}
+   throw Error("unexpected call");
+ };
+ const token="abcdefghijklmnop";
+ for(const input of [
+  {spouseFirstName:""},{spouseLastName:""},{spousePhone:""},
+  {spousePhone:"(903) 555-1234"},{spouseLastName:"<script>"}
+ ]){
+   await assert.rejects(()=>submitSignup({...data,...input,token,firstName:"Sample",lastName:"Participant",email:"sample@example.test"}));
+ }
+ assert.equal(rpcCount,0);
+});
+test("Full date of birth is stored privately and email marketing opt-in is not collected",()=>{
+ const sql=readFileSync(new URL("../supabase/migrations/20261101171819_require_spouse_full_names_store_birthdate.sql",import.meta.url),"utf8");
+ const api=readFileSync(new URL("../api/customer-signup.mjs",import.meta.url),"utf8");
+ assert.match(sql,/add column if not exists birth_date date/);
+ assert.match(sql,/spouse_last_name/);
+ assert.match(sql,/email_opt_in_at,signup_token_consumed_at/);
+ assert.match(sql,/null,v_now/);
+ assert.match(api,/p_birth_date:fields\.birth_date/);
+ assert.doesNotMatch(api,/p_email_consent/);
 });
