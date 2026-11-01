@@ -4,7 +4,7 @@ import {groupIdsFor,summarizeCouples} from "./couple-registration.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const key=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
-const columns="id,email,display_name,program,staff_nomination,record_status,group_id,auth_user_id,created_at,updated_at,birthday_month_day,wedding_date,holidays_reviewed_at,questionnaire_submitted_at,phone_e164,phone_owner_attested_at,phone_verified_at,sms_consent_at,email_opt_in_at,spouse_first_name,spouse_phone_e164,special_dates";
+const columns="id,email,display_name,program,staff_nomination,record_status,group_id,auth_user_id,created_at,updated_at,birthday_month_day,wedding_date,holidays_reviewed_at,questionnaire_submitted_at,phone_e164,phone_owner_attested_at,phone_verified_at,sms_consent_at,email_opt_in_at,spouse_first_name,spouse_phone_e164,special_dates,postal_code";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function nameOf(value){
  if(typeof value!=="string")fail("Enter the customer's name.");
@@ -55,6 +55,7 @@ const clean=row=>({
  smsConsent:row.sms_consent_at?"recorded_unverified":"not_recorded",
  phone:row.phone_e164||null,phoneVerified:!!row.phone_verified_at,
  emailConsent:row.email_opt_in_at?"recorded":"not_recorded",emailVerified:false,
+ postalCode:row.postal_code||null,
  spousePending:!!row.spouse_phone_e164,spouseFirstName:row.spouse_first_name||null,
  customCelebrationCount:Array.isArray(row.special_dates)?row.special_dates.length:0,
  billingStatus:"not_connected",billingHistory:[],
@@ -101,6 +102,11 @@ export async function editCustomer(input){
  if(Object.hasOwn(input,"program"))body.program=programOf(input.program);
  if(Object.hasOwn(input,"staffNomination"))body.staff_nomination=nominationOf(input.staffNomination);
  if(Object.hasOwn(input,"status"))body.record_status=statusOf(input.status);
+ if(Object.hasOwn(input,"postalCode")){
+   const postal=String(input.postalCode||"").trim();
+   if(postal&&!/^[0-9]{5}(?:-[0-9]{4})?$/.test(postal))fail("Enter a five-digit U.S. ZIP code or ZIP+4.");
+   body.postal_code=postal||null;
+ }
  if(!Object.keys(body).length)fail("Nothing to change.");
  if(body.staff_nomination==="admin_pending"&&body.program==="pilot")fail("Admin candidates must be Standard.");
  const response=await query("anthos_customer_directory",{id:"eq."+input.id,select:columns},"PATCH",body);
@@ -109,48 +115,26 @@ export async function editCustomer(input){
 }
 
 
-export async function listCoupleRegistrations(){
- const all=[],limit=500,maxPages=10;
- for(let page=0;page<maxPages;page++){
-   const r=await query("anthos_customer_directory",{
-     select:"id,display_name,group_id,phone_e164,spouse_phone_e164,record_status,questionnaire_submitted_at,phone_verified_at,auth_user_id,wedding_date",
-     group_id:"not.is.null",record_status:"neq.archived",order:"created_at.asc",
-     limit,offset:page*limit
-   });
-   all.push(...r.rows);
-   if(r.rows.length<limit)break;
- }
- const truncated=all.length===limit*maxPages;
- const groups=new Map();
- for(const row of all){
-   if(!row.group_id)continue;
-   const members=groups.get(row.group_id)||[];members.push(row);groups.set(row.group_id,members);
- }
- const summary=summarizeCouples(all,all);
- const couples=[];
- for(const [id,members] of groups){
-   const a=members[0],state=summary.byId.get(a.id)?.state||"needs_review";
-   const anniversary=members.length===2&&members[0].wedding_date===members[1].wedding_date?members[0].wedding_date:null;
-   let marriedYears=null;
-   if(anniversary&&/^\d{4}-\d{2}-\d{2}$/.test(anniversary)){
-     const now=new Date(),year=Number(anniversary.slice(0,4)),
-       md=anniversary.slice(5),today=now.toISOString().slice(5,10);
-     marriedYears=Math.max(0,now.getUTCFullYear()-year-(today<md?1:0));
-   }
-   couples.push({
-     id,people:members.map(m=>({id:m.id,name:m.display_name,
-       setup:!!m.questionnaire_submitted_at,phoneVerified:!!m.phone_verified_at,
-       accountActive:!!m.auth_user_id})),
-     state,registered:state==="both_joined_pending_verification",
-     marriedYears,anniversaryDisagrees:members.length===2&&!anniversary,
-     // Household grouping is NOT mutual authenticated access.
-     accessGranted:false
-   });
- }
- return {ok:true,couples,counts:{
-   registered:couples.filter(x=>x.registered).length,
-   pending:couples.filter(x=>x.state==="awaiting_spouse").length,
-   needingReview:couples.filter(x=>x.state==="needs_review").length,
-   completedForms:all.filter(x=>!!x.questionnaire_submitted_at).length
- },truncated,explanation:"A registered couple means both invitation-linked signups exist. Phone verification, account activation and mutual authorization are separate."};
+// Bounded, server-side couple pagination; only authenticated /api/admin can invoke.
+export async function listCoupleRegistrations(opts={}){
+ const search=String(opts.search||"").trim().slice(0,80);
+ if(search&&!/^[\\p{L}\\p{N} .@'_+()-]+$/u.test(search))fail("Search contains unsupported characters.");
+ const page=Number(opts.page);
+ if(!Number.isSafeInteger(page)||page<0||page>40000)fail("Invalid couple page.");
+ const secret=key();
+ if(!secret)fail("Private customer database not configured.",503);
+ const url=BASE+"rpc/anthos_admin_couple_page";
+ const headers={apikey:secret,"Content-Type":"application/json","Accept":"application/json"};
+ if(!secret.startsWith("sb_secret_"))headers.Authorization="Bearer "+secret;
+ let response;
+ try{response=await fetch(url,{method:"POST",headers,cache:"no-store",
+   signal:AbortSignal.timeout(9500),
+   body:JSON.stringify({p_search:search,p_limit:25,p_offset:page*25})});}
+ catch{fail("Couple report is temporarily unavailable.",502);}
+ if(!response.ok)fail("Could not retrieve the couple report.",502);
+ const result=await response.json().catch(()=>null);
+ if(!result||!Array.isArray(result.couples)||!Number.isFinite(result.total))fail("Unexpected couple report response.",502);
+ return {ok:true,page,pageSize:25,total:result.total,couples:result.couples,
+   counts:{registered:result.registered,pending:result.pending,needingReview:result.needsReview},
+   explanation:"Couple registration is not phone verification or mutual account authorization. ZIP is self-reported."};
 }
