@@ -94,7 +94,7 @@ test("real couple dashboard shows one registration and no fabricated program com
   assert.match(html,/id="liveCoupleRows"/);
   assert.doesNotMatch(html,/Waiting for SQL/);
   assert.doesNotMatch(html,/Illustrative sample cohort/);
-  assert.match(client,/view=couples/);
+  assert.match(client,/view:"couples"/);
   assert.doesNotMatch(client,/innerHTML/);
  }finally{
   globalThis.fetch=old;
