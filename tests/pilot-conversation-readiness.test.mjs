@@ -13,7 +13,7 @@ test("Sophia can return for new exchanges while preserving consent and message l
 test("new messages and one keep-talking decision both reset shared readiness",()=>{
  const core=read("../api/pilot-core.mjs");
  assert.match(core,/export async function chapterReadiness\(invite,wantsToProceed\)/);
- assert.match(core,/if\(!wantsToProceed\)\{/);
+ assert.match(core,/if\(wantsToProceed\)\{/);
  assert.match(core,/\{ready_chapter:0\},"PATCH"/);
  assert.match(core,/ready_chapter:chapter\},"PATCH"/);
  assert.match(core,/votes\.every\(p=>p\.ready_chapter===chapter\)/);
