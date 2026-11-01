@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#f5f4ef">
+<title>Anthos | Our first live Deep Dive</title><link rel="stylesheet" href="/pilot/style.css"><script src="/pilot/app.js" defer></script></head>
+<body>
+<main class="room">
+ <header class="bar"><div class="brand">✿ anthos <span>PRIVATE PILOT</span></div><div id="connection" class="status">Connecting…</div></header>
+ <section class="intro"><div class="eyebrow">TEAM DEEP DIVE · SOPHIA</div><h1>The Saturday Surprise</h1><p><strong>Jack</strong> planned a surprise outdoor date because he wanted to be romantic. <strong>Jill</strong> had been counting on a quiet Saturday at home. When he tells her, she responds, “You made plans for both of us without asking me?” Jack says, “It was supposed to be a surprise!”</p>
+ <p class="prompt">Would you defend Jack, Jill, or neither? Tell your spouse what you really think. Sophia is here when you want her perspective.</p></section>
+ <section id="blocked" class="panel" hidden><h2>Invitation needed</h2><p id="blockedReason">Open the private invitation link for your room.</p><a href="/pilot/create/">Create pilot invitations (admin)</a></section>
+ <section id="consent" class="panel" hidden><h2>Before we begin</h2><p>This is a real shared conversation: your spouse can read every message sent in this room. When either person asks Sophia, the shared dialogue is sent to OpenAI to generate her response. The chat is saved privately in Anthos's Supabase database for pilot review. This is not therapy, and these invitation links are passwords to your conversation.</p><label class="check"><input type="checkbox" id="consentCheck"> I understand and agree to shared pilot messages and OpenAI processing when Sophia is called.</label><button id="agree" disabled>Agree and join</button><p id="consentStatus" class="muted">Both spouses must agree before the room opens.</p></section>
+ <section id="waiting" class="panel" hidden><h2>Your invitation is ready</h2><p>You've consented. The conversation opens when your spouse opens their own private link and agrees.</p><p class="muted">You can keep this page open, or return using your personal invitation link.</p></section>
+ <section id="conversation" class="conversation" hidden>
+  <div class="conversation-head"><span id="identity">Shared dialogue</span><span id="remaining">12 Sophia turns available</span></div>
+  <div id="thread" class="thread" aria-label="Shared conversation" aria-live="polite"></div>
+  <div class="compose">
+   <label for="message" class="sr-only">Your message to your spouse</label><textarea id="message" maxlength="700" rows="2" placeholder="Say what you actually think…"></textarea>
+   <button id="send">Send <span aria-hidden="true">↗</span></button>
+  </div>
+  <div class="tools"><button id="ask" class="outline">✧ Ask Sophia</button><button id="proposeButton" class="outline">We have an answer</button></div>
+  <p class="muted helper">Your messages go directly to your spouse. Sophia speaks only when asked. No scoring, no A–F choices.</p>
+ </section>
+ <section id="proposalPanel" class="panel" hidden>
+  <h2>One answer, together</h2><p id="proposalText"></p><div id="proposeForm"><label for="answer">What answer have you agreed on?</label><textarea id="answer" maxlength="800" rows="3" placeholder="We think Jack and Jill should…"></textarea><button id="submitAnswer">Share answer for my spouse to confirm</button></div>
+  <div id="confirmAnswer" hidden><p id="approvalMessage"></p><button id="approveAnswer">Yes, that's our shared answer</button><button id="reopen" class="outline">Keep talking instead</button></div>
+  <div id="finished" hidden><strong>Deep Dive complete. ✿</strong><p>You arrived at an answer together. No grades, no public reveal.</p></div>
+  <button id="backChat" class="outline">Back to conversation</button>
+ </section>
+ <p id="feedback" class="feedback" role="status"></p>
+ <footer>PRIVATE ANTHOS PILOT · Links expire after 14 days · No SMS sent · Never share your invitation publicly</footer>
+</main>
+</body></html>
