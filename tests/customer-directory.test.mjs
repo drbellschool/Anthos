@@ -103,3 +103,40 @@ test("customer page only uses text nodes and shows accurate access labels",()=>{
  assert.match(sql,/staff_nomination in \('none','admin_pending'\)/);
  assert.doesNotMatch(sql,/grant .* to authenticated/i);
 });
+
+test("authenticated admin can add and list contacts through actual route without granting enrollment",async()=>{
+ setup();
+ process.env.THREEFOLD_ADMIN_PASSWORD="very-long-test-password";
+ process.env.THREEFOLD_SESSION_SECRET="an-unpredictable-test-signing-secret-0123456789";
+ const origin="https://anthos.love",url=origin+"/api/admin",calls=[];
+ globalThis.fetch=async(path,options)=>{
+   calls.push(options.method);
+   if(options.method==="HEAD")return new Response(null,{status:200,headers:{"content-range":"*/1"}});
+   if(options.method==="POST"){
+     const [record]=JSON.parse(options.body);
+     return json([fakeRow(record)],201);
+   }
+   if(options.method==="GET")return json([fakeRow()],200,{"content-range":"0-0/1"});
+   throw Error("Unexpected operation");
+ };
+ const login=await admin.fetch(new Request(url,{method:"POST",headers:{
+   origin,"Content-Type":"application/json","X-Threefold-Admin":"1"},
+   body:JSON.stringify({action:"login",password:"very-long-test-password"})}));
+ assert.equal(login.status,200);
+ const cookie=login.headers.get("set-cookie").split(";")[0];
+ const create=await admin.fetch(new Request(url,{method:"POST",headers:{
+   cookie,origin,"Content-Type":"application/json","X-Threefold-Admin":"1"},
+   body:JSON.stringify({action:"customer-add",name:"Test Pilot",email,program:"pilot"})}));
+ assert.equal(create.status,200);
+ const created=await create.json();assert.equal(created.ok,true);
+ assert.equal(created.invitationSent,false);
+ const list=await admin.fetch(new Request(url+"?view=customers",{headers:{cookie}}));
+ assert.equal(list.status,200);
+ const found=await list.json();assert.equal(found.customers.length,1);
+ assert.equal(found.customers[0].status,"pending");
+ assert.deepEqual(calls,["POST","GET","HEAD","HEAD","HEAD","HEAD"]);
+ const attack=await admin.fetch(new Request(url,{method:"POST",headers:{
+   cookie,origin:"https://other.example","Content-Type":"application/json","X-Threefold-Admin":"1"},
+   body:JSON.stringify({action:"customer-update",id:fakeRow().id,status:"archived"})}));
+ assert.equal(attack.status,403);
+});
