@@ -3,8 +3,8 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
-import {listCustomers,addCustomers,editCustomer} from "./customer-directory.mjs";
-import {createSignupLink} from "./customer-signup.mjs";
+import {listCustomers,editCustomer} from "./customer-directory.mjs";
+import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -254,12 +254,16 @@ export default {
         return json(result);
       }catch(err){return json({error:err.message||"Review action failed."},err.code||502);}
     }
+    if(action==="customer-invite-new"){
+      try{return json(await createOpenSignupLink());}
+      catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
+    }
     if(action==="customer-invite"){
       try{return json(await createSignupLink(body));}
       catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
     }
-    if(action==="customer-add"||action==="customer-update"){
-      try{return json(action==="customer-add"?await addCustomers(body):await editCustomer(body));}
+    if(action==="customer-update"){
+      try{return json(await editCustomer(body));}
       catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
     }
     if(action==="pilot-create"){

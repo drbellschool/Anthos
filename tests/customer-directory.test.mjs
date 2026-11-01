@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {listCustomers,addCustomers,editCustomer} from "../api/customer-directory.mjs";
+import {listCustomers,editCustomer} from "../api/customer-directory.mjs";
 import admin from "../api/admin.mjs";
 const previous={};for(const k of ["SUPABASE_SECRET_KEY","SUPABASE_SERVICE_ROLE_KEY","THREEFOLD_ADMIN_PASSWORD","THREEFOLD_SESSION_SECRET"])previous[k]=process.env[k];
 const originalFetch=globalThis.fetch;
@@ -42,27 +42,11 @@ test("contacts are truly loaded server side and only permitted fields are return
  assert.equal(urls.filter(x=>x.opts.method==="HEAD").length,7);
  assert.ok(urls.some(x=>x.url.includes("program=eq.pilot")));
 });
-test("adding two people creates one pending group and does not send invitations",async()=>{
- setup();let called=0,body;
- globalThis.fetch=async(url,opts)=>{
-   called++;assert.equal(opts.method,"POST");body=JSON.parse(opts.body);
-   assert.equal(body.length,2);assert.equal(body[0].group_id,body[1].group_id);
-   assert.equal(body[0].staff_nomination,"none");assert.equal(body[1].staff_nomination,"none");
-   assert.equal(body[0].record_status,"pending");
-   return json(body.map((x,i)=>fakeRow({...x,id:i?"4a2ef523-f46a-4bde-a843-a594ed7ec01b":fakeRow().id})),201);
- };
- const r=await addCustomers({name:" First Pilot ",email:"PILOT@example.test",program:"pilot",
-   partnerName:"Other Pilot",partnerEmail:"other@example.test"});
- assert.equal(r.ok,true);assert.equal(r.invitationSent,false);
- assert.equal(body[0].email,email);assert.equal(called,1);
-});
-test("invalid, duplicate-partner or privilege-granting payloads fail before network",async()=>{
+test("manual creation is unavailable; invalid role and record updates reject before contacting database",async()=>{
  setup();let calls=0;globalThis.fetch=async()=>{calls++;throw Error("network must not run");};
- await assert.rejects(()=>addCustomers({name:"A",email,program:"subscriber"}),/Pilot or Standard/);
- await assert.rejects(()=>addCustomers({name:"A",email,program:"pilot",staffNomination:"admin"}),/Unsupported staff/);
- await assert.rejects(()=>addCustomers({name:"A",email,program:"pilot",staffNomination:"admin_pending"}),/Standard/);
- await assert.rejects(()=>addCustomers({name:"A",email,program:"pilot",partnerName:"B",partnerEmail:email}),/different/);
  await assert.rejects(()=>editCustomer({id:fakeRow().id,admin:true}),/Nothing to change/);
+ await assert.rejects(()=>editCustomer({id:fakeRow().id,staffNomination:"admin"}),/Unsupported staff/);
+ await assert.rejects(()=>editCustomer({id:fakeRow().id,program:"subscriber"}),/Pilot or Standard/);
  await assert.rejects(()=>editCustomer({id:fakeRow().id,status:"active"}),/Unsupported/);
  await assert.rejects(()=>listCustomers({search:"*"}),/unsupported/);
  assert.equal(calls,0);
@@ -94,30 +78,30 @@ test("customer page only uses text nodes and shows accurate access labels",()=>{
  const html=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
  const client=readFileSync(new URL("../admin/customers.js",import.meta.url),"utf8");
  const sql=readFileSync(new URL("../supabase/migrations/20261101153443_customer_directory_admin_only.sql",import.meta.url),"utf8");
- for(const id of ["customerOpenAdd","customerAddForm","customerRows","customerEditForm",
+ for(const id of ["customerCreateInvite","customerInvitePanel","customerRows","customerEditForm",
    "customerFilterProgram","customerFilterStatus"])assert.ok(html.includes('id="'+id+'"'));
  assert.match(client,/\.textContent=/);assert.doesNotMatch(client,/\.innerHTML\s*=/);
- assert.match(html,/Standard contact/);
+ assert.match(html,/Create signup link/); assert.doesNotMatch(html,/id="customerAddForm"/);
  assert.match(sql,/enable row level security/);
  assert.match(sql,/revoke all on public\.anthos_customer_directory from anon,authenticated/);
  assert.match(sql,/staff_nomination in \('none','admin_pending'\)/);
  assert.doesNotMatch(sql,/grant .* to authenticated/i);
 });
 
-test("authenticated admin can add and list contacts through actual route without granting enrollment",async()=>{
+test("authenticated admin issues a standalone signup link without inserting any customer",async()=>{
  setup();
  process.env.THREEFOLD_ADMIN_PASSWORD="very-long-test-password";
  process.env.THREEFOLD_SESSION_SECRET="an-unpredictable-test-signing-secret-0123456789";
  const origin="https://anthos.love",url=origin+"/api/admin",calls=[];
  globalThis.fetch=async(path,options)=>{
-   calls.push(options.method);
-   if(options.method==="HEAD")return new Response(null,{status:200,headers:{"content-range":"*/1"}});
-   if(options.method==="POST"){
-     const [record]=JSON.parse(options.body);
-     return json([fakeRow(record)],201);
-   }
-   if(options.method==="GET")return json([fakeRow()],200,{"content-range":"0-0/1"});
-   throw Error("Unexpected operation");
+   const dest=new URL(path);
+   calls.push({table:dest.pathname,method:options.method,body:options.body&&JSON.parse(options.body)});
+   assert.match(dest.pathname,/anthos_signup_invitations$/);
+   assert.equal(options.method,"POST");
+   const input=JSON.parse(options.body);
+   assert.equal(input.program,"pilot");
+   assert.match(input.token_hash,/^[a-f0-9]{64}$/);
+   return json([{id:"c8b22b5a-b834-43af-89f2-b64e49d8eaf1",...input}],201);
  };
  const login=await admin.fetch(new Request(url,{method:"POST",headers:{
    origin,"Content-Type":"application/json","X-Threefold-Admin":"1"},
@@ -126,17 +110,22 @@ test("authenticated admin can add and list contacts through actual route without
  const cookie=login.headers.get("set-cookie").split(";")[0];
  const create=await admin.fetch(new Request(url,{method:"POST",headers:{
    cookie,origin,"Content-Type":"application/json","X-Threefold-Admin":"1"},
-   body:JSON.stringify({action:"customer-add",name:"Test Pilot",email,program:"pilot"})}));
+   body:JSON.stringify({action:"customer-invite-new"})}));
  assert.equal(create.status,200);
- const created=await create.json();assert.equal(created.ok,true);
- assert.equal(created.invitationSent,false);
- const list=await admin.fetch(new Request(url+"?view=customers",{headers:{cookie}}));
- assert.equal(list.status,200);
- const found=await list.json();assert.equal(found.customers.length,1);
- assert.equal(found.customers[0].status,"pending");
- assert.deepEqual(calls,["POST","GET","HEAD","HEAD","HEAD","HEAD","HEAD","HEAD","HEAD"]);
+ const created=await create.json();
+ assert.equal(created.ok,true);assert.equal(created.sent,false);
+ assert.ok(created.link.startsWith("https://anthos.love/signup/#t="));
+ assert.equal(calls.length,1);
+ const noManual=await admin.fetch(new Request(url,{method:"POST",headers:{
+   cookie,origin,"Content-Type":"application/json","X-Threefold-Admin":"1"},
+   body:JSON.stringify({action:"customer-add",name:"Fake",email:"fake@example.test",program:"pilot"})}));
+ const rejected=await noManual.json();
+ assert.equal(noManual.status,400);
+ assert.match(rejected.error,/Unknown admin action/);
+ assert.equal(calls.length,1);
  const attack=await admin.fetch(new Request(url,{method:"POST",headers:{
    cookie,origin:"https://other.example","Content-Type":"application/json","X-Threefold-Admin":"1"},
-   body:JSON.stringify({action:"customer-update",id:fakeRow().id,status:"archived"})}));
+   body:JSON.stringify({action:"customer-invite-new"})}));
  assert.equal(attack.status,403);
+ assert.equal(calls.length,1);
 });
