@@ -1,15 +1,15 @@
 // One-time signup tokens and web consent. Does not send email or SMS.
 import {randomBytes,createHash} from "node:crypto";
-const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/anthos_customer_directory";
+const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const FIELDS="id,email,display_name,phone_e164,record_status,signup_token_expires_at,signup_token_consumed_at";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,TOKEN=/^[0-9a-f]{64}$/;
 const HOLIDAYS=new Set(["valentines","easter","mothers_day","fathers_day","thanksgiving","christmas","new_year","other","none"]);
 const fail=(m,c=400)=>{throw Object.assign(new Error(m),{status:c});};
 const SHA=s=>createHash("sha256").update(s).digest("hex");
-async function db(params,method="GET",body){
+async function db(params,method="GET",body,table="anthos_customer_directory"){
  const key=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!key)fail("Secure customer database is unavailable.",503);
- const url=new URL(BASE);for(const [k,v] of Object.entries(params))url.searchParams.set(k,String(v));
+ const url=new URL(BASE+table);for(const [k,v] of Object.entries(params))url.searchParams.set(k,String(v));
  const headers={apikey:key,"Content-Type":"application/json",Prefer:method==="GET"?"return=representation":"return=representation"};
  if(!key.startsWith("sb_secret_"))headers.Authorization="Bearer "+key;
  let response;try{response=await fetch(url,{method,headers,cache:"no-store",signal:AbortSignal.timeout(9500),
@@ -18,6 +18,53 @@ async function db(params,method="GET",body){
  const rows=await response.json().catch(()=>[]);
  if(!Array.isArray(rows))fail("Unexpected signup response.",502);
  return rows;
+}
+async function findNewInvite(token){
+ const hash=hashToken(token);
+ const rows=await db({select:"token_hash,expires_at,redeemed_at",token_hash:"eq."+hash,limit:1},
+   "GET",undefined,"anthos_signup_invitations");
+ if(!rows.length)return null;
+ if(rows[0].redeemed_at||Date.parse(rows[0].expires_at)<=Date.now())
+   fail("This invitation has expired or already been used.",410);
+ return {hash,expiresAt:rows[0].expires_at};
+}
+export async function createOpenSignupLink(){
+ const token=randomBytes(32).toString("hex"),expiresAt=new Date(Date.now()+72*3600000).toISOString();
+ const rows=await db({}, "POST",{token_hash:SHA(token),expires_at:expiresAt,program:"pilot"},
+   "anthos_signup_invitations");
+ if(rows.length!==1)fail("Could not create the signup invitation.",502);
+ return {ok:true,link:"https://anthos.love/signup/#t="+token,expiresAt,sent:false,
+   message:"Signup invitation ready. No customer record exists until the recipient completes the form. Nothing has been sent."};
+}
+async function redeemNewSignup(input,hash,fields){
+ const secret=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+ if(!secret)fail("Signup database is not configured.",503);
+ const name=String(input.name||"").trim().replace(/\\s+/g," ");
+ const email=String(input.email||"").trim().toLowerCase();
+ if(name.length<1||name.length>80||/[<>\\u0000-\\u001f]/.test(name))
+   fail("Enter your name (up to 80 characters).");
+ if(email.length>254||!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(email))
+   fail("Enter your valid email address.");
+ const url=BASE+"rpc/anthos_redeem_new_signup";
+ const headers={apikey:secret,"Content-Type":"application/json","Accept":"application/json"};
+ if(!secret.startsWith("sb_secret_"))headers.Authorization="Bearer "+secret;
+ let response;
+ try{response=await fetch(url,{method:"POST",headers,cache:"no-store",signal:AbortSignal.timeout(9500),
+   body:JSON.stringify({p_token_hash:hash,p_display_name:name,p_email:email,
+     p_birth_md:fields.birthday_month_day,p_wedding_date:fields.wedding_date,
+     p_holidays:fields.meaningful_holidays,p_phone:fields.phone_e164,
+     p_sms_consent:input.smsConsent===true,p_email_consent:input.emailConsent===true,
+     p_disclosure:input.smsConsent===true?"anthos-sms-2026-11-v1":null})});}
+ catch{fail("Signup service is temporarily unavailable.",502);}
+ if(!response.ok){
+   let reason={};try{reason=await response.json();}catch{}
+   if(reason.code==="23505")fail("This email already belongs to an Anthos contact. Contact Anthos to update your record.",409);
+   if(reason.code==="22023")fail("Your invitation has expired or has already been used. Request another link.",410);
+   fail("Unable to save your signup. Please try again.",502);
+ }
+ const customerId=await response.json().catch(()=>null);
+ if(typeof customerId!=="string"||!UUID.test(customerId))fail("Signup was saved but confirmation could not be verified.",502);
+ return customerId;
 }
 function hashToken(token){if(typeof token!=="string"||!TOKEN.test(token))fail("Invalid signup link.",404);return SHA(token);}
 async function active(token){
@@ -56,13 +103,17 @@ export async function createSignupLink({id}={}){
    message:"Signup link created. Share only with the intended recipient. Nothing has been sent."};
 }
 export async function previewSignup(token){
+ const fresh=await findNewInvite(token);
+ if(fresh)return {ok:true,mode:"new",name:"",email:"",phone:"",expiresAt:fresh.expiresAt};
  const {row}=await active(token);
- return {ok:true,name:row.display_name,email:row.email,phone:row.phone_e164||"",
+ return {ok:true,mode:"existing",name:row.display_name,email:row.email,phone:row.phone_e164||"",
     expiresAt:row.signup_token_expires_at};
 }
 export async function submitSignup(data){
  if(!data||typeof data!=="object"||Array.isArray(data))fail("Invalid signup.");
- const {row,hash}=await active(data.token);
+ const fresh=await findNewInvite(data.token);
+ const legacy=fresh?null:await active(data.token);
+ const row=legacy?.row,hash=legacy?.hash;
  if(data.adultAgreement!==true||data.privacyAgreement!==true)fail("Age and privacy confirmations are required.");
  const dob=validDate(data.birthDate,"birthday"),wedding=validDate(data.weddingDate,"wedding anniversary");
  const adultCutoff=new Date();adultCutoff.setUTCFullYear(adultCutoff.getUTCFullYear()-18);
@@ -81,6 +132,13 @@ export async function submitSignup(data){
   sms_consent_at:sms?now:null,sms_disclosure_version:sms?"anthos-sms-2026-11-v1":null,
   email_opt_in_at:emails?now:null,
   signup_token_hash:null,signup_token_expires_at:null,signup_token_consumed_at:now};
+ if(fresh){
+   await redeemNewSignup(data,fresh.hash,body);
+   return {ok:true,questionnaireComplete:true,
+     smsConsent:sms?"recorded_unverified":"declined",
+     emailConsent:emails?"recorded":"declined",
+     message:"Your completed signup is saved. Sophia will not text until phone verification, carrier approval and activation are confirmed."};
+ }
  const rows=await db({id:"eq."+row.id,signup_token_hash:"eq."+hash,
    signup_token_consumed_at:"is.null",signup_token_expires_at:"gt."+now,select:"id"},"PATCH",body);
  if(rows.length!==1)fail("This link was already completed. Request another signup link.",409);
