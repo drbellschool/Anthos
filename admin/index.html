@@ -168,6 +168,27 @@
             <div class="customer-metric"><span>Pilot contacts</span><strong id="customerCountPilot">—</strong></div>
             <div class="customer-metric"><span>Paying subscribers</span><strong>—</strong><small>Billing not connected</small></div>
           </div>
+          <div class="customer-mode-bar">
+            <span id="customerModeLabel">Couple directory · one row per household</span>
+            <button type="button" class="customer-mini" id="customerShowPeople">Individual contacts</button>
+            <button type="button" class="customer-mini" id="customerShowCouples" hidden>← All couples</button>
+          </div>
+          <section id="customerHouseholdPanel">
+            <div class="customer-couple-tools">
+              <label for="customerCoupleSearch">Find a couple <input id="customerCoupleSearch" type="search" maxlength="80" placeholder="Names, phone, email or ZIP"></label>
+              <button type="button" class="button" id="customerCoupleRefresh">↻ Refresh</button>
+              <span id="customerCouplePageStatus">—</span>
+              <button type="button" class="button" id="customerCouplePrev" disabled>Previous</button>
+              <button type="button" class="button" id="customerCoupleNext" disabled>Next</button>
+            </div>
+            <div class="customer-table-scroll">
+              <table class="customer-table customer-couple-table">
+                <thead><tr><th>Couple</th><th>Setup</th><th>Account</th><th>Phones</th><th>Home ZIP</th><th>Years</th><th>Manage</th></tr></thead>
+                <tbody id="customerCoupleRows"><tr><td colspan="7">Open Customers to load registered couples.</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+          <div id="customerPersonPanel" hidden>
           <div class="customer-toolbar">
             <label for="customerSearch">Search<input id="customerSearch" type="search" maxlength="70" autocomplete="off" placeholder="Name or email"></label>
             <label for="customerFilterProgram">Access<select id="customerFilterProgram"><option value="">All programs</option><option value="pilot">Pilot</option><option value="standard">Standard</option></select></label>
@@ -179,6 +200,7 @@
             <tbody id="customerRows"><tr><td colspan="9">No data loaded.</td></tr></tbody>
           </table></div>
           <div class="customer-pagination"><span id="customerPageStatus">—</span><div><button class="button" type="button" id="customerPrev" disabled>Previous</button> <button class="button" type="button" id="customerNext" disabled>Next</button></div></div>
+          </div>
           <form id="customerEditForm" class="customer-editor" hidden>
             <div class="customer-editor-heading"><h3 id="customerEditTitle">Customer record</h3><button class="text-button" type="button" id="customerCloseEdit">Close</button></div>
             <input name="id" type="hidden"><p id="customerEditEmail" class="customer-footnote"></p>
