@@ -56,8 +56,8 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
  <p class="note">Anthos won't send automated Sophia messages until phone verification, individual consent and messaging approval are complete.</p>
 </section>
 <form id="signupForm" class="card" hidden>
- <div class="kicker">A personal invitation</div><h1>A little more us.</h1>
- <p>Tell Anthos the little things worth celebrating. This takes just a couple of minutes.</p>
+ <div class="kicker" id="signupKicker">A personal invitation</div><h1 id="signupTitle">A little more us.</h1>
+ <p id="signupIntro">Tell Anthos the little things worth celebrating. This takes just a couple of minutes.</p>
  <div class="grid">
   <label class="field">First name<input name="firstName" id="firstName" type="text" autocomplete="given-name" maxlength="60" required></label>
   <label class="field">Last name<input name="lastName" id="lastName" type="text" autocomplete="family-name" maxlength="60" required></label>
@@ -66,8 +66,8 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   <label class="field">Email<input name="email" id="email" type="email" autocomplete="email" maxlength="254" required></label>
   <label class="field">Your mobile number<input name="phone" id="phone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="(903) 555-1234" required></label>
  </div>
- <div class="section">
-  <h2>Dates that matter to you</h2>
+ <div class="section" id="datesSection">
+  <h2 id="datesTitle">Dates that matter to you</h2>
   <div class="grid">
    <label class="field">Your birthday<input name="birthDate" type="date" required></label>
    <label class="field">Wedding anniversary<input name="weddingDate" type="date" required></label>
@@ -82,9 +82,10 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   </div>
   <div class="small-actions"><button type="button" class="ghost" id="addMilestone">+ Add a special date</button></div>
   <div id="milestones" aria-live="polite"></div>
-  <p class="note">A first date, engagement, annual tradition—or any milestone you want Anthos to remember. Add up to five.</p>
+  <p class="note" id="milestoneHelp">A first date, engagement, annual tradition—or any milestone you want Anthos to remember. Add up to five.</p>
+  <p class="note" id="partnerDateNote" hidden>These are dates your spouse entered. Correct a typo or add something they missed. Your suggestions are saved on your profile without silently changing theirs.</p>
  </div>
- <div class="section">
+ <div class="section" id="spouseSection">
   <h2>Bring your spouse</h2>
   <div class="grid">
    <label class="field">Spouse's first name<input name="spouseFirstName" id="spouseFirstName" type="text" maxlength="60" autocomplete="off" required></label>
@@ -95,8 +96,8 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   </div>
   <p class="note">Use a 10-digit U.S. mobile number—no +1 needed. After you join, you'll get a private link for your spouse. They'll complete their own details and consent; Anthos won't text them automatically.</p>
  </div>
- <div class="section">
-  <h2>One last thing</h2>
+ <div class="section" id="consentSection">
+  <h2 id="consentHeading">One last thing</h2>
   <label class="check"><input name="confirmPhone" type="checkbox" required>I confirm this is my own mobile number.</label>
   <label class="check"><input name="smsConsent" type="checkbox">Yes, Anthos may send me recurring texts about our marriage adventure, including Sophia's check-ins and Love Whispers. Frequency varies. Message/data rates may apply. Reply STOP to opt out or HELP for assistance. Optional; not a condition of purchase.</label>
   <label class="check"><input name="adultMarriageAgreement" type="checkbox" required>I am at least 18, and we are legally married.</label>
@@ -111,7 +112,7 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
 (()=>{
  const $=id=>document.getElementById(id);
  const token=new URLSearchParams(location.hash.slice(1)).get("t")||"";
- let partnerLink=null,spousePhone="";
+ let partnerLink=null,spousePhone="",isPartnerReview=false;
  function validToken(x){return /^(?:[A-Za-z0-9_-]{16}|[0-9a-f]{64})$/.test(x);}
  async function api(body){
   const r=await fetch("/api/signup",{method:"POST",headers:{"Content-Type":"application/json"},
@@ -140,24 +141,42 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
    if(!validToken(token))throw Error("Your invitation link is invalid. Please request a new link.");
    const r=await api({action:"preview",token});
    if(r.mode==="existing"){prefill(r.name);$("email").value=r.email||"";}
+   if(r.mode==="partner"){
+     isPartnerReview=true;
+     $("signupKicker").textContent="Your spouse has started";
+     $("signupTitle").textContent="One quick check, then you're in.";
+     $("signupIntro").textContent=(r.invitedBy||"Your spouse")+" invited you. Your details and their shared dates are already here—just check them, add anything missing, and choose your own text preferences.";
+     $("firstName").value=r.firstName||"";
+     $("lastName").value=r.lastName||"";
+     $("datesTitle").textContent="Check your dates together";
+     $("milestoneHelp").textContent="Add only what is missing, or correct a date.";
+     $("partnerDateNote").hidden=false;
+     $("spouseSection").hidden=true;
+     for(const input of $("spouseSection").querySelectorAll("input")){input.required=false;input.disabled=true;}
+     $("save").textContent="Confirm my details";
+     if(r.weddingDate)$("signupForm").elements.namedItem("weddingDate").value=r.weddingDate;
+     const selected=new Set(Array.isArray(r.holidays)?r.holidays:[]);
+     for(const item of $("holidays").querySelectorAll("input"))item.checked=selected.has(item.value);
+     for(const item of Array.isArray(r.specialDates)?r.specialDates:[])addDate(item);
+   }
    $("phone").value=formatUSPhone(r.phone||"");
    $("status").hidden=true;$("signupForm").hidden=false;
   }catch(e){status(e.message,true);}
  }
- function addDate(){
+ function addDate(initial=null){
   const target=$("milestones");if(target.children.length>=5)return;
   const row=document.createElement("div");row.className="milestone";
   const label=document.createElement("label");label.className="field";label.textContent="What are we celebrating?";
-  const input=document.createElement("input");input.type="text";input.maxLength=80;input.placeholder="Our first date";input.required=true;label.append(input);
+  const input=document.createElement("input");input.type="text";input.maxLength=80;input.placeholder="Our first date";input.required=true;input.value=initial?.label||"";label.append(input);
   const dayLabel=document.createElement("label");dayLabel.className="field";dayLabel.textContent="Date";
-  const day=document.createElement("input");day.type="date";day.required=true;dayLabel.append(day);
+  const day=document.createElement("input");day.type="date";day.required=true;day.value=initial?.date||"";dayLabel.append(day);
   const remove=document.createElement("button");remove.type="button";remove.className="remove";remove.textContent="×";remove.title="Remove date";remove.setAttribute("aria-label","Remove special date");
   remove.addEventListener("click",()=>{row.remove();$("addMilestone").disabled=false;});
   row.append(label,dayLabel,remove);target.append(row);
   if(target.children.length>=5)$("addMilestone").disabled=true;
-  input.focus();
+  if(!initial)input.focus();
  }
- $("addMilestone").addEventListener("click",addDate);
+ $("addMilestone").addEventListener("click",()=>addDate());
  $("signupForm").addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,b=$("save");b.disabled=true;$("submitStatus").textContent="Saving your details…";
   try{
@@ -171,10 +190,12 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
     confirmPhone:values.has("confirmPhone"),smsConsent:values.has("smsConsent"),
     adultAgreement:values.has("adultMarriageAgreement"),
     marriageAgreement:values.has("adultMarriageAgreement"),privacyAgreement:values.has("privacyAgreement")};
-   spousePhone=String(body.spousePhone||"").replace(/[\s().-]/g,"");
+   spousePhone=isPartnerReview?"":String(body.spousePhone||"").replace(/[\s().-]/g,"");
    const r=await api(body);
    $("signupForm").hidden=true;$("complete").hidden=false;
-   $("successText").textContent="Thanks, "+String(body.firstName).trim()+". Your details are saved. We'll guide you through the next step.";
+   $("successText").textContent=isPartnerReview
+     ?"Thanks, "+String(body.firstName).trim()+". Your personal details and reviewed dates are saved. No second questionnaire needed."
+     :"Thanks, "+String(body.firstName).trim()+". Your details are saved. We'll guide you through the next step.";
    if(r.partnerInviteLink){partnerLink=r.partnerInviteLink;$("partnerInvite").hidden=false;$("partnerLinkText").textContent=partnerLink;}
    history.replaceState(null,"",location.pathname);
   }catch(err){$("submitStatus").textContent=err.message;b.disabled=false;}
