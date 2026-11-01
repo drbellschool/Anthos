@@ -118,7 +118,7 @@ export async function editCustomer(input){
 // Bounded, server-side couple pagination; only authenticated /api/admin can invoke.
 export async function listCoupleRegistrations(opts={}){
  const search=String(opts.search||"").trim().slice(0,80);
- if(search&&!/^[\\p{L}\\p{N} .@'_+()-]+$/u.test(search))fail("Search contains unsupported characters.");
+ if(search&&!/^[\p{L}\p{N} .@'_+()-]+$/u.test(search))fail("Search contains unsupported characters.");
  const page=Number(opts.page??0);
  if(!Number.isSafeInteger(page)||page<0||page>40000)fail("Invalid couple page.");
  const secret=key();
