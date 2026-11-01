@@ -221,7 +221,7 @@ test("curriculum metadata is eight chapters, fixed mastery six choices and analy
    assert.match(pages,new RegExp('data-studio-page="'+tab+'"'));
    assert.match(pages,new RegExp('data-studio-tab="'+tab+'"'));
  }
- assert.match(pages,/REAL HOUSEHOLD REGISTRATIONS/);
+ assert.match(pages,/OPERATIONS \/ LIVE COUPLES/);
  assert.doesNotMatch(pages,/FICTIONAL EXAMPLES|Waiting for SQL/);
  const browser=readFileSync(resolve(root,"admin/studio.js"),"utf8");
  assert.doesNotThrow(()=>new Function(browser));
