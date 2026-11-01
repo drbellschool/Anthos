@@ -64,3 +64,14 @@
 .outcome-card p{font:normal 15px/1.48 Georgia,serif;white-space:pre-wrap;margin:8px 0}
 .outcome-card .comment-chip{background:#fff}
 @media(max-width:500px){.room.is-live .bubble{font-size:13px;padding:9px 11px}.room.is-live #storyMoment{max-height:35dvh}.room.is-live .bar-tools .status{max-width:74px;font-size:10px}}
+
+.name-field{display:block;margin:14px 0;font-size:13px;font-weight:700;line-height:1.5}
+.name-field input{display:block;width:100%;border:1px solid #b5c8b2;border-radius:10px;padding:11px 12px;background:#fff;color:#283f31;font:inherit;font-size:15px;margin-top:6px}
+.conversation-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;flex-wrap:wrap}
+.conversation-head-actions #remaining{font-size:10px}
+.name-button{min-height:27px;background:#fff;border:1px solid #c8d8c4;color:#3d6747;font-size:10px;font-weight:700;padding:3px 7px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;border-radius:7px}
+.name-button:hover{background:#e0efdb}
+.room.is-live .conversation-head{gap:4px}
+.room.is-live .conversation-head-actions{gap:5px}
+.room.is-live .conversation-head-actions #remaining{font-size:9px}
+@media(max-width:400px){.room.is-live .name-button{max-width:83px}.room.is-live #identity{font-size:10px}}
