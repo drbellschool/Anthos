@@ -43,7 +43,7 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
        lens:"gottman"});
      return reply({output:[{type:"message",content:[{type:"output_text",text:content}]}]});
    }
-   assert.ok(body.input.includes("Spouse A:"));assert.ok(body.input.includes("Spouse B:"));
+   assert.ok(body.input.includes("Adam:"));assert.ok(body.input.includes("Alissa:"));
    return reply({output:[{type:"message",content:[{type:"output_text",text:"You both care about the surprise. What would make it feel mutual?"}]}]});
   }
   const u=new URL(url),table=u.pathname.split("/").at(-1),method=init.method||"GET";
