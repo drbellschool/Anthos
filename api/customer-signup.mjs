@@ -58,7 +58,7 @@ async function redeemNewSignup(input,hash,fields){
  catch{fail("Signup service is temporarily unavailable.",502);}
  if(!response.ok){
    let reason={};try{reason=await response.json();}catch{}
-   if(reason.code==="23505")fail("This email already belongs to an Anthos contact. Contact Anthos to update your record.",409);
+   if(reason.code==="23505")fail("This signup conflicts with an existing account identity. Contact Anthos for assistance.",409);
    if(reason.code==="22023")fail("Your invitation has expired or has already been used. Request another link.",410);
    fail("Unable to save your signup. Please try again.",502);
  }
