@@ -107,3 +107,50 @@ export async function editCustomer(input){
  if(response.rows.length!==1)fail("Customer not found. Refresh the directory.",404);
  return {ok:true,customer:clean(response.rows[0]),message:"Customer record updated. This does not change billing, authentication, SMS or live pilot-room permissions."};
 }
+
+
+export async function listCoupleRegistrations(){
+ const all=[],limit=500,maxPages=10;
+ for(let page=0;page<maxPages;page++){
+   const r=await query("anthos_customer_directory",{
+     select:"id,display_name,group_id,phone_e164,spouse_phone_e164,record_status,questionnaire_submitted_at,phone_verified_at,auth_user_id,wedding_date",
+     group_id:"not.is.null",record_status:"neq.archived",order:"created_at.asc",
+     limit,offset:page*limit
+   });
+   all.push(...r.rows);
+   if(r.rows.length<limit)break;
+ }
+ const truncated=all.length===limit*maxPages;
+ const groups=new Map();
+ for(const row of all){
+   if(!row.group_id)continue;
+   const members=groups.get(row.group_id)||[];members.push(row);groups.set(row.group_id,members);
+ }
+ const summary=summarizeCouples(all,all);
+ const couples=[];
+ for(const [id,members] of groups){
+   const a=members[0],state=summary.byId.get(a.id)?.state||"needs_review";
+   const anniversary=members.length===2&&members[0].wedding_date===members[1].wedding_date?members[0].wedding_date:null;
+   let marriedYears=null;
+   if(anniversary&&/^\d{4}-\d{2}-\d{2}$/.test(anniversary)){
+     const now=new Date(),year=Number(anniversary.slice(0,4)),
+       md=anniversary.slice(5),today=now.toISOString().slice(5,10);
+     marriedYears=Math.max(0,now.getUTCFullYear()-year-(today<md?1:0));
+   }
+   couples.push({
+     id,people:members.map(m=>({id:m.id,name:m.display_name,
+       setup:!!m.questionnaire_submitted_at,phoneVerified:!!m.phone_verified_at,
+       accountActive:!!m.auth_user_id})),
+     state,registered:state==="both_joined_pending_verification",
+     marriedYears,anniversaryDisagrees:members.length===2&&!anniversary,
+     // Household grouping is NOT mutual authenticated access.
+     accessGranted:false
+   });
+ }
+ return {ok:true,couples,counts:{
+   registered:couples.filter(x=>x.registered).length,
+   pending:couples.filter(x=>x.state==="awaiting_spouse").length,
+   needingReview:couples.filter(x=>x.state==="needs_review").length,
+   completedForms:all.filter(x=>!!x.questionnaire_submitted_at).length
+ },truncated,explanation:"A registered couple means both invitation-linked signups exist. Phone verification, account activation and mutual authorization are separate."};
+}
