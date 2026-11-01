@@ -121,7 +121,7 @@ test("authenticated admin issues a standalone signup link without inserting any 
    body:JSON.stringify({action:"customer-add",name:"Fake",email:"fake@example.test",program:"pilot"})}));
  const rejected=await noManual.json();
  assert.equal(noManual.status,400);
- assert.match(rejected.error,/Unknown action/);
+ assert.match(rejected.error,/Unknown admin action/);
  assert.equal(calls.length,1);
  const attack=await admin.fetch(new Request(url,{method:"POST",headers:{
    cookie,origin:"https://other.example","Content-Type":"application/json","X-Threefold-Admin":"1"},
