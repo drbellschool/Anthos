@@ -258,12 +258,15 @@ export async function comment(invite,body){
  const feedback=body?.feedback;
  if(!Number.isInteger(chapter)||chapter<1||chapter>beatNumber(c.room)||chapter>sceneCount)
    fail("Select a chapter you've already read.");
- if(!["chapter","option","message","general","answer"].includes(kind))
+ if(!["chapter","option","message","general","answer","outcome"].includes(kind))
    fail("Invalid comment target.");
  if(typeof feedback!=="string"||feedback.trim().length<3||feedback.length>1400)
    fail("Write a critique or question between 3 and 1400 characters.");
  let excerpt="",targetIndex=null;
- if(kind==="chapter")excerpt=storyFor(c.room)[chapter-1].story;
+ if(kind==="chapter"){
+   const effects=await outcomes(c.room.id);
+   excerpt=branchedChapter(c.room,chapter,effects).story;
+ }
  if(kind==="option"){
    if(!Number.isInteger(index)||index<0||index>2||storyFor(c.room)[chapter-1].options?.length!==3)
      fail("That choice isn't part of this chapter.");
@@ -276,6 +279,11 @@ export async function comment(invite,body){
    if(!rows[0])fail("Message not found in this room.",404);
    if(rows[0].chapter_number!==chapter)fail("The comment is attached to the wrong chapter.",409);
    excerpt=rows[0].body;targetIndex=index;
+ }
+ if(kind==="outcome"){
+   const current=(await outcomes(c.room.id)).find(e=>e.chapter_number===chapter);
+   if(!current)fail("The story consequence hasn't been generated yet.",409);
+   excerpt=current.consequence;
  }
  if(kind==="answer")excerpt=c.room.proposed_answer||"Pending shared decision";
  if(kind==="general")excerpt="General experience and usability feedback";
