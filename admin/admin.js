@@ -38,6 +38,7 @@
   const updateServices=s=>{
     if(!s)return;
     const a=s.openai,t=s.telnyx;
+    $("databaseStat").textContent=s.database?.configured?"Server key installed":"Not configured";
     $("openaiStat").textContent=a?.configured?"Key installed":"Not connected";
     $("telnyxStat").textContent=t?.configured?"Key installed":"Not connected";
     badge("openaiBadge",!!a?.configured);badge("telnyxBadge",!!t?.configured);
