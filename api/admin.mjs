@@ -3,7 +3,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
-import {listCustomers,editCustomer} from "./customer-directory.mjs";
+import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 
 const COOKIE = "threefold_admin_session";
@@ -216,6 +216,11 @@ export default {
         return json({error:"Invalid story."},400);
       try{return json(await reviewList(slug,version));}
       catch(err){return json({error:err.message||"Review queue unavailable."},err.code||502);}
+    }
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="couples"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      try{return json(await listCoupleRegistrations());}
+      catch(e){return json({error:e.message||"Couple registrations unavailable."},e.status||502);}
     }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="customers"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
