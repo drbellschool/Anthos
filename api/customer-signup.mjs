@@ -43,7 +43,7 @@ async function redeemNewSignup(input,hash,fields){
  const email=String(input.email||"").trim().toLowerCase();
  if(name.length<1||name.length>80||/[<>\u0000-\u001f]/.test(name))
    fail("Enter your name (up to 80 characters).");
- if(email.length>254||!/^[^\s@<>]+@[^\s@<>]+\\.[^\s@<>]+$/.test(email))
+ if(email.length>254||!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))
    fail("Enter your valid email address.");
  const url=BASE+"rpc/anthos_redeem_new_signup";
  const headers={apikey:secret,"Content-Type":"application/json","Accept":"application/json"};
