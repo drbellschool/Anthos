@@ -75,14 +75,17 @@ function render(){
  $("proposeForm").hidden=state.roomStatus!=="active";
  $("confirmAnswer").hidden=state.roomStatus!=="proposed";
  $("finished").hidden=state.roomStatus!=="completed";
- text("proposalText",proposed?.text?"Your proposed shared answer: “"+proposed.text+"”":"Write what you've decided together. The other spouse will confirm before the session ends.");
+ const proposer=Boolean(proposed&&proposed.by===state.role);
+ text("proposalText",proposed?.text||"");
+ text("proposalHeading",state.roomStatus==="completed"?"Your answer is confirmed":state.roomStatus==="proposed"?(proposer?"Waiting for your spouse":"Please review your spouse’s answer"):"Ready to finish together?");
+ text("proposalStep",state.roomStatus==="completed"?"DEEP DIVE COMPLETE":state.roomStatus==="proposed"?"FINAL CONFIRMATION":"YOUR SHARED ANSWER");
+ text("proposalInstruction",state.roomStatus==="completed"?"You both agreed on this response.":state.roomStatus==="proposed"?(proposer?"You submitted this answer. Your spouse can approve it or reopen the discussion on their own screen.":"Read the answer below. Confirm if it reflects what you both agreed on, or continue discussing it."):"Write the answer you reached together. Your spouse will confirm it.");
  if(proposed){
-  const isProposer=proposed.by===state.role;
-  text("approvalMessage",isProposer?"Your spouse needs to confirm before the session is marked complete.":"Your spouse proposed this answer. Does it capture what you both agreed?");
-  $("approveAnswer").hidden=isProposer;
-  $("reopen").hidden=false;
+  text("approvalMessage",proposer?"No action needed from you right now.":"Your confirmation will complete the Deep Dive.");
+  $("approveAnswer").hidden=proposer;
+  $("reopen").hidden=proposer;
  }
- $("backChat").hidden=state.roomStatus==="completed";
+ $("backChat").hidden=state.roomStatus!=="active";
 }
 async function refresh(){
  if(busy||!token)return;
