@@ -11,8 +11,8 @@ export default {
    if(req.headers.get("origin")!==new URL(req.url).origin)return json({error:"Cross-origin requests are not allowed."},403);
    if(!(req.headers.get("content-type")||"").toLowerCase().startsWith("application/json"))
     return json({error:"JSON required."},400);
-   if(Number(req.headers.get("content-length")||0)>1400)return json({error:"Request too large."},413);
-   const raw=await req.text();if(raw.length>1400)return json({error:"Request too large."},413);
+   if(Number(req.headers.get("content-length")||0)>2300)return json({error:"Request too large."},413);
+   const raw=await req.text();if(raw.length>2300)return json({error:"Request too large."},413);
    const body=JSON.parse(raw);if(!body||typeof body!=="object"||Array.isArray(body))
     return json({error:"Invalid request body."},400);
    const actions={
