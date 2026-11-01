@@ -118,39 +118,6 @@
     out.append(e("p","soft-text",score.description));
     out.append(e("small","soft-text","Fixed authored score: "+choice.quality+"/2. This is not a real participant's result and not a rating of any couple's marriage."));
   }
-  function setupAnalytics(){
-    const sample=spec.sampleCohort,stat=$("sampleStats");
-    const figures=[
-      ["SAMPLE COUPLES",sample.length,"Fictional, not customers"],
-      ["BOTH OPTED IN",sample.filter(x=>x.status==="Both opted in").length,"Illustrative enrollment"],
-      ["TOTAL WHISPERS",sample.reduce((n,x)=>n+x.whispers,0),"Sample activity count"],
-      ["DATES COMPLETED",sample.reduce((n,x)=>n+x.dates,0),"Sample activity count"],
-      ["COMPLETED STORIES",sample.filter(x=>x.dive===8).length,"Sample Deep Dives"],
-      ["MASTERY DEMONSTRATED",sample.filter(x=>x.mastery==="Demonstrated").length,"Fictional decision mastery"]
-    ];
-    stat.replaceChildren();
-    for(const [label,value,note] of figures){
-      const card=e("article","stat");
-      card.append(e("span","stat-caption",label),e("div","stat-value",value),e("small","",note));
-      stat.append(card);
-    }
-    const tbody=$("sampleCoupleRows");tbody.replaceChildren();
-    for(const row of sample){
-      const tr=e("tr");
-      for(const value of [row.label,row.status,row.whispers,row.dates,row.dive+"/8",row.mastery,row.next])
-        tr.append(e("td","",value));
-      tbody.append(tr);
-    }
-    $("showLiveStats").addEventListener("click",()=>analyticsTab(false));
-    $("showDemoStats").addEventListener("click",()=>analyticsTab(true));
-  }
-  function analyticsTab(demo){
-    $("demoCouples").hidden=!demo;$("liveCouples").hidden=demo;
-    $("showDemoStats").setAttribute("aria-pressed",String(demo));
-    $("showLiveStats").setAttribute("aria-pressed",String(!demo));
-    $("showDemoStats").classList.toggle("secondary",!demo);
-    $("showLiveStats").classList.toggle("secondary",demo);
-  }
   async function rehearsePersona(name,button){
     const prompt=$(name+"Prompt").value.trim();
     const output=$(name+"Reply");
@@ -177,7 +144,7 @@
       button.addEventListener("click",()=>showTab(button.dataset.studioTab)));
     document.querySelectorAll(".persona-run").forEach(button=>
       button.addEventListener("click",()=>rehearsePersona(button.dataset.persona,button)));
-    setupPersonas();deepDive();setupAnalytics();
+    setupPersonas();deepDive();
     document.addEventListener("threefold-auth",event=>{
       const ok=Boolean(event.detail?.authenticated);
       $("studioNav").hidden=!ok;
