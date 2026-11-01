@@ -35,11 +35,11 @@ function mock(){
 }
 const data={birthDate:"1990-04-20",weddingDate:"2010-05-12",
  holidays:["valentines","christmas"],holidaysReviewed:true,phone:"(903) 555-1234",
- confirmPhone:true,smsConsent:true,emailConsent:false,adultAgreement:true,privacyAgreement:true};
+ confirmPhone:true,smsConsent:true,emailConsent:false,adultAgreement:true,marriageAgreement:true,privacyAgreement:true};
 test("Secure 72-hour single-use links are generated, hashed at rest and do not send messages",async()=>{
  const m=mock();
  const invite=await createSignupLink({id});
- assert.match(invite.link,/https:\/\/anthos\.love\/signup\/#t=[0-9a-f]{64}$/);
+ assert.match(invite.link,/https:\/\/anthos\.love\/signup\/#t=[A-Za-z0-9_-]{16}$/);
  assert.equal(invite.sent,false);
  const token=invite.link.split("#t=")[1];
  assert.equal(m.saved.signup_token_hash.length,64);
@@ -91,8 +91,8 @@ test("Customer UI offers explicit opt-ins without falsely labeling phone or bill
  const admin=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
  const js=readFileSync(new URL("../admin/customers.js",import.meta.url),"utf8");
  for(const value of ["smsConsent","emailConsent","confirmPhone","adultAgreement","privacyAgreement",
-   "birthDate","weddingDate","holidaysReviewed"])assert.match(form,new RegExp(value));
- assert.match(form,/Reply STOP/);assert.match(form,/not verify phone ownership/);
+   "birthDate","weddingDate","spousePhone","specialDates","firstName","lastName"])assert.match(form,new RegExp(value));
+ assert.match(form,/Reply STOP/);assert.match(form,/number must still be independently verified/);
  assert.match(form,/location\.hash/);
  for(const id of ["customerCountQuestionnaire","customerCountSms","customerCountLinked",
    "customerInvitePanel","customerEmailLink","customerTextLink"])assert.ok(admin.includes('id="'+id+'"'));
@@ -115,29 +115,30 @@ test("blank signup invitation creates no person until the recipient submits all 
        return new Response(JSON.stringify(invite&&invite.token_hash===hash?[{...invite,redeemed_at:null}]:[]),{status:200});
      }
    }
-   if(path.endsWith("/rpc/anthos_redeem_new_signup")){
+   if(path.endsWith("/rpc/anthos_redeem_signup_v2")){
      assert.equal(opts.method,"POST");
      assert.equal(args.p_phone,"+19035551234");
-     assert.equal(args.p_display_name,"Sample Participant");
+     assert.equal(args.p_first_name,"Sample");
+     assert.equal(args.p_last_name,"Participant");
      assert.equal(args.p_email,"sample@example.test");
      assert.equal(args.p_sms_consent,true);
      assert.equal(args.p_disclosure,"anthos-sms-2026-11-v1");
      customers.push({id,...args});invite=null;
-     return new Response(JSON.stringify(id),{status:200,headers:{"content-type":"application/json"}});
+     return new Response(JSON.stringify({customerId:id,partnerInvitePrepared:false}),{status:200,headers:{"content-type":"application/json"}});
    }
    if(path.endsWith("/anthos_customer_directory"))
      return new Response("[]",{status:200});
    throw Error("Unexpected database operation: "+path);
  };
  const issued=await createOpenSignupLink();
- assert.match(issued.link,/\/signup\/#t=[a-f0-9]{64}$/);
+ assert.match(issued.link,/\/signup\/#t=[A-Za-z0-9_-]{16}$/);
  assert.equal(issued.sent,false);
  assert.equal(customers.length,0);
  assert.equal(events.length,1);
  const token=issued.link.split("#t=")[1],preview=await previewSignup(token);
  assert.equal(preview.mode,"new");assert.equal(preview.email,"");
  assert.equal(customers.length,0);
- const result=await submitSignup({...data,token,name:"Sample Participant",email:"sample@example.test"});
+ const result=await submitSignup({...data,token,firstName:"Sample",lastName:"Participant",email:"sample@example.test"});
  assert.equal(result.ok,true);assert.equal(customers.length,1);
  assert.equal(result.smsConsent,"recorded_unverified");
  await assert.rejects(()=>previewSignup(token),/invalid|expired/i);
@@ -151,4 +152,22 @@ test("unverified phone identity is never marked verified by self-attestation or 
  assert.match(intake,/redeemed_at is null and expires_at > v_now/i);
  assert.match(intake,/insert into public\.anthos_customer_directory/i);
  assert.doesNotMatch(intake,/phone_verified_at\s*=/i);
+});
+
+test("short links retain 96-bit randomness and old links remain recognized",async()=>{
+ const html=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
+ const api=readFileSync(new URL("../api/customer-signup.mjs",import.meta.url),"utf8");
+ assert.match(html,/\[A-Za-z0-9_-\]\{16\}/);
+ assert.match(api,/randomBytes\(12\)\.toString\("base64url"\)/);
+ assert.match(api,/\[0-9a-f\]\{64\}/);
+ assert.match(api,/anthos_redeem_signup_v2/);
+});
+test("spouse first name and mobile number are not silently treated as opt-in",()=>{
+ const html=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
+ const sql=readFileSync(new URL("../supabase/migrations/20261101170113_compact_couple_signup_special_dates.sql",import.meta.url),"utf8");
+ assert.match(html,/spouseFirstName/);assert.match(html,/spousePhone/);
+ assert.match(html,/share the link|Send this link yourself/i);
+ assert.match(html,/legally married/);
+ assert.match(sql,/intended_phone_e164/);
+ assert.doesNotMatch(sql,/phone_verified_at\s*=/);
 });
