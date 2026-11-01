@@ -219,7 +219,7 @@ export default {
     }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="couples"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
-      try{return json(await listCoupleRegistrations());}
+      try{const params=new URL(request.url).searchParams;return json(await listCoupleRegistrations({search:params.get("search"),page:Number(params.get("page")||0)}));}
       catch(e){return json({error:e.message||"Couple registrations unavailable."},e.status||502);}
     }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="customers"){

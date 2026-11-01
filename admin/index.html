@@ -188,6 +188,7 @@
               <label>Access<select name="program"><option value="pilot">Pilot tester (designation)</option><option value="standard">Standard</option></select></label>
               <label>Staff nomination<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (not privileged)</option></select></label>
               <label>Record<select name="status"><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
+              <label>Home ZIP (Paraclete)<input name="postalCode" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="75501" pattern="[0-9]{5}(-[0-9]{4})?"></label>
             </div>
             <p class="customer-footnote">Consent checkmarks are read-only evidence from the customer's own web submission. Neither account privileges nor billing can be granted here. Billing history, flower progress and photo buckets appear after their respective integrations are built.</p>
             <div class="customer-actions"><button type="submit" class="button primary" id="customerSave">Save changes</button></div>
@@ -206,25 +207,28 @@
         </section>
 
         <section data-studio-page="couples" class="studio-page" hidden>
-          <div class="page-kicker">05 / LIVE CUSTOMER REGISTRATIONS</div>
-          <h2 class="studio-title">Couples <em>on their way.</em></h2>
-          <p class="studio-lead">Actual completed Anthos invitations, not sample data. Couple registration, phone ownership and customer account access are separate milestones.</p>
-          <div id="liveCoupleNotice" class="customer-notice" role="status">Select Couples to load live registrations.</div>
-          <div class="stats-grid">
-            <article class="stat"><span class="stat-caption">COUPLES REGISTERED</span><div id="liveCoupleRegistered" class="stat-value">—</div><small>Two completed partner signups</small></article>
-            <article class="stat"><span class="stat-caption">SPOUSES WITH COMPLETED SETUP</span><div id="liveCoupleForms" class="stat-value">—</div><small>Across registered/pending households</small></article>
-            <article class="stat"><span class="stat-caption">AWAITING PARTNER</span><div id="liveCouplePending" class="stat-value">—</div><small>Partner has not completed signup</small></article>
-            <article class="stat"><span class="stat-caption">REQUIRES REVIEW</span><div id="liveCoupleReview" class="stat-value">—</div><small>Unexpected or mismatched household information</small></article>
+          <div class="page-kicker">OPERATIONS / LIVE COUPLES</div>
+          <div class="couple-section-head"><h2 class="studio-title">Couples <em>at a glance.</em></h2>
+            <p>One row per couple · Real Supabase records · Private admin view</p></div>
+          <div class="couple-compact-summary">
+            <span><strong id="liveCoupleTotal">—</strong> matching couples</span>
+            <span><strong id="liveCoupleRegistered">—</strong> both joined</span>
+            <span><strong id="liveCouplePending">—</strong> awaiting spouse</span>
+            <span><strong id="liveCoupleReview">—</strong> needs review</span>
           </div>
-          <article class="panel">
-            <div class="panel-top"><div><span class="eyebrow">REAL HOUSEHOLD REGISTRATIONS / ADMIN ONLY</span><h3 class="mini-title">Couple enrollment overview</h3></div>
-            <button type="button" id="liveCoupleRefresh" class="button secondary">Refresh</button></div>
-            <div class="routing-table"><table>
-              <thead><tr><th>Couple</th><th>Registration</th><th>Account access</th><th>Phone verification</th><th>Years married</th><th>Next step</th></tr></thead>
-              <tbody id="liveCoupleRows"><tr><td colspan="6">No registrations loaded.</td></tr></tbody>
-            </table></div>
-            <p class="hint">Shared grouping confirms two submitted invitations—not verified mobile ownership or permission to see a spouse's private information. Deep Dives, petals, Whispers, adventures and billing will appear here when connected to real customer identities.</p>
-          </article>
+          <div class="couple-compact-toolbar">
+            <label>Find a couple <input id="liveCoupleSearch" type="search" maxlength="80" placeholder="Name, phone, email, or ZIP"></label>
+            <button type="button" id="liveCoupleRefresh" class="button secondary">↻ Refresh</button>
+            <span id="liveCoupleRange" aria-live="polite">—</span>
+            <button type="button" id="liveCouplePrev" class="button secondary" disabled>Previous</button>
+            <button type="button" id="liveCoupleNext" class="button secondary" disabled>Next</button>
+          </div>
+          <p id="liveCoupleNotice" class="customer-notice" role="status">Open Couple Insights to load registration records.</p>
+          <div class="couple-compact-scroll"><table class="couple-compact-table">
+            <thead><tr><th>Couple / Years married</th><th>Home ZIP(s)</th><th>Registration</th><th>Phones</th><th>Journey</th><th>Manage</th></tr></thead>
+            <tbody id="liveCoupleRows"><tr><td colspan="6">No registrations loaded.</td></tr></tbody>
+          </table></div>
+          <p class="couple-footnote">ZIP is self-reported and helps with future nearby Paraclete adventures. Shared enrollment is not phone verification or permission to view private reflections. Journey activity shows “Not connected” until real progress data is integrated.</p>
         </section>
 
         <section data-studio-page="progress" class="studio-page progress-console" hidden>
