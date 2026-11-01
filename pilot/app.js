@@ -9,7 +9,7 @@ if(provided&&/^[A-Za-z0-9_-]{43}$/.test(provided)){
  try{history.replaceState(null,"",location.pathname)}catch{}
 }
 let token=provided||"";if(!token)try{token=sessionStorage.getItem(STATE_KEY)||""}catch{}
-let state=null,busy=false,seen="",showProposal=false;
+let state=null,busy=false,seen="",showProposal=false,lastScene=0;
 const text=(id,v)=>{$(id).textContent=String(v??"")};
 function error(value){text("feedback",value)}
 function blocked(reason){$("blocked").hidden=false;text("blockedReason",reason);$("consent").hidden=true;$("waiting").hidden=true;$("conversation").hidden=true;$("proposalPanel").hidden=true}
@@ -104,27 +104,40 @@ function render(){
  if(!state.myConsent)text("consentStatus",state.partnerConsent?"Your spouse has agreed. Your consent is needed.":"Both spouses must agree to begin.");
  $("conversation").hidden=!isReady;
  $("storyMoment").hidden=!isReady;
+ $("chapterHistory").hidden=!isReady||!(state?.revealedChapters?.length>1);
+ document.querySelector(".room").classList.toggle("is-live",isReady);
  if(!isReady){$("proposalPanel").hidden=true;return}
  const scene=state.scene||{};
  text("momentCount",(state.storyFormat==="full"?"CHAPTER ":"MOMENT ")+(state.storyBeat||1)+" OF "+(state.storyBeatCount||3));
  text("momentTitle",scene.title||"The Saturday Surprise");
  text("momentStory",scene.story||"");
  text("momentQuestion",scene.prompt||"");
+ if(lastScene!==(state.storyBeat||1)){lastScene=state.storyBeat||1;$("choicesBlock").open=false;$("storyMoment").scrollTop=0;}
+ const outcome=state.chapterOutcome;
+ $("outcomeCard").hidden=!outcome;
+ text("outcomeText",outcome?.consequence||"");
  renderChoices(scene,state.storyBeat||1);
  renderHistory(state.revealedChapters);
  text("generalComment","✎ Comment"+(state.myComments?.length?" ("+state.myComments.length+")":""));
  text("identity",state.role==="a"?"Spouse A · shared room":"Spouse B · shared room");
  text("remaining",state.aiRepliesLeft+" Sophia replies left");
+ $("connection").title="Sophia may join after both people speak in this chapter.";
  renderMessages(state.messages);
  const countA=state.messages.filter(m=>m.author==="a").length;
  const countB=state.messages.filter(m=>m.author==="b").length;
  $("send").disabled=busy||!isActive;
  $("message").disabled=busy||!isActive;
- $("ask").disabled=busy||!isActive||countA<1||countB<1||state.aiRepliesLeft===0||state.messages.at(-1)?.author==="sophia";
+ $("ask").disabled=busy||!isActive||!state.messages.some(m=>m.chapter_number===(state.storyBeat||1)&&m.author==="a")||!state.messages.some(m=>m.chapter_number===(state.storyBeat||1)&&m.author==="b")||state.aiRepliesLeft===0||state.messages.at(-1)?.author==="sophia";
  $("proposeButton").disabled=busy||(!isActive&&state.roomStatus!=="proposed")||(isActive&&(countA<1||countB<1));
  $("proposeButton").textContent=state.roomStatus==="active"?"We have an answer":"View our answer";
- $("proposeButton").hidden=state.roomStatus==="active"&&state.storyFormat==="full"&&(state.storyBeat||1)<8;
- $("nextMoment").hidden=!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3);
+ $("proposeButton").hidden=state.roomStatus==="active"&&state.storyFormat==="full"&&((state.storyBeat||1)<8||!state.chapterOutcome);
+ const full=state.storyFormat==="full";
+ const current=state.messages.filter(m=>m.chapter_number===(state.storyBeat||1));
+ const bothCurrent=current.some(m=>m.author==="a")&&current.some(m=>m.author==="b");
+ $("resolve").hidden=!isActive||!full||!!state.chapterOutcome;
+ $("resolve").disabled=busy||!bothCurrent;
+ $("resolve").textContent=bothCurrent?"✧ See what happens":"Both spouses respond first";
+ $("nextMoment").hidden=!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3)||(full&&!state.chapterOutcome);
  $("nextMoment").disabled=busy||!isActive;
  const inReview=showProposal||state.roomStatus!=="active";
  $("proposalPanel").hidden=!inReview;
@@ -152,11 +165,13 @@ async function refresh(){
  catch(e){if(e.status===401||e.status===410)blocked(e.message);else error(e.message)}
 }
 async function act(action,payload={}){
- if(busy||!token)return;
- busy=true;error("Working…");render();
- try{state=await request(action,payload);error("");render()}
+ if(busy||!token)return false;
+ busy=true;error(action==="resolve"?"Writing Jack and Jill's next scene…":"Working…");render();
+ let succeeded=false;
+ try{state=await request(action,payload);error("");render();succeeded=true}
  catch(e){error(e.message)}
  finally{busy=false;render()}
+ return succeeded;
 }
 function init(){
  if(!/^[A-Za-z0-9_-]{43}$/.test(token)){blocked("Your personal invitation link must include an invitation token. Ask the pilot administrator for a new link.");return}
@@ -164,8 +179,7 @@ function init(){
  $("agree").addEventListener("click",()=>act("consent"));
  $("send").addEventListener("click",async()=>{
   const value=$("message").value.trim();if(!value)return;
-  await act("send",{message:value});
-  if(state&&state.messages.at(-1)?.author===state.role)$("message").value="";
+  if(await act("send",{message:value}))$("message").value="";
  });
  $("message").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("send").click()}
@@ -189,9 +203,11 @@ function init(){
   setTimeout(()=>{$("submitComment").textContent="Save comment";$("commentDialog").close()},650);
  });
  $("ask").addEventListener("click",()=>act("ask"));
+ $("resolve").addEventListener("click",async()=>{if(await act("resolve")){$("storyMoment").scrollTop=$("storyMoment").scrollHeight;}});
+ $("outcomeComment").addEventListener("click",()=>openComment("outcome",state?.storyBeat||1,null,state?.chapterOutcome?.consequence||""));
  $("nextMoment").addEventListener("click",async()=>{
   await act("next");
-  if(state) $("storyMoment").scrollIntoView({block:"start",behavior:window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches?"instant":"smooth"});
+  if(state) $("storyMoment").scrollTop=0;
  });
  $("proposeButton").addEventListener("click",()=>{showProposal=true;render();$("proposalPanel").scrollIntoView({block:"nearest"})});
  $("submitAnswer").addEventListener("click",()=>{const value=$("answer").value.trim();if(value.length<3){error("Write a shared answer before submitting.");return}act("propose",{answer:value})});

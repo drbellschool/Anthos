@@ -29,3 +29,38 @@
 .comment-dialog label{display:block;font-size:13px;font-weight:700;margin:13px 0 6px}.comment-dialog textarea{width:100%;display:block;border:1px solid #b9cbb7;border-radius:9px;padding:12px;resize:vertical;background:#fff;color:#263f30}
 .comment-dialog button{margin:8px 7px 0 0}
 @media(max-width:390px){.bar-tools .status{font-size:10px}.choice-row{align-items:stretch}.choice-row .comment-chip{width:71px}.comment-chip{font-size:10px}}
+
+/* Phone-first fixed-height play: story and dialogue scroll independently, not the document. */
+.room.is-live{height:100dvh;min-height:0;overflow:hidden;position:relative;padding-bottom:3px}
+.room.is-live .bar{flex:0 0 auto;padding:7px 2px;min-height:46px}
+.room.is-live .brand{font-size:22px}
+.room.is-live .intro{flex:0 0 auto;padding:5px 1px 3px}
+.room.is-live .intro .eyebrow,.room.is-live .intro .prompt{display:none}
+.room.is-live .intro h1{font-size:20px;margin:3px 0 5px}
+.room.is-live #storyMoment{flex:0 0 auto;min-height:0;max-height:36dvh;overflow-y:auto;overscroll-behavior:contain;margin:3px 0 6px;padding:12px 13px}
+.room.is-live #storyMoment h2{font-size:21px;margin:6px 0 8px}
+.room.is-live #momentStory{font-size:15px;line-height:1.45}
+.room.is-live #momentQuestion{font-size:12px;padding-top:8px;margin-top:8px}
+.room.is-live #conversation{flex:1 1 0;min-height:0;max-height:none;border-radius:12px;overflow:hidden}
+.room.is-live .conversation-head{flex:none;padding:6px 10px}
+.room.is-live .thread{flex:1 1 0;min-height:0;max-height:none;overflow-y:auto;padding:9px 10px}
+.room.is-live .compose{flex:0 0 auto;padding:6px 9px 3px}
+.room.is-live .compose textarea{max-height:70px;min-height:44px}
+.room.is-live .tools{flex:0 0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:5px 9px 7px;gap:6px}
+.room.is-live .tools button{min-height:39px;padding:8px 9px;font-size:12px}
+.room.is-live .tools #nextMoment{grid-column:auto}
+.room.is-live .helper,.room.is-live footer{display:none}
+.room.is-live #feedback{font-size:11px;min-height:0;margin:0 6px}
+.room.is-live #feedback:empty{display:none}
+.room.is-live #chapterHistory{flex:0 0 auto;margin:0 0 6px;padding:7px 12px}
+.room.is-live #chapterHistory summary{font-size:11px}
+.room.is-live #chapterHistory[open]{position:fixed;z-index:20;top:48px;bottom:12px;left:max(8px,calc((100vw - 555px)/2));right:max(8px,calc((100vw - 555px)/2));padding:14px;overflow:auto;box-shadow:0 15px 65px #243d2b66}
+.room.is-live #proposalPanel{position:absolute;z-index:10;inset:47px 0 4px;overflow:auto;background:#fffefa;margin:0 12px 7px;padding:18px}
+.choices-block{padding:8px 0 0;border-top:1px solid #d7e2d4;margin:9px 0 0}
+.choices-block summary{font-size:12px;font-weight:750;color:#396448;cursor:pointer;padding:4px 0}
+.choices-block:not([open]) .choice-intro,.choices-block:not([open]) .choice-row,.choices-block:not([open]) .custom-choice{display:none}
+.outcome-card{padding:11px 12px;margin:11px 0 0;border:1px solid #c7dbc5;border-radius:12px;background:#eaf3e7}
+.outcome-card strong{color:#345d3d;font:700 13px system-ui}
+.outcome-card p{font:normal 15px/1.48 Georgia,serif;white-space:pre-wrap;margin:8px 0}
+.outcome-card .comment-chip{background:#fff}
+@media(max-width:500px){.room.is-live .bubble{font-size:13px;padding:9px 11px}.room.is-live #storyMoment{max-height:35dvh}.room.is-live .bar-tools .status{max-width:74px;font-size:10px}}

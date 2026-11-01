@@ -8,7 +8,7 @@ const tasks=[
 ["A","Cost telemetry","planned","Per-couple usage tracking for SMS, AI and images.","Specify cost events and admin charts.",4],
 ["B","Sophia and Paraclete","designed","Companion coaching and concierge handoff.","Implement shared context and privacy rules.",4],
 ["B","Monthly journey: survey → team dive → solo dive → adventure","designing","New local-only /journey/ prototype follows the monthly cadence. No live spouse accounts, SMS or concierge booking.","Test prototype, then connect individually authenticated couples and consent boundaries.",31],
-["B","Live eight-chapter Team Deep Dive beta","designing","New pilot rooms contain eight authored Jack-and-Jill chapters, three optional response starters plus free writing, real shared Sophia dialogue, and anchored beta comments. Live two-device QA of this release remains outstanding.","Run the full eight-chapter couple trial; review comments in the private pilot feedback queue.",31],
+["B","Live interactive eight-chapter Team Deep Dive beta","designing","Compact fixed-height mobile dialogue, AI Sophia observing both partners, OpenAI-generated choice consequences and changed next scenes, ungraded 3+custom replies, and private editorial comments. Full real-device branching QA still pending.","Verify both spouses influence the outcomes, theory lenses remain subtle, and comments remain confidential.",31],
 ["B","Team Deep Dive and personality discovery","designing","Real pilot captures a shared conversation, but structured relationship insights and Paraclete handoff are not yet wired.","Design consented shared preference extraction and separate partner-private profiles.",31],
 ["B","Private solo Deep Dive and Love Whispers","designing","Three options plus fourth free-text choice are demonstrated locally. Solo replies are not revealed.","Implement individualized private delivery and editable AI boundaries.",31],
 ["B","Deep Dives and Whispers","designed","Eight-chapter story reviewer exists, but the customer flow is being redesigned around two shorter weekly dives.","Do not treat the legacy eight-chapter engine as the customer-ready experience.",4],
@@ -25,9 +25,9 @@ const tasks=[
 const workstreams=[
  {name:"Website and brand",weight:12,progress:85},
  {name:"Admin and development tracking",weight:10,progress:75},
- {name:"Product experience design",weight:19,progress:60},
+ {name:"Product experience design",weight:19,progress:63},
  {name:"Database and couple accounts",weight:20,progress:14},
- {name:"Real SMS and AI delivery",weight:20,progress:14},
+ {name:"Real SMS and AI delivery",weight:20,progress:18},
  {name:"Payments and subscriptions",weight:10,progress:0},
  {name:"Testing and customer launch",weight:13,progress:9},
  {name:"Monthly orchestration and planning",weight:13,progress:15}

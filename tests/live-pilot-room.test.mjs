@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {createRoom,consent,send,ask,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
+import {createRoom,consent,send,ask,resolveChapter,nextMoment,comment,propose,accept,status,configured} from "../api/pilot-core.mjs";
 import endpoint from "../api/pilot.mjs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 const sql=read("../supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql");
@@ -28,18 +28,27 @@ test("private pilot SQL is RLS-locked without anonymous client access",()=>{
 test("two different signed links: mutual consent, actual OpenAI call, joint agreement",async()=>{
  const formerFetch=globalThis.fetch,oldDb=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
  process.env.SUPABASE_SECRET_KEY="sb_secret_TEST";process.env.OPENAI_API_KEY="test-openai";
- const rooms=[],people=[],messages=[],comments=[];let aiRequests=0;
+ const rooms=[],people=[],messages=[],comments=[],outcomes=[];let aiRequests=0,storyRequests=0;
  const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"}});
  globalThis.fetch=async (url,init={})=>{
   if(String(url).includes("api.openai.com")){
    aiRequests++;
    const body=JSON.parse(init.body);
-   assert.equal(body.store,false);assert.ok(body.input.includes("Spouse A:"));assert.ok(body.input.includes("Spouse B:"));
+   assert.equal(body.store,false);
+   if(body.text?.format?.name==="anthos_story_branch"){
+     storyRequests++;
+     assert.ok(body.input.includes("Spouse A:"));assert.ok(body.input.includes("Spouse B:"));
+     const content=JSON.stringify({consequence:"Jack and Jill are embarrassed, but Jack gives Jill the envelope and invites her to make a new plan. Their friends grin at the awkwardness.",
+       next_scene:"Jack and Jill walk back into the kitchen as Maya arrives early with coffee. Jill is amused, Jack is nervous, and they change the plan without abandoning the unexpected adventure. The embarrassment remains, but now both spouses are speaking plainly.",
+       lens:"gottman"});
+     return reply({output:[{type:"message",content:[{type:"output_text",text:content}]}]});
+   }
+   assert.ok(body.input.includes("Spouse A:"));assert.ok(body.input.includes("Spouse B:"));
    return reply({output:[{type:"message",content:[{type:"output_text",text:"You both care about the surprise. What would make it feel mutual?"}]}]});
   }
   const u=new URL(url),table=u.pathname.split("/").at(-1),method=init.method||"GET";
   const body=init.body?JSON.parse(init.body):null;
-  const all=table==="anthos_pilot_rooms"?rooms:table==="anthos_pilot_participants"?people:table==="anthos_pilot_comments"?comments:messages;
+  const all=table==="anthos_pilot_rooms"?rooms:table==="anthos_pilot_participants"?people:table==="anthos_pilot_comments"?comments:table==="anthos_pilot_chapter_outcomes"?outcomes:messages;
   const matches=row=>{
    for(const [key,value] of u.searchParams){
     if(["select","order","limit"].includes(key))continue;
@@ -50,7 +59,7 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   };
   if(method==="POST"){
    const row={...body};
-   if(table==="anthos_pilot_rooms"){row.id="f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0";row.status="active";row.expires_at=new Date(Date.now()+86400000).toISOString();row.ai_turns=0;row.story_beat=1}
+   if(table==="anthos_pilot_rooms"){row.id="f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0";row.status="active";row.expires_at=new Date(Date.now()+86400000).toISOString();row.ai_turns=0;row.story_beat=1;row.resolving_chapter=0}
    if(table==="anthos_pilot_participants"){row.consented_at=null;row.last_sent_at=null}
    if(table==="anthos_pilot_messages")row.id=messages.length+1;
    if(table==="anthos_pilot_comments")row.id="comment-"+(comments.length+1);
@@ -78,30 +87,39 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   await consent(b);
   assert.equal((await status(a)).ready,true);
   await send(a,"I think Jack meant well.");
+  assert.equal(aiRequests,0,"Sophia waits for the second spouse.");
   await send(b,"He should have asked Jill first.");
-  const after=await ask(a);
-  assert.equal(aiRequests,1);
+  assert.equal(aiRequests,1,"Sophia joins naturally when both spouses speak.");
+  const after=await status(a);
   assert.equal(after.messages.at(-1).author,"sophia");
   assert.equal(after.aiRepliesLeft,23);
-  assert.equal(after.storyFormat,"full");
   assert.equal(after.storyBeatCount,8);
-  assert.equal(after.storyBeat,1);
   assert.equal(after.scene.options.length,3);
-  assert.match(after.scene.story,/two passes/);
-  const second=await nextMoment(b);
-  assert.equal(second.storyBeat,2);
-  assert.match(second.scene.story,/Maya and Owen/);
-  assert.equal((await status(a)).storyBeat,2,"Both spouses see the same chapter.");
-  const optionFeedback=await comment(a,{chapter:2,kind:"option",index:0,feedback:"This option sounds too forgiving."});
-  assert.equal(optionFeedback.myComments.length,1);
-  assert.equal((await status(b)).myComments.length,0,"Critiques remain private.");
-  await comment(b,{chapter:1,kind:"message",index:1,feedback:"This sentence is confusing."});
+  await assert.rejects(nextMoment(a),/See what your decisions/);
+  const impact=await resolveChapter(a);
+  assert.equal(storyRequests,1);
+  assert.match(impact.chapterOutcome.consequence,/Jack and Jill/);
+  assert.equal((await resolveChapter(b)).chapterOutcome.consequence,impact.chapterOutcome.consequence);
+  assert.equal(storyRequests,1,"Outcome is idempotent.");
+  await comment(a,{chapter:1,kind:"outcome",feedback:"This outcome seems overly forgiving."});
+  assert.equal((await status(b)).myComments.length,0,"Private beta notes cannot leak to spouse.");
+  await comment(b,{chapter:1,kind:"message",index:1,feedback:"This message was confusing."});
   assert.equal(comments.length,2);
-  for(let chapter=3;chapter<=8;chapter++){
-    const next=await nextMoment(chapter%2===0?a:b);
+  let active=a;
+  for(let chapter=2;chapter<=8;chapter++){
+    const next=await nextMoment(active);
     assert.equal(next.storyBeat,chapter);
+    if(chapter===2)assert.match(next.scene.story,/Maya arrives early/,"AI outcome really changes next scene.");
+    for(const person of people)person.last_sent_at=null; // test clock: clear 3s anti-spam guard
+    await send(a,"I'd let the couple negotiate this themselves, chapter "+chapter);
+    await send(b,"I'd choose a playful and realistic compromise, chapter "+chapter);
+    assert.match((await status(a)).messages.at(-1).body,/You both care/);
+    const effect=await resolveChapter(b);
+    assert.equal(effect.chapterOutcome.chapter_number,chapter);
+    active=chapter%2?a:b;
   }
-  assert.equal((await status(b)).revealedChapters.length,8);
+  assert.equal(storyRequests,8);
+  assert.equal((await status(a)).revealedChapters.length,8);
   await assert.rejects(nextMoment(b),/final moment/);
   await propose(a,"Ask first, then surprise each other together.");
   await assert.rejects(accept(a),/other spouse/);
