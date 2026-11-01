@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {createRoom,consent,send,ask,propose,accept,status,configured} from "../api/pilot-core.mjs";
+import {createRoom,consent,send,ask,nextMoment,propose,accept,status,configured} from "../api/pilot-core.mjs";
 import endpoint from "../api/pilot.mjs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 const sql=read("../supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql");
@@ -50,7 +50,7 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   };
   if(method==="POST"){
    const row={...body};
-   if(table==="anthos_pilot_rooms"){row.id="f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0";row.status="active";row.expires_at=new Date(Date.now()+86400000).toISOString();row.ai_turns=0}
+   if(table==="anthos_pilot_rooms"){row.id="f7bcaa6b-89ce-4aee-a1c2-abbccddeeff0";row.status="active";row.expires_at=new Date(Date.now()+86400000).toISOString();row.ai_turns=0;row.story_beat=1}
    if(table==="anthos_pilot_participants"){row.consented_at=null;row.last_sent_at=null}
    if(table==="anthos_pilot_messages")row.id=messages.length+1;
    all.push(row);return reply([row]);
@@ -82,6 +82,16 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   assert.equal(aiRequests,1);
   assert.equal(after.messages.at(-1).author,"sophia");
   assert.equal(after.aiRepliesLeft,11);
+  assert.equal(after.storyBeat,1);
+  assert.match(after.scene.story,/outdoor Saturday/);
+  const secondMoment=await nextMoment(b);
+  assert.equal(secondMoment.storyBeat,2);
+  assert.match(secondMoment.scene.story,/tickets/);
+  assert.equal((await status(a)).storyBeat,2,"Both spouses must see the same new moment.");
+  const thirdMoment=await nextMoment(a);
+  assert.equal(thirdMoment.storyBeat,3);
+  assert.match(thirdMoment.scene.story,/I cleared my whole Saturday/);
+  await assert.rejects(nextMoment(b),/final moment/);
   await propose(a,"Ask first, then surprise each other together.");
   await assert.rejects(accept(a),/other spouse/);
   assert.equal((await accept(b)).roomStatus,"completed");
