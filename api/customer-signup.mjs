@@ -133,8 +133,7 @@ export async function submitSignup(data){
  if(!Array.isArray(data.holidays)||data.holidays.length>8||
    data.holidays.some(x=>typeof x!=="string"||!HOLIDAYS.has(x))||
    new Set(data.holidays).size!==data.holidays.length||
-   (data.holidays.includes("none")&&data.holidays.length>1)||
-)fail("Review your celebration preferences.");
+   (data.holidays.includes("none")&&data.holidays.length>1))fail("Review your celebration preferences.");
  const dates=Array.isArray(data.specialDates)?data.specialDates:[];
  if(dates.length>5)fail("Add up to five personal celebrations.");
  for(const event of dates){
