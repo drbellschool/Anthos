@@ -1,4 +1,4 @@
-import {status,consent,send,ask,propose,accept,reopen,nextMoment} from "./pilot-core.mjs";
+import {status,consent,send,ask,propose,accept,reopen,nextMoment,comment} from "./pilot-core.mjs";
 const headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store, max-age=0",
  "X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(data,code=200)=>new Response(JSON.stringify(data),{status:code,headers});
@@ -17,7 +17,7 @@ export default {
     return json({error:"Invalid request body."},400);
    const actions={
      consent:()=>consent(token),send:()=>send(token,body.message),
-     ask:()=>ask(token),propose:()=>propose(token,body.answer),
+     ask:()=>ask(token),next:()=>nextMoment(token),comment:()=>comment(token,body),propose:()=>propose(token,body.answer),
      accept:()=>accept(token),reopen:()=>reopen(token)
    };
    if(!Object.hasOwn(actions,body.action))return json({error:"Unknown action."},400);
