@@ -130,7 +130,7 @@ function render(){
  $("ask").disabled=busy||!isActive||!state.messages.some(m=>m.chapter_number===(state.storyBeat||1)&&m.author==="a")||!state.messages.some(m=>m.chapter_number===(state.storyBeat||1)&&m.author==="b")||state.aiRepliesLeft===0||state.messages.at(-1)?.author==="sophia";
  $("proposeButton").disabled=busy||(!isActive&&state.roomStatus!=="proposed")||(isActive&&(countA<1||countB<1));
  $("proposeButton").textContent=state.roomStatus==="active"?"We have an answer":"View our answer";
- $("proposeButton").hidden=state.roomStatus==="active"&&state.storyFormat==="full"&&(state.storyBeat||1)<8;
+ $("proposeButton").hidden=state.roomStatus==="active"&&state.storyFormat==="full"&&((state.storyBeat||1)<8||!state.chapterOutcome);
  const full=state.storyFormat==="full";
  const current=state.messages.filter(m=>m.chapter_number===(state.storyBeat||1));
  const bothCurrent=current.some(m=>m.author==="a")&&current.some(m=>m.author==="b");
