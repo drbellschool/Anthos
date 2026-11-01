@@ -154,7 +154,6 @@ export async function submitSignup(data){
   meaningful_holidays:data.holidays,holidays_reviewed_at:now,special_dates:dates,questionnaire_submitted_at:now,
   phone_e164:phone,phone_owner_attested_at:now,
   sms_consent_at:sms?now:null,sms_disclosure_version:sms?"anthos-sms-2026-11-v1":null,
-  email_opt_in_at:null,
   signup_token_hash:null,signup_token_expires_at:null,signup_token_consumed_at:now};
  if(fresh){
    const complete=await redeemNewSignup(data,fresh.hash,body,!!fresh.invitedByCustomerId);
