@@ -185,6 +185,8 @@ export async function comment(invite,body){
 
 export async function propose(invite,answer){
  const c=await auth(invite);active(c);
+ if(c.room.story_format==="full"&&beatNumber(c.room)<FULL_STORY.length)
+  fail("Finish the eight chapters before submitting your shared answer.",409);
  if(typeof answer!=="string"||answer.trim().length<3||answer.length>800)fail("Shared answer must be 3–800 characters.");
  const thread=await messages(c.room.id,80);
  if(!thread.some(m=>m.author==="a")||!thread.some(m=>m.author==="b"))fail("Both must contribute first.",409);
