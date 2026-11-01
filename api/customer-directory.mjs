@@ -1,5 +1,6 @@
 // Anthos CRM v1. Real, private Supabase contacts; NOT customer authentication or billing.
 // Called only from authenticated /api/admin after same-origin CSRF verification.
+import {groupIdsFor,summarizeCouples} from "./couple-registration.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const key=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
@@ -79,11 +80,17 @@ export async function listCustomers(opts={}){
    query("anthos_customer_directory",{select:"id",sms_consent_at:"not.is.null",record_status:"neq.archived"},"HEAD"),
    query("anthos_customer_directory",{select:"id",auth_user_id:"not.is.null",record_status:"neq.archived"},"HEAD")
  ]);
- return {ok:true,customers:result.rows.map(clean),page,pageSize:40,
+ const ids=groupIdsFor(result.rows);
+ const groupRows=ids.length?(await query("anthos_customer_directory",{
+   select:"id,display_name,group_id,phone_e164,spouse_phone_e164,questionnaire_submitted_at,record_status,phone_verified_at,auth_user_id",
+   group_id:"in.("+ids.join(",")+")",limit:200
+ })).rows:[];
+ const coupleInfo=summarizeCouples(result.rows,groupRows);
+ return {ok:true,customers:result.rows.map(r=>({...clean(r),couple:coupleInfo.byId.get(r.id)||{state:"not_started",partnerName:null}})),page,pageSize:40,
    total:countOf(result.range),counts:{all:countOf(counts[0].range),pilot:countOf(counts[1].range),
      standard:countOf(counts[2].range),adminPending:countOf(counts[3].range),
    questionnaire:countOf(counts[4].range),smsOptIns:countOf(counts[5].range),
-   accountsLinked:countOf(counts[6].range)},
+   accountsLinked:countOf(counts[6].range),registeredCouplesShown:coupleInfo.registeredCouplesShown},
    subscriptionConnected:false,emailInvitationConnected:false,
    explanation:"Standard is a program designation, not proof of payment. Admin candidates have no staff permissions. No email invitations are sent."};
 }
