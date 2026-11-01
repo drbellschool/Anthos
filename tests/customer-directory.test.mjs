@@ -114,7 +114,7 @@ test("authenticated admin issues a standalone signup link without inserting any 
  assert.equal(create.status,200);
  const created=await create.json();
  assert.equal(created.ok,true);assert.equal(created.sent,false);
- assert.match(created.link,/https:\\/\\/anthos\\.love\\/signup\\/#t=/);
+ assert.ok(created.link.startsWith("https://anthos.love/signup/#t="));
  assert.equal(calls.length,1);
  const noManual=await admin.fetch(new Request(url,{method:"POST",headers:{
    cookie,origin,"Content-Type":"application/json","X-Threefold-Admin":"1"},
