@@ -153,56 +153,68 @@
         </section>
 
         <section data-studio-page="customers" class="studio-page customer-page" hidden>
-          <div class="customer-title">
-            <div><div class="page-kicker">CUSTOMER OPERATIONS / PRIVATE</div>
-              <h2 class="studio-title">People <em>&amp; couples.</em></h2>
-              <p class="customer-subtitle">Real Supabase contact records. Program designation is not proof of payment or permission to view private reflections.</p></div>
-            <button class="button primary" id="customerOpenAdd" type="button">+ Add person</button>
-          </div>
-          <div id="customerNotice" class="customer-notice" role="status">Select Customers to load live records.</div>
-          <div class="customer-metrics" aria-label="Customer directory totals">
-            <div class="customer-metric"><span>All contacts</span><strong id="customerCountAll">—</strong></div>
+          <div class="customer-title"><div>
+            <div class="page-kicker">OPERATIONS / CUSTOMER HEALTH</div>
+            <h2 class="studio-title">People <em>&amp; couples.</em></h2>
+            <p class="customer-subtitle">One live directory · setup, consents, subscriptions, flowers and photos. Unconnected features stay unverified.</p>
+          </div><button class="button primary" id="customerOpenAdd" type="button">+ Add person</button></div>
+          <div id="customerNotice" class="customer-notice" role="status">Loading live status…</div>
+          <div class="customer-metrics" aria-label="Customer onboarding totals">
+            <div class="customer-metric"><span>Contacts</span><strong id="customerCountAll">—</strong></div>
+            <div class="customer-metric"><span>Profiles complete</span><strong id="customerCountQuestionnaire">—</strong><small id="customerPercentQuestionnaire">—</small></div>
+            <div class="customer-metric"><span>SMS opted in</span><strong id="customerCountSms">—</strong><small>Unverified numbers</small></div>
+            <div class="customer-metric"><span>Accounts linked</span><strong id="customerCountLinked">—</strong></div>
             <div class="customer-metric"><span>Pilot contacts</span><strong id="customerCountPilot">—</strong></div>
-            <div class="customer-metric"><span>Standard contacts</span><strong id="customerCountStandard">—</strong></div>
-            <div class="customer-metric"><span>Admin candidates</span><strong id="customerCountAdmin">—</strong></div>
+            <div class="customer-metric"><span>Paying subscribers</span><strong>—</strong><small>Billing not connected</small></div>
           </div>
           <div class="customer-toolbar">
-            <label for="customerSearch">Find a contact<input id="customerSearch" type="search" maxlength="70" autocomplete="off" placeholder="Name or email"></label>
-            <label for="customerFilterProgram">Program<select id="customerFilterProgram"><option value="">All programs</option><option value="pilot">Pilot</option><option value="standard">Standard</option></select></label>
-            <label for="customerFilterStatus">Record status<select id="customerFilterStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
+            <label for="customerSearch">Search<input id="customerSearch" type="search" maxlength="70" autocomplete="off" placeholder="Name or email"></label>
+            <label for="customerFilterProgram">Access<select id="customerFilterProgram"><option value="">All programs</option><option value="pilot">Pilot</option><option value="standard">Standard</option></select></label>
+            <label for="customerFilterStatus">Status<select id="customerFilterStatus"><option value="">All records</option><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
             <button class="button" id="customerRefresh" type="button">↻ Refresh</button>
           </div>
           <div class="customer-table-scroll"><table class="customer-table">
-            <thead><tr><th>Person</th><th>Program</th><th>Record</th><th>Household</th><th>Staff</th><th>Manage</th></tr></thead>
-            <tbody id="customerRows"><tr><td colspan="6">No data loaded yet.</td></tr></tbody>
+            <thead><tr><th>Customer / access</th><th>Account</th><th>Setup</th><th>SMS</th><th>Email</th><th>Billing</th><th>Flower</th><th>Photos</th><th>Actions</th></tr></thead>
+            <tbody id="customerRows"><tr><td colspan="9">No data loaded.</td></tr></tbody>
           </table></div>
           <div class="customer-pagination"><span id="customerPageStatus">—</span><div><button class="button" type="button" id="customerPrev" disabled>Previous</button> <button class="button" type="button" id="customerNext" disabled>Next</button></div></div>
           <form id="customerAddForm" class="customer-editor" hidden>
-            <div class="customer-editor-heading"><h3>Add a person</h3><button class="text-button" id="customerCloseAdd" type="button">Close</button></div>
+            <div class="customer-editor-heading"><h3>Add customer</h3><button class="text-button" id="customerCloseAdd" type="button">Close</button></div>
             <div class="customer-form-grid">
-              <label>Name<input name="name" required maxlength="80" autocomplete="off" placeholder="First and last name"></label>
-              <label>Email<input name="email" type="email" required maxlength="254" autocomplete="off" placeholder="person@example.com"></label>
-              <label>Program<select name="program"><option value="pilot">Pilot tester</option><option value="standard">Standard (not paid)</option></select></label>
-              <label>Staff designation<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (no access yet)</option></select></label>
-              <label>Spouse/partner name (optional)<input name="partnerName" maxlength="80" autocomplete="off"></label>
-              <label>Spouse/partner email (optional)<input name="partnerEmail" type="email" maxlength="254" autocomplete="off"></label>
+              <label>Name<input name="name" required maxlength="80" autocomplete="off"></label>
+              <label>Email<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+              <label>Access<select name="program"><option value="pilot">Pilot contact</option><option value="standard">Standard contact</option></select></label>
+              <label>Staff<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (not privileged)</option></select></label>
+              <label>Spouse name (optional)<input name="partnerName" maxlength="80" autocomplete="off"></label>
+              <label>Spouse email (optional)<input name="partnerEmail" type="email" maxlength="254" autocomplete="off"></label>
             </div>
-            <p class="customer-footnote">Saving creates pending contacts only. It does not send invitations, grant admin privileges, activate pilot links, collect payment, or authorize SMS. Partner grouping is administrative until each spouse consents.</p>
-            <div class="customer-actions"><button type="submit" class="button primary" id="customerAddSubmit">Save pending contact(s)</button></div>
+            <p class="customer-footnote">Creates pending contacts. Use each contact's Invite button to issue a secure signup link; nobody receives an automatic message. Pilot designation is not product access.</p>
+            <div class="customer-actions"><button type="submit" class="button primary" id="customerAddSubmit">Save contacts</button></div>
           </form>
           <form id="customerEditForm" class="customer-editor" hidden>
-            <div class="customer-editor-heading"><h3 id="customerEditTitle">Edit contact</h3><button class="text-button" type="button" id="customerCloseEdit">Close</button></div>
-            <input name="id" type="hidden">
-            <p id="customerEditEmail" class="customer-footnote"></p>
+            <div class="customer-editor-heading"><h3 id="customerEditTitle">Customer record</h3><button class="text-button" type="button" id="customerCloseEdit">Close</button></div>
+            <input name="id" type="hidden"><p id="customerEditEmail" class="customer-footnote"></p>
+            <div class="customer-checks" id="customerReadinessChecks" aria-label="Verified customer onboarding statuses"></div>
             <div class="customer-form-grid">
               <label>Name<input name="name" required maxlength="80"></label>
-              <label>Program<select name="program"><option value="pilot">Pilot tester</option><option value="standard">Standard (not paid)</option></select></label>
-              <label>Staff designation<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (no access yet)</option></select></label>
-              <label>Record status<select name="status"><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
+              <label>Access<select name="program"><option value="pilot">Pilot tester (designation)</option><option value="standard">Standard</option></select></label>
+              <label>Staff nomination<select name="staffNomination"><option value="none">Member</option><option value="admin_pending">Admin candidate (not privileged)</option></select></label>
+              <label>Record<select name="status"><option value="pending">Pending</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
             </div>
-            <p class="customer-footnote">Changes affect this admin directory only. Archived records remain available for auditing. Billing and real account permissions are not changed.</p>
+            <p class="customer-footnote">Consent checkmarks are read-only evidence from the customer's own web submission. Neither account privileges nor billing can be granted here. Billing history, flower progress and photo buckets appear after their respective integrations are built.</p>
             <div class="customer-actions"><button type="submit" class="button primary" id="customerSave">Save changes</button></div>
           </form>
+          <section id="customerInvitePanel" class="customer-editor" hidden>
+            <div class="customer-editor-heading"><h3>Send an invitation</h3><button class="text-button" type="button" id="customerCloseInvite">Close</button></div>
+            <p id="customerInviteRecipient" class="customer-footnote"></p>
+            <label>Private signup link<input id="customerInviteLink" readonly aria-label="Private signup link"></label>
+            <p class="customer-footnote">Single use · expires after 72 hours. Copy into an email or a text for a recipient who has agreed to be contacted. This panel does not send an automatic message. Generating a new link invalidates the old one.</p>
+            <div class="customer-actions">
+              <button type="button" class="button" id="customerCopyLink">Copy link</button>
+              <button type="button" class="button" id="customerEmailLink">Email →</button>
+              <button type="button" class="button" id="customerTextLink">Text →</button>
+            </div>
+          </section>
         </section>
 
         <section data-studio-page="couples" class="studio-page" hidden>

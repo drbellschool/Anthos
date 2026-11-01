@@ -39,7 +39,7 @@ test("contacts are truly loaded server side and only permitted fields are return
  assert.equal(data.customers[0].registered,false);assert.equal(data.counts.standard,1);
  assert.equal(data.subscriptionConnected,false);assert.equal(data.emailInvitationConnected,false);
  assert.equal(JSON.stringify(data).includes("sb_secret_customer_test_only"),false);
- assert.equal(urls.filter(x=>x.opts.method==="HEAD").length,4);
+ assert.equal(urls.filter(x=>x.opts.method==="HEAD").length,7);
  assert.ok(urls.some(x=>x.url.includes("program=eq.pilot")));
 });
 test("adding two people creates one pending group and does not send invitations",async()=>{
@@ -97,7 +97,7 @@ test("customer page only uses text nodes and shows accurate access labels",()=>{
  for(const id of ["customerOpenAdd","customerAddForm","customerRows","customerEditForm",
    "customerFilterProgram","customerFilterStatus"])assert.ok(html.includes('id="'+id+'"'));
  assert.match(client,/\.textContent=/);assert.doesNotMatch(client,/\.innerHTML\s*=/);
- assert.match(html,/Standard \(not paid\)/);
+ assert.match(html,/Standard contact/);
  assert.match(sql,/enable row level security/);
  assert.match(sql,/revoke all on public\.anthos_customer_directory from anon,authenticated/);
  assert.match(sql,/staff_nomination in \('none','admin_pending'\)/);
@@ -134,7 +134,7 @@ test("authenticated admin can add and list contacts through actual route without
  assert.equal(list.status,200);
  const found=await list.json();assert.equal(found.customers.length,1);
  assert.equal(found.customers[0].status,"pending");
- assert.deepEqual(calls,["POST","GET","HEAD","HEAD","HEAD","HEAD"]);
+ assert.deepEqual(calls,["POST","GET","HEAD","HEAD","HEAD","HEAD","HEAD","HEAD","HEAD"]);
  const attack=await admin.fetch(new Request(url,{method:"POST",headers:{
    cookie,origin:"https://other.example","Content-Type":"application/json","X-Threefold-Admin":"1"},
    body:JSON.stringify({action:"customer-update",id:fakeRow().id,status:"archived"})}));
