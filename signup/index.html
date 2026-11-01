@@ -42,6 +42,7 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
  h1{font-size:27px}h2{font-size:19px}
 }
 @media(max-width:390px){.grid{grid-template-columns:1fr}.milestone{grid-template-columns:minmax(0,1fr) 1fr auto}}
+@media(min-width:600px){.contact-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 118px}}
 </style></head><body><main>
 <header><div class="logo">✳ anthos</div><div class="kicker">The adventure awaits</div></header>
 <div id="status" role="status">Opening your private invitation…</div>
@@ -62,9 +63,10 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   <label class="field">First name<input name="firstName" id="firstName" type="text" autocomplete="given-name" maxlength="60" required></label>
   <label class="field">Last name<input name="lastName" id="lastName" type="text" autocomplete="family-name" maxlength="60" required></label>
  </div>
- <div class="grid" style="margin-top:9px">
+ <div class="grid contact-grid" style="margin-top:9px">
   <label class="field">Email<input name="email" id="email" type="email" autocomplete="email" maxlength="254" required></label>
   <label class="field">Your mobile number<input name="phone" id="phone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="20" placeholder="(903) 555-1234" required></label>
+  <label class="field">Home ZIP<input name="postalCode" id="postalCode" type="text" autocomplete="postal-code" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="75501" required></label>
  </div>
  <div class="section" id="datesSection">
   <h2 id="datesTitle">Dates that matter to you</h2>
@@ -85,6 +87,7 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   <p class="note" id="milestoneHelp">A first date, engagement, annual tradition—or any milestone you want Anthos to remember. Add up to five.</p>
   <p class="note" id="partnerDateNote" hidden>These are dates your spouse entered. Correct a typo or add something they missed. Your suggestions are saved on your profile without silently changing theirs.</p>
  </div>
+ <p class="note">Your ZIP helps Paraclete suggest adventures near home. It is not precise GPS tracking.</p>
  <div class="section" id="spouseSection">
   <h2>Bring your spouse</h2>
   <div class="grid">
@@ -184,7 +187,7 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
    const milestones=[...$("milestones").children].map(row=>({label:row.querySelector("input[type=text]").value.trim(),date:row.querySelector("input[type=date]").value}));
    const body={action:"submit",token,
     firstName:values.get("firstName"),lastName:values.get("lastName"),email:values.get("email"),
-    phone:values.get("phone"),spouseFirstName:values.get("spouseFirstName"),spouseLastName:values.get("spouseLastName"),spousePhone:values.get("spousePhone"),
+    phone:values.get("phone"),postalCode:values.get("postalCode"),spouseFirstName:values.get("spouseFirstName"),spouseLastName:values.get("spouseLastName"),spousePhone:values.get("spousePhone"),
     birthDate:values.get("birthDate"),weddingDate:values.get("weddingDate"),
     holidays:[...$("holidays").querySelectorAll("input:checked")].map(x=>x.value),specialDates:milestones,
     confirmPhone:values.has("confirmPhone"),smsConsent:values.has("smsConsent"),
