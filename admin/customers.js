@@ -35,6 +35,7 @@
      who.append(el("strong","",p.name));
      who.append(el("span","",p.phone?(p.phoneVerified?"✓ Verified phone · ":"Phone not verified · ")+p.phone:"Phone not supplied"));
      who.append(el("span","",p.email));
+     if(p.postalCode)who.append(el("small","","ZIP "+p.postalCode));
      const coupling=p.couple||{};
      if(coupling.partnerName)who.append(el("small","","Spouse: "+coupling.partnerName));
      else if(p.spousePending)who.append(el("small","","Spouse: "+(p.spouseFirstName||"")+" · awaiting signup"));
@@ -92,7 +93,7 @@
  function editable(p){
    form("customerEditForm");
    const f=$("customerEditForm");
-   for(const [name,value] of Object.entries({id:p.id,name:p.name,program:p.program,staffNomination:p.staffNomination,status:p.status}))
+   for(const [name,value] of Object.entries({id:p.id,name:p.name,program:p.program,staffNomination:p.staffNomination,status:p.status,postalCode:p.postalCode||""}))
      f.elements.namedItem(name).value=value;
    number("customerEditTitle",p.name+" · customer details");
    number("customerEditEmail",p.email+" · Billing history: not connected · Flower: not launched · Photos: not launched");
@@ -106,6 +107,7 @@
      ["Couple registration complete",p.couple?.state==="both_joined_pending_verification","Both spouses signed up, awaiting phone verification"],
      ["Customer account activated",!!p.registered,"Independent authenticated account, not spouse pairing"],
      ["Phone number supplied",!!p.phone,"Unverified until ownership check"],
+     ["Home ZIP supplied",!!p.postalCode,"Self-reported for future nearby adventures"],
      ["Phone ownership verified",!!p.phoneVerified,"Requires separate phone verification; checkbox is insufficient"],
      ["Text consent recorded",p.smsConsent==="recorded_unverified","No Sophia SMS until verified and activated"],
      ["Spouse phone verification",!!p.couple?.phoneVerificationComplete,"Still pending for either spouse until separately verified"]
