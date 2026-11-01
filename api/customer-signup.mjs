@@ -81,13 +81,13 @@ async function redeemNewSignup(input,hash,fields,isSpouseInvite=false){
  const partner=phoneOf(spousePhone);
  if(partner===fields.phone_e164)fail("You and your spouse need separate mobile numbers.");
  const rawToken=isSpouseInvite?null:randomBytes(12).toString("base64url");
- const url=BASE+"rpc/anthos_redeem_signup_v3";
+ const url=BASE+"rpc/anthos_redeem_signup_v4";
  const headers={apikey:secret,"Content-Type":"application/json",Accept:"application/json"};
  if(!secret.startsWith("sb_secret_"))headers.Authorization="Bearer "+secret;
  let response;
  try{response=await fetch(url,{method:"POST",headers,cache:"no-store",signal:AbortSignal.timeout(9500),
   body:JSON.stringify({p_token_hash:hash,p_first_name:first,p_last_name:last,p_email:email,
-   p_birth_date:fields.birth_date,p_wedding_date:fields.wedding_date,
+   p_birth_date:fields.birth_date,p_wedding_date:fields.wedding_date,p_postal_code:fields.postal_code,
    p_holidays:fields.meaningful_holidays,p_special_dates:fields.special_dates,
    p_phone:fields.phone_e164,p_spouse_first_name:spouseFirst,p_spouse_last_name:spouseLast,
    p_spouse_phone:partner,p_partner_token_hash:rawToken?SHA(rawToken):null,
@@ -180,10 +180,13 @@ export async function submitSignup(data){
      new Date(event.date+"T00:00:00Z").toISOString().slice(0,10)!==event.date)
     fail("Enter a real calendar date for each celebration.");
  }
+ const postalCode=String(data.postalCode||"").trim();
+ if(!/^[0-9]{5}(?:-[0-9]{4})?$/.test(postalCode))
+   fail("Enter your five-digit home ZIP code so Anthos can plan nearby adventures.");
  const phone=phoneOf(data.phone);
  if(data.confirmPhone!==true)fail("Confirm that this is your phone number.");
  const sms=data.smsConsent===true,now=new Date().toISOString();
- const body={birth_date:data.birthDate,birthday_month_day:data.birthDate.slice(5),wedding_date:data.weddingDate,
+ const body={birth_date:data.birthDate,birthday_month_day:data.birthDate.slice(5),wedding_date:data.weddingDate,postal_code:postalCode,
   meaningful_holidays:data.holidays,holidays_reviewed_at:now,special_dates:dates,questionnaire_submitted_at:now,
   phone_e164:phone,phone_owner_attested_at:now,
   sms_consent_at:sms?now:null,sms_disclosure_version:sms?"anthos-sms-2026-11-v1":null,
