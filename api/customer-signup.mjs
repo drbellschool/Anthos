@@ -39,11 +39,11 @@ export async function createOpenSignupLink(){
 async function redeemNewSignup(input,hash,fields){
  const secret=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!secret)fail("Signup database is not configured.",503);
- const name=String(input.name||"").trim().replace(/\\s+/g," ");
+ const name=String(input.name||"").trim().replace(/\s+/g," ");
  const email=String(input.email||"").trim().toLowerCase();
- if(name.length<1||name.length>80||/[<>\\u0000-\\u001f]/.test(name))
+ if(name.length<1||name.length>80||/[<>\u0000-\u001f]/.test(name))
    fail("Enter your name (up to 80 characters).");
- if(email.length>254||!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(email))
+ if(email.length>254||!/^[^\s@<>]+@[^\s@<>]+\\.[^\s@<>]+$/.test(email))
    fail("Enter your valid email address.");
  const url=BASE+"rpc/anthos_redeem_new_signup";
  const headers={apikey:secret,"Content-Type":"application/json","Accept":"application/json"};
