@@ -24,12 +24,12 @@
    const invite=el("button","customer-mini","Invite");invite.type="button";
    invite.addEventListener("click",()=>makeInvite(p,invite));
    const edit=el("button","customer-mini customer-mini-edit","✎");edit.type="button";
-   edit.title="Edit "+p.name;edit.setAttribute("aria-label","Edit "+p.name);edit.addEventListener("click",()=>editPerson(p));
+   edit.title="Edit "+p.name;edit.setAttribute("aria-label","Edit "+p.name);edit.addEventListener("click",()=>editable(p));
    wrap.append(invite,edit);return wrap;
  }
  function draw(rows){
    const body=$("customerRows");body.replaceChildren();
-   if(!rows.length){const tr=el("tr"),td1=el("td","","No matching customers. Add your first contact above.");td1.colSpan=9;tr.append(td1);body.append(tr);return;}
+   if(!rows.length){const tr=el("tr"),td1=el("td","","No completed signups yet. Create a signup link above and share it.");td1.colSpan=9;tr.append(td1);body.append(tr);return;}
    for(const p of rows){
      const tr=el("tr"),who=el("div","customer-person");
      who.append(el("strong","",p.name));
@@ -76,7 +76,7 @@
    finally{busy=false;$("customerRefresh").disabled=false;}
  }
  function form(id){
-   for(const key of ["customerAddForm","customerEditForm","customerInvitePanel"])$(key).hidden=id!==key;
+   for(const key of ["customerEditForm","customerInvitePanel"])$(key).hidden=id!==key;
    if(id)$(id).scrollIntoView({block:"nearest",behavior:"smooth"});
  }
  function editable(p){
@@ -107,12 +107,12 @@
  async function makeInvite(p,button){
    if(busy)return;busy=true;button.disabled=true;notice("Generating an expiring private signup link…");
    try{
-     const r=await api("",{action:"customer-invite",id:p.id});
-     inviteCtx={person:p,link:r.link};
+     const r=await api("",p?{action:"customer-invite",id:p.id}:{action:"customer-invite-new"});
+     inviteCtx={person:p||null,link:r.link};
      $("customerInviteLink").value=r.link;
-     number("customerInviteRecipient",p.name+" · "+p.email+" · Expires in 72 hours · Not sent");
+     number("customerInviteRecipient",p?p.name+" · "+p.email+" · Expires in 72 hours · Not sent":"New signup · No customer record yet · Link expires in 72 hours · Not sent");
      form("customerInvitePanel");
-     notice("Private link ready. Share it only with "+p.name+". No message has been sent.");
+     notice(p?"Private link ready for "+p.name+". Nothing was sent.":"Invite ready. The recipient will enter their own name, email and details. No customer record has been created.");
    }catch(e){notice(e.message,true)}finally{busy=false;button.disabled=false;}
  }
  function message(){return inviteCtx?"You're invited to Anthos! Complete your private marriage-adventure profile here: "+inviteCtx.link:"";}
@@ -125,13 +125,13 @@
      notice(r.message||"Customer saved. You can now generate their signup link.");
    }catch(e){notice(e.message,true)}finally{busy=false;button.disabled=false;}
  }
- $("customerOpenAdd").addEventListener("click",()=>form("customerAddForm"));
- $("customerCloseAdd").addEventListener("click",()=>form(null));
+ $("customerCreateInvite").addEventListener("click",event=>makeInvite(null,event.currentTarget));
+ 
  $("customerCloseEdit").addEventListener("click",()=>form(null));
  $("customerCloseInvite").addEventListener("click",()=>form(null));
- $("customerAddForm").addEventListener("submit",e=>{e.preventDefault();submit($("customerAddSubmit"),{action:"customer-add",...body(e.currentTarget)},e.currentTarget);});
+ 
  $("customerEditForm").addEventListener("submit",e=>{e.preventDefault();submit($("customerSave"),{action:"customer-update",...body(e.currentTarget)},e.currentTarget);});
- for(const f of [$("customerAddForm"),$("customerEditForm")]){
+ for(const f of [$("customerEditForm")]){
    f.elements.namedItem("staffNomination").addEventListener("change",()=>{
      if(f.elements.namedItem("staffNomination").value==="admin_pending")f.elements.namedItem("program").value="standard";
    });
@@ -146,7 +146,7 @@
  });
  $("customerEmailLink").addEventListener("click",()=>{
    if(!inviteCtx)return;
-   location.href="mailto:"+encodeURIComponent(inviteCtx.person.email)+"?subject="+encodeURIComponent("Your Anthos invitation")+"&body="+encodeURIComponent(message());
+   location.href="mailto:"+(inviteCtx.person?encodeURIComponent(inviteCtx.person.email):"")+"?subject="+encodeURIComponent("Your Anthos invitation")+"&body="+encodeURIComponent(message());
  });
  $("customerTextLink").addEventListener("click",()=>{
    if(!inviteCtx)return;
