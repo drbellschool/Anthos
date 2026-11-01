@@ -28,6 +28,32 @@ async function findNewInvite(token){
    fail("This invitation has expired or already been used.",410);
  return {hash,expiresAt:rows[0].expires_at,invitedByCustomerId:rows[0].invited_by_customer_id||null};
 }
+// Share only marriage-level dates and the recipient's invited details.
+// Never put the inviter's DOB, email, private notes, or SMS consent in a preview.
+async function partnerReview(invite){
+ if(!invite.invitedByCustomerId)return null;
+ const records=await db({
+   select:"id,first_name,last_name,spouse_first_name,spouse_last_name,spouse_phone_e164,phone_e164,wedding_date,meaningful_holidays,special_dates,record_status",
+   id:"eq."+invite.invitedByCustomerId,limit:1
+ });
+ const person=records[0];
+ if(!person||person.record_status==="archived"||!person.phone_e164||
+    !person.spouse_phone_e164||!person.spouse_first_name||!person.spouse_last_name)
+   fail("This partner invitation needs to be reissued by your spouse.",410);
+ return {
+   partnerName:person.first_name||"Your spouse",
+   firstName:person.spouse_first_name,
+   lastName:person.spouse_last_name,
+   phone:person.spouse_phone_e164,
+   weddingDate:person.wedding_date||"",
+   holidays:Array.isArray(person.meaningful_holidays)?person.meaningful_holidays:[],
+   specialDates:Array.isArray(person.special_dates)?person.special_dates.slice(0,5):[],
+   // Server-only values; intentionally omitted from the public preview response.
+   inviterFirstName:person.first_name||"",
+   inviterLastName:person.last_name||"",
+   inviterPhone:person.phone_e164
+ };
+}
 export async function createOpenSignupLink(){
  const token=randomBytes(12).toString("base64url"),expiresAt=new Date(Date.now()+72*3600000).toISOString();
  const rows=await db({}, "POST",{token_hash:SHA(token),expires_at:expiresAt,program:"pilot"},
@@ -118,7 +144,14 @@ export async function createSignupLink({id}={}){
 }
 export async function previewSignup(token){
  const fresh=await findNewInvite(token);
- if(fresh)return {ok:true,mode:"new",name:"",email:"",phone:"",expiresAt:fresh.expiresAt};
+ if(fresh){
+   const couple=await partnerReview(fresh);
+   if(couple)return {ok:true,mode:"partner",name:couple.firstName+" "+couple.lastName,
+     firstName:couple.firstName,lastName:couple.lastName,phone:couple.phone,
+     invitedBy:couple.partnerName,weddingDate:couple.weddingDate,holidays:couple.holidays,
+     specialDates:couple.specialDates,expiresAt:fresh.expiresAt};
+   return {ok:true,mode:"new",name:"",email:"",phone:"",expiresAt:fresh.expiresAt};
+ }
  const {row}=await active(token);
  return {ok:true,mode:"existing",name:row.display_name,email:row.email,phone:row.phone_e164||"",
     expiresAt:row.signup_token_expires_at};
@@ -156,7 +189,15 @@ export async function submitSignup(data){
   sms_consent_at:sms?now:null,sms_disclosure_version:sms?"anthos-sms-2026-11-v1":null,
   signup_token_hash:null,signup_token_expires_at:null,signup_token_consumed_at:now};
  if(fresh){
-   const complete=await redeemNewSignup(data,fresh.hash,body,!!fresh.invitedByCustomerId);
+   const couple=await partnerReview(fresh);
+   // Trust the linked person's own stored identity, never client-supplied fields.
+   // This closes a route for redirecting a partner invite to a different household.
+   const complete=await redeemNewSignup(couple?{
+     ...data,
+     spouseFirstName:couple.inviterFirstName,
+     spouseLastName:couple.inviterLastName,
+     spousePhone:couple.inviterPhone
+   }:data,fresh.hash,body,!!couple);
    return {ok:true,questionnaireComplete:true,partnerInviteLink:complete.partnerLink,spouseFirstName:complete.spouseName,
      smsConsent:sms?"recorded_unverified":"declined",
      message:"Your completed signup is saved. Sophia will not text until phone verification, carrier approval and activation are confirmed."};

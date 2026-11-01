@@ -236,3 +236,95 @@ test("the current signup requires both spouse names and phone with U.S. national
    assert.match(h.headers.find(x=>x.key==="Cache-Control").value,/no-store/);
  }
 });
+
+test("partner invitation previews shared dates and prefilled recipient identity only",async()=>{
+ process.env.SUPABASE_SECRET_KEY="sb_secret_test_no_real_data";
+ const {createHash}=await import("node:crypto");
+ const token="ABCDEFGHIJKLMNOP", hash=createHash("sha256").update(token).digest("hex");
+ const inviter={
+   id,email:"private-inviter@example.test",birth_date:"1984-01-01",
+   first_name:"Alissa",last_name:"Bell",phone_e164:"+19035551234",
+   spouse_first_name:"Adam",spouse_last_name:"Bell",spouse_phone_e164:"+19035555678",
+   wedding_date:"2010-05-12",meaningful_holidays:["valentines","christmas"],
+   special_dates:[{label:"First date",date:"2009-02-14"}],record_status:"pending"
+ };
+ const calls=[];
+ globalThis.fetch=async(uri,opts)=>{
+   const url=new URL(uri);calls.push({path:url.pathname,method:opts.method});
+   if(url.pathname.endsWith("/anthos_signup_invitations")){
+     assert.equal(url.searchParams.get("token_hash"),"eq."+hash);
+     return new Response(JSON.stringify([{token_hash:hash,expires_at:new Date(Date.now()+3600000).toISOString(),
+       redeemed_at:null,invited_by_customer_id:id}]),{status:200});
+   }
+   if(url.pathname.endsWith("/anthos_customer_directory")){
+     assert.equal(url.searchParams.get("id"),"eq."+id);
+     return new Response(JSON.stringify([inviter]),{status:200});
+   }
+   throw Error("Unexpected request "+url.pathname);
+ };
+ const preview=await previewSignup(token);
+ assert.equal(preview.mode,"partner");
+ assert.equal(preview.invitedBy,"Alissa");
+ assert.equal(preview.firstName,"Adam");
+ assert.equal(preview.lastName,"Bell");
+ assert.equal(preview.phone,"+19035555678");
+ assert.equal(preview.weddingDate,"2010-05-12");
+ assert.deepEqual(preview.holidays,["valentines","christmas"]);
+ assert.deepEqual(preview.specialDates,[{label:"First date",date:"2009-02-14"}]);
+ assert.equal(Object.hasOwn(preview,"birth_date"),false);
+ assert.equal(Object.hasOwn(preview,"email"),false);
+ assert.equal(JSON.stringify(preview).includes("private-inviter@example.test"),false);
+ assert.equal(JSON.stringify(preview).includes("1984-01-01"),false);
+ assert.equal(calls.length,2);
+});
+test("partner review submits without re-entering their spouse and cannot redirect household",async()=>{
+ process.env.SUPABASE_SECRET_KEY="sb_secret_test_no_real_data";
+ const {createHash}=await import("node:crypto");
+ const token="ABCDEFGHIJKLMNOP", hash=createHash("sha256").update(token).digest("hex");
+ const inviter={
+   id,first_name:"Alissa",last_name:"Bell",phone_e164:"+19035551234",
+   spouse_first_name:"Adam",spouse_last_name:"Bell",spouse_phone_e164:"+19035555678",
+   wedding_date:"2010-05-12",meaningful_holidays:["christmas"],
+   special_dates:[{label:"Engagement",date:"2009-10-01"}],record_status:"pending"
+ };
+ let storedArgs=null;
+ globalThis.fetch=async(uri,opts)=>{
+   const url=new URL(uri);
+   if(url.pathname.endsWith("/anthos_signup_invitations"))
+     return new Response(JSON.stringify([{token_hash:hash,expires_at:new Date(Date.now()+3600000).toISOString(),
+       redeemed_at:null,invited_by_customer_id:id}]),{status:200});
+   if(url.pathname.endsWith("/anthos_customer_directory"))return new Response(JSON.stringify([inviter]),{status:200});
+   if(url.pathname.endsWith("/rpc/anthos_redeem_signup_v3")){
+     storedArgs=JSON.parse(opts.body);
+     return new Response(JSON.stringify({customerId:"480ac509-5093-4180-8e44-d0f7d4647988",
+       partnerInvitePrepared:false}),{status:200});
+   }
+   throw Error("Unexpected request "+url.pathname);
+ };
+ // No spouse fields in the review form; malicious overrides are ignored.
+ const result=await submitSignup({...data,token,firstName:"Adam",lastName:"Bell",
+   phone:"9035555678",email:"adam@example.test",weddingDate:"2010-05-13",
+   holidays:["christmas","valentines"],
+   specialDates:[{label:"Engagement",date:"2009-10-01"},{label:"Our hike",date:"2015-06-01"}],
+   spouseFirstName:"Attacker",spouseLastName:"Wrong",spousePhone:"+19039999999"});
+ assert.equal(result.ok,true);assert.equal(result.partnerInviteLink,null);
+ assert.equal(storedArgs.p_first_name,"Adam");
+ assert.equal(storedArgs.p_phone,"+19035555678");
+ assert.equal(storedArgs.p_spouse_first_name,"Alissa");
+ assert.equal(storedArgs.p_spouse_last_name,"Bell");
+ assert.equal(storedArgs.p_spouse_phone,"+19035551234");
+ assert.equal(storedArgs.p_partner_token_hash,null);
+ assert.equal(storedArgs.p_wedding_date,"2010-05-13");
+ assert.equal(storedArgs.p_special_dates.length,2);
+});
+test("spouse review is short, reuses marriage dates, and does not require repeat spouse fields",()=>{
+ const markup=readFileSync(new URL("../signup/index.html",import.meta.url),"utf8");
+ assert.match(markup,/r\.mode==="partner"/);
+ assert.match(markup,/\$\("spouseSection"\)\.hidden=true/);
+ assert.match(markup,/input\.required=false;input\.disabled=true/);
+ assert.match(markup,/r\.weddingDate/);
+ assert.match(markup,/r\.holidays/);
+ assert.match(markup,/r\.specialDates/);
+ assert.match(markup,/Confirm my details/);
+ assert.match(markup,/correct a date/i);
+});
