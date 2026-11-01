@@ -1,17 +1,10 @@
 // Anthos CRM v1. Real, private Supabase contacts; NOT customer authentication or billing.
 // Called only from authenticated /api/admin after same-origin CSRF verification.
-import {randomUUID} from "node:crypto";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const key=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
 const columns="id,email,display_name,program,staff_nomination,record_status,group_id,auth_user_id,created_at,updated_at,birthday_month_day,wedding_date,holidays_reviewed_at,questionnaire_submitted_at,phone_e164,phone_owner_attested_at,phone_verified_at,sms_consent_at,email_opt_in_at";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-function emailOf(value){
- if(typeof value!=="string")fail("Enter a valid email address.");
- const email=value.trim().toLowerCase();
- if(email.length>254||! /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email))fail("Enter a valid email address.");
- return email;
-}
 function nameOf(value){
  if(typeof value!=="string")fail("Enter the customer's name.");
  const name=value.trim().replace(/\s+/g," ");
@@ -91,26 +84,6 @@ export async function listCustomers(opts={}){
    accountsLinked:countOf(counts[6].range)},
    subscriptionConnected:false,emailInvitationConnected:false,
    explanation:"Standard is a program designation, not proof of payment. Admin candidates have no staff permissions. No email invitations are sent."};
-}
-export async function addCustomers(input){
- if(!input||typeof input!=="object"||Array.isArray(input))fail("Invalid customer information.");
- const email=emailOf(input.email),name=nameOf(input.name),program=programOf(input.program);
- const nomination=nominationOf(input.staffNomination||"none");
- if(nomination==="admin_pending"&&program!=="standard")fail("Admin candidates must use Standard classification.");
- const other=input.partnerEmail?emailOf(input.partnerEmail):null;
- const otherName=other?nameOf(input.partnerName):null;
- if(other&&email===other)fail("A partner must have a different email address.");
- if(input.partnerName&&!other)fail("Provide the partner's email address.");
- const groupId=other?randomUUID():null;
- const record=(e,n,s)=>({email:e,display_name:n,program,staff_nomination:s,
-   record_status:"pending",group_id:groupId});
- const batch=[record(email,name,nomination)];
- if(other)batch.push(record(other,otherName,"none"));
- const response=await query("anthos_customer_directory",{}, "POST",batch);
- if(!Array.isArray(response.rows)||response.rows.length!==batch.length)fail("Could not confirm the customer records.",502);
- return {ok:true,customers:response.rows.map(clean),
-   message:batch.length===2?"Both people were saved as pending contacts. Their shared group does not grant partner access.":"Customer saved as a pending contact.",
-   invitationSent:false};
 }
 export async function editCustomer(input){
  if(!input||!UUID.test(String(input.id||"")))fail("Select an existing customer.");
