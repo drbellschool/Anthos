@@ -120,6 +120,7 @@ test("commercial readiness is weighted, visible and explicitly estimated",()=>{
  assert.match(admin,/PAID BETA/);
  assert.match(progress,/workstreams\.reduce/);
  assert.match(progress,/Math\.round/);
- assert.match(progress,/weight:20,progress:10/);
+ assert.match(progress,/Database and couple accounts",weight:20,progress:\d+/);
+ assert.match(progress,/Real SMS and AI delivery",weight:20,progress:\d+/);
  assert.match(admin,/Scope-adjusted planning estimate/);
 });
