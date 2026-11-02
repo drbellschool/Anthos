@@ -84,3 +84,24 @@
 .readiness-actions button:first-child{background:#d6ebcf;color:#2e5b3a;border-color:#b6d3ad}
 .room.is-live .readiness-panel{flex:0 0 auto}
 @media(max-width:420px){.readiness-panel{flex-wrap:wrap}.readiness-copy{flex-basis:100%}.readiness-actions{width:100%}.readiness-actions button{flex:1}}
+
+
+/* Fluid rooms behave like a conversation, not a stack of tasks. */
+.room.is-live:has(#legacyTools[hidden]) #storyMoment{max-height:42dvh;margin-bottom:5px;padding:9px 11px;border-radius:10px;box-shadow:none;background:#f9fbf7}
+.room.is-live:has(#legacyTools[hidden]) #storyMoment h2{font-size:18px;margin:4px 0 6px}
+.room.is-live:has(#legacyTools[hidden]) .moment-story{font-size:13px!important;line-height:1.34!important}
+.room.is-live:has(#legacyTools[hidden]) .moment-question{font-size:12px}
+.room.is-live:has(#legacyTools[hidden]) .choices-block{margin:7px 0 0;padding-top:6px}
+.room.is-live:has(#legacyTools[hidden]) .choice-intro{font-size:10px}
+.room.is-live:has(#legacyTools[hidden]) .choice-row{margin:3px 0;gap:5px}
+.room.is-live:has(#legacyTools[hidden]) .choice-option{min-height:34px;font-size:11px;padding:7px 9px}
+.room.is-live:has(#legacyTools[hidden]) .choice-row .comment-chip{width:52px;font-size:9px;padding:3px}
+.room.is-live:has(#legacyTools[hidden]) .custom-choice{min-height:32px;margin-top:5px;padding:6px 8px;font-size:11px}
+.room.is-live:has(#legacyTools[hidden]) #storyMoment #chapterComment{margin-top:4px}
+.room.is-live:has(#legacyTools[hidden]) #storyMoment #outcomeCard{padding:8px}
+.room.is-live:has(#legacyTools[hidden]) .thread{scroll-behavior:smooth}
+.fluid-finished{margin:7px 12px;padding:12px 14px;background:#e8f2e5;border-radius:10px;font:15px/1.4 Georgia,serif}
+@media(max-width:390px){
+ .room.is-live:has(#legacyTools[hidden]) #storyMoment{max-height:45dvh}
+ .room.is-live:has(#legacyTools[hidden]) .choice-row .comment-chip{width:44px}
+}

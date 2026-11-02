@@ -4,14 +4,14 @@
 <body>
 <main class="room">
  <header class="bar"><div class="brand">✿ anthos <span>PRIVATE PILOT</span></div><div class="bar-tools"><button id="generalComment" class="comment-chip" type="button">✎ Comment</button><div id="connection" class="status">Connecting…</div></div></header>
- <section class="intro"><div class="eyebrow">TEAM DEEP DIVE · LIVE WITH SOPHIA</div><h1>The Saturday Surprise</h1><p class="prompt">Jack and Jill's dilemma develops as you talk. The two of you decide when to bring in Sophia, when to uncover the next twist, and when you've reached your answer.</p></section>
+ <section class="intro"><div class="eyebrow">TEAM DEEP DIVE · LIVE WITH SOPHIA</div><h1>The Saturday Surprise</h1><p class="prompt">Jack and Jill's dilemma develops as you talk. Reply with a number or your own words. Sophia listens to you both and guides the next twist naturally.</p></section>
  <section id="storyMoment" class="story-moment" hidden aria-label="Current fictional story moment">
   <div class="moment-top"><span id="momentCount" class="eyebrow">MOMENT 1 OF 3</span><span class="moment-no-grade">No right answers</span></div>
   <h2 id="momentTitle"></h2>
   <p id="momentStory" class="moment-story"></p>
   <p id="momentQuestion" class="moment-question"></p>
   <button id="chapterComment" class="comment-chip" type="button">✎ Comment on chapter</button>
-  <details id="choicesBlock" class="choices-block"><summary>Choose a response · 3 ideas + your own</summary><p class="choice-intro">Send one of these as a starting point, or say something completely different.</p><div id="choiceOptions"></div><button id="customChoice" class="outline custom-choice" type="button">✍ My own response</button></details>
+  <div id="choicesBlock" class="choices-block"><p class="choice-intro">Reply 1, 2, 3, or write what you really think:</p><div id="choiceOptions"></div><button id="customChoice" class="outline custom-choice" type="button">✍ Write my own response</button></div>
   <div id="outcomeCard" class="outcome-card" hidden><strong>✧ What your choices caused</strong><p id="outcomeText"></p><button id="outcomeComment" class="comment-chip" type="button">✎ Comment on consequence</button></div>
  </section>
  <details id="chapterHistory" class="chapter-history" hidden><summary>Revisit earlier chapters and add comments</summary><div id="historyChapters"></div></details>
@@ -21,13 +21,14 @@
  <section id="conversation" class="conversation" hidden>
   <div class="conversation-head"><span id="identity">Shared dialogue</span><div class="conversation-head-actions"><button id="nameButton" type="button" class="name-button">Your name</button><span id="remaining">Sophia ready</span></div></div>
   <div id="thread" class="thread" aria-label="Shared conversation" aria-live="polite"></div>
+  <div id="fluidFinished" class="fluid-finished" hidden>✿ You reached the end of this story together. Your conversations—not buttons—shaped what happened to Jack and Jill.</div>
   <div class="compose">
-   <label for="message" class="sr-only">Your message to your spouse</label><textarea id="message" maxlength="700" rows="2" placeholder="Say what you actually think…"></textarea>
+   <label for="message" class="sr-only">Your message to your spouse</label><textarea id="message" maxlength="700" rows="2" placeholder="Reply 1, 2, 3, or say what you actually think…"></textarea>
    <button id="send">Send <span aria-hidden="true">↗</span></button>
   </div>
   <div id="readinessPanel" class="readiness-panel" hidden aria-live="polite"><div class="readiness-copy"><span id="readinessStatus">Sophia is listening. Take your time.</span></div><div class="readiness-actions"><button id="readyButton" class="outline" type="button">✓ I’m ready</button><button id="continueButton" class="outline" type="button">Keep talking</button></div></div>
-  <div class="tools"><button id="ask" class="outline">✧ Ask Sophia</button><button id="resolve" type="button">✧ See what happens</button><button id="proposeButton" class="outline">We have an answer</button><button id="nextMoment" class="outline">Next chapter →</button></div>
-  <p class="muted helper">Sophia reads the shared conversation and can join naturally. Sophia will check in as you talk. Each spouse chooses when ready; only then will See what happens unlock. Private beta Comments are for editorial review, not messages to Sophia.</p>
+  <div class="tools" id="legacyTools"><button id="ask" class="outline">✧ Ask Sophia</button><button id="resolve" type="button">✧ See what happens</button><button id="proposeButton" class="outline">We have an answer</button><button id="nextMoment" class="outline">Next chapter →</button></div>
+  <p class="muted helper">Sophia reads the shared conversation and can join naturally. Sophia will check in as you talk. Sophia guides the next scene after both perspectives have had room to develop. Private beta Comments are for editorial review, not messages to Sophia.</p>
  </section>
  <section id="proposalPanel" class="panel" hidden>
   <div id="proposalStep" class="eyebrow">SHARED DECISION</div><h2 id="proposalHeading">Your shared answer</h2><p id="proposalInstruction" class="muted"></p><blockquote id="proposalText" class="answer-quote"></blockquote><button id="answerComment" class="comment-chip" type="button">✎ Comment on final answer</button><div id="proposeForm"><label for="answer">What answer have you agreed on?</label><textarea id="answer" maxlength="800" rows="3" placeholder="We think Jack and Jill should…"></textarea><button id="submitAnswer">Share answer for my spouse to confirm</button></div>
