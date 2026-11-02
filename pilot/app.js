@@ -133,6 +133,7 @@ function render(){
  $("proposeButton").hidden=fluid||(state.roomStatus==="active"&&state.storyFormat==="full"&&((state.storyBeat||1)<8||!state.chapterOutcome));
  const fluid=state.conversationMode==="fluid";
  $("legacyTools").hidden=fluid;
+ $("fluidFinished").hidden=!fluid||state.roomStatus!=="completed";
  const full=state.storyFormat==="full";
  const current=state.messages.filter(m=>m.chapter_number===(state.storyBeat||1));
  const bothCurrent=current.some(m=>m.author==="a")&&current.some(m=>m.author==="b");
@@ -157,7 +158,7 @@ function render(){
   !bothCurrent?"Both spouses respond first":"Waiting for both to be ready";
  $("nextMoment").hidden=fluid||!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3)||(full&&!state.chapterOutcome);
  $("nextMoment").disabled=busy||!isActive;
- const inReview=showProposal||state.roomStatus!=="active";
+ const inReview=!fluid&&(showProposal||state.roomStatus!=="active");
  $("proposalPanel").hidden=!inReview;
  if(!inReview)return;
  const proposed=state.proposal;
