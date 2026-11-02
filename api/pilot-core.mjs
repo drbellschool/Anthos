@@ -316,7 +316,7 @@ export async function ask(invite){
 }
 // After hearing BOTH spouses, OpenAI writes a consequence and alters the next scene.
 // One canonical outcome per chapter; CAS room lock prevents simultaneous duplicate charges.
-async function conversationReady(messagesNow,sophiaReply,scene,names){
+export async function conversationReady(messagesNow,sophiaReply,scene,names){
  const token=process.env.OPENAI_API_KEY?.trim();if(!token)return false;
  const transcript=messagesNow.slice(-16).map(m=>speakerName(m.author,names)+": "+m.body).join("\n");
  let response;
