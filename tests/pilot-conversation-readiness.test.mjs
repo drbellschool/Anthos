@@ -8,7 +8,7 @@ test("Sophia can return for new exchanges while preserving consent and message l
  assert.match(core,/fresh\.some\(m=>m\.author==="b"\)/);
  assert.match(core,/current\.filter\(m=>m\.author==="sophia"\)\.length>=3/);
  assert.match(core,/invite them to decide whether to keep talking/);
- assert.match(core,/try\{await maybeSophia\(c\);\}catch/);
+ assert.match(core,/try\{await maybeSophia\(c,invite\);\}catch/);
 });
 test("new messages and one keep-talking decision both reset shared readiness",()=>{
  const core=read("../api/pilot-core.mjs");
