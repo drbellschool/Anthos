@@ -290,6 +290,8 @@ async function maybeSophia(c,invite){
      if(await conversationReady(current,reply,chapters[chapter-1],namesFor(c))){
        await resolveChapter(invite,true);
        if(chapter<storyFor(c.room).length)await nextMoment(invite);
+       else await db("anthos_pilot_rooms",{id:"eq."+c.room.id,status:"eq.active"},
+         {status:"completed"},"PATCH");
      }
    }catch{/* Saved messages remain untouched; another exchange may retry. */}
  }
