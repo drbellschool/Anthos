@@ -48,9 +48,8 @@ function renderChoices(scene,chapter){
   button.className="choice-option";button.textContent=(i+1)+". "+option;
   button.disabled=state.roomStatus!=="active";
   button.addEventListener("click",()=>{
-   $("message").value=option;
-   $("message").focus();
-   $("message").scrollIntoView({block:"nearest"});
+   if(state.conversationMode==="fluid")act("send",{message:String(i+1)});
+   else{$("message").value=option;$("message").focus();}
   });
   row.append(button,makeCommentButton("✎ Comment","option",chapter,i,option));host.append(row);
  });
@@ -112,7 +111,7 @@ function render(){
  text("momentTitle",scene.title||"The Saturday Surprise");
  text("momentStory",scene.story||"");
  text("momentQuestion",scene.prompt||"");
- if(lastScene!==(state.storyBeat||1)){lastScene=state.storyBeat||1;$("choicesBlock").open=false;$("storyMoment").scrollTop=0;}
+ if(lastScene!==(state.storyBeat||1)){lastScene=state.storyBeat||1;$("storyMoment").scrollTop=0;}
  const outcome=state.chapterOutcome;
  $("outcomeCard").hidden=!outcome;
  text("outcomeText",outcome?.consequence||"");
@@ -131,14 +130,16 @@ function render(){
  $("ask").disabled=busy||!isActive||!state.messages.some(m=>m.chapter_number===(state.storyBeat||1)&&m.author==="a")||!state.messages.some(m=>m.chapter_number===(state.storyBeat||1)&&m.author==="b")||state.aiRepliesLeft===0||state.messages.at(-1)?.author==="sophia";
  $("proposeButton").disabled=busy||(!isActive&&state.roomStatus!=="proposed")||(isActive&&(countA<1||countB<1));
  $("proposeButton").textContent=state.roomStatus==="active"?"We have an answer":"View our answer";
- $("proposeButton").hidden=state.roomStatus==="active"&&state.storyFormat==="full"&&((state.storyBeat||1)<8||!state.chapterOutcome);
+ $("proposeButton").hidden=fluid||(state.roomStatus==="active"&&state.storyFormat==="full"&&((state.storyBeat||1)<8||!state.chapterOutcome));
+ const fluid=state.conversationMode==="fluid";
+ $("legacyTools").hidden=fluid;
  const full=state.storyFormat==="full";
  const current=state.messages.filter(m=>m.chapter_number===(state.storyBeat||1));
  const bothCurrent=current.some(m=>m.author==="a")&&current.some(m=>m.author==="b");
  const sophiaJoined=current.some(m=>m.author==="sophia");
  const bothReady=Boolean(state.myChapterReady&&state.partnerChapterReady);
  const showReadiness=isActive&&full&&!state.chapterOutcome&&sophiaJoined&&bothCurrent;
- $("readinessPanel").hidden=!showReadiness;
+ $("readinessPanel").hidden=fluid||!showReadiness;
  if(showReadiness){
   const partner=state.partnerName||"Your spouse";
   const myReady=Boolean(state.myChapterReady),theirReady=Boolean(state.partnerChapterReady);
@@ -150,11 +151,11 @@ function render(){
   $("readyButton").textContent=myReady?"✓ You're ready":"✓ I'm ready";
   $("continueButton").disabled=busy;
  }
- $("resolve").hidden=!isActive||!full||!!state.chapterOutcome;
+ $("resolve").hidden=fluid||!isActive||!full||!!state.chapterOutcome;
  $("resolve").disabled=busy||!bothCurrent||!sophiaJoined||!bothReady;
  $("resolve").textContent=bothReady?"✧ See what happens":
   !bothCurrent?"Both spouses respond first":"Waiting for both to be ready";
- $("nextMoment").hidden=!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3)||(full&&!state.chapterOutcome);
+ $("nextMoment").hidden=fluid||!isActive||(state.storyBeat||1)>=(state.storyBeatCount||3)||(full&&!state.chapterOutcome);
  $("nextMoment").disabled=busy||!isActive;
  const inReview=showProposal||state.roomStatus!=="active";
  $("proposalPanel").hidden=!inReview;
@@ -218,7 +219,7 @@ function init(){
   if(await act("send",{message:value}))$("message").value="";
  });
  $("message").addEventListener("keydown",e=>{
-  if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("send").click()}
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}
  });
  $("generalComment").addEventListener("click",()=>openComment("general",state?.storyBeat||1));
  $("chapterComment").addEventListener("click",()=>openComment("chapter",state?.storyBeat||1,null,state?.scene?.story||""));
