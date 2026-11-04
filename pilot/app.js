@@ -118,13 +118,24 @@ function renderMessages(list){
    const hint=document.createElement("em");hint.className="message-choice-hint";
    hint.textContent="Reply 1, 2, 3, or use your own words.";
    bubble.append(hint);
-  }else bubble.append(document.createTextNode(m.body));
+  }else{
+   bubble.append(document.createTextNode(m.body));
+   if(m.researchSource&&/^https:\/\/(www\.gottman\.com|pubmed\.ncbi\.nlm\.nih\.gov)\//.test(m.researchSource)){
+    const source=document.createElement("a");source.href=m.researchSource;
+    source.target="_blank";source.rel="noopener noreferrer";source.className="research-source";
+    source.textContent="Research behind this moment ↗";bubble.append(source);
+   }
+  }
   if(m.kind==="choices"){
    bubble.append(makeCommentButton("✎ Comment on choices","chapter",
      m.chapter_number,null,m.body));
   }else if(m.kind==="story"||m.kind==="chapter"){
-   if(m.kind==="chapter")bubble.append(makeCommentButton("✎ Comment on chapter",
+   if(m.kind==="chapter"){
+    bubble.append(makeCommentButton("✎ Comment on chapter",
      "chapter",m.chapter_number,null,m.body));
+    if(m.consequence)bubble.append(makeCommentButton("✎ Comment on consequence",
+     "outcome",m.consequenceTurn||Math.max(1,m.chapter_number-1),null,m.consequence));
+   }
   }else if(m.kind==="consequence"){
    bubble.append(makeCommentButton("✎ Comment on consequence",
      "outcome",m.chapter_number,null,m.body));
