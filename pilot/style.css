@@ -58,7 +58,7 @@
 .room.is-live #proposalPanel{position:absolute;z-index:10;inset:47px 0 4px;overflow:auto;background:#fffefa;margin:0 12px 7px;padding:18px}
 .choices-block{padding:8px 0 0;border-top:1px solid #d7e2d4;margin:9px 0 0}
 .choices-block summary{font-size:12px;font-weight:750;color:#396448;cursor:pointer;padding:4px 0}
-.choices-block:not([open]) .choice-intro,.choices-block:not([open]) .choice-row,.choices-block:not([open]) .custom-choice{display:none}
+.choices-block:is(details):not([open]) .choice-intro,.choices-block:is(details):not([open]) .choice-row,.choices-block:is(details):not([open]) .custom-choice{display:none}
 .outcome-card{padding:11px 12px;margin:11px 0 0;border:1px solid #c7dbc5;border-radius:12px;background:#eaf3e7}
 .outcome-card strong{color:#345d3d;font:700 13px system-ui}
 .outcome-card p{font:normal 15px/1.48 Georgia,serif;white-space:pre-wrap;margin:8px 0}
@@ -105,3 +105,18 @@
  .room.is-live:has(#legacyTools[hidden]) #storyMoment{max-height:45dvh}
  .room.is-live:has(#legacyTools[hidden]) .choice-row .comment-chip{width:44px}
 }
+
+/* Shared message-first scene: Sophia delivers all chapters within the same chat timeline. */
+.room.is-live:has(#legacyTools[hidden]) #storyMoment[hidden]{display:none!important}
+.room.is-live:has(#legacyTools[hidden]) #conversation{flex:1 1 auto;min-height:0;margin-top:5px}
+.room.is-live:has(#legacyTools[hidden]) .thread{gap:7px;padding:12px 10px}
+.room.is-live:has(#legacyTools[hidden]) .thread .bubble{max-width:94%;font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.room.is-live:has(#legacyTools[hidden]) .bubble.authored-intro{border-left-color:#4d8969}
+.room.is-live:has(#legacyTools[hidden]) .bubble.authored-chapter{font-size:12px;font-weight:700;color:#355d42;background:#eaf2e8;padding:8px 12px}
+.room.is-live:has(#legacyTools[hidden]) .bubble.authored-story{white-space:pre-wrap}
+.message-choices{display:grid;gap:6px;margin-top:10px}
+.message-choice{width:100%;padding:10px 11px;min-height:36px;border:1px solid #bbd2bc;border-radius:9px;
+ text-align:left;background:#fffefa;color:#2d5139;font-size:12px;font-weight:600;white-space:normal}
+.message-choice:hover{background:#e4f1df}
+.message-choice-hint{display:block;font-style:normal;font-size:10px;color:#607666;margin-top:9px}
+.room.is-live:has(#legacyTools[hidden]) .bubble .comment-chip{font-size:9px;margin-top:6px}
