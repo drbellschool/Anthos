@@ -13,7 +13,7 @@ test("the exact same numbered options render as plain SMS-compatible text",()=>{
 });
 test("fluid rooms are distinct from legacy pilot rooms and require two spouse contributions",()=>{
  const core=read("../api/pilot-core.mjs"),ui=read("../pilot/app.js"),html=read("../pilot/index.html");
- assert.match(core,/createRoom\(origin,participants,"fluid"\)/);
+ assert.match(core,/createRoom\(origin,participants,engine\)/);
  assert.match(core,/mode="classic"/);
  assert.match(core,/actual=c\.room\.conversation_mode==="fluid"/);
  assert.match(core,/resolveChapter\(invite,true\)/);
@@ -90,8 +90,8 @@ test("the browser and future SMS use identical chapter delivery even without any
  assert.equal(feed.filter(m=>m.author==="a"||m.author==="b").length,0);
  const html=read("../pilot/index.html"),ui=read("../pilot/app.js");
  assert.match(ui,/state\.conversationFeed\|\|\[\]/);
- assert.match(ui,/state\.conversationMode==="fluid"/);
- assert.match(ui,/\$\("storyMoment"\)\.hidden=!isReady\|\|state\.conversationMode==="fluid"/);
+ assert.match(ui,/\["fluid","dynamic"\]\.includes\(state\.conversationMode\)/);
+ assert.match(ui,/\$\("storyMoment"\)\.hidden=!isReady\|\|\["fluid","dynamic"\]\.includes\(state\.conversationMode\)/);
  assert.match(ui,/button\.addEventListener\("click",\(\)=>act\("send",\{message:String\(i\+1\)\}\)\)/);
  assert.match(ui,/m\.kind==="choices"/);
  assert.match(ui,/makeCommentButton\("✎ Comment on choices"/);
