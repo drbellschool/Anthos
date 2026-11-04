@@ -16,9 +16,9 @@ test("Gottman, Schnarch and Aron shape story outcomes privately, never choice gr
  assert.match(core,/Gottman's bids\/repair/);
  assert.match(core,/Schnarch's differentiation/);
  assert.match(core,/Aron’s shared novelty/);
- assert.match(core,/Respond as a JSON object with consequence/);
+ assert.match(core,/Return one COHERENT story package/);
  assert.match(core,/next_scene/);
- assert.match(core,/do not erase major cast/);
+ assert.match(core,/Preserve the canonical next chapter/);
  assert.match(core,/room_id:c\.room\.id,chapter_number:chapter/);
  assert.match(core,/if\(c\.room\.story_format==="full"&&!/);
  assert.match(core,/const lastSophia=current\.findLastIndex/);
