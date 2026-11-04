@@ -32,7 +32,7 @@ test("real first-turn choice gets a concrete complication, not counseling homewo
    "Yes, and","Yes, but","CONSEQUENCE","ClIFFHANGER".toLowerCase(),"CAUSAL ESCALATION"]){
   assert.ok(p.instructions.toLowerCase().includes(required.toLowerCase()),required);
  }
- assert.match(p.instructions,/not three versions of "communicate respectfully"/);
+ assert.match(p.instructions,/not three versions of "communicate respectfully/);
  assert.match(p.input,/Jill should be allowed/);
  assert.match(p.input,/Jack's surprise/);
  assert.match(p.input,/spark/);
