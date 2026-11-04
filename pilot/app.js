@@ -75,22 +75,66 @@ function renderHistory(revealed){
 }
 
 function renderMessages(list){
- const signature=list.length+":"+(list.at(-1)?.id||"")+":"+(state?.displayName||"")+":"+(state?.partnerName||"");
+ const signature=list.length+":"+(list.at(-1)?.id||"")+":"+
+   (state?.displayName||"")+":"+(state?.partnerName||"")+":"+
+   (state?.storyBeat||1)+":"+(state?.roomStatus||"");
  if(seen===signature)return;
- seen=signature;const host=$("thread");const wasNearEnd=host.scrollHeight-host.scrollTop-host.clientHeight<120;
+ seen=signature;
+ const host=$("thread"),wasNearEnd=host.scrollHeight-host.scrollTop-host.clientHeight<120;
  host.replaceChildren();
- if(!list.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="Start by telling your spouse whose side you're on. Sophia will join when you invite her.";host.append(empty)}
+ if(!list.length){
+  const empty=document.createElement("div");empty.className="empty";
+  empty.textContent="Sophia will introduce the chapter when you both join.";host.append(empty);
+ }
  for(const m of list){
-  const bubble=document.createElement("div");
-  const mine=m.author===state.role;
-  bubble.className="bubble "+(m.author==="sophia"?"sophia":mine?"me":"partner");
+  const bubble=document.createElement("div"),mine=m.author===state.role;
+  const authored=Boolean(m.kind);
+  bubble.className="bubble "+(m.author==="sophia"?"sophia":mine?"me":"partner")+
+    (authored?" authored-"+m.kind:"");
   const label=document.createElement("small");
-  label.textContent=m.author==="sophia"?"SOPHIA":mine?(state.displayName||"YOU").toUpperCase():(state.partnerName||"YOUR SPOUSE").toUpperCase();
-  bubble.append(label,document.createTextNode(m.body));
-  bubble.append(makeCommentButton("✎ Comment","message",m.chapter_number||1,m.id,m.body));
+  label.textContent=m.author==="sophia"?"SOPHIA":mine?
+    (state.displayName||"YOU").toUpperCase():(state.partnerName||"YOUR SPOUSE").toUpperCase();
+  bubble.append(label);
+  // The question and the three choices arrive as one authored chat message.
+  // In SMS, the same text is delivered with numbers; the browser adds tap targets.
+  if(m.kind==="choices"){
+   const question=document.createElement("span");
+   question.textContent=String(m.body).split("\n\n")[0];
+   bubble.append(question);
+   if(m.chapter_number===state.storyBeat&&state.roomStatus==="active"){
+    const choices=document.createElement("div");choices.className="message-choices";
+    (m.options||[]).forEach((option,i)=>{
+     const button=document.createElement("button");
+     button.type="button";button.className="message-choice";
+     button.textContent=(i+1)+". "+option;button.disabled=busy;
+     button.addEventListener("click",()=>act("send",{message:String(i+1)}));
+     choices.append(button);
+    });
+    bubble.append(choices);
+   }else{
+    bubble.append(document.createTextNode("\n"+(m.options||[])
+      .map((x,i)=>(i+1)+". "+x).join("\n")));
+   }
+   const hint=document.createElement("em");hint.className="message-choice-hint";
+   hint.textContent="Reply 1, 2, 3, or use your own words.";
+   bubble.append(hint);
+  }else bubble.append(document.createTextNode(m.body));
+  if(m.kind==="choices"){
+   bubble.append(makeCommentButton("✎ Comment on choices","chapter",
+     m.chapter_number,null,m.body));
+  }else if(m.kind==="story"||m.kind==="chapter"){
+   if(m.kind==="chapter")bubble.append(makeCommentButton("✎ Comment on chapter",
+     "chapter",m.chapter_number,null,m.body));
+  }else if(m.kind==="consequence"){
+   bubble.append(makeCommentButton("✎ Comment on consequence",
+     "outcome",m.chapter_number,null,m.body));
+  }else if(!authored&&Number.isSafeInteger(m.id)){
+   bubble.append(makeCommentButton("✎ Comment","message",m.chapter_number||1,m.id,m.body));
+  }
   host.append(bubble);
  }
- if(wasNearEnd||list.length<5)host.scrollTop=host.scrollHeight;
+ if(wasNearEnd||!list.length||!host.dataset.initialized)host.scrollTop=host.scrollHeight;
+ host.dataset.initialized="1";
 }
 function render(){
  if(!state)return;
@@ -102,8 +146,8 @@ function render(){
  if(state.myConsent&&!state.partnerConsent)text("consentStatus","You agreed. Waiting for the other invitation.");
  if(!state.myConsent)text("consentStatus",state.partnerConsent?"Your spouse has agreed. Your consent is needed.":"Both spouses must agree to begin.");
  $("conversation").hidden=!isReady;
- $("storyMoment").hidden=!isReady;
- $("chapterHistory").hidden=!isReady||!(state?.revealedChapters?.length>1);
+ $("storyMoment").hidden=!isReady||state.conversationMode==="fluid";
+ $("chapterHistory").hidden=!isReady||state.conversationMode==="fluid"||!(state?.revealedChapters?.length>1);
  document.querySelector(".room").classList.toggle("is-live",isReady);
  if(!isReady){$("proposalPanel").hidden=true;return}
  const scene=state.scene||{};
@@ -122,7 +166,8 @@ function render(){
  text("nameButton",state.displayName?"✎ "+state.displayName:"✎ Add your name");
  text("remaining",state.aiRepliesLeft+" Sophia replies left");
  $("connection").title="Sophia may join after both people speak in this chapter.";
- renderMessages(state.messages);
+ renderMessages(state.conversationMode==="fluid"?
+   (state.conversationFeed||[]):state.messages);
  const fluid=state.conversationMode==="fluid";
  const countA=state.messages.filter(m=>m.author==="a").length;
  const countB=state.messages.filter(m=>m.author==="b").length;
