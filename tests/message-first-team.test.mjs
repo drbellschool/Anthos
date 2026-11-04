@@ -52,8 +52,8 @@ test("AI has the final conservative say on automatic chapter transition and fals
 
 test("Sophia delivers exactly one complete story message and one decision message",()=>{
  const chapter={title:"The Invitation",
-   story:"Jack got passes.\\n\\nJill hoped for pancakes and quiet time.\\n\\n"+
-    "“You booked tomorrow?” she asks.\\n\\n“Yes,” says Jack.",
+   story:"Jack got passes.\n\nJill hoped for pancakes and quiet time.\n\n"+
+    "“You booked tomorrow?” she asks.\n\n“Yes,” says Jack.",
    prompt:"What do you notice?",options:["He meant well","She wanted a say","Ask first"]};
  const msgs=chapterAsMessages(chapter,1,8,{introduce:true,names:["Adam","Alissa"]});
  assert.equal(msgs.length,2);
@@ -64,14 +64,14 @@ test("Sophia delivers exactly one complete story message and one decision messag
  assert.match(msgs[0].body,/Jill hoped for pancakes/);
  assert.match(msgs[0].body,/You booked tomorrow/);
  assert.ok(msgs[0].body.indexOf("Jack got passes")<msgs[0].body.indexOf("You booked tomorrow"));
- assert.match(msgs[1].body,/1\\. He meant well\\n2\\. She wanted a say\\n3\\. Ask first/);
+ assert.match(msgs[1].body,/1\. He meant well\n2\. She wanted a say\n3\. Ask first/);
  assert.match(msgs[1].body,/Reply 1, 2, 3/);
  assert.deepEqual(msgs[1].options,chapter.options);
  assert.ok(msgs.every(m=>m.author==="sophia"&&typeof m.id==="string"));
 });
 test("later chapters also deliver one uninterrupted scene and one question",()=>{
  const scene={title:"Who Knew Before Jill?",
- story:"Jack's phone lights up.\\n\\nMaya asks if Owen is coming.\\n\\nJill reads the message.",
+ story:"Jack's phone lights up.\n\nMaya asks if Owen is coming.\n\nJill reads the message.",
  prompt:"What should Jack do?",options:["Apologize","Ask what Jill wants","Contact their friends"]};
  const messages=chapterAsMessages(scene,2,8);
  assert.equal(messages.length,2);
