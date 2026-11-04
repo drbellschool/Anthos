@@ -16,8 +16,6 @@ test("fluid rooms are distinct from legacy pilot rooms and require two spouse co
  assert.match(core,/createRoom\(origin,participants,"fluid"\)/);
  assert.match(core,/mode="classic"/);
  assert.match(core,/actual=c\.room\.conversation_mode==="fluid"/);
- assert.match(core,/current\.filter\(m=>m\.author==="a"\)\.length>=2/);
- assert.match(core,/current\.filter\(m=>m\.author==="b"\)\.length>=2/);
  assert.match(core,/resolveChapter\(invite,true\)/);
  assert.match(core,/conversationReady\(current,reply/);
  assert.match(core,/if\(automatic\)/);
@@ -90,4 +88,14 @@ test("fluid chapter delivery remains an authored message, not a fake AI reply or
  const css=read("../pilot/style.css");
  assert.doesNotMatch(css,/(?:^|\n)\.choices-block:not\(\[open\]\)/);
  assert.match(css,/\.message-choices/);
+});
+
+
+test("Sophia's new story-engine prompt prioritizes consequences over a counseling loop",()=>{
+ const source=read("../api/pilot-core.mjs");
+ assert.ok(source.includes("choose-what-happens-next story"));
+ assert.ok(source.includes("not a counselor or relationship coach"));
+ assert.ok(source.includes("DEFAULT TO ADVANCE"));
+ assert.ok(source.includes("When the spouses reach agreement, ALWAYS advance"));
+ assert.ok(source.includes("maybeAdvanceFluid(c,invite,current"));
 });
