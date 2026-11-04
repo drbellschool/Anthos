@@ -2,9 +2,9 @@ import test from "node:test";import assert from "node:assert/strict";import {rea
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 test("Sophia is instructed to attend to actual disagreement and occasionally joke without quoting",()=>{
  const core=read("../api/pilot-core.mjs");
- assert.match(core,/genuinely LISTEN to the exact latest contributions/);
- assert.match(core,/one SPECIFIC contrast/);
- assert.match(core,/Never directly quote, cite, or merely paraphrase/);
+ assert.match(core,/Genuinely LISTEN to the latest contributions/);
+ assert.match(core,/a specific choice, disagreement or point of agreement/);
+ assert.match(core,/Never merely paraphrase both spouses/);
  assert.match(core,/occasional light joke about Jack and Jill/);
  assert.match(core,/first names or nicknames naturally/);
  assert.match(core,/Don't force jokes each turn/);

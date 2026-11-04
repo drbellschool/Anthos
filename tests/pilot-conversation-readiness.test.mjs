@@ -7,7 +7,7 @@ test("Sophia can return for new exchanges while preserving consent and message l
  assert.match(core,/fresh\.some\(m=>m\.author==="a"\)/);
  assert.match(core,/fresh\.some\(m=>m\.author==="b"\)/);
  assert.match(core,/current\.filter\(m=>m\.author==="sophia"\)\.length>=3/);
- assert.match(core,/invite them to decide whether to keep talking/);
+ assert.match(core,/Do NOT reopen a settled decision/);
  assert.match(core,/try\{await maybeSophia\(c,invite\);\}catch/);
 });
 test("new messages and one keep-talking decision both reset shared readiness",()=>{
