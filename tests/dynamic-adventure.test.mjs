@@ -23,6 +23,7 @@ function candidate(previous,overrides={}){
   unresolved:["What happens to the ropes course tickets?"],
   checkpoint:"two_perspectives",
   checkpointEvidence:"Both spouses named distinct legitimate hopes, and those hopes changed how Jack responded.",
+  researchBeat:{pattern:"turned_toward",actor:"Jack",evidence:"Jack asked Jill to describe what she had hoped for before making another decision."},
   ...overrides
  };
 }
