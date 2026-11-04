@@ -39,7 +39,11 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
      storyRequests++;
      assert.ok(body.input.includes("Adam:"));assert.ok(body.input.includes("Alissa:"));
      const content=JSON.stringify({consequence:"Jack and Jill are embarrassed, but Jack gives Jill the envelope and invites her to make a new plan. Their friends grin at the awkwardness.",
-       next_scene:"Jack and Jill walk back into the kitchen as Maya arrives early with coffee. Jill is amused, Jack is nervous, and they change the plan without abandoning the unexpected adventure. The embarrassment remains, but now both spouses are speaking plainly.",
+       next_scene:{story:"Jack's phone lights up. Maya texts: Are we still meeting at eight? Owen is bringing the camera. Jill reads the message and is stunned. Jack realizes he should have explained the friends invitation before the surprise became public. Jill is not ready to agree, but she is willing to hear him out. The kitchen grows quiet. Maya sends a second message asking whether pancakes should come along. Jill asks Jack if Maya and Owen knew the plan before she did. Jack admits they did. Jill folds the envelope, watches him for a moment, and asks why her Saturday was planned without her. Neither spouse has decided what to do next.",
+         prompt:"Jill sees that the friends knew about her Saturday first. What should Jack do now?",
+         options:["Admit he invited Maya and Owen without asking Jill first.",
+          "Ask Jill privately whether she wants their friends involved.",
+          "Tell the friends they will make a decision together soon."]},
        lens:"gottman"});
      return reply({output:[{type:"message",content:[{type:"output_text",text:content}]}]});
    }
@@ -132,7 +136,8 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   for(let chapter=2;chapter<=8;chapter++){
     const next=await nextMoment(active);
     assert.equal(next.storyBeat,chapter);
-    if(chapter===2)assert.match(next.scene.story,/Maya arrives early/,"AI outcome really changes next scene.");
+    if(chapter===2)assert.match(next.scene.story,/Maya texts/,"AI outcome really changes next scene.");
+    if(chapter===2)assert.match(next.scene.prompt,/What should Jack do now/);
     for(const person of people)person.last_sent_at=null; // test clock: clear 3s anti-spam guard
     await send(a,"I'd let the couple negotiate this themselves, chapter "+chapter);
     await send(b,"I'd choose a playful and realistic compromise, chapter "+chapter);
