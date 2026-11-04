@@ -76,13 +76,14 @@ export function advanceAdventure(previous,candidate,spouseMessages){
  const done=[...previous.checkpoints];
  if(candidate.checkpoint)done.push({id:candidate.checkpoint,evidence:candidate.checkpointEvidence.trim(),
    turn:previous.turn,messageIds:spouseMessages.filter(m=>["a","b"].includes(m.author)).map(m=>m.id)});
- const nextScene={title:clean(candidate.nextScene.title)||"The adventure continues",
-   story:clean(candidate.nextScene.story),prompt:clean(candidate.nextScene.prompt),
-   options:candidate.nextScene.options.map(clean)};
+ const finished=done.length===CHECKPOINTS.length;
+ const nextScene={title:finished?"The Adventure They Made":clean(candidate.nextScene.title)||"The adventure continues",
+   story:clean(candidate.nextScene.story),prompt:finished?"":clean(candidate.nextScene.prompt),
+   options:finished?[]:candidate.nextScene.options.map(clean)};
  const event={turn:previous.turn,afterMessageId:previous.afterMessageId,untilMessageId:maxId,
    scene:previous.scene,consequence:clean(candidate.consequence),checkpoint:candidate.checkpoint||null};
  return {
-  ...previous,version:previous.version+1,turn:previous.turn+1,afterMessageId:maxId,
+  ...previous,version:previous.version+1,turn:previous.turn+1,afterMessageId:maxId,finished,
   ledger:{...previous.ledger,
    setting:{location:clean(candidate.location),timeIndex:candidate.timeIndex,
      transition:clean(candidate.transition)},
@@ -98,15 +99,16 @@ export function adventureFeed(state,chat,names={}){
   const prefix="dynamic-"+snap.turn;
   const intro=i===0?"Hi "+([names.a,names.b].filter(Boolean).join(" and ")||"you both")+
    "! I'm Sophia. Jack and Jill have a situation, and your choices will shape what happens.\n\n":"";
-  entries.push({id:prefix+"-story",kind:"chapter",author:"sophia",chapter_number:snap.turn,
+  entries.push({id:prefix+"-story",kind:"chapter",author:"sophia",chapter_number:Math.min(8,snap.turn),
     body:intro+snap.scene.title+"\n\n"+snap.scene.story});
-  entries.push({id:prefix+"-choices",kind:"choices",author:"sophia",chapter_number:snap.turn,
+  if(snap.scene.options?.length===3)entries.push({id:prefix+"-choices",kind:"choices",
+    author:"sophia",chapter_number:Math.min(8,snap.turn),
     body:snap.scene.prompt+"\n\n"+snap.scene.options.map((x,j)=>(j+1)+". "+x).join("\n")+
        "\n\nReply 1, 2, 3, or use your own words.",
     options:snap.scene.options});
   entries.push(...chat.filter(m=>m.id>start&&m.id<=end));
   if(snap.consequence)entries.push({id:prefix+"-consequence",kind:"consequence",
-    author:"sophia",chapter_number:snap.turn,body:snap.consequence});
+    author:"sophia",chapter_number:Math.min(8,snap.turn),body:snap.consequence});
  }
  return entries;
 }
