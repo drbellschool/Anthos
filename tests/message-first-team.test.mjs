@@ -42,8 +42,8 @@ test("AI has the final conservative say on automatic chapter transition and fals
    {a:"Alex",b:"Sam"});
   assert.equal(value,false);
   assert.equal(body.store,false);
-  assert.match(body.instructions,/natural/i);
-  assert.match(body.instructions,/unresolved concern/);
+  assert.match(body.instructions,/choose-your-own-adventure/i);
+  assert.match(body.instructions,/distress\/safety/);
   assert.match(body.input,/Alex:/);
   assert.match(body.input,/Sam:/);
  }finally{globalThis.fetch=old;
