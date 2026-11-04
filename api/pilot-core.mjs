@@ -651,26 +651,35 @@ export async function nextMoment(invite){
 export async function comment(invite,body){
  const c=await auth(invite);
  if(!c.person.consented_at)fail("Please consent before submitting feedback.",403);
- const sceneCount=storyFor(c.room).length;
+ const dynamicRecord=c.room.conversation_mode==="dynamic"?await adventureState(c.room.id):null;
+ const sceneCount=dynamicRecord?8:storyFor(c.room).length;
  const chapter=Number(body?.chapter);
  const kind=body?.kind;
  const index=body?.index==null?null:Number(body.index);
  const feedback=body?.feedback;
- if(!Number.isInteger(chapter)||chapter<1||chapter>beatNumber(c.room)||chapter>sceneCount)
-   fail("Select a chapter you've already read.");
+ if(!Number.isInteger(chapter)||chapter<1||
+   chapter>(dynamicRecord?Math.min(8,dynamicRecord.state.turn):beatNumber(c.room))||
+   chapter>sceneCount)
+   fail("Select a story moment you've already seen.");
  if(!["chapter","option","message","general","answer","outcome"].includes(kind))
    fail("Invalid comment target.");
  if(typeof feedback!=="string"||feedback.trim().length<3||feedback.length>1400)
    fail("Write a critique or question between 3 and 1400 characters.");
  let excerpt="",targetIndex=null;
  if(kind==="chapter"){
-   const effects=await outcomes(c.room.id);
-   excerpt=branchedChapter(c.room,chapter,effects).story;
+   if(dynamicRecord){
+     const event=dynamicRecord.state.events.find(x=>Math.min(8,x.turn)===chapter);
+     excerpt=(event?.scene||dynamicRecord.state.scene).story;
+   }else{
+     const effects=await outcomes(c.room.id);
+     excerpt=branchedChapter(c.room,chapter,effects).story;
+   }
  }
  if(kind==="option"){
-   if(!Number.isInteger(index)||index<0||index>2||storyFor(c.room)[chapter-1].options?.length!==3)
-     fail("That choice isn't part of this chapter.");
-   const branch=branchedChapter(c.room,chapter,await outcomes(c.room.id));
+   const branch=dynamicRecord?(dynamicRecord.state.events.find(x=>Math.min(8,x.turn)===chapter)?.scene
+     ||dynamicRecord.state.scene):branchedChapter(c.room,chapter,await outcomes(c.room.id));
+   if(!Number.isInteger(index)||index<0||index>2||branch?.options?.length!==3)
+     fail("That choice isn't part of this story moment.");
    excerpt=branch.options[index];targetIndex=index;
  }
  if(kind==="message"){
@@ -682,7 +691,9 @@ export async function comment(invite,body){
    excerpt=rows[0].body;targetIndex=index;
  }
  if(kind==="outcome"){
-   const current=(await outcomes(c.room.id)).find(e=>e.chapter_number===chapter);
+   const current=dynamicRecord?
+     dynamicRecord.state.events.find(e=>Math.min(8,e.turn)===chapter):
+     (await outcomes(c.room.id)).find(e=>e.chapter_number===chapter);
    if(!current)fail("The story consequence hasn't been generated yet.",409);
    excerpt=current.consequence;
  }
