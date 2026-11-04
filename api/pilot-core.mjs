@@ -139,6 +139,58 @@ function branchedChapter(room,chapter,effects){
  return prior?.next_scene?{...original,story:prior.next_scene}:original;
 }
 
+// One canonical, transport-neutral sequence for the browser and future consented SMS.
+// These are authored scene-delivery messages, not AI turns or saved private chat.
+// Never count them as a spouse contribution or an OpenAI response.
+export function chapterAsMessages(scene,chapter,total,{introduce=false,names=[]}={}){
+ const entries=[];
+ if(introduce){
+  const distinct=[...new Set(names.filter(x=>typeof x==="string"&&x.trim()).map(x=>x.trim()))];
+  const who=distinct.length===2?distinct.join(" and "):"you both";
+  entries.push({id:"intro-1",author:"sophia",kind:"intro",chapter_number:1,
+   body:"Hi "+who+"! I'm Sophia, your Anthos guide. Meet Jack and Jill. Their Saturday plans are about to get complicated. There are no right answers; you can reply with a number or your own words. I'll listen to both of you."});
+ }
+ entries.push({id:"chapter-"+chapter+"-heading",author:"sophia",kind:"chapter",chapter_number:chapter,
+  body:"Chapter "+chapter+" of "+total+" · "+String(scene?.title||"The story continues")});
+ const paragraphs=String(scene?.story||"").split(/\\n\\s*\\n/).map(x=>x.trim()).filter(Boolean);
+ // Short blocks maintain a chat rhythm without cutting dialogue mid-paragraph.
+ let idx=0;
+ for(const p of paragraphs){
+  const sentences=p.match(/[^.!?]+[.!?]+(?:[”"']|$)|[^.!?]+$/g)||[p];
+  let block="";
+  for(const sentence of sentences){
+   if(block&&block.length+sentence.length>360){
+    entries.push({id:"chapter-"+chapter+"-scene-"+idx++,author:"sophia",kind:"story",
+      chapter_number:chapter,body:block.trim()});block="";
+   }
+   block+=sentence;
+  }
+  if(block.trim())entries.push({id:"chapter-"+chapter+"-scene-"+idx++,author:"sophia",kind:"story",
+    chapter_number:chapter,body:block.trim()});
+ }
+ const options=Array.isArray(scene?.options)?scene.options.slice(0,3):[];
+ entries.push({id:"chapter-"+chapter+"-choice",author:"sophia",kind:"choices",
+  chapter_number:chapter,
+  body:String(scene?.prompt||"What do you think?")+
+   (options.length?"\\n\\n"+options.map((v,i)=>(i+1)+". "+v).join("\\n"):"")+
+   "\\n\\nReply 1, 2, 3, or write your own thoughts.",
+  options});
+ return entries;
+}
+export function conversationFeed({room,scenes,effects=[],chat=[],names={}}){
+ const max=beatNumber(room),total=storyFor(room).length;
+ const feed=[];
+ for(let i=1;i<=max;i++){
+  const scene=scenes[i-1];if(!scene)continue;
+  feed.push(...chapterAsMessages(scene,i,total,
+    {introduce:i===1,names:[names.a,names.b]}));
+  feed.push(...chat.filter(m=>m.chapter_number===i));
+  const effect=effects.find(x=>x.chapter_number===i);
+  if(effect?.consequence)feed.push({id:"chapter-"+i+"-result",author:"sophia",
+    kind:"consequence",chapter_number:i,body:"What happened next:\\n"+effect.consequence});
+ }
+ return feed;
+}
 export async function status(invite){
  const c=await auth(invite),consent=agreed(c);
  const effects=consent&&c.room.story_format==="full"?await outcomes(c.room.id):[];
@@ -155,6 +207,13 @@ export async function status(invite){
   outcomes:effects.map(x=>({chapter:x.chapter_number,consequence:x.consequence,lens:x.lens})),
   proposal:["proposed","completed"].includes(c.room.status)?{text:c.room.proposed_answer,by:c.room.proposed_by}:null,
   messages:consent?await messages(c.room.id,c.room.story_format==="full"?200:75):[],
+  conversationFeed:consent&&c.room.conversation_mode==="fluid"?
+    await (async()=>{
+      const chat=await messages(c.room.id,c.room.story_format==="full"?200:75);
+      const scenes=storyFor(c.room).slice(0,beatNumber(c.room))
+        .map((_,i)=>branchedChapter(c.room,i+1,effects));
+      return conversationFeed({room:c.room,scenes,effects,chat,names:namesFor(c)});
+    })():[],
   myComments:c.person.consented_at?await db("anthos_pilot_comments",
     {select:"id,chapter_number,target_kind,target_index,feedback,created_at",
      room_id:"eq."+c.room.id,author_role:"eq."+c.person.role,order:"created_at.desc",limit:150}):[]};
