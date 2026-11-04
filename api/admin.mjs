@@ -271,6 +271,10 @@ export default {
       try{return json(await editCustomer(body));}
       catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
     }
+    if(action==="pilot-create-dynamic-couple"){
+      try{return json(await createCustomerRoom(new URL(request.url).origin,body.groupId,"dynamic"));}
+      catch(e){return json({error:String(e.message||"Dynamic beta setup failed.").slice(0,180)},e.status||502);}
+    }
     if(action==="pilot-create-couple"){
       try{return json(await createCustomerRoom(new URL(request.url).origin,body.groupId));}
       catch(e){return json({error:String(e.message||"Could not create customer-bound Team room.").slice(0,180)},e.status||502);}
