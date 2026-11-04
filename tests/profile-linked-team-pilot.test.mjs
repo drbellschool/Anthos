@@ -165,8 +165,9 @@ test("real two-spouse dialogue sends the matched customer facts to the actual So
  await send(tokenA,"Jack's surprise could be lovely, but I prefer outdoor adventures.");
  assert.equal(aiBodies.length,0);
  await send(tokenB,"I'd rather talk before making plans, especially with friends.");
- assert.equal(aiBodies.length,1);
- const request=aiBodies[0];
+ assert.ok(aiBodies.length>=2);
+ const request=aiBodies.find(x=>x.text?.format?.name!=="anthos_turn_decision");
+ assert.ok(aiBodies.some(x=>x.text?.format?.name==="anthos_turn_decision"));
  assert.equal(request.store,false);
  assert.ok(request.input.includes("Alex:"));
  assert.ok(request.input.includes("Sam:"));
