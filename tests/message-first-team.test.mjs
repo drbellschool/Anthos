@@ -50,24 +50,42 @@ test("AI has the final conservative say on automatic chapter transition and fals
   if(prior===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=prior;}
 });
 
-test("Sophia introduces, delivers the actual first chapter, then provides SMS-compatible numbered options",()=>{
- const chapter={title:"The Invitation",story:"Jack got passes.\n\nJill hoped for pancakes and quiet time.",
-  prompt:"What do you notice?",options:["He meant well","She wanted a say","Ask first"]};
+test("Sophia delivers exactly one complete story message and one decision message",()=>{
+ const chapter={title:"The Invitation",
+   story:"Jack got passes.\\n\\nJill hoped for pancakes and quiet time.\\n\\n"+
+    "“You booked tomorrow?” she asks.\\n\\n“Yes,” says Jack.",
+   prompt:"What do you notice?",options:["He meant well","She wanted a say","Ask first"]};
  const msgs=chapterAsMessages(chapter,1,8,{introduce:true,names:["Adam","Alissa"]});
- assert.deepEqual(msgs.map(m=>m.kind),["intro","chapter","story","story","choices"]);
+ assert.equal(msgs.length,2);
+ assert.deepEqual(msgs.map(m=>m.kind),["chapter","choices"]);
  assert.match(msgs[0].body,/Hi Adam and Alissa/);
- assert.match(msgs[2].body,/Jack got passes/);
- assert.match(msgs[3].body,/Jill hoped for pancakes/);
- assert.match(msgs.at(-1).body,/1\. He meant well\n2\. She wanted a say\n3\. Ask first/);
- assert.match(msgs.at(-1).body,/Reply 1, 2, 3/);
- assert.deepEqual(msgs.at(-1).options,chapter.options);
+ assert.match(msgs[0].body,/Chapter 1 of 8 · The Invitation/);
+ assert.match(msgs[0].body,/Jack got passes/);
+ assert.match(msgs[0].body,/Jill hoped for pancakes/);
+ assert.match(msgs[0].body,/You booked tomorrow/);
+ assert.ok(msgs[0].body.indexOf("Jack got passes")<msgs[0].body.indexOf("You booked tomorrow"));
+ assert.match(msgs[1].body,/1\\. He meant well\\n2\\. She wanted a say\\n3\\. Ask first/);
+ assert.match(msgs[1].body,/Reply 1, 2, 3/);
+ assert.deepEqual(msgs[1].options,chapter.options);
  assert.ok(msgs.every(m=>m.author==="sophia"&&typeof m.id==="string"));
+});
+test("later chapters also deliver one uninterrupted scene and one question",()=>{
+ const scene={title:"Who Knew Before Jill?",
+ story:"Jack's phone lights up.\\n\\nMaya asks if Owen is coming.\\n\\nJill reads the message.",
+ prompt:"What should Jack do?",options:["Apologize","Ask what Jill wants","Contact their friends"]};
+ const messages=chapterAsMessages(scene,2,8);
+ assert.equal(messages.length,2);
+ assert.equal(messages[0].kind,"chapter");
+ assert.doesNotMatch(messages[0].body,/Hi Adam|I'm Sophia/);
+ assert.equal(messages[0].body.split("Maya").length,2);
+ assert.equal(messages[1].kind,"choices");
 });
 test("the browser and future SMS use identical chapter delivery even without any spouse message",()=>{
  const chapter={title:"Saturday",story:"One long morning.",prompt:"What next?",options:["A","B","C"]};
  const room={story_format:"full",story_beat:1};
  const feed=conversationFeed({room,scenes:[chapter],chat:[],names:{a:"Adam",b:"Alissa"}});
- assert.equal(feed[0].kind,"intro");
+ assert.equal(feed[0].kind,"chapter");
+ assert.equal(feed.length,2);
  assert.equal(feed.at(-1).kind,"choices");
  assert.equal(feed.filter(m=>m.author==="a"||m.author==="b").length,0);
  const html=read("../pilot/index.html"),ui=read("../pilot/app.js");
