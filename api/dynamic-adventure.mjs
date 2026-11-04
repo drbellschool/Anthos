@@ -161,7 +161,8 @@ export function adventureFeed(state,chat,names={}){
     chapter_number:Math.min(8,snap.turn),
     body:intro+bridge+snap.scene.title+"\n\n"+snap.scene.story,
     ...(previous?{consequence:previous.consequence,consequenceTurn:previous.turn}:{}),
-    ...(research?{researchInsight:research,researchPattern:previous.researchBeat.pattern}: {})});
+    ...(research?{researchInsight:research,researchPattern:previous.researchBeat.pattern,
+      researchSource:RESEARCH_PATTERNS[previous.researchBeat.pattern]?.citation||null}: {})});
   if(snap.scene.options?.length===3)entries.push({id:prefix+"-choices",kind:"choices",
     author:"sophia",chapter_number:Math.min(8,snap.turn),
     body:snap.scene.prompt+"\n\n"+snap.scene.options.map((x,j)=>(j+1)+". "+x).join("\n")+
