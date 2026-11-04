@@ -23,6 +23,7 @@ function candidate(previous,overrides={}){
   unresolved:["What happens to the ropes course tickets?"],
   checkpoint:"two_perspectives",
   checkpointEvidence:"Both spouses named distinct legitimate hopes, and those hopes changed how Jack responded.",
+  researchBeat:{pattern:"turned_toward",actor:"Jack",evidence:"Jack asked Jill to describe what she had hoped for before making another decision."},
   ...overrides
  };
 }
@@ -88,15 +89,17 @@ test("eight valid checkpoints yield a personalized ending without a forced next 
  assert.equal(state.scene.options.length,0);
  const feed=adventureFeed(state,[],{a:"Alex",b:"Sam"});
  assert.equal(feed.at(-1).kind,"chapter");
- assert.ok(feed.some(x=>x.kind==="consequence"));
+ assert.ok(feed.some(x=>x.consequence&&x.kind==="chapter"));
+ assert.equal(feed.filter(x=>x.kind==="consequence").length,0);
  assert.equal(feed.filter(x=>x.kind==="choices").length,8);
 });
 test("story feed keeps real replies between opening scene and consequence",()=>{
  const initial=initialAdventure();
  const after=advanceAdventure(initial,candidate(initial),spouses);
  const feed=adventureFeed(after,spouses,{a:"Alex",b:"Sam"});
- const i=feed.findIndex(x=>x.author==="a"),j=feed.findIndex(x=>x.kind==="consequence");
+ const i=feed.findIndex(x=>x.author==="a"),j=feed.findIndex(x=>x.kind==="chapter"&&x.consequence);
  assert.ok(i>=2 && j>i);
+ assert.ok(feed[j].body.includes("What happened next:"));
  assert.equal(feed[0].author,"sophia");
  assert.equal(feed[1].kind,"choices");
  assert.equal(feed.filter(x=>x.kind==="choices").length,2);

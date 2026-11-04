@@ -1,5 +1,5 @@
 import {FULL_STORY} from "./pilot-story.mjs";
-import {CHECKPOINTS,initialAdventure,validateDecision,advanceAdventure,adventureFeed,directorPrompt} from "./dynamic-adventure.mjs";
+import {CHECKPOINTS,RESEARCH_KEYS,initialAdventure,validateDecision,advanceAdventure,adventureFeed,directorPrompt} from "./dynamic-adventure.mjs";
 /* Anthos server-only two-invitation pilot. No client database keys. */
 import {createHash,randomBytes} from "node:crypto";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
@@ -250,10 +250,15 @@ async function maybeDynamicAdventure(c){
     newFacts:{type:"array",items:{type:"string"}},
     unresolved:{type:"array",items:{type:"string"}},
     checkpoint:{type:["string","null"],enum:[...CHECKPOINTS.map(x=>x.id),null]},
-    checkpointEvidence:{type:"string"}
+    checkpointEvidence:{type:"string"},
+    researchBeat:{type:"object",additionalProperties:false,properties:{
+     pattern:{type:"string",enum:RESEARCH_KEYS},
+     actor:{type:"string",enum:["Jack","Jill","both","none"]},
+     evidence:{type:"string"}
+    },required:["pattern","actor","evidence"]}
    },
    required:["consequence","nextScene","location","timeIndex","transition","newFacts",
-     "unresolved","checkpoint","checkpointEvidence"]
+     "unresolved","checkpoint","checkpointEvidence","researchBeat"]
   };
   let response;
   try{response=await fetch("https://api.openai.com/v1/responses",{
