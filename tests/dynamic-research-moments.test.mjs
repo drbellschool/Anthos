@@ -24,14 +24,14 @@ test("two missed bids create a repeat-pattern signal; a turn toward interrupts i
  const a=initialAdventure();
  const b=advanceAdventure(a,result(a,"missed_bid"),pair);
  assert.equal(bidPatternPressure(b).Jill,1);
- const c=advanceAdventure(b,result(b,"missed_bid"),[{id:3,...pair[0]},{id:4,...pair[1]}]);
+ const c=advanceAdventure(b,result(b,"missed_bid"),[{...pair[0],id:3},{...pair[1],id:4}]);
  assert.equal(bidPatternPressure(c).Jill,2);
  assert.equal(bidPatternPressure(c).Jack,0);
  assert.equal(c.relationshipPatterns.length,2);
  const p=directorPrompt(c,pair,{a:"Alex",b:"Sam"});
  assert.match(p.input,/"Jill":2/);
  assert.match(p.instructions,/If Jill repeatedly ignores Jack's credible bids/);
- const d=advanceAdventure(c,result(c,"turned_toward"),[{id:5,...pair[0]},{id:6,...pair[1]}]);
+ const d=advanceAdventure(c,result(c,"turned_toward"),[{...pair[0],id:5},{...pair[1],id:6}]);
  assert.equal(bidPatternPressure(d).Jill,0);
 });
 test("research note is earned by actual fictional behavior, not awarded for generic checkpoint",()=>{
@@ -51,7 +51,7 @@ test("research note is earned by actual fictional behavior, not awarded for gene
 test("research evidence must be an observable fictional action",()=>{
  const state=initialAdventure();
  assert.ok(validateDecision(state.scene,state,result(state,"missed_bid","Jill"),pair).ok);
- const invalid=result(state,"missed_bid");invalid.researchBeat.evidence="They felt some things.";
+ const invalid=result(state,"missed_bid");invalid.researchBeat.evidence="Vague.";
  assert.ok(validateDecision(state.scene,state,invalid,pair).problems.includes("research pattern requires a concrete fictional action"));
  const unrecognized=result(state,"invented_pattern");
  assert.ok(validateDecision(state.scene,state,unrecognized,pair).problems.includes("invalid research-based behavior"));
