@@ -15,7 +15,7 @@ test("fluid rooms are distinct from legacy pilot rooms and require two spouse co
  const core=read("../api/pilot-core.mjs"),ui=read("../pilot/app.js"),html=read("../pilot/index.html");
  assert.match(core,/createRoom\(origin,participants,engine\)/);
  assert.match(core,/mode="classic"/);
- assert.match(core,/actual=c\.room\.conversation_mode==="fluid"/);
+ assert.match(core,/\["fluid","dynamic"\]\.includes\(c\.room\.conversation_mode\)/);
  assert.match(core,/resolveChapter\(invite,true\)/);
  assert.match(core,/conversationReady\(current,reply/);
  assert.match(core,/if\(automatic\)/);
