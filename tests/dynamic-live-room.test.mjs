@@ -50,7 +50,9 @@ test("real dynamic room: two individual opt-ins, split views, one continuity-saf
     newFacts:["Jack has asked Jill before committing to Saturday."],
     unresolved:["What to do with the tickets remains open."],
     checkpoint:"two_perspectives",
-    checkpointEvidence:"Both Alex and Sam recognized distinct hopes for adventure and for shared quiet time."
+    checkpointEvidence:"Both Alex and Sam recognized distinct hopes for adventure and for shared quiet time.",
+    researchBeat:{pattern:"turned_toward",actor:"Jack",
+      evidence:"Jack asked Jill to explain what her quiet morning meant to her."}
    };
    return resp({output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(obj)}]}]});
   }
