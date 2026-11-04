@@ -9,6 +9,21 @@ export const CHECKPOINTS=Object.freeze([
  {id:"co_creation",label:"Creating together",goal:"A mutually shaped new possibility emerges through shared novelty."},
  {id:"resolution",label:"The adventure they made",goal:"A satisfying ending reflects this couple's actual narrative decisions."}
 ]);
+// Research principles are verified source-backed themes, not diagnosis, probability
+// estimates, or predictions about the real couple.
+export const RESEARCH_PATTERNS=Object.freeze({
+ missed_bid:{label:"An overlooked bid",source:"Gottman",citation:"https://www.gottman.com/blog/turn-toward-instead-of-away/",
+   principle:"An overlooked invitation for connection can leave a partner feeling unseen; when this becomes a pattern, bids may become less frequent."},
+ turned_toward:{label:"Turning toward",source:"Gottman",citation:"https://www.gottman.com/blog/an-introduction-to-emotional-bids-and-trust/",
+   principle:"Noticing and responding to everyday bids for attention helps build trust and closeness."},
+ repair:{label:"A repair attempt",source:"Gottman",citation:"https://www.gottman.com/blog/turn-toward-instead-of-away/",
+   principle:"Small responses and efforts to repair can help partners reconnect after a difficult interaction."},
+ differentiation:{label:"Staying connected while different",source:"Schnarch",citation:null,
+   principle:"Differentiation means staying connected while expressing a genuine, separate perspective; understanding needn't mean agreeing."},
+ novelty:{label:"Doing something new together",source:"Aron and colleagues",citation:"https://pubmed.ncbi.nlm.nih.gov/10707334/",
+   principle:"Studies associate shared novel, engaging activities with improvements in experienced relationship quality."}
+});
+export const RESEARCH_KEYS=Object.freeze([...Object.keys(RESEARCH_PATTERNS),"none"]);
 const safe=s=>typeof s==="string"&&s.trim().length>0;
 const clean=s=>String(s||"").trim();
 export const checkpointIds=()=>CHECKPOINTS.map(x=>x.id);
@@ -22,7 +37,7 @@ export function initialAdventure(){
    characterKnowledge:{Jack:["He bought the tickets."],Jill:["She has just seen the tickets."]},
    unresolved:["What will they do with Saturday's competing hopes?"]
   },
-  checkpoints:[],
+  checkpoints:[],relationshipPatterns:[],
   scene:{
    title:"The Saturday Surprise",
    story:"On Friday evening, Jack places an envelope next to Jill's coffee. Two tickets for a Saturday ropes course. He beams, expecting a grin. Jill looks at the tickets, then at the empty Saturday on their calendar. She had pictured pajamas, pancakes, and a morning with just Jack. ‘I wanted to surprise you,’ he says. ‘You did,’ she answers. The smile Jack expected doesn't arrive. Neither is entirely wrong—and the evening suddenly feels a lot less predictable.",
@@ -64,6 +79,12 @@ export function validateDecision(scene,previous,candidate,spouseMessages){
   if(!safe(candidate.checkpointEvidence)||candidate.checkpointEvidence.length<20)
    problems.push("checkpoint requires specific evidence");
  }
+ const beat=candidate.researchBeat;
+ if(!beat||typeof beat!=="object"||!RESEARCH_KEYS.includes(beat.pattern)||
+   !["Jack","Jill","both","none"].includes(beat.actor))
+   problems.push("invalid research-based behavior");
+ else if(beat.pattern!=="none"&&(!safe(beat.evidence)||beat.evidence.length<22||
+   beat.evidence.length>260))problems.push("research pattern requires a concrete fictional action");
  if(previous.turn>=24)problems.push("beta turn limit reached");
  return {ok:problems.length===0,problems};
 }
@@ -88,24 +109,37 @@ export function advanceAdventure(previous,candidate,spouseMessages){
    setting:{location:clean(candidate.location),timeIndex:candidate.timeIndex,
      transition:clean(candidate.transition)},
    facts,unresolved:candidate.unresolved.map(clean)},
-  checkpoints:done,scene:nextScene,events:[...previous.events,event]
+  checkpoints:done,scene:nextScene,
+  relationshipPatterns:[...(previous.relationshipPatterns||[]),
+    ...(candidate.researchBeat.pattern!=="none"?[{
+      turn:previous.turn,actor:candidate.researchBeat.actor,
+      pattern:candidate.researchBeat.pattern,evidence:clean(candidate.researchBeat.evidence)
+    }]:[])].slice(-18),
+  events:[...previous.events,{...event,researchBeat:candidate.researchBeat}]
  };
 }
-// Research-informed micro-insights are short, stage-appropriate notes, not diagnoses
-// of the real spouses. Only attach one when an actual checkpoint was evidenced.
-// Avoid fabricating study statistics or attributing invented quotes to researchers.
-const MARRIAGE_INSIGHTS=Object.freeze({
- shared_dilemma:"Sophia's aside · Gottman's work on bids for connection reminds us that two loving hopes can compete. Noticing the bid matters before deciding what to do.",
- two_perspectives:"Sophia's aside · Schnarch's differentiation framework distinguishes understanding your partner from automatically agreeing. Both perspectives can remain real.",
- consequences:"Sophia's aside · Gottman's repair research highlights how small, timely course corrections can matter more than winning an argument.",
- unexpected_twist:"Sophia's aside · Aron and colleagues studied how shared novelty can renew connection. Unexpected moments are opportunities—not obligations—to become a team.",
- differentiation:"Sophia's aside · Schnarch describes differentiation as holding onto yourself while staying emotionally connected. A loving boundary isn't a rejection.",
- understanding:"Sophia's aside · Gottman's research on responding to bids for connection points to a small skill: noticing when your partner reaches toward you.",
- co_creation:"Sophia's aside · Research by Aron and colleagues suggests shared new experiences can support closeness. The best adventure belongs to both partners.",
- resolution:"Sophia's aside · Relationship growth is rarely a perfect ending. Repair, respect for individuality, and shared curiosity can keep the next adventure open."
-});
-export function marriageInsight(checkpoint){
- return Object.hasOwn(MARRIAGE_INSIGHTS,checkpoint)?MARRIAGE_INSIGHTS[checkpoint]:null;
+// Tie a brief research explanation to an actual fictional act, never the users'
+// personal psychology. The narrative itself carries the learning; the note names it.
+export function marriageInsight(researchBeat){
+ if(!researchBeat||!RESEARCH_PATTERNS[researchBeat.pattern])return null;
+ const principle=RESEARCH_PATTERNS[researchBeat.pattern];
+ const observed=clean(researchBeat.evidence).replace(/\s+/g," ").slice(0,150);
+ return "Sophia's insight · "+principle.source+": "+observed+
+   " "+principle.principle;
+}
+export function bidPatternPressure(state){
+ const history=(state.relationshipPatterns||[]).filter(x=>x.pattern==="missed_bid"||
+   x.pattern==="turned_toward"||x.pattern==="repair");
+ const trailing={Jack:0,Jill:0};
+ for(const event of history){
+  const targets=event.actor==="both"?["Jack","Jill"]:[event.actor];
+  for(const actor of targets){
+   if(!(actor in trailing))continue;
+   if(event.pattern==="missed_bid")trailing[actor]++;
+   else trailing[actor]=0;
+  }
+ }
+ return trailing;
 }
 export function adventureFeed(state,chat,names={}){
  const entries=[];
@@ -119,7 +153,7 @@ export function adventureFeed(state,chat,names={}){
   // separate Sophia narrative bubble. Preserve its structured identity for
   // private beta comments and future delivery transports.
   const previous=i>0?state.events[i-1]:null;
-  const research=previous?marriageInsight(previous.checkpoint):null;
+  const research=previous?marriageInsight(previous.researchBeat):null;
   const bridge=previous?
    "What happened next: "+previous.consequence+
    (research?"\n\n"+research:"")+"\n\n":"";
@@ -127,8 +161,7 @@ export function adventureFeed(state,chat,names={}){
     chapter_number:Math.min(8,snap.turn),
     body:intro+bridge+snap.scene.title+"\n\n"+snap.scene.story,
     ...(previous?{consequence:previous.consequence,consequenceTurn:previous.turn}:{}),
-    ...(research?{researchInsight:research}:{}),
-    ...(i===0?{}:{})});
+    ...(research?{researchInsight:research,researchPattern:previous.researchBeat.pattern}: {})});
   if(snap.scene.options?.length===3)entries.push({id:prefix+"-choices",kind:"choices",
     author:"sophia",chapter_number:Math.min(8,snap.turn),
     body:snap.scene.prompt+"\n\n"+snap.scene.options.map((x,j)=>(j+1)+". "+x).join("\n")+
@@ -156,7 +189,7 @@ export function directorPrompt(state,contributions,names={},sharedProfile=null){
  return {
   instructions:`You are Sophia, the witty GAME MASTER (Dungeon Master) of a fast-moving, romantic, sometimes gloriously chaotic choose-your-own-adventure about fictional Jack and Jill. NOT a therapist, relationship counselor, or reflective question machine. The two real spouses are players making independent choices that change Jack and Jill's world.
 
-PRIMARY RULE: Every pair of player decisions must cause an ON-SCREEN EVENT and an ESCALATION. "Yes, and..." or "Yes, but..." — never merely "they discuss compromise." The story should become more exciting even when players choose kindness, caution, staying home, or a perfectly sensible option. Good choices can solve one problem while revealing another believable one. Bad choices create consequences without shaming the real players. CRITICAL MARRIAGE PURPOSE: Every complication must put a marriage-strengthening skill into play (turning toward a bid, repair, shared decision-making, healthy differentiation, boundaries, or shared novelty). Never drift into an unrelated mystery, crime, puzzle, or magical quest where the main task is solving the plot instead of seeing how the spouses respond to each other. A surprise guest or mysterious letter is acceptable ONLY if the real dilemma concerns trust, handling a shared commitment, support, or boundaries. The research is an unobtrusive guide, not a lecture. Don't force the fictional couple to agree when real spouses disagree; make that disagreement affect what happens.
+PRIMARY RULE: Every pair of player decisions must cause an ON-SCREEN EVENT and an ESCALATION. "Yes, and..." or "Yes, but..." — never merely "they discuss compromise." The story should become more exciting even when players choose kindness, caution, staying home, or a perfectly sensible option. Good choices can solve one problem while revealing another believable one. Bad choices create consequences without shaming the real players. CRITICAL MARRIAGE PURPOSE: Every complication must put a marriage-strengthening skill into play (turning toward a bid, repair, shared decision-making, healthy differentiation, boundaries, or shared novelty). Never drift into an unrelated mystery, crime, puzzle, or magical quest where the main task is solving the plot instead of seeing how the spouses respond to each other. A surprise guest or mysterious letter is acceptable ONLY if the real dilemma concerns trust, handling a shared commitment, support, or boundaries. The research is CAUSAL STORY DESIGN, not decoration. If Jill repeatedly ignores Jack's credible bids for connection, show Jack becoming less likely to invite her in or feeling more distant, unless a real repair occurs. If Jack turns toward Jill, show an opening for trust and connection. If they respect differences, new possibilities open. NEVER claim one missed bid causes divorce or diagnose the real spouses. In your researchBeat output, identify ONE observable fictional action and a vetted research pattern, or "none" when evidence isn't there; its evidence must name what Jack or Jill ACTUALLY did. The brief explanation will be delivered as Sophia's insight after the consequence, not pasted into characters' dialogue. The research is an unobtrusive guide, not a lecture. Don't force the fictional couple to agree when real spouses disagree; make that disagreement affect what happens.
 
 YOUR TWO-BEAT TURN:
 A) Consequence (1–3 lively sentences, concrete action): Jack/Jill DO something in response to BOTH players' input, creating an observable change. No abstract summary such as "they balance emotional and financial needs" or "this prompts deeper communication." A character acts, an object moves, a plan changes, a person reacts.
@@ -168,6 +201,9 @@ End the new scene on a specific COMPELLING RELATIONSHIP DECISION: a concrete act
   input:JSON.stringify({
    storyLedger:state.ledger,currentScene:state.scene,completed:state.checkpoints,
    dramaticPressure:dramaticPressure(state),
+   relationshipHistory:state.relationshipPatterns||[],
+   unansweredBidStreak:bidPatternPressure(state),
+   researchPatterns:RESEARCH_PATTERNS,
    mutuallyConfirmedProfile:sharedProfile,
    remaining:CHECKPOINTS.filter(x=>!state.checkpoints.some(d=>d.id===x.id)),
    turn:state.turn,
