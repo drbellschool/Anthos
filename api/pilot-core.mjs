@@ -328,13 +328,14 @@ async function maybeSophia(c,invite){
  // Respond to a NEW exchange from both people since Sophia's previous reply.
  const lastSophia=current.findLastIndex(m=>m.author==="sophia");
  const fresh=current.slice(lastSophia+1);
- if(!fresh.some(m=>m.author==="a")||!fresh.some(m=>m.author==="b"))return;
- // Leave time for dialogue; three spontaneous turns per chapter, plus manual Ask Sophia.
+ // A legacy pilot room has the old reply cap. Fluid rooms must still be able to
+ // resolve a settled chapter after the cap rather than getting stuck forever.
  if(current.filter(m=>m.author==="sophia").length>=3){
-   if(c.room.conversation_mode==="fluid"&&invite)
+   if(c.room.conversation_mode==="fluid"&&invite&&fresh.some(m=>m.author==="a"||m.author==="b"))
      await maybeAdvanceFluid(c,invite,current,current.filter(m=>m.author==="sophia").at(-1)?.body||"");
    return;
  }
+ if(!fresh.some(m=>m.author==="a")||!fresh.some(m=>m.author==="b"))return;
  if((await outcomes(c.room.id)).some(e=>e.chapter_number===chapter))return;
  const lock=await db("anthos_pilot_rooms",
   {id:"eq."+c.room.id,status:"eq.active",ai_turns:"eq."+c.room.ai_turns},
