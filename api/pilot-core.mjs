@@ -152,7 +152,7 @@ export function chapterAsMessages(scene,chapter,total,{introduce=false,names=[]}
  }
  entries.push({id:"chapter-"+chapter+"-heading",author:"sophia",kind:"chapter",chapter_number:chapter,
   body:"Chapter "+chapter+" of "+total+" · "+String(scene?.title||"The story continues")});
- const paragraphs=String(scene?.story||"").split(/\\n\\s*\\n/).map(x=>x.trim()).filter(Boolean);
+ const paragraphs=String(scene?.story||"").split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
  // Short blocks maintain a chat rhythm without cutting dialogue mid-paragraph.
  let idx=0;
  for(const p of paragraphs){
@@ -172,8 +172,8 @@ export function chapterAsMessages(scene,chapter,total,{introduce=false,names=[]}
  entries.push({id:"chapter-"+chapter+"-choice",author:"sophia",kind:"choices",
   chapter_number:chapter,
   body:String(scene?.prompt||"What do you think?")+
-   (options.length?"\\n\\n"+options.map((v,i)=>(i+1)+". "+v).join("\\n"):"")+
-   "\\n\\nReply 1, 2, 3, or write your own thoughts.",
+   (options.length?"\n\n"+options.map((v,i)=>(i+1)+". "+v).join("\n"):"")+
+   "\n\nReply 1, 2, 3, or write your own thoughts.",
   options});
  return entries;
 }
@@ -187,7 +187,7 @@ export function conversationFeed({room,scenes,effects=[],chat=[],names={}}){
   feed.push(...chat.filter(m=>m.chapter_number===i));
   const effect=effects.find(x=>x.chapter_number===i);
   if(effect?.consequence)feed.push({id:"chapter-"+i+"-result",author:"sophia",
-    kind:"consequence",chapter_number:i,body:"What happened next:\\n"+effect.consequence});
+    kind:"consequence",chapter_number:i,body:"What happened next:\n"+effect.consequence});
  }
  return feed;
 }
