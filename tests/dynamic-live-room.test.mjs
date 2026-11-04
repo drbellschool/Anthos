@@ -97,7 +97,8 @@ test("real dynamic room: two individual opt-ins, split views, one continuity-saf
   assert.equal(last.checkpointProgress.completed,1);
   assert.equal(last.conversationMode,"dynamic");
   assert.equal(last.conversationFeed.filter(m=>m.kind==="choices").length,2);
-  assert.ok(last.conversationFeed.some(m=>m.kind==="consequence"));
+  assert.ok(last.conversationFeed.some(m=>m.kind==="chapter"&&m.consequence));
+  assert.ok(last.conversationFeed.some(m=>m.researchInsight?.includes("Gottman")));
   assert.equal(last.scene.title,"A new Saturday plan");
   assert.equal(tables.anthos_dynamic_adventures[0].state.ledger.setting.timeIndex,1100);
   const other=await status(tokenA);
