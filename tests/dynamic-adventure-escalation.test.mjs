@@ -23,7 +23,8 @@ const continuation=(s)=>({
  transition:"The phone rings while they remain at home.",
  newFacts:["The operator called to ask whether they are coming."],
  unresolved:["The operator is waiting for an answer."],
- checkpoint:null,checkpointEvidence:""
+ checkpoint:null,checkpointEvidence:"",
+ researchBeat:{pattern:"missed_bid",actor:"Jill",evidence:"Jill looked away when Jack asked to spend time together."}
 });
 test("real first-turn choice gets a concrete complication, not counseling homework",()=>{
  const state=initialAdventure();
