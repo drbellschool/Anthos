@@ -211,7 +211,7 @@ async function adventureState(roomId){
 function dynamicStatusFields(record,chat,names){
  const state=record.state,completed=state.checkpoints.length;
  return {
-  storyBeat:Math.min(8,completed+1),storyBeatCount:8,
+  storyBeat:Math.min(8,completed+1),storyBeatCount:8,adventureTurn:state.turn,
   conversationMode:"dynamic",storyFormat:"full",
   scene:state.scene,
   revealedChapters:[state.scene],
@@ -381,6 +381,7 @@ export async function send(invite,text){
 // Readiness is explicit, private to each invite, and limited to the current chapter.
 export async function chapterReadiness(invite,wantsToProceed){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic")fail("This adventure advances through the shared story.",409);
  if(c.room.story_format!=="full")fail("This room uses the earlier pilot format.",409);
  if(typeof wantsToProceed!=="boolean")fail("Please choose ready or keep talking.");
  const chapter=beatNumber(c.room);
@@ -487,6 +488,7 @@ async function maybeAdvanceFluid(c,invite,current,reply){
 }
 export async function ask(invite){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic"){await maybeDynamicAdventure(c);return status(invite);}
  const thread=await messages(c.room.id,45);
  if(!thread.some(m=>m.chapter_number===beatNumber(c.room)&&m.author==="a")||
      !thread.some(m=>m.chapter_number===beatNumber(c.room)&&m.author==="b"))
@@ -529,6 +531,7 @@ export function chapterAsText(scene,number,total){
 }
 export async function resolveChapter(invite,automatic=false){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic")fail("Fixed chapters are unavailable in Dynamic Adventure.",409);
  if(c.room.story_format!=="full")fail("This older pilot does not use generated story branches.",409);
  const chapter=beatNumber(c.room),effects=await outcomes(c.room.id);
  if(effects.some(x=>x.chapter_number===chapter))return status(invite);
@@ -630,6 +633,7 @@ Let Gottman's bids/repair, Schnarch's differentiation and Aron’s shared novelt
 
 export async function nextMoment(invite){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic")fail("The Dynamic Adventure advances from your decisions.",409);
  const beat=beatNumber(c.room);
  if(beat>=storyFor(c.room).length)fail("This story has reached its final moment.",409);
  if(c.room.story_format==="full"&&!((await outcomes(c.room.id)).some(x=>x.chapter_number===beat)))
