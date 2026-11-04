@@ -118,11 +118,12 @@ function render(){
  renderChoices(scene,state.storyBeat||1);
  renderHistory(state.revealedChapters);
  text("generalComment","✎ Comment"+(state.myComments?.length?" ("+state.myComments.length+")":""));
- text("identity",(state.displayName||("Spouse "+state.role.toUpperCase()))+" · with "+(state.partnerName||"your spouse"));
+ text("identity",(state.displayName||("Spouse "+state.role.toUpperCase()))+" · with "+((state.partnerName===state.displayName&&state.displayName)?("Spouse "+(state.role==="a"?"B":"A")+" (rename)"):state.partnerName||"your spouse"));
  text("nameButton",state.displayName?"✎ "+state.displayName:"✎ Add your name");
  text("remaining",state.aiRepliesLeft+" Sophia replies left");
  $("connection").title="Sophia may join after both people speak in this chapter.";
  renderMessages(state.messages);
+ const fluid=state.conversationMode==="fluid";
  const countA=state.messages.filter(m=>m.author==="a").length;
  const countB=state.messages.filter(m=>m.author==="b").length;
  $("send").disabled=busy||!isActive;
@@ -131,7 +132,7 @@ function render(){
  $("proposeButton").disabled=busy||(!isActive&&state.roomStatus!=="proposed")||(isActive&&(countA<1||countB<1));
  $("proposeButton").textContent=state.roomStatus==="active"?"We have an answer":"View our answer";
  $("proposeButton").hidden=fluid||(state.roomStatus==="active"&&state.storyFormat==="full"&&((state.storyBeat||1)<8||!state.chapterOutcome));
- const fluid=state.conversationMode==="fluid";
+
  $("legacyTools").hidden=fluid;
  $("fluidFinished").hidden=!fluid||state.roomStatus!=="completed";
  const full=state.storyFormat==="full";
