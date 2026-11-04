@@ -9,7 +9,7 @@ test("pilot renderer defines fluid before first access, avoiding frozen Send/Rea
  const end=code.indexOf("async function refresh(){",start);
  assert.ok(start>=0&&end>start);
  const segment=code.slice(start,end);
- const declaration=segment.indexOf('const fluid=state.conversationMode==="fluid"');
+ const declaration=segment.indexOf('const fluid=["fluid","dynamic"].includes(state.conversationMode)');
  const use=segment.indexOf('$("proposeButton").hidden=fluid');
  assert.ok(declaration>=0,"fluid declaration missing");
  assert.ok(use>=0&&declaration<use,"fluid must be initialized before first read");
@@ -24,7 +24,7 @@ test("generic pilot room creation now opts into fluid mode without mutating clas
  assert.match(admin,/createPilotRoom\(new URL\(request\.url\)\.origin,null,"fluid"\)/);
  assert.match(core,/createRoom\(origin,linkedCustomers=null,mode="classic"\)/);
  assert.match(core,/conversation_mode:mode/);
- assert.match(core,/createRoom\(origin,participants,"fluid"\)/);
+ assert.match(core,/createRoom\(origin,participants,engine\)/);
  const creator=read("../pilot/create/index.html");
  assert.match(creator,/generic pilot does not automatically attach/);
 });
