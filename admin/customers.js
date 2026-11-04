@@ -36,6 +36,7 @@
    $("customerShowPeople").hidden=people;
    $("customerShowCouples").hidden=!people;
    $("customerStartTeamPilot").hidden=!people||!group;
+   $("customerStartDynamicPilot").hidden=!people||!group;
    personScopeGroupId=people?group:null;
    $("customerModeLabel").textContent=people
      ?(group?"Two-person household · individual records":"Individual contacts · edit and invitations")
@@ -246,12 +247,13 @@
    if(!inviteCtx)return;
    location.href="sms:?body="+encodeURIComponent(message());
  });
- async function startCustomerTeamPilot(){
+ async function startCustomerTeamPilot(engine="fluid"){
    if(!personScopeGroupId||busy)return;
    busy=true;$("customerStartTeamPilot").disabled=true;
    notice("Creating a private Team Deep Dive for this registered couple…");
    try{
-     const r=await api("",{action:"pilot-create-couple",groupId:personScopeGroupId});
+     const r=await api("",{action:engine==="dynamic"?
+        "pilot-create-dynamic-couple":"pilot-create-couple",groupId:personScopeGroupId});
      pilotCtx={a:r.invitations?.a,b:r.invitations?.b};
      if(!pilotCtx.a||!pilotCtx.b)throw Error("Missing room invitations.");
      $("customerPilotLinkA").value=pilotCtx.a;
@@ -260,7 +262,7 @@
        (r.participants?.a||"First spouse")+" and "+(r.participants?.b||"second spouse")+
        " · Separate invitations · Consent required · No messages sent or phone verified.";
      form("customerPilotPanel");
-     notice("Profile-linked Team room ready. Send the private links separately to the intended participants.");
+     notice((engine==="dynamic"?"Dynamic checkpoint beta":"Profile-linked Team room")+" ready. Send private links separately.");
    }catch(e){notice(e.message,true);}
    finally{busy=false;$("customerStartTeamPilot").disabled=false;}
  }
@@ -269,7 +271,8 @@
    try{await navigator.clipboard.writeText(link);notice("Private Team link copied. Send it only to the intended spouse.");}
    catch{const input=$(which==="a"?"customerPilotLinkA":"customerPilotLinkB");input.select();notice("Select and copy the highlighted link.");}
  }
- $("customerStartTeamPilot").addEventListener("click",startCustomerTeamPilot);
+ $("customerStartTeamPilot").addEventListener("click",()=>startCustomerTeamPilot("fluid"));
+ $("customerStartDynamicPilot").addEventListener("click",()=>startCustomerTeamPilot("dynamic"));
  $("customerClosePilot").addEventListener("click",()=>form(null));
  $("customerPilotCopyA").addEventListener("click",()=>copyPilotLink("a"));
  $("customerPilotCopyB").addEventListener("click",()=>copyPilotLink("b"));

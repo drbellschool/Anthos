@@ -48,7 +48,7 @@ function renderChoices(scene,chapter){
   button.className="choice-option";button.textContent=(i+1)+". "+option;
   button.disabled=state.roomStatus!=="active";
   button.addEventListener("click",()=>{
-   if(state.conversationMode==="fluid")act("send",{message:String(i+1)});
+   if(["fluid","dynamic"].includes(state.conversationMode))act("send",{message:String(i+1)});
    else{$("message").value=option;$("message").focus();}
   });
   row.append(button,makeCommentButton("✎ Comment","option",chapter,i,option));host.append(row);
@@ -101,7 +101,7 @@ function renderMessages(list){
    const question=document.createElement("span");
    question.textContent=String(m.body).split("\n\n")[0];
    bubble.append(question);
-   if(m.chapter_number===state.storyBeat&&state.roomStatus==="active"){
+   if((state.conversationMode==="dynamic"?m.id==="dynamic-"+state.adventureTurn+"-choices":m.chapter_number===state.storyBeat)&&state.roomStatus==="active"){
     const choices=document.createElement("div");choices.className="message-choices";
     (m.options||[]).forEach((option,i)=>{
      const button=document.createElement("button");
@@ -146,12 +146,12 @@ function render(){
  if(state.myConsent&&!state.partnerConsent)text("consentStatus","You agreed. Waiting for the other invitation.");
  if(!state.myConsent)text("consentStatus",state.partnerConsent?"Your spouse has agreed. Your consent is needed.":"Both spouses must agree to begin.");
  $("conversation").hidden=!isReady;
- $("storyMoment").hidden=!isReady||state.conversationMode==="fluid";
- $("chapterHistory").hidden=!isReady||state.conversationMode==="fluid"||!(state?.revealedChapters?.length>1);
+ $("storyMoment").hidden=!isReady||["fluid","dynamic"].includes(state.conversationMode);
+ $("chapterHistory").hidden=!isReady||["fluid","dynamic"].includes(state.conversationMode)||!(state?.revealedChapters?.length>1);
  document.querySelector(".room").classList.toggle("is-live",isReady);
  if(!isReady){$("proposalPanel").hidden=true;return}
  const scene=state.scene||{};
- text("momentCount",(state.storyFormat==="full"?"CHAPTER ":"MOMENT ")+(state.storyBeat||1)+" OF "+(state.storyBeatCount||3));
+ text("momentCount",(state.conversationMode==="dynamic"?"CHECKPOINT ":state.storyFormat==="full"?"CHAPTER ":"MOMENT ")+(state.storyBeat||1)+" OF "+(state.storyBeatCount||3));
  text("momentTitle",scene.title||"The Saturday Surprise");
  text("momentStory",scene.story||"");
  text("momentQuestion",scene.prompt||"");
@@ -164,11 +164,11 @@ function render(){
  text("generalComment","✎ Comment"+(state.myComments?.length?" ("+state.myComments.length+")":""));
  text("identity",(state.displayName||("Spouse "+state.role.toUpperCase()))+" · with "+((state.partnerName===state.displayName&&state.displayName)?("Spouse "+(state.role==="a"?"B":"A")+" (rename)"):state.partnerName||"your spouse"));
  text("nameButton",state.displayName?"✎ "+state.displayName:"✎ Add your name");
- text("remaining",state.aiRepliesLeft+" Sophia replies left");
+ text("remaining",state.conversationMode==="dynamic"?(state.checkpointProgress?.completed||0)+"/8 checkpoints":"Sophia · "+state.aiRepliesLeft+" replies left");
  $("connection").title="Sophia may join after both people speak in this chapter.";
- renderMessages(state.conversationMode==="fluid"?
+ renderMessages(["fluid","dynamic"].includes(state.conversationMode)?
    (state.conversationFeed||[]):state.messages);
- const fluid=state.conversationMode==="fluid";
+ const fluid=["fluid","dynamic"].includes(state.conversationMode);
  const countA=state.messages.filter(m=>m.author==="a").length;
  const countB=state.messages.filter(m=>m.author==="b").length;
  $("send").disabled=busy||!isActive;

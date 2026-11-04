@@ -1,4 +1,5 @@
 import {FULL_STORY} from "./pilot-story.mjs";
+import {CHECKPOINTS,initialAdventure,validateDecision,advanceAdventure,adventureFeed,directorPrompt} from "./dynamic-adventure.mjs";
 /* Anthos server-only two-invitation pilot. No client database keys. */
 import {createHash,randomBytes} from "node:crypto";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
@@ -60,7 +61,8 @@ export async function createRoom(origin,linkedCustomers=null,mode="classic"){
   invitations:{a:origin+"/pilot/?invite="+invitations[0],b:origin+"/pilot/?invite="+invitations[1]}};
 }
 const CUSTOMER_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export async function createCustomerRoom(origin,groupId){
+export async function createCustomerRoom(origin,groupId,engine="fluid"){
+ if(!["fluid","dynamic"].includes(engine))fail("Unknown beta adventure engine.");
  if(!CUSTOMER_UUID.test(String(groupId||"")))fail("Select a registered couple.");
  const people=await db("anthos_customer_directory",{
   select:"id,group_id,first_name,display_name,phone_e164,spouse_phone_e164,questionnaire_submitted_at,program,record_status,created_at",
@@ -74,8 +76,13 @@ export async function createCustomerRoom(origin,groupId){
   fail("Review this couple's reciprocal phone information before creating a beta room.");
  const participants={a:{id:a.id,first_name:cleanName(a.first_name||a.display_name?.split(" ")[0]||"")},
    b:{id:b.id,first_name:cleanName(b.first_name||b.display_name?.split(" ")[0]||"")}};
- const room=await createRoom(origin,participants,"fluid");
- return {...room,customerLinked:true,
+ const room=await createRoom(origin,participants,engine);
+ if(engine==="dynamic"){
+  try{await db("anthos_dynamic_adventures",{},
+    {room_id:room.roomId,version:0,processing:false,state:initialAdventure()},"POST");}
+  catch(e){await db("anthos_pilot_rooms",{id:"eq."+room.roomId},undefined,"DELETE").catch(()=>{});throw e}
+ }
+ return {...room,customerLinked:true,engine,
   // These admin-generated browser invites have NOT verified either phone or account.
   phoneVerifiedByThisAction:false,
   participants:{a:participants.a.first_name,b:participants.b.first_name}};
@@ -195,8 +202,109 @@ export function conversationFeed({room,scenes,effects=[],chat=[],names={}}){
  }
  return feed;
 }
+async function adventureState(roomId){
+ const rows=await db("anthos_dynamic_adventures",
+   {select:"version,processing,state",room_id:"eq."+roomId,limit:1});
+ if(!rows[0]?.state)fail("Dynamic story ledger not initialized.",503);
+ return rows[0];
+}
+function dynamicStatusFields(record,chat,names){
+ const state=record.state,completed=state.checkpoints.length;
+ return {
+  storyBeat:Math.min(8,completed+1),storyBeatCount:8,adventureTurn:state.turn,
+  conversationMode:"dynamic",storyFormat:"full",
+  scene:state.scene,
+  revealedChapters:[state.scene],
+  chapterOutcome:null,
+  outcomes:state.checkpoints.map(x=>({chapter:x.turn,checkpoint:x.id,evidence:x.evidence})),
+  checkpointProgress:{completed,total:8,labels:CHECKPOINTS.map(x=>({id:x.id,
+    label:x.label,done:state.checkpoints.some(y=>y.id===x.id)}))},
+  conversationFeed:adventureFeed(state,chat,names)
+ };
+}
+async function maybeDynamicAdventure(c){
+ if(c.room.conversation_mode!=="dynamic"||c.room.status!=="active")return;
+ const record=await adventureState(c.room.id),state=record.state;
+ if(state.finished)return;
+ const thread=await messages(c.room.id,190);
+ const fresh=thread.filter(m=>Number(m.id)>state.afterMessageId&&["a","b"].includes(m.author));
+ if(!fresh.some(x=>x.author==="a")||!fresh.some(x=>x.author==="b"))return;
+ const claimed=await db("anthos_dynamic_adventures",
+  {room_id:"eq."+c.room.id,version:"eq."+record.version,processing:"eq.false"},
+  {processing:true,updated_at:new Date().toISOString()},"PATCH");
+ if(!claimed.length)return;
+ try{
+  const names=namesFor(c);
+  const profile=await sharedProfileFor(names.customerIds);
+  const input=directorPrompt(state,fresh,names,profile);
+  const token=process.env.OPENAI_API_KEY?.trim();if(!token)fail("Sophia is not configured.",503);
+  const schema={
+   type:"object",additionalProperties:false,
+   properties:{
+    consequence:{type:"string"},
+    nextScene:{type:"object",additionalProperties:false,properties:{
+      title:{type:"string"},story:{type:"string"},prompt:{type:"string"},
+      options:{type:"array",items:{type:"string"}}},
+      required:["title","story","prompt","options"]},
+    location:{type:"string"},timeIndex:{type:"integer"},transition:{type:"string"},
+    newFacts:{type:"array",items:{type:"string"}},
+    unresolved:{type:"array",items:{type:"string"}},
+    checkpoint:{type:["string","null"],enum:[...CHECKPOINTS.map(x=>x.id),null]},
+    checkpointEvidence:{type:"string"}
+   },
+   required:["consequence","nextScene","location","timeIndex","transition","newFacts",
+     "unresolved","checkpoint","checkpointEvidence"]
+  };
+  let response;
+  try{response=await fetch("https://api.openai.com/v1/responses",{
+    method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
+    body:JSON.stringify({model:process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",
+      instructions:input.instructions,input:input.input,store:false,max_output_tokens:1300,
+      text:{format:{type:"json_schema",name:"anthos_dynamic_turn",strict:true,schema}}}),
+    signal:AbortSignal.timeout(22000)
+  })}catch{fail("Sophia couldn't write this adventure moment.",502)}
+  if(!response.ok)fail("Sophia is temporarily unable to continue the story.",502);
+  const raw=await response.json().catch(()=>({}));
+  const output=(raw.output||[]).flatMap(x=>(x.content||[])
+    .filter(c=>c.type==="output_text").map(c=>c.text)).join("");
+  let generated;try{generated=JSON.parse(output)}catch{fail("Sophia returned an incomplete adventure moment.",502)}
+  const valid=validateDecision(state.scene,state,generated,fresh);
+  if(!valid.ok)fail("Story continuity check failed: "+valid.problems.join(", "),502);
+  const next=advanceAdventure(state,generated,fresh);
+  const saved=await db("anthos_dynamic_adventures",
+    {room_id:"eq."+c.room.id,version:"eq."+record.version,processing:"eq.true"},
+    {state:next,version:next.version,processing:false,updated_at:new Date().toISOString()},"PATCH");
+  if(!saved.length)return;
+  // Checkpoint count is for pilot display only; chapter locations are never scripted.
+  const newBeat=Math.min(8,next.checkpoints.length+1);
+  await db("anthos_pilot_rooms",{id:"eq."+c.room.id,status:"eq.active"},
+    {...(next.finished?{status:"completed"}:{story_beat:newBeat}),
+      ai_turns:Math.min(24,Number(c.room.ai_turns||0)+1)},"PATCH");
+ }finally{
+  // Never leave a failed provider request holding the story indefinitely.
+  await db("anthos_dynamic_adventures",
+   {room_id:"eq."+c.room.id,version:"eq."+record.version,processing:"eq.true"},
+   {processing:false,updated_at:new Date().toISOString()},"PATCH").catch(()=>{});
+ }
+}
 export async function status(invite){
  const c=await auth(invite),consent=agreed(c);
+ if(c.room.conversation_mode==="dynamic"){
+  const record=await adventureState(c.room.id);
+  const chat=consent?await messages(c.room.id,190):[];
+  const dynamic=dynamicStatusFields(record,chat,namesFor(c));
+  return {ok:true,role:c.person.role,roomStatus:c.room.status,title:c.room.title,
+    displayName:c.person.display_name||null,partnerName:c.other.display_name||null,
+    myConsent:!!c.person.consented_at,partnerConsent:!!c.other.consented_at,ready:consent,
+    expiresAt:c.room.expires_at,aiRepliesLeft:Math.max(0,24-c.room.ai_turns),
+    messages:chat,conversationFeed:consent?dynamic.conversationFeed:[],
+    myComments:c.person.consented_at?await db("anthos_pilot_comments",
+      {select:"id,chapter_number,target_kind,target_index,feedback,created_at",
+       room_id:"eq."+c.room.id,author_role:"eq."+c.person.role,order:"created_at.desc",limit:150}):[],
+    ...dynamic,conversationFeed:consent?dynamic.conversationFeed:[]
+  };
+ }
+
  const effects=consent&&c.room.story_format==="full"?await outcomes(c.room.id):[];
  return {ok:true,role:c.person.role,roomStatus:c.room.status,title:c.room.title,
   displayName:c.person.display_name||null,partnerName:c.other.display_name||null,
@@ -245,8 +353,11 @@ export async function send(invite,text){
  const c=await auth(invite);active(c);
  if(typeof text!=="string"||text.trim().length<1||text.length>700)fail("Message length must be 1–700 characters.");
  const picked=text.trim();
- const scene=branchedChapter(c.room,beatNumber(c.room),c.room.story_format==="full"?await outcomes(c.room.id):[]);
- const actual=c.room.conversation_mode==="fluid"&&/^[1-3]$/.test(picked)&&scene?.options?.length===3?
+ const dynamic=c.room.conversation_mode==="dynamic"?await adventureState(c.room.id):null;
+ if(dynamic?.state.finished)fail("This adventure is complete.",409);
+ const scene=dynamic?dynamic.state.scene:
+   branchedChapter(c.room,beatNumber(c.room),c.room.story_format==="full"?await outcomes(c.room.id):[]);
+ const actual=["fluid","dynamic"].includes(c.room.conversation_mode)&&/^[1-3]$/.test(picked)&&scene?.options?.length===3?
    picked+". "+scene.options[Number(picked)-1]:picked;
  const last=await messages(c.room.id,190);
  if(last.length>=80)fail("Pilot's 80-message limit reached.",429);
@@ -262,7 +373,9 @@ export async function send(invite,text){
    {room_id:"eq."+c.room.id},{ready_chapter:0},"PATCH");
  // Sophia watches the shared dialogue and responds once when BOTH spouses first join a chapter.
  // An API error must NEVER undo or lose a spouse's already-saved message.
- if(c.room.story_format==="full"){
+ if(c.room.conversation_mode==="dynamic"){
+  try{await maybeDynamicAdventure(c);}catch{/* Saved spouse messages remain intact; retry on next reply. */}
+ }else if(c.room.story_format==="full"){
   try{await maybeSophia(c,invite);}catch{/* Message remains saved; manual Ask Sophia still works. */}
  }
  return status(invite);
@@ -270,6 +383,7 @@ export async function send(invite,text){
 // Readiness is explicit, private to each invite, and limited to the current chapter.
 export async function chapterReadiness(invite,wantsToProceed){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic")fail("This adventure advances through the shared story.",409);
  if(c.room.story_format!=="full")fail("This room uses the earlier pilot format.",409);
  if(typeof wantsToProceed!=="boolean")fail("Please choose ready or keep talking.");
  const chapter=beatNumber(c.room);
@@ -376,6 +490,7 @@ async function maybeAdvanceFluid(c,invite,current,reply){
 }
 export async function ask(invite){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic"){await maybeDynamicAdventure(c);return status(invite);}
  const thread=await messages(c.room.id,45);
  if(!thread.some(m=>m.chapter_number===beatNumber(c.room)&&m.author==="a")||
      !thread.some(m=>m.chapter_number===beatNumber(c.room)&&m.author==="b"))
@@ -418,6 +533,7 @@ export function chapterAsText(scene,number,total){
 }
 export async function resolveChapter(invite,automatic=false){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic")fail("Fixed chapters are unavailable in Dynamic Adventure.",409);
  if(c.room.story_format!=="full")fail("This older pilot does not use generated story branches.",409);
  const chapter=beatNumber(c.room),effects=await outcomes(c.room.id);
  if(effects.some(x=>x.chapter_number===chapter))return status(invite);
@@ -519,6 +635,7 @@ Let Gottman's bids/repair, Schnarch's differentiation and Aron’s shared novelt
 
 export async function nextMoment(invite){
  const c=await auth(invite);active(c);
+ if(c.room.conversation_mode==="dynamic")fail("The Dynamic Adventure advances from your decisions.",409);
  const beat=beatNumber(c.room);
  if(beat>=storyFor(c.room).length)fail("This story has reached its final moment.",409);
  if(c.room.story_format==="full"&&!((await outcomes(c.room.id)).some(x=>x.chapter_number===beat)))
@@ -534,26 +651,35 @@ export async function nextMoment(invite){
 export async function comment(invite,body){
  const c=await auth(invite);
  if(!c.person.consented_at)fail("Please consent before submitting feedback.",403);
- const sceneCount=storyFor(c.room).length;
+ const dynamicRecord=c.room.conversation_mode==="dynamic"?await adventureState(c.room.id):null;
+ const sceneCount=dynamicRecord?8:storyFor(c.room).length;
  const chapter=Number(body?.chapter);
  const kind=body?.kind;
  const index=body?.index==null?null:Number(body.index);
  const feedback=body?.feedback;
- if(!Number.isInteger(chapter)||chapter<1||chapter>beatNumber(c.room)||chapter>sceneCount)
-   fail("Select a chapter you've already read.");
+ if(!Number.isInteger(chapter)||chapter<1||
+   chapter>(dynamicRecord?Math.min(8,dynamicRecord.state.turn):beatNumber(c.room))||
+   chapter>sceneCount)
+   fail("Select a story moment you've already seen.");
  if(!["chapter","option","message","general","answer","outcome"].includes(kind))
    fail("Invalid comment target.");
  if(typeof feedback!=="string"||feedback.trim().length<3||feedback.length>1400)
    fail("Write a critique or question between 3 and 1400 characters.");
  let excerpt="",targetIndex=null;
  if(kind==="chapter"){
-   const effects=await outcomes(c.room.id);
-   excerpt=branchedChapter(c.room,chapter,effects).story;
+   if(dynamicRecord){
+     const event=dynamicRecord.state.events.find(x=>Math.min(8,x.turn)===chapter);
+     excerpt=(event?.scene||dynamicRecord.state.scene).story;
+   }else{
+     const effects=await outcomes(c.room.id);
+     excerpt=branchedChapter(c.room,chapter,effects).story;
+   }
  }
  if(kind==="option"){
-   if(!Number.isInteger(index)||index<0||index>2||storyFor(c.room)[chapter-1].options?.length!==3)
-     fail("That choice isn't part of this chapter.");
-   const branch=branchedChapter(c.room,chapter,await outcomes(c.room.id));
+   const branch=dynamicRecord?(dynamicRecord.state.events.find(x=>Math.min(8,x.turn)===chapter)?.scene
+     ||dynamicRecord.state.scene):branchedChapter(c.room,chapter,await outcomes(c.room.id));
+   if(!Number.isInteger(index)||index<0||index>2||branch?.options?.length!==3)
+     fail("That choice isn't part of this story moment.");
    excerpt=branch.options[index];targetIndex=index;
  }
  if(kind==="message"){
@@ -565,7 +691,9 @@ export async function comment(invite,body){
    excerpt=rows[0].body;targetIndex=index;
  }
  if(kind==="outcome"){
-   const current=(await outcomes(c.room.id)).find(e=>e.chapter_number===chapter);
+   const current=dynamicRecord?
+     dynamicRecord.state.events.find(e=>Math.min(8,e.turn)===chapter):
+     (await outcomes(c.room.id)).find(e=>e.chapter_number===chapter);
    if(!current)fail("The story consequence hasn't been generated yet.",409);
    excerpt=current.consequence;
  }
