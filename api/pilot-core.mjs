@@ -161,32 +161,17 @@ function branchedChapter(room,chapter,effects){
 // One canonical, transport-neutral sequence for the browser and future consented SMS.
 // These are authored scene-delivery messages, not AI turns or saved private chat.
 // Never count them as a spouse contribution or an OpenAI response.
+// One coherent chapter message + one choice message, shared by browser and future SMS.
+// Never render each sentence or paragraph as a separate outbound message.
 export function chapterAsMessages(scene,chapter,total,{introduce=false,names=[]}={}){
  const entries=[];
- if(introduce){
-  const distinct=[...new Set(names.filter(x=>typeof x==="string"&&x.trim()).map(x=>x.trim()))];
-  const who=distinct.length===2?distinct.join(" and "):"you both";
-  entries.push({id:"intro-1",author:"sophia",kind:"intro",chapter_number:1,
-   body:"Hi "+who+"! I'm Sophia, your Anthos guide. Meet Jack and Jill. Their Saturday plans are about to get complicated. There are no right answers; you can reply with a number or your own words. I'll listen to both of you."});
- }
- entries.push({id:"chapter-"+chapter+"-heading",author:"sophia",kind:"chapter",chapter_number:chapter,
-  body:"Chapter "+chapter+" of "+total+" · "+String(scene?.title||"The story continues")});
- const paragraphs=String(scene?.story||"").split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
- // Short blocks maintain a chat rhythm without cutting dialogue mid-paragraph.
- let idx=0;
- for(const p of paragraphs){
-  const sentences=p.match(/[^.!?]+[.!?]+(?:[”"']|$)|[^.!?]+$/g)||[p];
-  let block="";
-  for(const sentence of sentences){
-   if(block&&block.length+sentence.length>360){
-    entries.push({id:"chapter-"+chapter+"-scene-"+idx++,author:"sophia",kind:"story",
-      chapter_number:chapter,body:block.trim()});block="";
-   }
-   block+=sentence;
-  }
-  if(block.trim())entries.push({id:"chapter-"+chapter+"-scene-"+idx++,author:"sophia",kind:"story",
-    chapter_number:chapter,body:block.trim()});
- }
+ const distinct=[...new Set(names.filter(x=>typeof x==="string"&&x.trim()).map(x=>x.trim()))];
+ const who=distinct.length===2?distinct.join(" and "):"you both";
+ const intro=introduce?"Hi "+who+"! I'm Sophia, your Anthos guide. Let's see what happens to Jack and Jill. Your choices shape their adventure.\n\n":"";
+ const heading="Chapter "+chapter+" of "+total+" · "+String(scene?.title||"The story continues");
+ const story=String(scene?.story||"").trim();
+ entries.push({id:"chapter-"+chapter+"-story",author:"sophia",kind:"chapter",chapter_number:chapter,
+   body:intro+heading+(story?"\n\n"+story:"")});
  const options=Array.isArray(scene?.options)?scene.options.slice(0,3):[];
  entries.push({id:"chapter-"+chapter+"-choice",author:"sophia",kind:"choices",
   chapter_number:chapter,

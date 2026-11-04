@@ -112,7 +112,7 @@
 .room.is-live:has(#legacyTools[hidden]) .thread{gap:7px;padding:12px 10px}
 .room.is-live:has(#legacyTools[hidden]) .thread .bubble{max-width:94%;font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 .room.is-live:has(#legacyTools[hidden]) .bubble.authored-intro{border-left-color:#4d8969}
-.room.is-live:has(#legacyTools[hidden]) .bubble.authored-chapter{font-size:12px;font-weight:700;color:#355d42;background:#eaf2e8;padding:8px 12px}
+.room.is-live:has(#legacyTools[hidden]) .bubble.authored-chapter{font-size:13px;font-weight:400;line-height:1.5;white-space:pre-wrap;color:#355d42;background:#f5efdb;padding:12px 14px}
 .room.is-live:has(#legacyTools[hidden]) .bubble.authored-story{white-space:pre-wrap}
 .message-choices{display:grid;gap:6px;margin-top:10px}
 .message-choice{width:100%;padding:10px 11px;min-height:36px;border:1px solid #bbd2bc;border-radius:9px;
