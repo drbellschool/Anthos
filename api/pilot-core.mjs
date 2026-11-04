@@ -234,7 +234,7 @@ async function maybeDynamicAdventure(c){
   {processing:true,updated_at:new Date().toISOString()},"PATCH");
  if(!claimed.length)return;
  try{
-  const input=directorPrompt(state,fresh,namesFor(c));
+  const names=namesFor(c);\n  const profile=await sharedProfileFor(names.customerIds);\n  const input=directorPrompt(state,fresh,names,profile);
   const token=process.env.OPENAI_API_KEY?.trim();if(!token)fail("Sophia is not configured.",503);
   const schema={
    type:"object",additionalProperties:false,
