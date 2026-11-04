@@ -276,7 +276,7 @@ export default {
       catch(e){return json({error:String(e.message||"Could not create customer-bound Team room.").slice(0,180)},e.status||502);}
     }
     if(action==="pilot-create"){
-      try{return json(await createPilotRoom(new URL(request.url).origin));}
+      try{return json(await createPilotRoom(new URL(request.url).origin,null,"fluid"));}
       catch(e){return json({error:String(e.message||"Could not create pilot links.").slice(0,140)},e.status||502);}
     }
     if(action==="status")return json({ok:true,services:providerStatus()});
