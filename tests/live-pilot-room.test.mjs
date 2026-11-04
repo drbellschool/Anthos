@@ -136,7 +136,8 @@ test("two different signed links: mutual consent, actual OpenAI call, joint agre
   for(let chapter=2;chapter<=8;chapter++){
     const next=await nextMoment(active);
     assert.equal(next.storyBeat,chapter);
-    if(chapter===2)assert.match(next.scene.story,/Maya arrives early/,"AI outcome really changes next scene.");
+    if(chapter===2)assert.match(next.scene.story,/Maya texts/,"AI outcome really changes next scene.");
+    if(chapter===2)assert.match(next.scene.prompt,/What should Jack do now/);
     for(const person of people)person.last_sent_at=null; // test clock: clear 3s anti-spam guard
     await send(a,"I'd let the couple negotiate this themselves, chapter "+chapter);
     await send(b,"I'd choose a playful and realistic compromise, chapter "+chapter);
