@@ -20,7 +20,7 @@ const roomTable="anthos_jj2_rooms",peopleTable="anthos_jj2_participants",msgTabl
 export async function createRoom(origin){
  if(!secret())fail("Pilot storage is not configured.",503);
  const tokens=[randomBytes(32).toString("base64url"),randomBytes(32).toString("base64url")];
- const rooms=await db(roomTable,{}, {title:"Jack & Jill: A Christmas Conundrum"},"POST");
+ const rooms=await db(roomTable,{}, {title:"Jack & Jill: A Christmas Conundrum",canon:{"scene":"It is Friday, 6:14 p.m. Jack and Jill are standing in their kitchen. Jack has just promised his mother Christmas dinner. Jill has already told her own mother they will be there too. Neither has mentioned those promises to the other. Then both phones light up at once: each mother has just sent a photo of a place setting with their names on it. Jack looks at Jill. Jill looks at Jack. The oven timer goes off, although nothing is cooking. What happens next is still unwritten.","location":"Jack and Jill's kitchen, Friday evening","facts":["Jack privately promised his mother Christmas dinner","Jill privately promised her mother Christmas dinner","Both mothers have sent place-setting photos"],"tension":"Conflicting holiday commitments neither has yet discussed","research":"Recognizing assumptions and missed opportunities for collaboration"}},"POST");
  const room=rooms[0];if(!room?.id)fail("Could not create room.",502);
  try{await db(peopleTable,{},[{room_id:room.id,role:"jack",token_hash:hash(tokens[0])},{room_id:room.id,role:"jill",token_hash:hash(tokens[1])}],"POST");}
  catch(e){await db(roomTable,{id:"eq."+room.id},undefined,"DELETE").catch(()=>{});throw e}
