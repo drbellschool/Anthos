@@ -40,7 +40,7 @@ function render(s){
  $("scene").textContent=s.canon?.scene||"Sophia is preparing your story.";
  const host=$("messages");const last=host.scrollTop+host.clientHeight>=host.scrollHeight-80;
  host.replaceChildren();
- if(!s.transcript.length)addBubble(host,"Sophia",s.role==="jack"?"Jack is wondering how to handle two competing family invitations. What do you think he should do first?":"Jill has realized that Christmas plans may not match her expectations. How should she approach Jack?",false);
+ if(!s.transcript.length)addBubble(host,"Sophia",s.role==="jack"?"Two mothers. Two promises. One Christmas dinner. And Jack has only just realized what he's done. 😬 How would you advise him to approach Jill?":"Jill's mother has already set a place for her. Jack's mother has done exactly the same. Christmas has apparently been double-booked. What would you tell Jill?",false);
  for(const m of s.transcript)addBubble(host,m.author==="participant"?"You":"Sophia",m.body,m.author==="participant");
  if(last)host.scrollTop=host.scrollHeight;
  const sh=$("shared");sh.replaceChildren();
