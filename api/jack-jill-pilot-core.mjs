@@ -47,7 +47,7 @@ export async function status(token){
  const submitted=person.submitted_checkpoint===room.checkpoint;
  const other=await db(peopleTable,{room_id:"eq."+room.id,role:"neq."+person.role,select:"role,submitted_checkpoint"});
  const both=other[0]?.submitted_checkpoint===room.checkpoint;
- return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:FOCUS[Math.min(room.checkpoint-1,4)],reflectionComplete:!!person.reflection,info:REMINDER};
+ return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:FOCUS[Math.min(room.checkpoint-1,4)],reflectionComplete:!!person.reflection,ready:person.ready_checkpoint===room.checkpoint,phase:person.learning_phase,info:REMINDER};
 }
 export async function consent(token,name){
  const c=await auth(token);
@@ -56,9 +56,9 @@ export async function consent(token,name){
  if(!c.person.consented_at)await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{display_name:n,consented_at:new Date().toISOString()},"PATCH");
  return status(token);
 }
-async function ai(instructions,input,max=380){
+async function ai(instructions,input,max=380,format=null){
  const k=process.env.OPENAI_API_KEY?.trim();if(!k)fail("Sophia's AI connection is not configured.",503);
- let r;try{r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+k,"Content-Type":"application/json"},body:JSON.stringify({model:process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",store:false,instructions,input,max_output_tokens:max}),signal:AbortSignal.timeout(26000)});}catch{fail("Sophia couldn't respond right now. Please retry.",502)}
+ let r;try{r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+k,"Content-Type":"application/json"},body:JSON.stringify({model:process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",store:false,instructions,input,max_output_tokens:max,...(format?{text:{format:{type:"json_schema",name:"anthos_jj2_"+format,strict:true,schema:format==="coaching"?{type:"object",additionalProperties:false,properties:{reply:{type:"string"},ready:{type:"boolean"},phase:{type:"string",enum:["hook","conflict","discovery","reattempt"]},learningEvidence:{type:"string"}},required:["reply","ready","phase","learningEvidence"]}:{type:"object",additionalProperties:false,properties:{outcome:{type:"string"},scene:{type:"string"},location:{type:"string"},tension:{type:"string"},research:{type:"string"},facts:{type:"array",items:{type:"string"}}},required:["outcome","scene","location","tension","research","facts"]}}}}:{})}),signal:AbortSignal.timeout(26000)});}catch{fail("Sophia couldn't respond right now. Please retry.",502)}
  if(!r.ok)fail("Sophia's AI service is temporarily unavailable.",502);
  const j=await r.json().catch(()=>({}));
  const text=(j.output||[]).filter(o=>o.type==="message").flatMap(o=>(o.content||[]).filter(x=>x.type==="output_text").map(x=>x.text)).join("\n").trim();
@@ -74,9 +74,11 @@ export async function talk(token,message){
  const clean=safeText(message,900);if(!clean||clean.length<2)fail("Write what you'd tell your character.");
  const prior=(await messages(c.room,c.person.role)).slice(-12);
  const role=c.person.role==="jack"?"Jack":"Jill";
- const response=await ai(coachInstructions+" The instructional milestones for this decision are "+FOCUS[Math.min(c.room.checkpoint-1,4)].join(", ")+". The overall story should progress naturally through Hook, Conflict, Discovery, Reattempt, Outcome and Reflection; the stages are goals, not scripted screens. Ask about their reasoning, challenge a missed pattern gently, and allow a revised approach before recommending advancement.",JSON.stringify({coachName:c.person.display_name,character:role,checkpoint:c.room.checkpoint,scene:c.room.canon,prior:prior.map(x=>({author:x.author,body:x.body})),latest:clean}),350);
- await db(msgTable,{},[{room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:c.room.checkpoint,body:clean},{room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:c.room.checkpoint,body:response.slice(0,2200)}],"POST",{minimal:true});
- await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{draft:clean},"PATCH",{minimal:true});
+ const output=await ai(coachInstructions+" The instructional milestones for this decision are "+FOCUS[Math.min(c.room.checkpoint-1,4)].join(", ")+". The learning objectives are Hook, Conflict, Discovery, Reattempt, Outcome and Reflection, not rigid screens. Return JSON. phase is the learning phase reflected by this reply. learningEvidence is a short private observation, NOT a score. ready is TRUE only when this participant has expressed a meaningful intended fictional action AND you have given a relevant skill insight or a chance to consider a revised approach, OR when they explicitly insist on moving forward after discussion. Never require them to agree with your lesson. If ready, explicitly invite 'See what happens' in reply. If not, ask one useful question and genuinely keep discussing.",JSON.stringify({coachName:c.person.display_name,character:role,checkpoint:c.room.checkpoint,scene:c.room.canon,prior:prior.map(x=>({author:x.author,body:x.body})),latest:clean}),520,"coaching");
+ let guided;try{guided=JSON.parse(output)}catch{fail("Sophia's guided reply was incomplete.",502)}
+ if(typeof guided.reply!=="string"||guided.reply.trim().length<18||typeof guided.ready!=="boolean")fail("Sophia's guided reply could not be validated.",502);
+ await db(msgTable,{},[{room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:c.room.checkpoint,body:clean},{room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:c.room.checkpoint,body:guided.reply.slice(0,2200)}],"POST",{minimal:true});
+ await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{draft:clean,ready_checkpoint:guided.ready?c.room.checkpoint:null,learning_phase:["hook","conflict","discovery","reattempt"].includes(guided.phase)?guided.phase:"discovery",learning_evidence:safeText(guided.learningEvidence,350)},"PATCH",{minimal:true});
  return status(token);
 }
 async function resolve(room){
@@ -85,13 +87,14 @@ async function resolve(room){
  const members=await db(peopleTable,{room_id:"eq."+room.id,select:"role,submitted_checkpoint,submitted_text"});
  if(members.length!==2||members.some(x=>x.submitted_checkpoint!==fresh.checkpoint))return;
  if(fresh.resolving && fresh.processing_at && Date.now()-new Date(fresh.processing_at).getTime()<70000)return;
+ if(fresh.resolving){await db(roomTable,{id:"eq."+room.id,resolving:"eq.true"},{resolving:false,processing_at:null},"PATCH",{minimal:true});}
  const claimed=await db(roomTable,{id:"eq."+room.id,checkpoint:"eq."+fresh.checkpoint,resolving:"eq.false"},{resolving:true,processing_at:new Date().toISOString()},"PATCH");
  if(!claimed.length)return;
  try{
   const j=members.find(x=>x.role==="jack")?.submitted_text||"";
   const l=members.find(x=>x.role==="jill")?.submitted_text||"";
   const prompt=`You are Sophia, a skilled improvisational story director for fictional married couple Jack and Jill. Both players submitted their own character's intended decision. Create ONE canonical event that combines BOTH instructions with meaningful consequences, cohesive location/timeline, and escalating playful comedy, while preserving fictional agency and research-based relationship learning. No prewritten chapters. Preserve facts already established. No direct quotes, private confessions or references to real participants; only fictional Jack and Jill behavior. Do not invent any private disclosures. Keep real participant wording out of the shared story. Return ONLY valid JSON with keys "outcome","scene","location","tension","research","facts". outcome 80-130 words including immediate consequence and a concrete fictional event. scene 35-75 words describing the next dilemma, except after fifth checkpoint when scene is a warm closing. research one short accurate skill/insight tied to actual fictional behavior (Gottman, Schnarch or Aron, with no invented citation). facts array up to 6 short continuity facts. No clinical diagnosis. Avoid using the same location repeatedly without causal transition. The first outcome must materially depend on both choices.`;
-  const raw=await ai(prompt,JSON.stringify({checkpoint:fresh.checkpoint,previous:fresh.canon,JackDecision:j,JillDecision:l,phase:fresh.checkpoint===1?"hook and conflict":fresh.checkpoint===5?"climax and reflection":"escalation, discovery, reattempt"}),1050);
+  const raw=await ai(prompt,JSON.stringify({checkpoint:fresh.checkpoint,previous:fresh.canon,JackDecision:j,JillDecision:l,phase:fresh.checkpoint===1?"hook and conflict":fresh.checkpoint===5?"climax and reflection":"escalation, discovery, reattempt"}),1050,"story");
   let parsed;try{parsed=JSON.parse(raw.replace(/^\`\`\`(?:json)?\s*|\s*\`\`\`$/g,""))}catch{fail("Sophia's story result was incomplete.",502)}
   for(const k of ["outcome","scene","location","tension","research"])if(typeof parsed[k]!=="string"||parsed[k].trim().length<8)fail("Sophia's story failed validation.",502);
   if(!Array.isArray(parsed.facts))fail("Story continuity failed validation.",502);
@@ -111,6 +114,7 @@ export async function submit(token){
  if(c.person.submitted_checkpoint===c.room.checkpoint){await resolve(c.room);return status(token);}
  const draft=safeText(c.person.draft,900);
  if(!draft)fail("Share your advice with Sophia before advancing.");
+ if(c.person.ready_checkpoint!==c.room.checkpoint)fail("Keep talking with Sophia before confirming this decision.");
  await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{submitted_text:draft,submitted_checkpoint:c.room.checkpoint},"PATCH",{minimal:true});
  await resolve(c.room);
  return status(token);
