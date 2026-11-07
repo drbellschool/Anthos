@@ -16,7 +16,7 @@ async function api(action,data={}){
  if(!r.ok||!j.ok)throw new Error(j.error||"Could not reach Sophia.");
  return j;
 }
-function busySet(v){busy=v;$("send").disabled=v;$("advance").disabled=v||!current?.draft||current?.submitted;$("check").disabled=v}
+function busySet(v){busy=v;$("send").disabled=v;$("advance").disabled=v||!current?.ready||current?.submitted;$("check").disabled=v}
 function addBubble(host,who,body,you=false){
  const div=document.createElement("div");div.className="bubble "+(you?"you":"sophia");
  const span=document.createElement("span");span.className="who";span.textContent=who;
@@ -52,8 +52,8 @@ function render(s){
  $("entry").hidden=s.submitted||finished;
  $("waiting").hidden=!s.submitted||finished;
  if(s.submitted)$("waitText").textContent="Your decision is locked. "+(s.otherSubmitted?"Sophia is preparing the outcome.":"Your spouse's character is still being coached.")+" Your private messages are never shared.";
- $("advance").disabled=busy||!s.draft||s.submitted;
- $("advance").textContent=s.draft?"See what happens →":"First talk to Sophia";
+ $("advance").disabled=busy||!s.ready||s.submitted;
+ $("advance").textContent=s.ready?"See what happens →":"Keep talking with Sophia";
  if(finished){const msg=document.createElement("p");msg.textContent="You have reached the end of this adventure. Reflect on one relationship skill you could apply in real life.";sh.append(msg)}
  const sig=s.checkpoint+":"+s.shared.length+":"+s.submitted+":"+s.transcript.length;
  signature=sig;
