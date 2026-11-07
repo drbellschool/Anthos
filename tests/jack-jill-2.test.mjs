@@ -53,7 +53,7 @@ test("Jack & Jill 2.0: separate private coaching, guided readiness, both require
   assert.deepEqual(jackAgain.shared,jillAgain.shared,"Both see same canonical event");
   assert.equal(jillAgain.transcript.some(m=>m.body.includes("both mothers")),false,"Private directive never appears in partner transcript");
   assert.equal(h.aiCalls,3,"Two coaching replies, one canonical resolution");
-  await submit(tokenJack);
-  assert.equal(h.room.checkpoint,2,"Duplicate older attempts cannot advance the new scene");
+  await assert.rejects(submit(tokenJack),/Keep talking with Sophia/);
+  assert.equal(h.room.checkpoint,2,"A new checkpoint requires a fresh decision");
  }finally{h.restore()}
 });
