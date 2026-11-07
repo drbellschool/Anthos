@@ -29,7 +29,7 @@ function harness(){
   else if(method==="POST"){const b=JSON.parse(opts.body);const inserted=(Array.isArray(b)?b:[b]).map(x=>({id:++next,...x}));rows.push(...inserted);result=inserted;}
   else throw Error("unexpected method");
   const minimal=opts.headers?.Prefer==="return=minimal";
-  return new Response(minimal?"":JSON.stringify(result),{status:minimal?204:200});
+  return new Response(minimal?null:JSON.stringify(result),{status:minimal?204:200});
  };
  return {room,people,entries,get aiCalls(){return aiCalls},restore(){globalThis.fetch=oldFetch;if(oldSecret===undefined)delete process.env.SUPABASE_SERVICE_ROLE_KEY;else process.env.SUPABASE_SERVICE_ROLE_KEY=oldSecret;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}};
 }
