@@ -250,7 +250,7 @@
  async function startCustomerTeamPilot(engine="fluid"){
    if(!personScopeGroupId||busy)return;
    busy=true;$("customerStartTeamPilot").disabled=true;
-   notice("Creating a private Team Deep Dive for this registered couple…");
+   notice("Creating private Jack & Jill 2.0 invitations…");
    try{
      const r=await api("",{action:engine==="dynamic"?
         "pilot-create-dynamic-couple":"pilot-create-couple",groupId:personScopeGroupId});
@@ -262,7 +262,7 @@
        (r.participants?.a||"First spouse")+" and "+(r.participants?.b||"second spouse")+
        " · Separate invitations · Consent required · No messages sent or phone verified.";
      form("customerPilotPanel");
-     notice((engine==="dynamic"?"Dynamic checkpoint beta":"Profile-linked Team room")+" ready. Send private links separately.");
+     notice(("Jack & Jill 2.0":"Profile-linked Team room")+" ready. Send private links separately.");
    }catch(e){notice(e.message,true);}
    finally{busy=false;$("customerStartTeamPilot").disabled=false;}
  }
