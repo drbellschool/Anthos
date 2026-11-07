@@ -16,7 +16,7 @@ function harness(){
   if(u.hostname==="api.openai.com"){
    aiCalls++;const payload=JSON.parse(opts.body);
    const coaching=payload.text?.format?.name==="anthos_jj2_coaching";
-   const value=coaching?{reply:"That decision could be amusing. What would Jack or Jill need to consider? Let's see what happens when you're ready.",ready:true,phase:"reattempt",learningEvidence:"Participant considered a decision and relationship consequences."}:
+   const value=coaching?{reply:"That decision could be amusing. What would Jack or Jill need to consider? Let's see what happens when you're ready.",ready:true,phase:"reattempt",learningEvidence:"Participant considered a decision and relationship consequences.",decision:"The character invites both families and seeks an honest conversation."}:
     {outcome:"Jack and Jill follow both plans, unexpectedly bringing two competitive Christmas casseroles to the kitchen. Jack explains his motives, Jill names her concerns, and both find themselves negotiating with two determined mothers while the holiday clock keeps ticking.",scene:"After the commotion, both realize their commitments now overlap. They need to decide how to respond when their families start making new demands. The kitchen is still full of casseroles and uncomfortable pauses.",location:"Kitchen",tension:"Competing family expectations",research:"An attempted repair can help reopen a conversation after conflict.",facts:["Both mothers arrived","Casseroles remain in the kitchen"]};
    return new Response(JSON.stringify({output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(value)}]}]}),{status:200});
   }
