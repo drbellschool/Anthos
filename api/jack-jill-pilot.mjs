@@ -1,4 +1,4 @@
-import {status,consent,talk,submit} from "./jack-jill-pilot-core.mjs";
+import {status,consent,talk,submit,reflect} from "./jack-jill-pilot-core.mjs";
 const headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(x,c=200)=>new Response(JSON.stringify(x),{status:c,headers});
 export default {async fetch(req){
@@ -14,6 +14,7 @@ export default {async fetch(req){
   if(body.action==="consent")return json(await consent(token,body.name));
   if(body.action==="talk")return json(await talk(token,body.message));
   if(body.action==="submit")return json(await submit(token));
+  if(body.action==="reflect")return json(await reflect(token,body.reflection));
   return json({error:"Unknown action."},400);
  }catch(e){return json({error:String(e.message||"Pilot error").slice(0,220)},e.status||500)}
 }};
