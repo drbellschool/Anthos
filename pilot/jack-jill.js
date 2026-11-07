@@ -32,15 +32,12 @@ function render(s){
  $("welcomeDescription").textContent=s.role==="jack"?"You'll privately advise Jack; Sophia will help you explore his decisions.":"You'll privately advise Jill; Sophia will help you explore her decisions.";
  if(!s.consent)return;
  const finished=s.roomStatus==="complete";
- $("learn").textContent=finished?"Reflect":(s.learningFocus||[]).join(" · ");
  $("reflectionPanel").hidden=!finished;
  $("reflection").hidden=!!s.reflectionComplete;
  $("saveReflection").hidden=!!s.reflectionComplete;
  $("reflectionStatus").textContent=s.reflectionComplete?"Your reflection has been saved privately.":"";
- $("step").textContent=finished?"Story complete":"Decision "+s.checkpoint+" of "+s.checkpointTotal;
- $("sceneTitle").textContent=finished?"The adventure's conclusion":(s.role==="jack"?"Jack's next dilemma":"Jill's next dilemma");
+ $("sceneTitle").textContent=finished?"A story worth remembering":s.shared?.length?"Meanwhile, with Jack and Jill…":"It starts with Christmas…";
  $("scene").textContent=s.canon?.scene||"Sophia is preparing your story.";
- $("research").textContent=s.canon?.research?"Research connection: "+s.canon.research:"";
  const host=$("messages");const last=host.scrollTop+host.clientHeight>=host.scrollHeight-80;
  host.replaceChildren();
  if(!s.transcript.length)addBubble(host,"Sophia",s.role==="jack"?"Jack is wondering how to handle two competing family invitations. What do you think he should do first?":"Jill has realized that Christmas plans may not match her expectations. How should she approach Jack?",false);
