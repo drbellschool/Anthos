@@ -32,6 +32,11 @@ function render(s){
  $("welcomeDescription").textContent=s.role==="jack"?"You'll privately advise Jack; Sophia will help you explore his decisions.":"You'll privately advise Jill; Sophia will help you explore her decisions.";
  if(!s.consent)return;
  const finished=s.roomStatus==="complete";
+ $("learn").textContent=finished?"Reflect":(s.learningFocus||[]).join(" · ");
+ $("reflectionPanel").hidden=!finished;
+ $("reflection").hidden=!!s.reflectionComplete;
+ $("saveReflection").hidden=!!s.reflectionComplete;
+ $("reflectionStatus").textContent=s.reflectionComplete?"Your reflection has been saved privately.":"";
  $("step").textContent=finished?"Story complete":"Decision "+s.checkpoint+" of "+s.checkpointTotal;
  $("sceneTitle").textContent=finished?"The adventure's conclusion":(s.role==="jack"?"Jack's next dilemma":"Jill's next dilemma");
  $("scene").textContent=s.canon?.scene||"Sophia is preparing your story.";
@@ -73,7 +78,8 @@ $("advance").addEventListener("click",async()=>{
  busySet(true);error("");
  try{render(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}
 });
-$("check").addEventListener("click",()=>refresh());
+$("check").addEventListener("click",async()=>{if(current?.otherSubmitted&&!current?.processing){busySet(true);try{render(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}}else refresh()});
+$("saveReflection").addEventListener("click",async()=>{const v=$("reflection").value.trim();if(v.length<12){error("Write one specific action or reflection first.");return}busySet(true);error("");try{render(await api("reflect",{reflection:v}))}catch(e){error(e.message)}finally{busySet(false)}});
 if(token){refresh();setInterval(()=>{if(current?.consent&&current.roomStatus==="active"&&!busy)refresh(true)},12000)}
 else{$("missing").hidden=false;$("consentForm").hidden=true;error("A private invitation is required.")}
 })();
