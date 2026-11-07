@@ -6,6 +6,7 @@ const fail=(msg,status=400)=>{throw Object.assign(new Error(msg),{status})};
 const validToken=t=>typeof t==="string"&&/^[A-Za-z0-9_-]{43}$/.test(t);
 const safeText=(x,n=1200)=>typeof x==="string"?x.trim().slice(0,n):"";
 const REMINDER="This is a private browser pilot. No SMS is sent.";
+const FOCUS=[["Recognize","Interpret"],["Interpret","Navigate"],["Navigate","Regulate"],["Regulate","Differentiate"],["Discover","Apply","Reflect"]];
 const MILESTONES=["Recognize","Interpret","Navigate","Regulate","Differentiate","Discover","Apply","Reflect"];
 async function db(table,query={},body,method="GET",opts={}){
  const k=secret();if(!k)fail("Private pilot database is not configured.",503);
@@ -46,7 +47,7 @@ export async function status(token){
  const submitted=person.submitted_checkpoint===room.checkpoint;
  const other=await db(peopleTable,{room_id:"eq."+room.id,role:"neq."+person.role,select:"role,submitted_checkpoint"});
  const both=other[0]?.submitted_checkpoint===room.checkpoint;
- return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,info:REMINDER};
+ return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:FOCUS[Math.min(room.checkpoint-1,4)],reflectionComplete:!!person.reflection,info:REMINDER};
 }
 export async function consent(token,name){
  const c=await auth(token);
@@ -73,7 +74,7 @@ export async function talk(token,message){
  const clean=safeText(message,900);if(!clean||clean.length<2)fail("Write what you'd tell your character.");
  const prior=(await messages(c.room,c.person.role)).slice(-12);
  const role=c.person.role==="jack"?"Jack":"Jill";
- const response=await ai(coachInstructions,JSON.stringify({coachName:c.person.display_name,character:role,checkpoint:c.room.checkpoint,scene:c.room.canon,prior:prior.map(x=>({author:x.author,body:x.body})),latest:clean}),350);
+ const response=await ai(coachInstructions+" The instructional milestones for this decision are "+FOCUS[Math.min(c.room.checkpoint-1,4)].join(", ")+". The overall story should progress naturally through Hook, Conflict, Discovery, Reattempt, Outcome and Reflection; the stages are goals, not scripted screens. Ask about their reasoning, challenge a missed pattern gently, and allow a revised approach before recommending advancement.",JSON.stringify({coachName:c.person.display_name,character:role,checkpoint:c.room.checkpoint,scene:c.room.canon,prior:prior.map(x=>({author:x.author,body:x.body})),latest:clean}),350);
  await db(msgTable,{},[{room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:c.room.checkpoint,body:clean},{room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:c.room.checkpoint,body:response.slice(0,2200)}],"POST",{minimal:true});
  await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{draft:clean},"PATCH",{minimal:true});
  return status(token);
@@ -107,10 +108,23 @@ export async function submit(token){
  const c=await auth(token);
  if(!c.person.consented_at)fail("Accept the pilot consent first.",403);
  if(c.room.status!=="active")return status(token);
- if(c.person.submitted_checkpoint===c.room.checkpoint)return status(token);
+ if(c.person.submitted_checkpoint===c.room.checkpoint){await resolve(c.room);return status(token);}
  const draft=safeText(c.person.draft,900);
  if(!draft)fail("Share your advice with Sophia before advancing.");
  await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{submitted_text:draft,submitted_checkpoint:c.room.checkpoint},"PATCH",{minimal:true});
  await resolve(c.room);
+ return status(token);
+}
+
+export async function reflect(token,reflection){
+ const c=await auth(token);
+ if(!c.person.consented_at)fail("Consent required.",403);
+ if(c.room.status!=="complete")fail("Finish the story before reflecting.",409);
+ const clean=safeText(reflection,900);
+ if(clean.length<12)fail("Write a brief practical reflection first.");
+ await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{reflection:clean},"PATCH",{minimal:true});
+ const prior=await messages(c.room,c.person.role);
+ const reply=await ai(coachInstructions+" The story is finished. Briefly affirm the concrete skill this participant wants to practice, offer one realistic small action they can choose, and close warmly. Do not reveal their words to the other spouse. No more story checkpoints.",JSON.stringify({reflection:clean,role:c.person.role,prior:prior.slice(-5).map(x=>({author:x.author,body:x.body}))}),230);
+ await db(msgTable,{},[{room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:6,body:clean},{room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:6,body:reply.slice(0,2000)}],"POST",{minimal:true});
  return status(token);
 }
