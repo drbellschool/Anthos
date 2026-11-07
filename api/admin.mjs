@@ -3,6 +3,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
+import { createRoom as createJackJillRoom } from "./jack-jill-pilot-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 
@@ -271,15 +272,19 @@ export default {
       try{return json(await editCustomer(body));}
       catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
     }
-    if(action==="pilot-create-dynamic-couple"){
+    if(action==="pilot-create-jack-jill" || action==="pilot-create-dynamic-couple" || action==="pilot-create-couple" || action==="pilot-create"){
+      try{return json(await createJackJillRoom(new URL(request.url).origin));}
+      catch(e){return json({error:String(e.message||"Could not create Jack & Jill pilot invitations.").slice(0,180)},e.status||502);}
+    }
+    if(action==="legacy-pilot-create-dynamic-couple-disabled"){
       try{return json(await createCustomerRoom(new URL(request.url).origin,body.groupId,"dynamic"));}
       catch(e){return json({error:String(e.message||"Dynamic beta setup failed.").slice(0,180)},e.status||502);}
     }
-    if(action==="pilot-create-couple"){
+    if(action==="legacy-pilot-create-couple-disabled"){
       try{return json(await createCustomerRoom(new URL(request.url).origin,body.groupId));}
       catch(e){return json({error:String(e.message||"Could not create customer-bound Team room.").slice(0,180)},e.status||502);}
     }
-    if(action==="pilot-create"){
+    if(action==="legacy-pilot-create-disabled"){
       try{return json(await createPilotRoom(new URL(request.url).origin,null,"fluid"));}
       catch(e){return json({error:String(e.message||"Could not create pilot links.").slice(0,140)},e.status||502);}
     }
