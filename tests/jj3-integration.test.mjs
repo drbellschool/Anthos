@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import {status,join,begin,talk,choose,submit,progress,reflect,createRoom} from "../api/jj3-core.mjs";
+import {ENGINE_VERSION,initialEvolution,validEvolution} from "../api/jj-evolution.mjs";
 
 const rid="11111111-1111-4111-8111-111111111111";
 const sid="a718d5e5-31bd-4bfa-9aa6-1712505015d1";
@@ -11,9 +12,10 @@ const scenario={id:sid,title:"One of Us Loves Mountains",petal_slug:"adventure-p
  opening_scene:"Jack has packed hiking gear. Jill has brought her books. Both want a different weekend in the same cabin.",
  learning_objective:"Respect the distinct needs for rest and adventure.",research_lenses:["gottman","schnarch","aron"]};
 
-function harness(mode="shared",{invalidFirst=false}={}){
+function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
  let room={id:rid,title:scenario.title,scenario_id:sid,petal_slug:"adventure-play",mode,
   status:"active",step:1,scene:{scene:scenario.opening_scene,tension:scenario.learning_objective},
+  ...(evolving?{engine_version:ENGINE_VERSION,evolution_state:initialEvolution(scenario)}:{}),
   processing_token:null,processing_at:null,expires_at:"2099-01-01"};
  const people=[{id:"22222222-2222-4222-8222-222222222222",room_id:rid,role:"jack",token_hash:hash(tokens.jack),
     name:null,consented_at:null,pending_step:null,pending_action:null,submitted_step:null,submitted_action:null,
@@ -22,7 +24,7 @@ function harness(mode="shared",{invalidFirst=false}={}){
     name:null,consented_at:null,pending_step:null,pending_action:null,submitted_step:null,submitted_action:null,
     private_memory:{},learning_log:{},reflection:null}];
  if(mode==="individual")people.pop();
- const messages=[];let next=0,aiCalls=0,badReturned=false;
+ const messages=[],evolutionEvents=[];let next=0,aiCalls=0,badReturned=false;
  const oldFetch=globalThis.fetch,oldSecret=process.env.SUPABASE_SERVICE_ROLE_KEY,oldAI=process.env.OPENAI_API_KEY;
  process.env.SUPABASE_SERVICE_ROLE_KEY="fake-service-test";
  process.env.OPENAI_API_KEY="fake-ai-test";
@@ -37,7 +39,41 @@ function harness(mode="shared",{invalidFirst=false}={}){
      badReturned=true;
      return out({status:"incomplete",output:[]});
    }
-   const reply=type==="jj3_story_outcome"?
+   const evolutionMock=()=>{
+    const beat=input.step;
+    const issue=[
+      "The surprise kayak tickets are for a race rather than a peaceful lake trip",
+      "The festival organizer has posted their muddy photo on the main stage",
+      "A sudden family invitation asks them to split a holiday afternoon",
+      "An unexpected storm strands their rented bicycles far from the cabin",
+      "The couple must tell their friends what they learned without hiding disagreements"
+    ][beat-1];
+    const outcome="Jack moves toward the map and notices their plans have changed again. "+
+      "Jill checks the lake schedule and considers whether she is ignoring her own wishes. "+
+      "They tried their own approaches, discovered something surprising, and now have to manage the consequences together. "+
+      "A funny mishap with a rental sign makes them laugh, but an unresolved question remains before dinner.";
+    const effect=(role)=>({
+      connection:role==="jack"?1:2,agency:role==="jack"?1:-1,trust:1,energy:-1,friction:1,curiosity:1,
+      evidence:role==="jack"?"Jack moves toward the map and notices their plans have changed again":
+       "Jill checks the lake schedule and considers whether she is ignoring her own wishes",
+      immediateGain:role==="jack"?"Jack enjoys being heard while trying a different plan":
+       "Jill discovers that she can genuinely enjoy unexpected adventure",
+      delayedCost:role==="jack"?"Jack realizes that some plans cost extra time and effort":
+       "Jill is tired and has spent less time on herself than she wanted",
+      newWant:role==="jack"?"Jack wants a weekend shaped by what they have actually learned":
+       "Jill wants to share another experience without losing her voice",
+      beliefShift:role==="jack"?"Jack sees that a shared weekend can be surprising":
+       "Jill recognizes both the joy and strain of trying something new"
+    });
+    return {outcome,nextScene:"At the lake, "+issue+
+       ". Jack and Jill now have a concrete new choice to make, and neither can simply repeat the original plan.",
+      location:"The lakeside festival",tension:"A new external problem forces a meaningful response",
+      facts:[issue,"Both characters now face a new decision"],researchNote:"The prior choice has a benefit and a cost.",
+      newDilemma:issue,relationshipConnection:1,relationshipTrust:1,
+      unresolvedThread:"The couple must decide how much to change their plans without losing themselves",
+      impacts:{jack:effect("jack"),jill:effect("jill")}};
+   };
+   const reply=type==="jj_evolution_outcome"?evolutionMock():type==="jj3_story_outcome"?
       {outcome:"Jack starts toward his mountain, and Jill heads for the reading terrace. Both have chosen independently, so their morning becomes funny and complicated. A ranger announces the ridge has closed while a festival starts on the lakeshore, setting up an unexpected reunion later in the day.",
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
@@ -87,6 +123,17 @@ function harness(mode="shared",{invalidFirst=false}={}){
    room.scene=body.p_scene;room.step=Math.min(5,room.step+1);room.status=body.p_step>=5?"complete":"active";
    room.processing_token=null;room.processing_at=null;return out(true);
   }
+  if(path.endsWith("/rpc/anthos_jj3_publish_evolution")){
+   if(room.step!==body.p_step||room.processing_token!==body.p_token||
+      room.engine_version!==ENGINE_VERSION||!validEvolution(body.p_evolution)||
+      evolutionEvents.some(e=>e.step===body.p_step))return out(false);
+   evolutionEvents.push({step:body.p_step,before:room.evolution_state,after:body.p_evolution,
+     effects:body.p_effects});
+   messages.push({id:++next,room_id:rid,role:"shared",author:"story",kind:"outcome",step:room.step,body:body.p_outcome});
+   room.scene=body.p_scene;room.evolution_state=body.p_evolution;
+   room.step=Math.min(5,room.step+1);room.status=body.p_step>=5?"complete":"active";
+   room.processing_token=null;room.processing_at=null;return out(true);
+  }
   if(path.endsWith("/rpc/anthos_jj3_release")){room.processing_token=null;return out(true)}
   let rows=path.endsWith("/anthos_jj3_rooms")?[room]:path.endsWith("/anthos_jj3_participants")?people:
     path.endsWith("/anthos_jj3_messages")?messages:path.endsWith("/anthos_jj2_scenarios")?[scenario]:[];
@@ -113,7 +160,7 @@ function harness(mode="shared",{invalidFirst=false}={}){
   if(method==="DELETE")return out(filtered);
   return out({error:"Unexpected mock route "+method+" "+path},500);
  };
- return {get people(){return people},get room(){return room},get messages(){return messages},get aiCalls(){return aiCalls},
+ return {get people(){return people},get room(){return room},get messages(){return messages},get aiCalls(){return aiCalls},get events(){return evolutionEvents},
   restore(){globalThis.fetch=oldFetch;if(oldSecret===undefined)delete process.env.SUPABASE_SERVICE_ROLE_KEY;else process.env.SUPABASE_SERVICE_ROLE_KEY=oldSecret;
     if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}};
 }
@@ -235,5 +282,51 @@ test("3.0 simple agreement to Jack's own suggested plan unlocks a natural story 
    assert.equal(h.messages.filter(m=>m.kind==="outcome").length,0);
    const refreshed=await status(tokens.jack);
    assert.equal(refreshed.action,agreed.action,"The proposal is durable across refreshes");
+ }finally{h.restore()}
+});
+
+test("3.1 evolving story accumulates five causal consequences and preserves both coaches' privacy",async()=>{
+ const h=harness("shared",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  assert.equal((await status(tokens.jack)).version,ENGINE_VERSION);
+  await begin(tokens.jack);await begin(tokens.jill);
+  for(let step=1;step<=5;step++){
+   if(step>1){await begin(tokens.jack);await begin(tokens.jill)}
+   await talk(tokens.jack,"Jack should invite Jill to try a new activity but respect her answer.",randomUUID());
+   await talk(tokens.jill,"Jill should try a surprising adventure and tell Jack when she is tired.",randomUUID());
+   await submit(tokens.jack);
+   assert.equal(h.room.step,step,"No shared event without Jill's confirmation");
+   await submit(tokens.jill);
+   assert.equal(h.events.length,step,"One evolution event per step");
+   assert.equal(h.room.evolution_state.completedBeats,step);
+   assert.equal(h.room.evolution_state.arc.beats.length,step);
+   assert.equal(h.room.status,step===5?"complete":"active");
+  }
+  const a=await status(tokens.jack),b=await status(tokens.jill);
+  assert.deepEqual(a.shared,b.shared);
+  assert.equal(a.shared.length,5);
+  assert.equal(h.events[0].before.completedBeats,0);
+  assert.equal(h.events[4].after.completedBeats,5);
+  assert.ok(h.room.evolution_state.characters.jill.meters.agency<
+    h.events[0].before.characters.jill.meters.agency);
+  assert.equal(b.messages.some(m=>m.author==="coach"&&m.body.includes("Jack should invite Jill")),false,
+   "Jill cannot read Jack\'s actual private coach message");
+  assert.equal(a.messages.some(m=>m.author==="coach"&&m.body.includes("Jill should try a surprising")),false,
+   "Jack cannot read Jill\'s actual private coach message");
+  assert.equal((await progress(tokens.jack)).shared.length,5,
+   "Repeated progress requests cannot publish a duplicate shared outcome");
+ }finally{h.restore()}
+});
+test("3.1 individual Deep Dive applies consequences even without a second human coach",async()=>{
+ const h=harness("individual",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await begin(tokens.jack);
+  await talk(tokens.jack,"Jack should try something surprising without hiding it from Jill.",randomUUID());
+  const result=await submit(tokens.jack);
+  assert.equal(result.step,2);
+  assert.equal(h.events.length,1);
+  assert.equal(h.people.length,1);
+  assert.ok(validEvolution(h.room.evolution_state));
  }finally{h.restore()}
 });
