@@ -277,8 +277,8 @@ test("3.0 simple agreement to Jack's own suggested plan unlocks a natural story 
    const first=await talk(tokens.jack,"Maybe you should ask Jill what kind of evening she wants.",randomUUID());
    assert.equal(first.step,1);
    const agreed=await talk(tokens.jack,"Yes, do that.",randomUUID());
-   assert.equal(agreed.action,"Jack texts Jill and asks whether she'd like a quiet evening together.");
-   assert.equal(agreed.submitted,false,"The user must still explicitly confirm the fictional action");
+   assert.equal(agreed.submitted,true,"Explicit 'do that' automatically commits Jack's fictional action");
+   assert.equal(h.people[0].submitted_action,"Jack texts Jill and asks whether she'd like a quiet evening together.");
    assert.equal(h.messages.filter(m=>m.kind==="outcome").length,0);
    const refreshed=await status(tokens.jack);
    assert.equal(refreshed.submitted,true,"The fictional action is durably confirmed across refreshes");
