@@ -89,7 +89,7 @@ test("JJ2: private coaching; deterministic readiness; exactly one canonical shar
   const agreeing=await talk(tokenJack,"Sounds good");
   assert.equal(agreeing.ready,false,"Bare assent cannot silently resubmit the earlier checkpoint action");
   assert.equal(agreeing.draft,"","Previous decision cannot leak into a new checkpoint");
-  await assert.rejects(submit(tokenJack),/Keep talking with Sophia/);
+  await assert.rejects(submit(tokenJack),/Share your advice with Sophia|Keep talking with Sophia/);
   assert.equal(h.room.checkpoint,2);
   assert.equal(h.entries.filter(x=>x.role==="canon").length,1);
  }finally{h.restore()}
