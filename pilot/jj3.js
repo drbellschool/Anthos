@@ -9,9 +9,9 @@ if(/^[A-Za-z0-9_-]{43}$/.test(supplied)){
  url.searchParams.delete("invite");history.replaceState(null,"",url.pathname+url.search+url.hash);
 }
 const token=supplied||sessionStorage.getItem(storedKey)||"";
-let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0;
+let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0,manualOpen=false;
 const error=t=>{$("error").textContent=t||""};
-const busySet=v=>{busy=v;for(const id of ["send","commit","check","saveReflection"])$(id).disabled=v};
+const busySet=v=>{busy=v;for(const id of ["send","commit","check","saveReflection","manualToggle","saveMove"])$(id).disabled=v};
 async function api(action,body={}){
  const option={headers:{"x-anthos-pilot-token":token},credentials:"same-origin",cache:"no-store"};
  if(action){option.method="POST";option.headers["Content-Type"]="application/json";option.body=JSON.stringify({action,...body})}
@@ -75,6 +75,10 @@ function render(s){
  if(wasNearBottom||!log.dataset.initialized)log.scrollTop=log.scrollHeight;
  log.dataset.initialized="yes";
  $("compose").hidden=completed||s.submitted;
+ $("manual").hidden=completed||s.submitted;
+ $("manualForm").hidden=!manualOpen;
+ $("manualToggle").textContent=s.action?"Change "+s.character+"'s move":"Choose "+s.character+"'s next move";
+ $("manualLabel").textContent="What should "+s.character+" do or say next?";
  $("decision").hidden=completed||s.submitted||!s.action;
  if(s.action)$("decisionText").textContent=s.action;
  $("waiting").hidden=completed||!s.submitted;
@@ -99,7 +103,7 @@ async function load(quiet=false){
    lastProgressTry=Date.now();
    try{render(await api("progress"))}catch(e){if(!quiet)error(e.message)}
   }
-  if(!quiet)error("");
+  if(!quiet&&!$("error").textContent)error("");
  }catch(e){if(!quiet)error(e.message)}finally{busySet(false)}
 }
 async function afterAction(action,data={}){
@@ -122,6 +126,21 @@ $("send").addEventListener("click",async()=>{
  if(text!==queuedText){queuedText=text;queuedKey=crypto.randomUUID()}
  const result=await afterAction("talk",{message:text,requestKey:queuedKey});
  if(result){$("message").value="";queuedKey=null;queuedText="";const log=$("chatLog");log.scrollTop=log.scrollHeight}
+});
+$("manualToggle").addEventListener("click",()=>{
+ manualOpen=!manualOpen;
+ if(state)render(state);
+ if(manualOpen)$("manualMove").focus();
+});
+$("saveMove").addEventListener("click",async()=>{
+ const move=$("manualMove").value.trim();
+ if(move.length<10){error("Describe a specific thing your character will do or say.");return}
+ const saved=await afterAction("choose",{move});
+ if(saved){
+  manualOpen=false;$("manualMove").value="";
+  if(state)render(state);
+  $("decision").scrollIntoView({behavior:"smooth",block:"nearest"});
+ }
 });
 $("commit").addEventListener("click",async()=>{
  if(!state?.action||busy)return;
