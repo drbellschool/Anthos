@@ -1,5 +1,6 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
+import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
 import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
@@ -48,7 +49,8 @@ export async function createRoom(origin,scenarioId,soloRole="jack"){
   facts:[],tension:scenario.learning_objective,research:scenario.research_lenses||[],title:scenario.title};
  const created=await db(tables.rooms,{},{
   title:scenario.title,scenario_id:scenario.id,petal_slug:scenario.petal_slug,
-  mode:scenario.mode,scene:canon
+  mode:scenario.mode,scene:canon,engine_version:ENGINE_VERSION,
+  evolution_state:initialEvolution(scenario)
  },"POST");
  const room=created?.[0];if(!room?.id)problem("Could not create a fresh room.",502);
  const keys=[randomBytes(32).toString("base64url"),randomBytes(32).toString("base64url")];
@@ -61,7 +63,7 @@ export async function createRoom(origin,scenarioId,soloRole="jack"){
   throw e;
  }
  const base=origin+"/pilot/?invite=";
- return {ok:true,version:VERSION,roomId:room.id,title:room.title,experienceMode:scenario.mode,
+ return {ok:true,version:ENGINE_VERSION,roomId:room.id,title:room.title,experienceMode:scenario.mode,
   invitations:{a:base+keys[0],...(scenario.mode==="shared"?{b:base+keys[1]}:{})},
   participants:scenario.mode==="shared"?{a:"Jack's friend",b:"Jill's friend"}:{a:role==="jack"?"Jack's friend":"Jill's friend"},
   expiresAt:room.expires_at};
@@ -75,7 +77,7 @@ export async function status(token){
  ]):[[],[],[]];
  const mine=p.submitted_step===r.step&&r.status==="active";
  const partnerSubmitted=r.mode==="individual"||others?.[0]?.submitted_step===r.step;
- return {ok:true,version:VERSION,title:r.title,role:p.role,character:CHARACTER[p.role].firstName,
+ return {ok:true,version:r.engine_version||VERSION,title:r.title,role:p.role,character:CHARACTER[p.role].firstName,
   mode:r.mode,step:r.step,totalSteps:5,status:r.status,scene:r.scene,consent,name:p.name||"",
   messages:privateLog,shared,submitted:mine,otherSubmitted:!!partnerSubmitted,
   processing:!!r.processing_token,action:mine?"":p.pending_step===r.step?p.pending_action||"":"",
@@ -128,7 +130,8 @@ export async function begin(token){
  if(r.step===1&&/mountain/i.test(scenario.title))intro=seededIntroduction(p.role,scenario);
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
-   memory:p.private_memory,latest:"The shared fictional scene has just advanced. Start by reacting as the character and privately confiding in your friend about what this NEW complication means to you. End with a vivid invitation to advise your next move.",pending:null});
+   memory:p.private_memory,latest:"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
+   evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
   try{
    const result=await model(g.instructions+" This is a NEW CHARACTER INTRO; the coach has not spoken. Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
    if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
@@ -165,7 +168,8 @@ export async function talk(token,text,requestKey){
  const scenario=await scenarioFor(r);
  const oldAction=p.pending_step===r.step?p.pending_action||"":"";
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history,
-   memory:p.private_memory,latest:clean,pending:oldAction});
+   memory:p.private_memory,latest:clean,pending:oldAction,
+   evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
  let response=await model(guide.instructions,guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
  if(!checkCharacterReply(response,history)||soundsTooPolished(response.characterReply)){
   // Soft retry: a formulaic "you've convinced me" is just as immersion-breaking
@@ -222,22 +226,39 @@ async function resolveRoom(room){
  try{
   const scenario=await scenarioFor(current);
   const actions=members.map(p=>({character:p.role==="jack"?"Jack":"Jill",action:p.submitted_action}));
-  const prompt=storyPrompt({mode:current.mode,scenario,scene:current.scene,step:current.step,actions});
-  let story=null;
+  const evolving=current.engine_version===ENGINE_VERSION;
+  if(evolving&&!validEvolution(current.evolution_state))
+   problem("The story state needs repair before it can advance. No choices were lost.",502);
+  const prompt=evolving
+   ?evolutionStoryPrompt({mode:current.mode,scenario,scene:current.scene,step:current.step,
+     actions,evolution:current.evolution_state})
+   :storyPrompt({mode:current.mode,scenario,scene:current.scene,step:current.step,actions});
+  let story=null,validationProblems=[];
   for(let attempt=0;attempt<2;attempt++){
    try{
-    const candidate=await model(prompt.instructions+(attempt?" Make the scene more concrete, funny and continuous, with complete JSON.":""),
-      prompt.input,STORY_SCHEMA,"jj3_story_outcome");
-    if(validStory(candidate,current.step)){story=candidate;break}
+    const retry=attempt
+     ?" Your prior outcome was not usable: "+validationProblems.slice(0,5).join(", ")+
+      ". Show the consequences and make the new dilemma different from the opening conflict."
+     :"";
+    const candidate=await model(prompt.instructions+retry,prompt.input,
+     evolving?EVOLUTION_STORY_SCHEMA:STORY_SCHEMA,evolving?"jj_evolution_outcome":"jj3_story_outcome");
+    const verdict=evolving
+     ?validateEvolutionStory(candidate,current.evolution_state,current.step,actions)
+     :{ok:validStory(candidate,current.step),errors:["invalid_story"]};
+    if(verdict.ok){story=candidate;break}
+    validationProblems=verdict.errors;
    }catch(e){if(attempt===1)throw e}
   }
-  if(!story)problem("The next story event needs another attempt. Try again.",502);
+  if(!story)problem("The next event needs a fresh attempt; your choices remain saved.",502);
   const next={scene:safe(plainCharacterLanguage(story.nextScene),1800),location:safe(story.location,140),
    tension:safe(story.tension,500),facts:story.facts.slice(0,8).map(x=>safe(x,200)),
    research:safe(story.researchNote,450),title:scenario.title};
-  const published=await db("rpc/anthos_jj3_publish",{},{
+  const evolved=evolving?evolveState(current.evolution_state,story,current.step,actions):null;
+  const published=await db(evolving?"rpc/anthos_jj3_publish_evolution":"rpc/anthos_jj3_publish",{},{
    p_room:room.id,p_step:current.step,p_token:claimToken,
-   p_outcome:safe(plainCharacterLanguage(story.outcome),2500),p_scene:next
+   p_outcome:safe(plainCharacterLanguage(story.outcome),2500),p_scene:next,
+   ...(evolving?{p_evolution:evolved,p_effects:{jack:story.impacts.jack,jill:story.impacts.jill,
+     relationshipConnection:story.relationshipConnection,relationshipTrust:story.relationshipTrust}}:{})
   },"POST");
   if(published!==true)problem("Another story update completed first. Refresh the page.",409);
  }catch(e){
@@ -297,7 +318,8 @@ export async function reflect(token,reflection){
  if(clean.length<12)problem("Write one practical thing you'd like to carry into real life.");
  const scenario=await scenarioFor(r);
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:5,
-  history:(await privateMessages(r,p.role)).slice(-8),memory:p.private_memory,latest:clean,pending:null});
+  history:(await privateMessages(r,p.role)).slice(-8),memory:p.private_memory,latest:clean,pending:null,
+   evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
  let closing="";
  try{
   const response=await model(guide.instructions+" The adventure has FINISHED. No new move is possible; leave action, evidence, characterProposal and proposalEvidence empty. The coach is reflecting on a real-life relationship skill. Respond warmly as "+CHARACTER[p.role].firstName+" with a short personal farewell and one funny callback; no new fictional decision.",guide.input,RESPONSE_SCHEMA,"jj3_final_reflection");
