@@ -16,5 +16,7 @@ test("story progresses automatically while private messages remain conversationa
  assert.match(client,/afterAction\("talk",\{message:text,requestKey:queuedKey\}\)/);
  assert.match(client,/api\("progress"\)/);
  assert.match(client,/setInterval\(/);
+ assert.match(client,/s\.submitted&&s\.otherSubmitted&&s\.status==="active"/);
+ assert.doesNotMatch(client,/s\.otherSubmitted&&!s\.processing/);
  assert.match(html,/Your friend is putting that plan into action/);
 });
