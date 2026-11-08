@@ -116,8 +116,8 @@ export function validateEvolutionStory(story,previous,step,confirmedActions) {
   const evidence=trim(effect.evidence,300);
   if(evidence.length<12||!String(story.outcome).toLowerCase().includes(evidence.toLowerCase()))
    errors.push(role+"_ungrounded_effect");
-  if(trim(effect.immediateGain).length<8||trim(effect.delayedCost).length<8)
-   errors.push(role+"_missing_tradeoff");
+  if(trim(effect.immediateGain).length<8&&trim(effect.delayedCost).length<8)
+   errors.push(role+"_no_observable_consequence");
   if(trim(effect.newWant).length<10)errors.push(role+"_missing_evolving_desire");
   if(typeof effect.beliefShift!=="string")errors.push(role+"_belief_shift_invalid");
  }
@@ -183,13 +183,13 @@ export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution
    "Jack and Jill start with distinct personalities, but NEVER freeze their desires or return them to the initial debate. They can embrace adventure, discover a new dislike, grow closer while losing agency, become more resentful while laughing, or change their mind again.",
    "The confirmed character actions are the only participant instructions that may affect the shared world. Follow them even if they are imperfect, selfish, unwise, surprising or generous, provided safe. Do not automatically fix, moralize or fabricate agreement.",
    "No mind reading. The shared fictional world contains only observable actions; you do not have the human coaches' private messages. Never reveal or infer real spouse disclosures.",
-   "For EACH character portray a specific immediate gain AND a distinct realistic cost or strain. Both can move differently at once. No scorekeeping, positive/negative labels, counseling, or research citations in the prose.",
+   "For EACH character portray at least one specific consequence: an immediate gain, a cost or strain, OR both. Do NOT force a tidy gain-and-loss formula every beat. Sometimes a choice simply hurts; sometimes it works beautifully, with a delayed cost surfacing later. Both characters may move in different directions.",
    "The two characters can evolve gradually. Do NOT re-open the original debate as the next dilemma. The first four beats must create a DIFFERENT concrete external problem with new stakes. Introduce one funny character-driven consequence, not random slapstick.",
    "For example, agreeing to an exhausting adventure can genuinely create delight and connection BUT cost Jill rest and the chance to speak up. Treat that as a real experience, not a wrong answer. Jack may notice or fail to notice.",
    "Use existing cost, gain, changed wants, unclosed consequences and prior choices to shape the NEW event. Answer every confirmed action through observable results in outcome, and then provide an actionable nextScene.",
    "impacts must have ONE bounded integer delta between -4 and 4 for every axis. These are internal narrative signals, NEVER clinical truth or actual measurements of the human couple. At least one axis per character must change.",
    "For each impact evidence must be a verbatim phrase of at least 12 characters copied from your visible outcome that supports your proposed change. newWant reflects what the character currently wants AFTER this event. beliefShift can be empty unless clearly established.",
-   "immediateGain and delayedCost both describe observable nuanced outcomes for each character, without implying moral grades. Relationship connection and trust deltas also range -4 to 4.",
+   "immediateGain and delayedCost describe observable outcomes where they genuinely occur; either may be empty if not present in this event, but not both. Relationship connection and trust deltas range -4 to 4.",
    "newDilemma is a concise, specific, actionable NEW conflict, not the previous one. unresolvedThread holds a real unfinished problem. Closing at fifth beat may remain bittersweet; no mandatory happy ending.",
    "Wit comes from Jack and Jill being human. Avoid formulaic resolutions and tidy lessons. Outcome 100-170 words, nextScene 55-100 words, ordinary accessible English.",
    "Eight hidden learning milestones may inform consequences, but NEVER gate progress or appear as visible chapters."
