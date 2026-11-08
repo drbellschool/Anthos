@@ -1,4 +1,4 @@
-import {status,join,begin,talk,submit,progress,reflect} from "./jj3-core.mjs";
+import {status,join,begin,talk,choose,submit,progress,reflect} from "./jj3-core.mjs";
 const headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(x,s=200)=>new Response(JSON.stringify(x),{status:s,headers});
 export default {async fetch(request){
@@ -15,6 +15,7 @@ export default {async fetch(request){
    case "join":return json(await join(token,body.name));
    case "begin":return json(await begin(token));
    case "talk":return json(await talk(token,body.message,body.requestKey));
+   case "choose":return json(await choose(token,body.move));
    case "submit":return json(await submit(token));
    case "progress":return json(await progress(token));
    case "reflect":return json(await reflect(token,body.reflection));
