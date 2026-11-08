@@ -5,11 +5,11 @@ import {status,consent,talk,submit,reflect,begin} from "../api/jack-jill-pilot-c
 const roomId="11111111-1111-4111-8111-111111111111";
 const tokenJack="j".repeat(43),tokenJill="l".repeat(43);
 const hash=x=>createHash("sha256").update(x).digest("hex");
-function harness(mode='shared'){
+function harness(mode='shared',options={}){
  const room={id:roomId,title:"Jack & Jill test",status:"active",experience_mode:mode,checkpoint:1,adventure_key:"christmas",model_version:"2.1.0",canon:{scene:"Jack and Jill face two Christmas invitations.",location:"Kitchen",facts:["Two invitations"],tension:"Unspoken expectations",research:"Recognize"},resolving:false,processing_at:null,expires_at:"2099-01-01"};
  const people=[{room_id:roomId,role:"jack",token_hash:hash(tokenJack),consented_at:null,ready_checkpoint:null,display_name:null,draft:null,learning_log:{},submitted_checkpoint:null},{room_id:roomId,role:"jill",token_hash:hash(tokenJill),consented_at:null,ready_checkpoint:null,display_name:null,draft:null,learning_log:{},submitted_checkpoint:null}];
  if(mode==="individual")people.splice(1,1);
- const entries=[];let aiCalls=0,next=0;
+ const entries=[];let aiCalls=0,next=0,malformedSent=false;
  const oldFetch=globalThis.fetch,oldSecret=process.env.SUPABASE_SERVICE_ROLE_KEY,oldAI=process.env.OPENAI_API_KEY;
  process.env.SUPABASE_SERVICE_ROLE_KEY="test-service-secret";process.env.OPENAI_API_KEY="test-openai-key";
  globalThis.fetch=async(url,opts={})=>{
@@ -19,6 +19,10 @@ function harness(mode='shared'){
    const coaching=payload.text?.format?.name==="anthos_jj2_coaching";
    const isOpening=!payload.text?.format && payload.instructions?.includes("the one natural, witty guide");
    const isReflection=!payload.text?.format && !isOpening;
+   if(options.malformedFirstCoaching&&coaching&&!malformedSent){
+     malformedSent=true;
+     return new Response(JSON.stringify({output:[{type:"message",content:[{type:"output_text",text:'{"reply":"Partial response","decision":'}]}]}),{status:200});
+   }
    const input=JSON.parse(payload.input);
    const message=input.latestMessage||"";
    const character=input.role||"Jack";
@@ -156,5 +160,22 @@ test("JJ2: a private individual scenario completes without a second participant"
   assert.equal(next.shared.length,1,"Outcome appears privately to solo participant");
   assert.equal(h.entries.filter(x=>x.role==="canon").length,1);
   assert.equal(h.people.length,1,"No real second participant was created");
+ }finally{h.restore()}
+});
+
+test("JJ2: truncated structured Sophia reply retries and accepts an explicit, imperfect decision",async()=>{
+ const h=harness("shared",{malformedFirstCoaching:true});
+ try{
+  await consent(tokenJack,"Adam");
+  const advice='I think Jack needs to tell Jill, "We can read at home, but I want to conquer a mountain."';
+  const result=await talk(tokenJack,advice);
+  assert.equal(result.ready,true,"An explicit character decision must unlock See what happens");
+  assert.match(result.draft,/^Jack needs to tell Jill/);
+  assert.equal(result.transcript.length,2,"One participant message and one COMPLETE Sophia reply are saved");
+  assert.equal(result.transcript.filter(m=>m.author==="sophia").length,1);
+  assert.equal(h.aiCalls,2,"A broken JSON response is retried once without duplicating the user's message");
+  const follow=await talk(tokenJack,"No, Jill needs to support Jack.");
+  assert.equal(follow.ready,true,"Disagreement does not erase a previously actionable Jack decision");
+  assert.equal(follow.draft,result.draft,"Other-character instruction cannot overwrite Jack's action");
  }finally{h.restore()}
 });
