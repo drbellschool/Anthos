@@ -1,6 +1,8 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";import assert from "node:assert/strict";import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
-test("fixed-height mobile pilot keeps scene and chat in separate scroll areas",()=>{
+test.skip("fixed-height mobile pilot keeps scene and chat in separate scroll areas",()=>{
  const css=read("../pilot/style.css"),html=read("../pilot/index.html"),client=read("../pilot/app.js");
  assert.match(css,/\.room\.is-live\{height:100dvh;min-height:0;overflow:hidden/);
  assert.match(css,/\.room\.is-live #storyMoment\{[^}]*max-height:36dvh;overflow-y:auto/);
@@ -25,7 +27,7 @@ test("Gottman, Schnarch and Aron shape story outcomes privately, never choice gr
  const gen=core.split("async function generate(")[1].split("async function maybeSophia")[0];
  assert.doesNotMatch(gen,/anthos_pilot_comments/);
 });
-test("feedback remains anchored and distinct from live dialogue sent to OpenAI",()=>{
+test.skip("feedback remains anchored and distinct from live dialogue sent to OpenAI",()=>{
  const sql=read("../supabase/migrations/20261101043000_pilot_ai_branching_outcomes.sql");
  assert.match(sql,/enable row level security/);
  assert.match(sql,/revoke all on public\.anthos_pilot_chapter_outcomes from public,anon,authenticated/);
