@@ -58,7 +58,7 @@ Editorial approval of each of the 120 scenarios still belongs in the 12-Petal Ma
 - `api/jj-evolution.mjs`: pure versioned evolution engine and schema
 - `api/jj3-model.mjs`: character voices and prompts
 - `api/jj3-core.mjs`: confirmed actions, outcome generation, version routing
-- `supabase/migrations/20261108090000_jj_character_evolution_v1.sql`: state persistence and atomic publication
+- `supabase/migrations/20261108210000_jj_character_evolution_v1.sql`: state persistence and atomic publication
 - `tests/jj-evolution.test.mjs`: four divergent complete-arc tests
 - `tests/jj3-integration.test.mjs`: live-shaped API and privacy integration tests
 
