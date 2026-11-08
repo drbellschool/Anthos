@@ -158,20 +158,29 @@ export function actionFromCharacterWords(role,coachMessage,characterReply){
  const coach=typeof coachMessage==="string"?coachMessage.trim():"";
  const reply=typeof characterReply==="string"?characterReply.trim():"";
  if(coach.length<3||!reply)return "";
- // Do not turn ordinary research questions or pure questions into a choice.
- const relevant=/^(?:yes|yep|yeah|sure|okay|ok|absolutely|exactly|go ahead|do that|sounds good|i agree|let'?s do it)\b|(?:\b(?:should|could you|would you|try|please|just|have you|what if|how about|why don.t you|maybe|ask|tell|invite|offer|text|call|do that|go ahead)\b)/i;
- if(!relevant.test(coach))return "";
- const other=role==="jack"?"Jill":"Jack",name=role==="jack"?"Jack":"Jill";
- if(new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|will|can|could|has to)\\b","i").test(coach))return "";
- // Capture only a character's own explicit next step (not 'I could', not wishful thinking).
- const reg=/\b(?:I(?:'ll| will| am going to)|I'm going to|I think I'll|I guess I'll)\s+(ask|tell|text|call|invite|offer|suggest|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|try)\b\s+([^.!?\n]{3,135})/i;
- const match=reply.match(reg);
+ const name=role==="jack"?"Jack":"Jill",other=role==="jack"?"Jill":"Jack";
+ const directedOther=new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|will|can|could|has to)\\b","i");
+ if(directedOther.test(coach))return "";
+ // Natural permissions are valid even if they do not start with "yes".
+ // Never turn a question or a mere observation into a decision.
+ const consent=/\b(?:yes|yep|yeah|sure|okay|ok|absolutely|exactly|go ahead|do that|sounds good|i agree|let'?s do it|give it a try|try it|go make a plan|go for it|worth the risk|see if it works|see what happens|that's the plan|that will work|make a plan|you should|could you|would you|have you tried|what if|how about|why don.t you|ask|tell|invite|offer|text|call|suggest|plan)\b/i;
+ if(!consent.test(coach))return "";
+ // Must be the character's OWN definite intention, not a hypothetical.
+ const intent=/\b(?:I['’]ll|I will|I am going to|I'm going to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(ask|tell|text|call|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|try)\b\s+([^.!?\n]{3,150})/i;
+ const match=reply.match(intent);
  if(!match)return "";
- const rest=match[2].trim().replace(/[,;:\s]+$/,"");
- // Cut trailing conditional clauses rather than inventing what the other spouse will do.
+ const verb=match[2].toLowerCase()==="pitching"?"pitch":match[2].toLowerCase();
+ let rest=match[3].trim();
+ // "I'll try pitching..." and "I'll try to pitch..." carry the same plan.
+ if(verb==="try"){
+  const sub=rest.match(/^(?:to\s+)?(pitch|propose|suggest|ask|tell|offer|plan|invite|text|call|send|take|bring|share|schedule|arrange|book|drive|meet|walk|explain|apologize)(?:ing)?\s+(.+)$/i);
+  if(!sub)return "";
+  rest=sub[2]; 
+  return name+" plans to "+sub[1].toLowerCase()+" "+rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"")+".";
+ }
  const bounded=rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
  if(bounded.length<5)return "";
- return name+" will "+match[1].toLowerCase()+" "+bounded+".";
+ return name+(match[1]?" plans to ":" will ")+verb+" "+bounded+".";
 }
 
 /** Flag obvious AI-sounding agreement so we can request one better reply.
