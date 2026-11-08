@@ -167,11 +167,22 @@ export async function reflect(token,reflection){
  const c=await auth(token);
  if(!c.person.consented_at)fail("Consent required.",403);
  if(c.room.status!=="complete")fail("Finish the story before reflecting.",409);
+ if(c.person.reflection)return status(token);
  const clean=safeText(reflection,900);
  if(clean.length<12)fail("Write a brief practical reflection first.");
- await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{reflection:clean},"PATCH",{minimal:true});
  const prior=await messages(c.room,c.person.role);
- const reply=await ai(coachInstructions+" The story is finished. Briefly affirm the concrete skill this participant wants to practice, offer one realistic small action they can choose, and close warmly. Do not reveal their words to the other spouse. No more story checkpoints.",JSON.stringify({reflection:clean,role:c.person.role,prior:prior.slice(-5).map(x=>({author:x.author,body:x.body}))}),230);
- await db(msgTable,{},[{room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:6,body:clean},{room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:6,body:reply.slice(0,2000)}],"POST",{minimal:true});
+ const instructions=[
+   "You are Sophia. The Jack and Jill fictional adventure is finished.",
+   "This is a private adult-learning REFLECTION, not a therapy session, score or test.",
+   "Acknowledge the participant's actual reflection in natural language. Suggest only one achievable real-world action they could voluntarily try.",
+   "Do not interpret or disclose the other spouse's private reasoning. Do not diagnose, shame or insist on reconciliation.",
+   "Speak warmly with personality in approximately 40-90 words. No chapter, phase, research, or milestone headings."
+ ].join(" ");
+ const reply=await ai(instructions,JSON.stringify({role:c.person.role,name:c.person.display_name,reflection:clean,privateContext:prior.slice(-6).map(x=>({author:x.author,body:x.body}))}),280);
+ await db(msgTable,{},[
+   {room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:6,body:clean},
+   {room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:6,body:reply.slice(0,2000)}
+ ],"POST",{minimal:true});
+ await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{reflection:clean},"PATCH",{minimal:true});
  return status(token);
 }
