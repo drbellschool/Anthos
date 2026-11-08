@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {status,consent,talk,submit,reflect} from "../api/jack-jill-pilot-core.mjs";
+import {status,consent,talk,submit,reflect,begin} from "../api/jack-jill-pilot-core.mjs";
 const roomId="11111111-1111-4111-8111-111111111111";
 const tokenJack="j".repeat(43),tokenJill="l".repeat(43);
 const hash=x=>createHash("sha256").update(x).digest("hex");
@@ -16,12 +16,13 @@ function harness(){
   if(u.hostname==="api.openai.com"){
    aiCalls++;const payload=JSON.parse(opts.body);
    const coaching=payload.text?.format?.name==="anthos_jj2_coaching";
-   const isReflection=!payload.text?.format;
+   const isOpening=!payload.text?.format && payload.instructions?.includes("Create the FIRST private message");
+   const isReflection=!payload.text?.format && !isOpening;
    const input=JSON.parse(payload.input);
    const message=input.latestMessage||"";
    const character=input.role||"Jack";
    const actionable=/should|tell|ask|invite|apologize|visit|plan|say|choose/i.test(message);
-   const value=isReflection?"Your reflection recognizes a concrete step. Consider one small conversation you could initiate this week.":coaching?{
+   const value=isOpening?("Sophia notices "+JSON.parse(payload.input).character+" at the cabin, caught between two weekend plans. The guide at the door wants a signed waiver tonight, but neither spouse remembers booking it. There are two helmets outside and three novels by the bed. What specific move could "+JSON.parse(payload.input).character+" make to start this conversation without escalating it?"):isReflection?"Your reflection recognizes a concrete step. Consider one small conversation you could initiate this week.":coaching?{
       reply:actionable?"The holiday is getting complicated in round "+aiCalls+". Your idea gives your character something concrete to try. Ready to see what happens?":"That's a good question. What would you actually advise your character to do?",
       ready:false,phase:"discovery",learningEvidence:"Explored assumptions",
       learningMilestones:["Recognize"],decision:actionable?character+" should openly discuss the holiday plans.":"",
@@ -107,5 +108,27 @@ test("JJ2: five coordinated decisions complete one adventure and permit private 
    assert.ok(!partner.transcript.some(x=>x.body.includes("I want to ask better questions")));
    await reflect(tokenJack,"A second attempt should not add a new reflection.");
    assert.equal(h.entries.filter(x=>x.role==="jack"&&x.checkpoint===6&&x.author==="participant").length,1);
+ }finally{h.restore()}
+});
+
+test("JJ2: each coach receives one unique AI-driven private dramatic hook and no shared event",async()=>{
+ const h=harness();
+ try{
+  await consent(tokenJack,"Alex");await consent(tokenJill,"Sam");
+  const jack=await begin(tokenJack);
+  assert.equal(jack.transcript.length,1);
+  assert.equal(jack.transcript[0].checkpoint,0);
+  assert.match(jack.transcript[0].body,/Jack at the cabin/);
+  const jillBefore=await status(tokenJill);
+  assert.equal(jillBefore.transcript.length,0);
+  const jill=await begin(tokenJill);
+  assert.equal(jill.transcript.length,1);
+  assert.match(jill.transcript[0].body,/Jill at the cabin/);
+  assert.notEqual(jill.transcript[0].body,jack.transcript[0].body);
+  assert.equal(jill.shared.length,0);
+  assert.equal(h.room.checkpoint,1);
+  const repeat=await begin(tokenJack);
+  assert.equal(repeat.transcript.length,1,"Opening must not duplicate after refresh");
+  assert.equal(h.aiCalls,2,"Only one generation per role");
  }finally{h.restore()}
 });
