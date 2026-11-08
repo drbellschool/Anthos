@@ -93,6 +93,8 @@ export function actionFromCoach(role,raw,proposed,evidence){
  // A model extraction is permitted only with exact user-message evidence.
  if(typeof proposed!=="string"||typeof evidence!=="string"||evidence.trim().length<8)return "";
  if(!text.toLowerCase().includes(evidence.trim().toLowerCase()))return "";
+ const actionLanguage=/\b(?:should|needs?\s+to|must|want\s+(?:him|her|jack|jill)\s+to|tell\s+(?:him|her|jack|jill)\s+to|ask\s+(?:him|her)\s+to|let\s+(?:him|her|jack|jill)|(?:he|she)\s+(?:can|could|will|would|ought))\b/i;
+ if(!actionLanguage.test(text))return "";
  if(!new RegExp("^"+mine+"\\b","i").test(proposed.trim()))return "";
  return proposed.trim().slice(0,900);
 }
