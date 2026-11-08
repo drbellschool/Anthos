@@ -6,6 +6,7 @@ import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as lis
 import { createRoom as createJackJillRoom } from "./jack-jill-pilot-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
+import {listScenarios,saveScenario} from "./jj2-library.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -223,6 +224,11 @@ export default {
       try{const params=new URL(request.url).searchParams;return json(await listCoupleRegistrations({search:params.get("search"),page:Number(params.get("page")||0)}));}
       catch(e){return json({error:e.message||"Couple registrations unavailable."},e.status||502);}
     }
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="jj2-library"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      try{return json(await listScenarios())}
+      catch(e){return json({error:e.message||"Deep Dive library unavailable."},e.status||502)}
+    }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="customers"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
       const p=new URL(request.url).searchParams;
@@ -267,6 +273,10 @@ export default {
     if(action==="customer-invite"){
       try{return json(await createSignupLink(body));}
       catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
+    }
+    if(action==="jj2-scenario-save"){
+      try{return json(await saveScenario(body))}
+      catch(e){return json({error:e.message||"Could not save scenario"},e.status||502)}
     }
     if(action==="customer-update"){
       try{return json(await editCustomer(body));}
