@@ -46,6 +46,7 @@ function render(){
 function edit(id){
  chosen=library.scenarios.find(x=>x.id===id);if(!chosen)return;
  $("jj2Editor").hidden=false;$("jj2PilotLinks").hidden=true;
+ $("jj2SoloRoleLabel").hidden=chosen.mode!=="individual";
  $("jj2EditorTitle").textContent=chosen.title;
  $("jj2EditorMeta").textContent=petalName(chosen.petal_slug)+" · "+(chosen.mode==="shared"?"Two-person shared adventure":"One-person private adventure")+" · Slot "+chosen.slot+" · version "+chosen.content_version;
  $("jj2EditTitle").value=chosen.title;$("jj2EditOpening").value=chosen.opening_scene;
@@ -83,7 +84,7 @@ async function trial(){
  if(["draft","retired"].includes(chosen.status)&&!confirm("This scenario is still "+chosen.status+". Create a private internal pilot anyway? No customer content will be published."))return;
  $("jj2Try").disabled=true;info("Creating isolated test room…");
  try{
-  const output=await api("pilot-create-jack-jill",{scenarioId:chosen.id,soloRole:"jack"});
+  const output=await api("pilot-create-jack-jill",{scenarioId:chosen.id,soloRole:$("jj2SoloRole").value});
   $("jj2PilotA").value=output.invitations.a;
   $("jj2PilotB").value=output.invitations.b||"";
   $("jj2PilotBLabel").hidden=!output.invitations.b;$("jj2CopyB").hidden=!output.invitations.b;
