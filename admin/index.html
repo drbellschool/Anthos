@@ -6,6 +6,7 @@
 <title>Anthos | Threefold Private Studio</title>
 <link rel="stylesheet" href="/admin/admin.css">
 <link rel="stylesheet" href="/admin/customers.css">
+<link rel="stylesheet" href="/admin/jj2-manager.css">
 <script src="/content.js" defer></script>
 <script src="/admin/studio-blueprint.js" defer></script>
 <script src="/admin/admin.js" defer></script>
@@ -13,6 +14,7 @@
 <script src="/admin/customers.js" defer></script>
 <script src="/admin/couples.js" defer></script>
 <script src="/admin/progress.js" defer></script>
+<script src="/admin/jj2-manager.js" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -156,6 +158,38 @@
             </div>
             <p class="soft-text">Pilot engine 2.1: validated character-owned decisions, two private conversations and one atomic shared outcome. The visible experience remains conversational; internal model labels are never presented to participants. <a href="/pilot/create/">Create a new themed pilot</a>.</p>
           </article>
+          <section class="panel jj2-library" id="jj2Library" aria-labelledby="jj2ManagerTitle">
+            <div class="panel-top"><div><span class="eyebrow">ANTHOS · DEEP DIVE LIBRARY</span><h3 class="mini-title" id="jj2ManagerTitle">12-Petal Scenario Manager</h3></div><button type="button" class="button" id="jj2Refresh">↻ Refresh</button></div>
+            <p class="soft-text">A reusable adventure library: five <strong>shared</strong> Jack-and-Jill decisions and five <strong>individual</strong> private explorations in each petal. Intros are draft story seeds—not scripted chapters, lessons or published customer content.</p>
+            <div class="jj2-metrics" aria-label="Deep Dive catalog totals">
+              <div><strong id="jj2CountTotal">—</strong><span>Scenario seeds</span></div>
+              <div><strong id="jj2CountShared">—</strong><span>Shared / two coaches</span></div>
+              <div><strong id="jj2CountIndividual">—</strong><span>Individual / private</span></div>
+              <div><strong id="jj2CountReady">—</strong><span>Beta ready</span></div>
+            </div>
+            <p id="jj2Notice" class="soft-text" role="status">Sign in to inspect the scenario library.</p>
+            <div id="jj2Controls" hidden>
+              <div class="jj2-toolbar">
+                <label>Petal<select id="jj2Petal"><option value="">All 12 petals</option></select></label>
+                <label>Experience<select id="jj2Mode"><option value="">Both</option><option value="shared">Shared</option><option value="individual">Individual</option></select></label>
+                <label>Review status<select id="jj2Status"><option value="">All statuses</option><option value="draft">Draft</option><option value="in_review">In review</option><option value="beta_ready">Beta ready</option><option value="retired">Retired</option></select></label>
+                <label>Find scenario<input id="jj2Search" type="search" maxlength="90" placeholder="Title, objective, petal"></label>
+              </div>
+              <div class="jj2-petals" id="jj2PetalGrid" aria-label="Scenario totals by petal"></div>
+              <div class="jj2-list" id="jj2ScenarioList"></div>
+              <div class="jj2-editor" id="jj2Editor" hidden>
+                <div class="panel-top"><h3 id="jj2EditorTitle" class="mini-title">Review scenario</h3><button class="button" type="button" id="jj2EditorClose">Close</button></div>
+                <p id="jj2EditorMeta" class="soft-text"></p>
+                <label>Scenario title<input id="jj2EditTitle" maxlength="120"></label>
+                <label>Original, unfinished opening scene<textarea id="jj2EditOpening" rows="5" maxlength="1700"></textarea></label>
+                <label>Learning objective<textarea id="jj2EditObjective" rows="2" maxlength="450"></textarea></label>
+                <label>Editorial status<select id="jj2EditStatus"><option value="draft">Draft</option><option value="in_review">In review</option><option value="beta_ready">Beta ready</option><option value="retired">Retired</option></select></label>
+                <p class="soft-text">Mark beta ready only after editorial review. Research and safety review are still required for general release. Changes use version checks to prevent silent overwrites.</p>
+                <div class="jj2-actions"><button type="button" class="button primary" id="jj2Save">Save editorial changes</button><button type="button" class="button" id="jj2Try">Create private test room</button></div>
+                <div id="jj2PilotLinks" class="jj2-links" hidden><p><strong>New pilot invitations — copy now</strong></p><label>First private link<input id="jj2PilotA" readonly></label><label id="jj2PilotBLabel">Second private link<input id="jj2PilotB" readonly></label><div class="jj2-actions"><button type="button" class="button" id="jj2CopyA">Copy first</button><button type="button" class="button" id="jj2CopyB">Copy second</button></div><small>Invitation links grant access to private coaching. Nothing is sent automatically.</small></div>
+              </div>
+            </div>
+          </section>
           <div class="notice"><strong>Legacy curriculum preview — version 1.0.</strong> The fixed-chapter and mastery controls below are retained for reference only; they are not the guided Jack &amp; Jill 2.0 experience.</div>
           <article class="panel">
             <div class="panel-top"><div><span class="eyebrow">CHRISTMAS TUG-OF-WAR · VERSION 1.0</span><h3 class="mini-title">Four measurable learning objectives</h3></div><span class="state-label ready">8 story milestones</span></div>
