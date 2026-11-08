@@ -1,6 +1,6 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,checkCharacterReply,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -167,8 +167,15 @@ export async function talk(token,text,requestKey){
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history,
    memory:p.private_memory,latest:clean,pending:oldAction});
  let response=await model(guide.instructions,guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
- if(!checkCharacterReply(response,history)){
-  response=await model(guide.instructions+" Your last proposed reply repeated something you already said. React to the NEW text with fresh, specific, character-voiced humor and vulnerability.",guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
+ if(!checkCharacterReply(response,history)||soundsTooPolished(response.characterReply)){
+  // Soft retry: a formulaic "you've convinced me" is just as immersion-breaking
+  // as a repeated reply. An imperfect retry should never create an infinite stall.
+  try{
+   const revised=await model(guide.instructions+
+    " Your previous reply was either repetitive or sounded too agreeable and polished. Be a person, not a worksheet: respond with one honest thought, a concrete detail, and some genuine uncertainty or pushback. Avoid tidy lessons and filler.",
+    guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
+   if(checkCharacterReply(revised,history))response=revised;
+  }catch{/* Preserve the usable first reply rather than losing the entire exchange. */}
  }
  if(!checkCharacterReply(response,history))problem("The character's response repeated itself. Your message is still here—please retry.",502);
  response.characterReply=plainCharacterLanguage(response.characterReply);
