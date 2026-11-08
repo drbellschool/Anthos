@@ -273,7 +273,7 @@ export default {
       catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
     }
     if(action==="pilot-create-jack-jill" || action==="pilot-create-dynamic-couple" || action==="pilot-create-couple" || action==="pilot-create"){
-      try{return json(await createJackJillRoom(new URL(request.url).origin));}
+      try{return json(await createJackJillRoom(new URL(request.url).origin,["christmas","anniversary","getaway"].includes(body.theme)?body.theme:"christmas"));}
       catch(e){return json({error:String(e.message||"Could not create Jack & Jill pilot invitations.").slice(0,180)},e.status||502);}
     }
     if(action==="legacy-pilot-create-dynamic-couple-disabled"){
