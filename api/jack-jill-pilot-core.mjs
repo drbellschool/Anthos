@@ -1,6 +1,6 @@
 import {createHash,randomBytes} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {MODEL_VERSION, MILESTONES, getTheme, lessonFocus, resolveReadiness, coachingGuide, storyGuide, storyIsSafe, avoidRepetitiveResponse, openingGuide} from "./jj2-learning-model.mjs";
+import {MODEL_VERSION, MILESTONES, getTheme, lessonFocus, resolveReadiness, coachingGuide, storyGuide, storyIsSafe, avoidRepetitiveResponse, openingGuide, explicitCharacterDecision} from "./jj2-learning-model.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const hash=s=>createHash("sha256").update(s).digest("hex");
@@ -129,23 +129,43 @@ export async function talk(token,message){
  const guide=coachingGuide({role:c.person.role,checkpoint:c.room.checkpoint,themeKey:c.room.adventure_key,name:c.person.display_name,canon:c.room.canon,history:prior,scenario,mode:c.room.experience_mode||"shared"});
  const previousAction=c.person.ready_checkpoint===c.room.checkpoint&&c.person.submitted_checkpoint!==c.room.checkpoint?c.person.draft||null:null;
  const params=JSON.stringify({...guide.context,latestMessage:clean,currentProvisionalAction:previousAction,priorSceneEvents:[]});
- let output=await ai(guide.instructions,params,690,"coaching");
- let guided;
- try{guided=JSON.parse(output)}catch{fail("Sophia's private response was incomplete.",502)}
- const validReply=x=>typeof x.reply==="string"&&avoidRepetitiveResponse(x.reply,prior.filter(m=>m.author==="sophia"));
- if(!validReply(guided)){
-   output=await ai(guide.instructions+" Important: your previous response repeated an earlier question or was too short. Respond with a fresh consequence or insight; do not force another quiz.",params,690,"coaching");
-   try{guided=JSON.parse(output)}catch{fail("Sophia could not finish her response.",502)}
+ let guided=null;
+ const validReply=x=>x&&typeof x.reply==="string"&&avoidRepetitiveResponse(x.reply,prior.filter(m=>m.author==="sophia"));
+ // The model occasionally runs out of output tokens before closing the JSON object.
+ // Retry incomplete/invalid structured outputs with a larger budget and shorter
+ // instructions; do not append a partial exchange to the private transcript.
+ for(let attempt=0;attempt<2;attempt++){
+   let raw="";
+   try{
+     raw=await ai(guide.instructions+(attempt?
+       " CRITICAL: output concise COMPLETE JSON, each field short, close every bracket. Your previous response was incomplete. One witty reply, one character action only.":""),
+       params,attempt?1700:1200,"coaching");
+   }catch(e){if(attempt===1)throw e;continue}
+   let parsed=null;
+   try{parsed=JSON.parse(raw)}catch{}
+   if(validReply(parsed)&&typeof parsed.decision==="string"&&typeof parsed.decisionEvidence==="string"){
+     guided=parsed;break;
+   }
  }
- if(!validReply(guided)||typeof guided.decision!=="string"||typeof guided.decisionEvidence!=="string")fail("Sophia could not produce a valid reply.",502);
+ if(!guided){
+   // Last resort: conversational AI reply without structured output. An explicit
+   // character decision is still identified ONLY from the participant's text below.
+   const reply=await ai(guide.instructions+" Respond with ONLY a concise, natural Sophia message, no JSON. Do not call this a test. Do not invent a spouse's response.",params,380);
+   if(!validReply({reply}))fail("Sophia couldn't complete her response. Your message is still here to retry.",502);
+   guided={reply,decision:"",decisionEvidence:"",phase:"discovery",learningEvidence:"",learningMilestones:[]};
+ }
  // The model proposes a character action. Server code validates that the
  // participant actually expressed it, then determines readiness independently.
  const character=c.person.role==="jack"?"Jack":"Jill";
  const evidence=guided.decisionEvidence.trim();
  const sourced=evidence.length>=8&&clean.toLowerCase().includes(evidence.toLowerCase());
  const ownsCharacter=new RegExp("^"+character+"\\b","i").test(guided.decision.trim());
- const newAction=sourced&&ownsCharacter?safeText(guided.decision,900):"";
+ const newAction=sourced&&ownsCharacter?safeText(guided.decision,900):explicitCharacterDecision(c.person.role,clean);
  const action=newAction||safeText(previousAction,900);
+ // Sophia must not announce an unavailable advancement action.
+ if(!action && /see what happens/i.test(guided.reply))
+   guided.reply=guided.reply.replace(/(?:ready to\s+)?see what happens[?!.,]*/gi,"choose "+character+"'s next move");
+
  const ready=resolveReadiness({action,priorReady:c.person.ready_checkpoint===c.room.checkpoint});
  const currentEvidence=c.person.learning_log&&typeof c.person.learning_log==="object"&&!Array.isArray(c.person.learning_log)?c.person.learning_log:{};
  const milestones=Array.isArray(guided.learningMilestones)?guided.learningMilestones.filter(m=>MILESTONES.includes(m)).slice(0,3):[];
