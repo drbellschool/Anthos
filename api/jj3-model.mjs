@@ -67,7 +67,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "The invisible Learning Guide recognizes a relevant skill: "+FOCUS[step-1].join(", ")+". Sophia may offer ONE short research-informed aside when useful, but often set sophiaAside to empty. No research labels, grades, milestone headers or invented citations.",
    "The Decision Director recognizes practical advice addressed directly to YOU, not merely advice using your name. Examples: 'Have you tried asking her what she likes?' to Jack means action='Jack asks Jill what she would enjoy'; 'You should drive him to the trail and read while he hikes' to Jill means action='Jill offers to drive Jack to the trail and read while he hikes'.",
    "When the coach gives concrete advice, including questions like 'could you...', 'have you tried...', 'how about...' or second-person 'you should...', provide the character-owned action and an evidence substring EXACTLY copied from their latest message (8+ characters). No action for vague observations, pure questions about facts, or attempts to control the OTHER character alone. The coach must still explicitly confirm the proposed move in the UI.",
-   "When your friend says yes, yep, go ahead, do that, sounds good, or another clear agreement to YOUR previous suggestion, treat it as permission to PROPOSE that move for review. Never demand that they restate it using your name.",
+   "When your friend explicitly says go ahead, do it, give it a try or go make the plan, accept that as permission to ACT in the fictional world. State your specific first-person intention and then let the world react; do not demand another confirmation or an interface button.",
    "When you actually intend to try a specific move, say it naturally in FIRST person ('I think I'll ask Jill if she wants to sit by the fire'). Set characterProposal to a short third-person action ('Jack asks Jill whether she wants to sit by the fire') and proposalEvidence to an EXACT phrase from characterReply proving that intention. These are drafts only; the coach must explicitly confirm. Do not manufacture a move merely to progress. If the friend suggests something you resist, reflect that resistance instead of claiming agreement.",
    "If you're only brainstorming, expressing worry, asking for more information or suggesting hypothetical possibilities, return empty characterProposal and proposalEvidence. Do not pre-decide the spouse's reaction.",
    "Do not say 'Tell Jack what to do', 'Tell Jill what to do', 'choose your character's action', 'submit your choice', or other interface language. Just talk as a friend. If the plan is ready, casually offer 'Want to see how that goes?'",
@@ -186,6 +186,19 @@ export function actionFromCharacterWords(role,coachMessage,characterReply){
 /** Flag obvious AI-sounding agreement so we can request one better reply.
  * This is a quality retry signal, NOT a hard gate that could strand a user.
  */
+/** The human coach has explicitly invited the fictional character to ACT.
+ * Do not confuse a brainstorm, factual question, or generic validation with permission.
+ * This authorizes only a fictional, character-owned action. The shared story still waits
+ * for each independent coach to give their own go-ahead.
+ */
+export function explicitGoAhead(message){
+ if(typeof message!=="string")return false;
+ const text=message.trim().replace(/[.!?]+$/,"").trim();
+ if(!text||text.length>300)return false;
+ // An explicit imperative is sufficient, even after a short supportive preface.
+ return /(?:^|[,;]\s*|\b(?:so|then|well|okay|alright|yes|yeah|yep|sure)\s+)(?:go\s+(?:ahead|make\s+(?:a|the)\s+plan|for\s+it)|do\s+(?:that|it)|give\s+it\s+a\s+try|try\s+it|let'?s\s+do\s+it|see\s+(?:if|how)\s+it\s+(?:works|goes|turns\s+out)|make\s+the\s+plan|send\s+(?:it|that\s+message)|take\s+(?:the|that)\s+step|follow\s+(?:through|the\s+plan)|go\s+try\s+it)\b/i.test(text);
+}
+
 export function soundsTooPolished(reply){
  const text=typeof reply==="string"?reply:"";
  return /\b(?:you(?:'ve| have) convinced me|thanks for making me see|you nailed it|the simple play here|lesson learned|you(?:'re| are) absolutely right|we just need to communicate|we need to meet in the middle|it(?:'s| is) all about balance)\b/i.test(text);
