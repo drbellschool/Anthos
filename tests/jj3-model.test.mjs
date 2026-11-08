@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -44,4 +44,17 @@ test("quality checks reject short or repeated character messages and invalid sto
  const reply="Buddy, I feel like I'm losing the adventurous part of myself. What do I do with that?";
  assert.equal(checkCharacterReply({characterReply:reply},[{author:"character",body:reply}]),false);
  assert.equal(validStory({outcome:"Funny consequences happen here",nextScene:"A new challenge.",location:"Dock",tension:"Rest",facts:[]},1),false);
+});
+
+test("plain-character language rewrites unnecessary jargon but leaves ordinary words alone",()=>{
+ assert.equal(plainCharacterLanguage("I have FOMO about crampons."),"I have that feeling of missing out about special hiking boots.");
+ assert.equal(plainCharacterLanguage("I want a quiet afternoon."),"I want a quiet afternoon.");
+ assert.equal(plainCharacterLanguage("I bought a dozen eggs."),"I bought a dozen eggs.");
+});
+test("model-proposed second-person coaching moves may be confirmed if supported by exact user evidence",()=>{
+ const jack="Have you tried talking to her about a compromise or finding time to relax together?";
+ const jill="You should find a compromise. Could you drive him to the trail and read while he hikes?";
+ assert.equal(actionFromCoach("jack",jack,"Jack asks Jill about a compromise and offers a quiet hour.","Have you tried talking to her about a compromise"),"Jack asks Jill about a compromise and offers a quiet hour.");
+ assert.equal(actionFromCoach("jill",jill,"Jill offers Jack a ride to his hike and reads by the lake.","Could you drive him to the trail"),"Jill offers Jack a ride to his hike and reads by the lake.");
+ assert.equal(actionFromCoach("jack","What was the weather?","Jack goes hiking.","What was the weather?"),"");
 });
