@@ -1,4 +1,5 @@
 import {createHash,randomBytes} from "node:crypto";
+import {MODEL_VERSION, MILESTONES, getTheme, lessonFocus, resolveReadiness, coachingGuide, storyGuide, storyIsSafe, avoidRepetitiveResponse} from "./jj2-learning-model.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const hash=s=>createHash("sha256").update(s).digest("hex");
@@ -6,8 +7,6 @@ const fail=(msg,status=400)=>{throw Object.assign(new Error(msg),{status})};
 const validToken=t=>typeof t==="string"&&/^[A-Za-z0-9_-]{43}$/.test(t);
 const safeText=(x,n=1200)=>typeof x==="string"?x.trim().slice(0,n):"";
 const REMINDER="This is a private browser pilot. No SMS is sent.";
-const FOCUS=[["Recognize","Interpret"],["Interpret","Navigate"],["Navigate","Regulate"],["Regulate","Differentiate"],["Discover","Apply","Reflect"]];
-const MILESTONES=["Recognize","Interpret","Navigate","Regulate","Differentiate","Discover","Apply","Reflect"];
 async function db(table,query={},body,method="GET",opts={}){
  const k=secret();if(!k)fail("Private pilot database is not configured.",503);
  const url=new URL(BASE+table);for(const [a,b] of Object.entries(query))url.searchParams.set(a,b);
@@ -17,15 +16,17 @@ async function db(table,query={},body,method="GET",opts={}){
  return r.json().catch(()=>[]);
 }
 const roomTable="anthos_jj2_rooms",peopleTable="anthos_jj2_participants",msgTable="anthos_jj2_messages";
-export async function createRoom(origin){
+export async function createRoom(origin, requestedTheme="christmas"){
  if(!secret())fail("Pilot storage is not configured.",503);
+ const theme=getTheme(requestedTheme);
  const tokens=[randomBytes(32).toString("base64url"),randomBytes(32).toString("base64url")];
- const rooms=await db(roomTable,{}, {title:"Jack & Jill: A Christmas Conundrum",canon:{"scene":"It is Friday, 6:14 p.m. Jack and Jill are standing in their kitchen. Jack has just promised his mother Christmas dinner. Jill has already told her own mother they will be there too. Neither has mentioned those promises to the other. Then both phones light up at once: each mother has just sent a photo of a place setting with their names on it. Jack looks at Jill. Jill looks at Jack. The oven timer goes off, although nothing is cooking. What happens next is still unwritten.","location":"Jack and Jill's kitchen, Friday evening","facts":["Jack privately promised his mother Christmas dinner","Jill privately promised her mother Christmas dinner","Both mothers have sent place-setting photos"],"tension":"Conflicting holiday commitments neither has yet discussed","research":"Recognizing assumptions and missed opportunities for collaboration"}},"POST");
+ const rooms=await db(roomTable,{}, {title:"Jack & Jill: "+theme.title,canon:theme.opening,model_version:MODEL_VERSION,adventure_key:theme.id},"POST");
  const room=rooms[0];if(!room?.id)fail("Could not create room.",502);
  try{await db(peopleTable,{},[{room_id:room.id,role:"jack",token_hash:hash(tokens[0])},{room_id:room.id,role:"jill",token_hash:hash(tokens[1])}],"POST");}
  catch(e){await db(roomTable,{id:"eq."+room.id},undefined,"DELETE").catch(()=>{});throw e}
- return {ok:true,roomId:room.id,expiresAt:room.expires_at,invitations:{a:origin+"/pilot/?invite="+tokens[0],b:origin+"/pilot/?invite="+tokens[1]},participants:{a:"Jack's coach",b:"Jill's coach"}};
+ return {ok:true,roomId:room.id,modelVersion:MODEL_VERSION,adventure:theme.id,expiresAt:room.expires_at,invitations:{a:origin+"/pilot/?invite="+tokens[0],b:origin+"/pilot/?invite="+tokens[1]},participants:{a:"Jack's coach",b:"Jill's coach"}};
 }
+
 async function auth(token){
  if(!validToken(token))fail("This invitation is missing or invalid.",401);
  const participants=await db(peopleTable,{token_hash:"eq."+hash(token),select:"*"});
@@ -47,7 +48,7 @@ export async function status(token){
  const submitted=person.submitted_checkpoint===room.checkpoint;
  const other=await db(peopleTable,{room_id:"eq."+room.id,role:"neq."+person.role,select:"role,submitted_checkpoint"});
  const both=other[0]?.submitted_checkpoint===room.checkpoint;
- return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:FOCUS[Math.min(room.checkpoint-1,4)],reflectionComplete:!!person.reflection,ready:person.ready_checkpoint===room.checkpoint,phase:person.learning_phase,info:REMINDER};
+ return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:lessonFocus(room.checkpoint,room.adventure_key).milestones,modelVersion:room.model_version||MODEL_VERSION,reflectionComplete:!!person.reflection,ready:person.ready_checkpoint===room.checkpoint,phase:person.learning_phase,info:REMINDER};
 }
 export async function consent(token,name){
  const c=await auth(token);
@@ -58,32 +59,57 @@ export async function consent(token,name){
 }
 async function ai(instructions,input,max=380,format=null){
  const k=process.env.OPENAI_API_KEY?.trim();if(!k)fail("Sophia's AI connection is not configured.",503);
- let r;try{r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+k,"Content-Type":"application/json"},body:JSON.stringify({model:process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",store:false,instructions,input,max_output_tokens:max,...(format?{text:{format:{type:"json_schema",name:"anthos_jj2_"+format,strict:true,schema:format==="coaching"?{type:"object",additionalProperties:false,properties:{reply:{type:"string"},ready:{type:"boolean"},phase:{type:"string",enum:["hook","conflict","discovery","reattempt"]},learningEvidence:{type:"string"},decision:{type:"string"}},required:["reply","ready","phase","learningEvidence","decision"]}:{type:"object",additionalProperties:false,properties:{outcome:{type:"string"},scene:{type:"string"},location:{type:"string"},tension:{type:"string"},research:{type:"string"},facts:{type:"array",items:{type:"string"}}},required:["outcome","scene","location","tension","research","facts"]}}}}:{})}),signal:AbortSignal.timeout(26000)});}catch{fail("Sophia couldn't respond right now. Please retry.",502)}
+ let r;try{r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Authorization":"Bearer "+k,"Content-Type":"application/json"},body:JSON.stringify({model:process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",store:false,instructions,input,max_output_tokens:max,...(format?{text:{format:{type:"json_schema",name:"anthos_jj2_"+format,strict:true,schema:format==="coaching"?{type:"object",additionalProperties:false,properties:{reply:{type:"string"},ready:{type:"boolean"},phase:{type:"string",enum:["hook","conflict","discovery","reattempt"]},learningEvidence:{type:"string"},learningMilestones:{type:"array",items:{type:"string",enum:["Recognize","Interpret","Navigate","Regulate","Differentiate","Discover","Apply","Reflect"]}},decision:{type:"string"},decisionEvidence:{type:"string"}},required:["reply","ready","phase","learningEvidence","learningMilestones","decision","decisionEvidence"]}:{type:"object",additionalProperties:false,properties:{outcome:{type:"string"},scene:{type:"string"},location:{type:"string"},tension:{type:"string"},research:{type:"string"},facts:{type:"array",items:{type:"string"}}},required:["outcome","scene","location","tension","research","facts"]}}}}:{})}),signal:AbortSignal.timeout(26000)});}catch{fail("Sophia couldn't respond right now. Please retry.",502)}
  if(!r.ok)fail("Sophia's AI service is temporarily unavailable.",502);
  const j=await r.json().catch(()=>({}));
  const text=(j.output||[]).filter(o=>o.type==="message").flatMap(o=>(o.content||[]).filter(x=>x.type==="output_text").map(x=>x.text)).join("\n").trim();
  if(!text)fail("Sophia did not complete her reply. Please retry.",502);
  return text;
 }
-const coachInstructions=`You are Sophia, an inventive, warm, witty AI game master for Anthos Jack & Jill 2.0. One human privately coaches Jack; the other privately coaches Jill. Your response must sound like a real conversation about fictional characters, NOT a lesson, an assessment, or a therapy session. Inside the system, act as a story director tracking humor and continuity, a research-informed learning guide tracking bids/repair (Gottman), differentiation and reactivity (Schnarch), or novelty/self-expansion (Aron) only when relevant, and a privacy guardian. These internal roles NEVER speak separately or display labels. Address the participant by first name occasionally, not every reply. Listen to their exact idea, react with playful personality and a concrete character-specific hypothetical consequence. If they suggest flipping a coin, imagine the awkward result. If they change course, recognize it briefly and move toward action. Do NOT repeatedly praise, explain empathy, ask for better wording, or ask the same question in different ways. A user who has made a clear decision and seen one thoughtful observation is ready. One useful follow-up question is acceptable on the first uncertain message; never insist on a second rewrite. By the SECOND meaningful user reply, invite them to see what happens, regardless of whether you agree with their decision. A first reply containing a clear actionable decision can also be ready immediately. No educational quizzes. Allow wild fictional choices; bad outcomes become useful, funny learning opportunities without shaming. The fictional shared world is NOT changed by private exploration; only the final submitted joint resolution changes canon. Never reveal either spouse's private commentary. When ready, finish naturally with 'Ready to see what happens?' (the UI offers an explicit action). When participant says they need more discussion, answer their question without withdrawing readiness. Respond in 35-90 words unless additional detail is specifically requested. Return structured data: reply is the exact user-facing SMS-style text, ready is whether they have had a meaningful opportunity to choose, phase is PRIVATE internal story progress, learningEvidence is a short PRIVATE observation (not a grade), and decision is a concise actionable directive for this participant's fictional character. Carry forward the prior concrete directive if the latest message only asks a question or discusses research; never treat a question as an instruction. If there is no actionable directive yet set decision to empty. If a user expresses real abuse, coercion, or immediate danger, stop playful roleplay and prioritize safety; do not use this to pressure real-life reconciliation.`
 export async function talk(token,message){
  const c=await auth(token);
  if(!c.person.consented_at)fail("Accept the pilot consent first.",403);
  if(c.room.status!=="active")fail("This pilot is complete or paused.",409);
  if(c.room.resolving||c.person.submitted_checkpoint===c.room.checkpoint)fail("Your decision is already submitted. Await the shared outcome.",409);
- const clean=safeText(message,900);if(!clean||clean.length<2)fail("Write what you'd tell your character.");
+ const clean=safeText(message,900);
+ if(clean.length<2)fail("Write what you'd tell your character.");
  const prior=(await messages(c.room,c.person.role)).slice(-12);
- const role=c.person.role==="jack"?"Jack":"Jill";
- const output=await ai(coachInstructions+" INTERNAL focus: "+FOCUS[Math.min(c.room.checkpoint-1,4)].join(", ")+". Previous user messages this decision: "+prior.filter(x=>x.author==="participant"&&x.checkpoint===c.room.checkpoint).length+". Keep education integrated naturally. JSON only. On the second meaningful user response, mark ready if an actionable decision exists; do not stall with extra questions. Never expose phase/milestone names.",JSON.stringify({coachName:c.person.display_name,character:role,checkpoint:c.room.checkpoint,scene:c.room.canon,prior:prior.map(x=>({author:x.author,body:x.body})),latest:clean}),520,"coaching");
- let guided;try{guided=JSON.parse(output)}catch{fail("Sophia's guided reply was incomplete.",502)}
- if(typeof guided.reply!=="string"||guided.reply.trim().length<12||typeof guided.ready!=="boolean"||typeof guided.decision!=="string")fail("Sophia's guided reply could not be validated.",502);
- await db(msgTable,{},[{room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:c.room.checkpoint,body:clean},{room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:c.room.checkpoint,body:guided.reply.slice(0,2200)}],"POST",{minimal:true});
- const decision=safeText(guided.decision,900)||safeText(c.person.draft,900);
- const participantTurns=prior.filter(x=>x.author==="participant"&&x.checkpoint===c.room.checkpoint).length+1;
- const isReady=!!decision&&(guided.ready||participantTurns>=2||c.person.ready_checkpoint===c.room.checkpoint);
- await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{draft:decision||null,ready_checkpoint:isReady?c.room.checkpoint:null,learning_phase:["hook","conflict","discovery","reattempt"].includes(guided.phase)?guided.phase:"discovery",learning_evidence:safeText(guided.learningEvidence,350)},"PATCH",{minimal:true});
+ const guide=coachingGuide({role:c.person.role,checkpoint:c.room.checkpoint,themeKey:c.room.adventure_key,name:c.person.display_name,canon:c.room.canon,history:prior});
+ const params=JSON.stringify({...guide.context,latestMessage:clean,currentProvisionalAction:c.person.draft||null});
+ let output=await ai(guide.instructions,params,690,"coaching");
+ let guided;
+ try{guided=JSON.parse(output)}catch{fail("Sophia's private response was incomplete.",502)}
+ const validReply=x=>typeof x.reply==="string"&&avoidRepetitiveResponse(x.reply,prior.filter(m=>m.author==="sophia"));
+ if(!validReply(guided)){
+   output=await ai(guide.instructions+" Important: your previous response repeated an earlier question or was too short. Respond with a fresh consequence or insight; do not force another quiz.",params,690,"coaching");
+   try{guided=JSON.parse(output)}catch{fail("Sophia could not finish her response.",502)}
+ }
+ if(!validReply(guided)||typeof guided.decision!=="string"||typeof guided.decisionEvidence!=="string")fail("Sophia could not produce a valid reply.",502);
+ // The model proposes a character action. Server code validates that the
+ // participant actually expressed it, then determines readiness independently.
+ const character=c.person.role==="jack"?"Jack":"Jill";
+ const evidence=guided.decisionEvidence.trim();
+ const sourced=evidence.length>=8&&clean.toLowerCase().includes(evidence.toLowerCase());
+ const ownsCharacter=new RegExp("^"+character+"\\b","i").test(guided.decision.trim());
+ const newAction=sourced&&ownsCharacter?safeText(guided.decision,900):"";
+ const action=newAction||safeText(c.person.draft,900);
+ const ready=resolveReadiness({action,priorReady:c.person.ready_checkpoint===c.room.checkpoint});
+ const currentEvidence=c.person.learning_log&&typeof c.person.learning_log==="object"&&!Array.isArray(c.person.learning_log)?c.person.learning_log:{};
+ const milestones=Array.isArray(guided.learningMilestones)?guided.learningMilestones.filter(m=>MILESTONES.includes(m)).slice(0,3):[];
+ const update={...currentEvidence};
+ for(const milestone of milestones)update[milestone]={status:"explored",checkpoint:c.room.checkpoint,updated_at:new Date().toISOString()};
+ await db(msgTable,{},[
+   {room_id:c.room.id,role:c.person.role,author:"participant",checkpoint:c.room.checkpoint,body:clean},
+   {room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:c.room.checkpoint,body:guided.reply.slice(0,2200)}
+ ],"POST",{minimal:true});
+ await db(peopleTable,{room_id:"eq."+c.room.id,role:"eq."+c.person.role},{
+   draft:action||null,ready_checkpoint:ready?c.room.checkpoint:null,
+   learning_phase:["hook","conflict","discovery","reattempt"].includes(guided.phase)?guided.phase:"discovery",
+   learning_evidence:safeText(guided.learningEvidence,350),learning_log:update
+ },"PATCH",{minimal:true});
  return status(token);
 }
+
 async function resolve(room){
  const fresh=(await db(roomTable,{id:"eq."+room.id,select:"*"}))[0];
  if(!fresh||fresh.status!=="active")return;
