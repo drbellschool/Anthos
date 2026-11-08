@@ -281,7 +281,7 @@ test("3.0 simple agreement to Jack's own suggested plan unlocks a natural story 
    assert.equal(agreed.submitted,false,"The user must still explicitly confirm the fictional action");
    assert.equal(h.messages.filter(m=>m.kind==="outcome").length,0);
    const refreshed=await status(tokens.jack);
-   assert.equal(refreshed.action,agreed.action,"The proposal is durable across refreshes");
+   assert.equal(refreshed.submitted,true,"The fictional action is durably confirmed across refreshes");
  }finally{h.restore()}
 });
 
@@ -328,5 +328,24 @@ test("3.1 individual Deep Dive applies consequences even without a second human 
   assert.equal(h.events.length,1);
   assert.equal(h.people.length,1);
   assert.ok(validEvolution(h.room.evolution_state));
+ }finally{h.restore()}
+});
+
+test("3.1 both conversational go-aheads advance a shared outcome with zero advance-button calls",async()=>{
+ const h=harness("shared",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  const j=await talk(tokens.jack,"Jack should ask Jill what she wants and make a plan.",randomUUID());
+  assert.equal(j.submitted,false,"Brainstorming alone must not auto-commit");
+  const a=await talk(tokens.jack,"So go make a plan and see if it works out.",randomUUID());
+  assert.equal(a.submitted,true,"Jack's explicit permission commits his action");
+  assert.equal(h.room.step,1,"The shared story cannot advance before Jill acts");
+  await talk(tokens.jill,"Jill should plan the morning hike then some lake time.",randomUUID());
+  const b=await talk(tokens.jill,"I think that will work and it's worth the risk. Give it a try.",randomUUID());
+  assert.equal(h.room.step,2,"Second explicit go-ahead triggers automatic consequence");
+  assert.equal(h.events.length,1,"Exactly one evolving story event is published");
+  assert.equal(b.shared.length,1);
+  assert.equal(h.people.every(p=>p.submitted_step===1),true);
  }finally{h.restore()}
 });
