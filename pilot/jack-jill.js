@@ -45,11 +45,12 @@ function render(s){
  for(const m of s.transcript)addBubble(host,m.author==="participant"?"You":"Sophia",m.body,m.author==="participant");
  if(last)host.scrollTop=host.scrollHeight;
  $("sharedPanel").hidden=!(s.shared?.length||finished);
+ $("sharedPanel").querySelector(".kicker").textContent=s.experienceMode==="individual"?"Your private story — what happened":"Meanwhile, with Jack & Jill…";
  const sh=$("shared");sh.replaceChildren();
  for(const m of s.shared){const div=document.createElement("div");div.className="storycard";div.textContent=m.body;sh.append(div)}
  $("sharedEmpty").hidden=s.shared.length>0;
  $("entry").hidden=s.submitted||finished;
- $("waiting").hidden=!s.submitted||finished;
+ $("waiting").hidden=!s.submitted||finished||s.experienceMode==="individual";
  if(s.submitted)$("waitText").textContent="Your decision is locked. "+(s.otherSubmitted?"Sophia is preparing the outcome.":"Your spouse's character is still being coached.")+" Your private messages are never shared.";
  $("advance").disabled=busy||!s.ready||s.submitted;
  $("advance").hidden=!s.ready||s.submitted;
