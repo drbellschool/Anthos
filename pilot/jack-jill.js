@@ -6,7 +6,7 @@ const params=new URLSearchParams(location.search);
 const supplied=params.get("invite")||"";
 if(/^[A-Za-z0-9_-]{43}$/.test(supplied)){sessionStorage.setItem(key,supplied);history.replaceState(null,"",location.pathname)}
 const token=supplied||sessionStorage.getItem(key)||"";
-let current=null,busy=false,signature="";
+let current=null,busy=false,signature="",openingAttempted=false;
 function error(e=""){$("error").textContent=e}
 async function api(action,data={}){
  const opt={headers:{"x-anthos-pilot-token":token},cache:"no-store",credentials:"same-origin"};
@@ -41,9 +41,10 @@ function render(s){
  $("scene").textContent=s.canon?.scene||"Sophia is preparing your story.";
  const host=$("messages");const last=host.scrollTop+host.clientHeight>=host.scrollHeight-80;
  host.replaceChildren();
- if(!s.transcript.length)addBubble(host,"Sophia",s.role==="jack"?"Jack has a situation on his hands—and you get to advise him. What would you tell him to do?":"Jill has a decision to make, and you are coaching her. What would you suggest she do?",false);
+ if(!s.transcript.length)addBubble(host,"Sophia","Sophia is setting the stage for "+(s.role==="jack"?"Jack":"Jill")+"…",false);
  for(const m of s.transcript)addBubble(host,m.author==="participant"?"You":"Sophia",m.body,m.author==="participant");
  if(last)host.scrollTop=host.scrollHeight;
+ $("sharedPanel").hidden=!(s.shared?.length||finished);
  const sh=$("shared");sh.replaceChildren();
  for(const m of s.shared){const div=document.createElement("div");div.className="storycard";div.textContent=m.body;sh.append(div)}
  $("sharedEmpty").hidden=s.shared.length>0;
@@ -57,13 +58,23 @@ function render(s){
  const sig=s.checkpoint+":"+s.shared.length+":"+s.submitted+":"+s.transcript.length;
  signature=sig;
 }
+async function showAndOpen(s){
+ render(s);
+ if(s.consent&&s.roomStatus==="active"&&s.checkpoint===1&&!s.submitted&&s.transcript?.length===0&&!openingAttempted){
+   openingAttempted=true;
+   $("send").disabled=true;$("response").disabled=true;
+   try{render(await api("begin"));error("");}
+   catch(e){error("Sophia could not open this scene. Refresh the page to retry.");}
+   finally{$("send").disabled=false;$("response").disabled=false;}
+ }
+}
 async function refresh(quiet=false){
  if(busy)return;
- busySet(true);try{const next=await api();render(next);if(!quiet)error("")}catch(e){if(!quiet)error(e.message)}finally{busySet(false)}
+ busySet(true);try{const next=await api();await showAndOpen(next);if(!quiet)error("")}catch(e){if(!quiet)error(e.message)}finally{busySet(false)}
 }
 $("consentForm").addEventListener("submit",async e=>{
  e.preventDefault();if(busy)return;busySet(true);error("");
- try{render(await api("consent",{name:$("name").value}));}catch(e){error(e.message)}finally{busySet(false)}
+ try{await showAndOpen(await api("consent",{name:$("name").value}));}catch(e){error(e.message)}finally{busySet(false)}
 });
 $("send").addEventListener("click",async()=>{
  if(busy)return;const msg=$("response").value.trim();if(msg.length<2){error("Tell Sophia what you're thinking first.");return}
