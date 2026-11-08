@@ -42,8 +42,15 @@ function harness(mode="shared",{invalidFirst=false}={}){
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
     :{characterReply:type==="jj3_intro"?"Buddy, that happened so fast. I'm worried Jill thinks I only care about hiking. I have a ridiculous plan, but I'm not sure I should say it out loud. Can you help me think through it?":
+       /^(?:yes|yep|sure|go ahead|do that)/i.test(input.latest||"")?
+       "Okay, I'm going to text Jill and ask whether she'd like a quiet evening together. I'm nervous I'll sound like I've been replaced by a suspiciously considerate stranger.":
        "Oh, that's a real suggestion in round "+aiCalls+". I want to try that, but I'm nervous I'll come off as selfish. Part of me wants adventure and part of me wants Jill to feel heard. I might even apologize to the inflatable moose if this gets any stranger.",
-      sophiaAside:"",action:"",evidence:"",privateMemory:"Still afraid to seem unadventurous.",
+      sophiaAside:"",action:"",evidence:"",
+      characterProposal:/^(?:yes|yep|sure|go ahead|do that)/i.test(input.latest||"")?
+        "Jack texts Jill and asks whether she'd like a quiet evening together.":"",
+      proposalEvidence:/^(?:yes|yep|sure|go ahead|do that)/i.test(input.latest||"")?
+        "I'm going to text Jill and ask whether she'd like a quiet evening together.":"",
+      privateMemory:"Still afraid to seem unadventurous.",
       learningMilestones:["Recognize"]};
    return out({status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(reply)}]}]});
   }
@@ -212,5 +219,21 @@ test("3.0 a coach cannot directly command the opposite fictional spouse",async()
   await join(tokens.jack,"Adam");
   await assert.rejects(choose(tokens.jack,"Jill should agree to Jack's plan."),/only choose what Jack will do/);
   assert.equal(h.people[0].pending_action,null);
+ }finally{h.restore()}
+});
+
+test("3.0 simple agreement to Jack's own suggested plan unlocks a natural story advance",async()=>{
+ const h=harness();
+ try{
+   await join(tokens.jack,"Adam");
+   await begin(tokens.jack);
+   const first=await talk(tokens.jack,"Maybe you should ask Jill what kind of evening she wants.",randomUUID());
+   assert.equal(first.step,1);
+   const agreed=await talk(tokens.jack,"Yes, do that.",randomUUID());
+   assert.equal(agreed.action,"Jack texts Jill and asks whether she'd like a quiet evening together.");
+   assert.equal(agreed.submitted,false,"The user must still explicitly confirm the fictional action");
+   assert.equal(h.messages.filter(m=>m.kind==="outcome").length,0);
+   const refreshed=await status(tokens.jack);
+   assert.equal(refreshed.action,agreed.action,"The proposal is durable across refreshes");
  }finally{h.restore()}
 });
