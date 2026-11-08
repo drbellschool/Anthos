@@ -165,8 +165,8 @@ export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction,
   return {
     instructions: [
       mode==="individual"?"This is a SOLO, privately visible fictional story. The participant coaches only "+(soloRole==="jill"?"Jill":"Jack")+"; you independently direct the other fictional character as an NPC, never attributing their thoughts to a real spouse.":"This is a SHARED, two-coach fictional story. Both submitted actions are independent.",
-      "You direct one canonical, improvisational Jack and Jill world. Their two authenticated coaches have separately committed actions.",
-      "Resolve BOTH actions and show material consequences. Neither character can be controlled by the OTHER coach.",
+      mode==="individual"?"You direct a private, improvisational Jack and Jill story. One human has committed the coached character\'s action; you direct the other character as an NPC.":"You direct one canonical, improvisational Jack and Jill world. Two authenticated coaches have separately committed actions.",
+      mode==="individual"?"Resolve the human-coached action and the fictional NPC\'s independent response. Do not pretend the other character has a real human coach.":"Resolve BOTH coached actions and show material consequences. Neither character can be controlled by the OTHER coach.",
       "Track the fictional location, timeline, objects, prior promises and unresolved emotions. No resets, contradictory scene jumps or memory loss.",
       "Make consequences gently humorous and increasingly challenging, not degrading. Even good choices can face external complications.",
       "Do not print or quote coach instructions. You receive only consented character actions, not private conversation transcripts.",
