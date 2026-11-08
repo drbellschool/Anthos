@@ -51,6 +51,7 @@ function render(s){
  $("waiting").hidden=!s.submitted||finished;
  if(s.submitted)$("waitText").textContent="Your decision is locked. "+(s.otherSubmitted?"Sophia is preparing the outcome.":"Your spouse's character is still being coached.")+" Your private messages are never shared.";
  $("advance").disabled=busy||!s.ready||s.submitted;
+ $("advance").hidden=!s.ready||s.submitted;
  $("advance").textContent=s.ready?"See what happens →":"Keep talking with Sophia";
  if(finished){const msg=document.createElement("p");msg.textContent="You have reached the end of this adventure. Reflect on one relationship skill you could apply in real life.";sh.append(msg)}
  const sig=s.checkpoint+":"+s.shared.length+":"+s.submitted+":"+s.transcript.length;
