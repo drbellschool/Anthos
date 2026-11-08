@@ -53,6 +53,7 @@ export const THEMES = Object.freeze({
   christmas: {
     id: "christmas", title: "A Christmas Conundrum",
     premise: "Jack and Jill made conflicting holiday commitments without consulting each other.",
+    perspectives: {jack:"Jack wants Christmas with his family but hasn't disclosed his promise to Jill.",jill:"Jill wants to honor her family but has not coordinated plans with Jack."},
     conflicts: ["assumptions", "family expectations", "repair", "differing needs"],
     lessonKeys: ["repair", "regulation", "differentiation", "bids", "shared_novelty"],
     humor: ["awkward family calls", "unexpected guests", "overconfident planning", "unfortunate holiday logistics"],
@@ -68,6 +69,7 @@ export const THEMES = Object.freeze({
   anniversary: {
     id: "anniversary", title: "The Forgotten Anniversary",
     premise: "A well-intentioned surprise collides with an unspoken expectation.",
+    perspectives: {jack:"Jack wanted to create a meaningful anniversary but overlooked an expressed preference.",jill:"Jill expressed a preference and must decide how to handle the surprise on her own terms."},
     conflicts: ["connection", "assumptions", "repair"],
     lessonKeys: ["bids", "repair", "differentiation"],
     humor: ["the wrong restaurant", "a mistaken reservation", "an extravagant unwanted surprise"],
@@ -83,13 +85,14 @@ export const THEMES = Object.freeze({
   getaway: {
     id: "getaway", title: "The Weekend Getaway",
     premise: "Jack wants adventure and Jill wants rest, both imagining the same weekend very differently.",
+    perspectives: {jack:"Jack came for adventure but an unexpected early-morning challenge may crowd out Jill's hoped-for rest.",jill:"Jill came for books and quiet, while the cabin hosts expect a surprise sunrise challenge. Jill controls her own response."},
     conflicts: ["differing needs", "shared novelty", "collaboration"],
     lessonKeys: ["differentiation", "shared_novelty", "regulation"],
     humor: ["unexpected weather", "a ridiculous activity brochure", "two incompatible itineraries"],
     opening: {
-      scene: "Jack arrives at their cabin carrying hiking poles. Jill arrives with books and slippers. The host has left a welcome note: 'Your adventure begins at dawn.' Neither remembers booking an adventure.",
+      scene: "Friday evening. Jack sets his hiking poles beside the cabin door; Jill drops three novels and slippers onto the bed. Between them sits an envelope: 'CONGRATULATIONS! Your Couples Sunrise Challenge begins at 5:45 a.m. Waivers due tonight.' Outside, a guide in a fluorescent poncho unloads two helmets. Neither remembers booking the challenge.",
       location: "A cabin on Friday evening",
-      facts: ["Jack hoped for adventure", "Jill hoped for quiet time", "The host expects an early activity"],
+      facts: ["Jack hoped for adventure", "Jill hoped for quiet time", "A sunrise challenge is scheduled for 5:45 a.m.", "The guide expects waivers tonight"],
       tension: "Two genuine needs and one short weekend",
       research: "Respect different needs while exploring options together"
     },
@@ -171,4 +174,28 @@ export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction}
     context: {theme:theme.title, premise:theme.premise, conflicts:theme.conflicts, humorIdeas:theme.humor,
       checkpoint, currentCanon:canon, jackAction,jillAction, milestoneFocus:lessonFocus(checkpoint, themeKey).milestones}
   };
+}
+
+/** One private Sophia opening per participant; canon remains shared. */
+export function openingGuide({role,themeKey,canon,name}){
+ const theme=getTheme(themeKey), character=role==="jill"?"Jill":"Jack";
+ return {
+  instructions: [
+   "You are Sophia, the only visible narrator of the Anthos Jack and Jill adventure.",
+   "Create the FIRST private message to the HUMAN coaching "+character+". This is an immersive opening, not intake or a questionnaire.",
+   "The shared scene appears above this conversation. Do NOT repeat the whole scene; bring the coach into "+character+"'s immediate predicament.",
+   "Refer to two concrete canon details, one emotional conflict and one engaging, amusing dilemma.",
+   "End with ONE vivid question about an actionable move "+character+" can take right now.",
+   "Never ask the coach to decide the other character's reaction or feelings.",
+   "Do not introduce new settled events or advance the canonical story. Hypothetical consequences are allowed.",
+   "Avoid generic questions such as 'What would you tell your character to do?'",
+   "No research labels, phases, agents, checkpoints, scoring, clinical language or lectures.",
+   "Keep 55 to 100 words, conversational, modern texting tone, one message only."
+  ].join(" "),
+  context:{
+   adventure:theme.title,premise:theme.premise,
+   perspective:theme.perspectives?.[role]||"",
+   character,coachName:name||"",currentCanon:canon
+  }
+ };
 }
