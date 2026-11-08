@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -70,4 +70,21 @@ test("an actual character proposal can follow casual agreement, but never pure i
  assert.equal(actionFromCharacterAgreement("jack","No, Jill should agree to hike.",reply,move,evidence),"");
  assert.equal(actionFromCharacterAgreement("jack","Yes, do that.",reply,"Jill agrees to hike.",evidence),"");
  assert.equal(actionFromCharacterAgreement("jill","Yes, do that.",reply,move,evidence),"");
+});
+
+test("characters sound human: flag instant moral-of-the-story responses for soft revision",()=>{
+ assert.equal(soundsTooPolished("Alright dude, you've convinced me. Thanks for making me see the simple play here."),true);
+ assert.equal(soundsTooPolished("I think you're right, but I'm worried she'll think I gave up too fast."),false);
+ assert.equal(soundsTooPolished("Maybe I should ask Jill what she wants tonight."),false);
+});
+test("both Jack and Jill may propose an action from their own text without another command form",()=>{
+ const jack="I don't know about the mountain anymore. I'll suggest the moderate hike ending at the lake like a gentle truce, and if she's not feeling it, I'll go alone.";
+ assert.equal(actionFromCharacterWords("jack","Exactly, so just chill with her then.",jack),
+  "Jack will suggest the moderate hike ending at the lake like a gentle truce.");
+ const jill="I hear you. I'll tell Jack I want time together, but I also need some peace and quiet.";
+ assert.equal(actionFromCharacterWords("jill","Yeah, give that a try.",jill),
+  "Jill will tell Jack I want time together.");
+ assert.equal(actionFromCharacterWords("jill","What time is breakfast?",jill),"");
+ assert.equal(actionFromCharacterWords("jack","No, Jill should agree to everything.",jack),"");
+ assert.equal(actionFromCharacterWords("jack","Yes, go ahead.","I could maybe ask Jill one day."),"");
 });
