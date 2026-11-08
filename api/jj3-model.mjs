@@ -196,7 +196,7 @@ export function explicitGoAhead(message){
  const text=message.trim().replace(/[.!?]+$/,"").trim();
  if(!text||text.length>300)return false;
  // An explicit imperative is sufficient, even after a short supportive preface.
- return /(?:^|[,;]\s*|\b(?:so|then|well|okay|alright|yes|yeah|yep|sure)\s+)(?:go\s+(?:ahead|make\s+(?:a|the)\s+plan|for\s+it)|do\s+(?:that|it)|give\s+it\s+a\s+try|try\s+it|let'?s\s+do\s+it|see\s+(?:if|how)\s+it\s+(?:works|goes|turns\s+out)|make\s+the\s+plan|send\s+(?:it|that\s+message)|take\s+(?:the|that)\s+step|follow\s+(?:through|the\s+plan)|go\s+try\s+it)\b/i.test(text);
+ return /(?:^|[.!?;,]\s*|\b(?:so|then|well|okay|alright|yes|yeah|yep|sure)[,;]?\s+)(?:go\s+(?:ahead|make\s+(?:a|the)\s+plan|for\s+it)|do\s+(?:that|it)|give\s+it\s+a\s+try|try\s+it|let'?s\s+do\s+it|see\s+(?:if|how)\s+it\s+(?:works|goes|turns\s+out)|make\s+the\s+plan|send\s+(?:it|that\s+message)|take\s+(?:the|that)\s+step|follow\s+(?:through|the\s+plan)|go\s+try\s+it)\b/i.test(text);
 }
 
 export function soundsTooPolished(reply){
