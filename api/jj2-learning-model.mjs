@@ -108,6 +108,16 @@ export function lessonFocus(checkpoint, key = "christmas") {
 export function hasAction(action) {
   return typeof action === "string" && action.trim().length >= 8 && action.trim().length <= 900;
 }
+// Conservative fallback: accept only explicit instructions for the coached character.
+export function explicitCharacterDecision(role, message) {
+ const name=role==="jill"?"Jill":"Jack";
+ const cleaned=typeof message==="string"?message.trim():"";
+ if(cleaned.length<12||cleaned.length>900)return "";
+ const stripped=cleaned.replace(/^(?:no[,.!]?\s*)?(?:(?:i think|i feel|i believe|my advice is that|i would say|i'd say)\s+)?/i,"");
+ const pattern=new RegExp("^"+name+"\\s+(?:should|needs to|has to|must|can|could|will|would|ought to|tells?|asks?|suggests?|apologizes?|invites?|decides?|offers?|plans?|chooses?|agrees?|explains?|insists?|says?|goes?|takes?|calls?)\\b","i");
+ return pattern.test(stripped)?stripped.slice(0,900):"";
+}
+
 export function resolveReadiness({action, priorReady = false}) {
   // A valid, character-owned decision is the gate. It is not an AI mastery test.
   return Boolean(priorReady || hasAction(action));
@@ -145,7 +155,7 @@ export function coachingGuide({role, checkpoint, themeKey, name, canon, history,
       "Honor the two privately directed characters and one shared canonical world. Before both submit, illustrate only POSSIBLE consequences; never commit another character's response.",
       "Respond to the participant's actual advice with a playful fictional possibility and one useful insight or question, NOT a compliment sandwich or repeated interrogation.",
       "No forced 'right answer'. Even intentionally reckless fictional decisions are allowed and may create funny consequences.",
-      "Do not repeat a prior question. If a clear action was proposed, offer 'See what happens' immediately; the button is governed by server-side readiness.",
+      "Do not repeat a prior question. If an action for THIS coached character is proposed, respond and invite advancement immediately. Never demand the participant agree with your advice. Do not treat an instruction controlling the other fictional character as a valid decision.",
       "Keep replies about 35 to 90 words, with sparing natural humor. Be brief when the user is decisive; expand only when requested.",
       "At each NEW checkpoint the canonical event has advanced. Do not recycle the last checkpoint decision or re-teach the same issue. The latest CURRENT scene is your anchor. Offer a specific action that affects the new obstacle.",
       "When the user makes an actionable proposal, reflect its potential fictional consequence then invite advancement; do not request improved phrasing. A bare assent such as Sounds good is NOT a new character action.",
