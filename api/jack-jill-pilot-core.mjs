@@ -165,7 +165,9 @@ async function resolve(room){
  const current=(await db(roomTable,{id:"eq."+room.id,select:"*"}))[0];
  if(!current||current.status!=="active")return;
  const members=await db(peopleTable,{room_id:"eq."+room.id,select:"role,submitted_checkpoint,submitted_text"});
- if(members.length!==2||members.some(x=>x.submitted_checkpoint!==current.checkpoint||!x.submitted_text))return;
+ const mode=current.experience_mode||"shared";
+ const expected=mode==="individual"?1:2;
+ if(members.length!==expected||members.some(x=>x.submitted_checkpoint!==current.checkpoint||!x.submitted_text))return;
  if(current.resolving){
    if(!current.processing_at||Date.now()-new Date(current.processing_at).getTime()<70000)return;
    // Release only a demonstrably stale lock; never steal a live resolution.
@@ -175,14 +177,16 @@ async function resolve(room){
     {resolving:true,processing_at:new Date().toISOString()},"PATCH");
  if(!claimed.length)return;
  try{
-   const jack=members.find(x=>x.role==="jack").submitted_text;
-   const jill=members.find(x=>x.role==="jill").submitted_text;
-   const guide=storyGuide({checkpoint:current.checkpoint,themeKey:current.adventure_key,canon:current.canon,jackAction:jack,jillAction:jill});
+   const soloRole=members[0].role;
+   const jack=members.find(x=>x.role==="jack")?.submitted_text||"Jack is directed exclusively by the fictional story director, not a real spouse";
+   const jill=members.find(x=>x.role==="jill")?.submitted_text||"Jill is directed exclusively by the fictional story director, not a real spouse";
+   const scenario=current.scenario_id?await getScenario(current.scenario_id):null;
+   const guide=storyGuide({checkpoint:current.checkpoint,themeKey:current.adventure_key,canon:current.canon,jackAction:jack,jillAction:jill,scenario,mode,soloRole});
    let parsed=null;
    for(let attempt=0;attempt<2;attempt++){
      const raw=await ai(guide.instructions+(attempt?" The last output failed continuity or privacy checks. Correct any repetition or unsafe disclosure; keep both characters' ownership.":""),JSON.stringify(guide.context),1050,"story");
      try{parsed=JSON.parse(raw.replace(/^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$/g,""))}catch{parsed=null}
-     if(storyIsSafe(parsed,current.canon,[jack,jill]))break;
+     if(storyIsSafe(parsed,current.canon,mode==="individual"?[members[0].submitted_text]:[jack,jill]))break;
      parsed=null;
    }
    if(!parsed)fail("Sophia needs another attempt to resolve the scene.",502);
