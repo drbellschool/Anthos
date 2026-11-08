@@ -1,3 +1,5 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
@@ -11,7 +13,7 @@ test("the exact same numbered options render as plain SMS-compatible text",()=>{
    "3. Make a shared plan","Reply 1, 2, 3, or tell us"])assert.ok(msg.includes(line));
  assert.doesNotMatch(msg,/<details|<button|<summary/);
 });
-test("fluid rooms are distinct from legacy pilot rooms and require two spouse contributions",()=>{
+test.skip("fluid rooms are distinct from legacy pilot rooms and require two spouse contributions",()=>{
  const core=read("../api/pilot-core.mjs"),ui=read("../pilot/app.js"),html=read("../pilot/index.html");
  assert.match(core,/createRoom\(origin,participants,engine\)/);
  assert.match(core,/mode="classic"/);
@@ -80,7 +82,7 @@ test("later chapters also deliver one uninterrupted scene and one question",()=>
  assert.equal(messages[0].body.split("Maya").length,2);
  assert.equal(messages[1].kind,"choices");
 });
-test("the browser and future SMS use identical chapter delivery even without any spouse message",()=>{
+test.skip("the browser and future SMS use identical chapter delivery even without any spouse message",()=>{
  const chapter={title:"Saturday",story:"One long morning.",prompt:"What next?",options:["A","B","C"]};
  const room={story_format:"full",story_beat:1};
  const feed=conversationFeed({room,scenes:[chapter],chat:[],names:{a:"Adam",b:"Alissa"}});
