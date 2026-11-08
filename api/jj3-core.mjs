@@ -225,19 +225,8 @@ export async function submit(token){
  if(!p.consented_at)problem("Join before submitting.",403);
  if(r.status!=="active")return status(token);
  if(p.submitted_step!==r.step){
-  if(p.pending_step!==r.step||safe(p.pending_action,900).length<8)problem("Talk to your character and choose a move first.",409);
-  const updated=await db(tables.people,{
-   id:"eq."+p.id,pending_step:"eq."+r.step,submitted_step:"neq."+r.step
-  },{submitted_step:r.step,submitted_action:p.pending_action},"PATCH");
-  // Older PostgreSQL comparison with NULL needs is.null branch.
-  if(!updated?.length){
-   const again=(await db(tables.people,{id:"eq."+p.id,select:"*"}))?.[0];
-   if(again?.submitted_step!==r.step){
-    const patch=await db(tables.people,{id:"eq."+p.id,pending_step:"eq."+r.step},
-     {submitted_step:r.step,submitted_action:p.pending_action},"PATCH");
-    if(!patch?.length)problem("Your move could not be submitted; please retry.",409);
-   }
-  }
+  const committed=await db("rpc/anthos_jj3_submit",{},{p_room:r.id,p_participant:p.id,p_step:r.step},"POST");
+  if(committed!==true)problem("Choose a fictional move before advancing.",409);
  }
  await resolveRoom(r);
  return status(token);
