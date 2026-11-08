@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -98,4 +98,11 @@ test("the actual November 8 pilot approvals advance both natural character propo
  assert.equal(actionFromCharacterWords("jill",jillCoach,jillReply),"Jill will pitch the morning hike plus afternoon lakeside plan to Jack.");
  assert.equal(actionFromCharacterWords("jack","What time is lunch?",jackReply),"");
  assert.equal(actionFromCharacterWords("jill","Jack should just go alone.",jillReply),"");
+});
+
+test("explicit conversational authorization triggers action without a second button",()=>{
+ for(const msg of ["So go make a plan and see if it works out.","I think that will work and it's worth the risk. Give it a try.","Yes, do that.","Go ahead.","Let's do it.","Okay, go for it!"])
+  assert.equal(explicitGoAhead(msg),true,msg);
+ for(const msg of ["What are the choices?","That might work.","I think it could be fun.","Maybe a compromise?","I'm not sure yet.","Jill should try it if she wants.","Yes, I see your point."])
+  assert.equal(explicitGoAhead(msg),false,msg);
 });
