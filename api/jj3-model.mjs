@@ -114,9 +114,9 @@ export function actionFromCoach(role,raw,proposed,evidence){
 export function plainCharacterLanguage(text){
  if(typeof text!=="string")return "";
  return text
-  .replace(/\\bFOMO\\b/gi,"that feeling of missing out")
-  .replace(/\\bcrampons\\b/gi,"special hiking boots")
-  .replace(/\\bzen\\b/gi,"peace and quiet");
+  .replace(/\bFOMO\b/gi,"that feeling of missing out")
+  .replace(/\bcrampons\b/gi,"special hiking boots")
+  .replace(/\bzen\b/gi,"peace and quiet");
 }
 export function checkCharacterReply(value,history=[]){
  if(!value||typeof value.characterReply!=="string")return false;
