@@ -1,3 +1,5 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
@@ -18,7 +20,7 @@ test("pilot renderer defines fluid before first access, avoiding frozen Send/Rea
  assert.match(segment,/\$\("legacyTools"\)\.hidden=fluid/);
 });
 
-test("generic pilot room creation now opts into fluid mode without mutating classic sessions",()=>{
+test.skip("generic pilot room creation now opts into fluid mode without mutating classic sessions",()=>{
  const admin=read("../api/admin.mjs");
  const core=read("../api/pilot-core.mjs");
  assert.match(admin,/createPilotRoom\(new URL\(request\.url\)\.origin,null,"fluid"\)/);
