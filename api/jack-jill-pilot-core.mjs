@@ -1,4 +1,5 @@
 import {createHash,randomBytes} from "node:crypto";
+import {getScenario} from "./jj2-library.mjs";
 import {MODEL_VERSION, MILESTONES, getTheme, lessonFocus, resolveReadiness, coachingGuide, storyGuide, storyIsSafe, avoidRepetitiveResponse, openingGuide} from "./jj2-learning-model.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -16,15 +17,38 @@ async function db(table,query={},body,method="GET",opts={}){
  return r.json().catch(()=>[]);
 }
 const roomTable="anthos_jj2_rooms",peopleTable="anthos_jj2_participants",msgTable="anthos_jj2_messages";
-export async function createRoom(origin, requestedTheme="christmas"){
+export async function createRoom(origin, requestedTheme="christmas", soloRole="jack"){
  if(!secret())fail("Pilot storage is not configured.",503);
- const theme=getTheme(requestedTheme);
+ let scenario=null;
+ const isUuid=typeof requestedTheme==="string"&&/^[a-f0-9]{8}-[a-f0-9-]{27,}$/i.test(requestedTheme);
+ if(isUuid)scenario=await getScenario(requestedTheme);
+ const theme=getTheme(scenario?.petal_slug||requestedTheme);
+ const mode=scenario?.mode||"shared";
+ const role=soloRole==="jill"?"jill":"jack";
  const tokens=[randomBytes(32).toString("base64url"),randomBytes(32).toString("base64url")];
- const rooms=await db(roomTable,{}, {title:"Jack & Jill: "+theme.title,canon:theme.opening,model_version:MODEL_VERSION,adventure_key:theme.id},"POST");
+ const canon=scenario?{
+   scene:scenario.opening_scene,location:"Opening scene",
+   facts:["The fictional characters face "+scenario.title],
+   tension:scenario.learning_objective,
+   research:scenario.research_lenses?.join(", ")||"Relationship skills"
+ }:theme.opening;
+ const rooms=await db(roomTable,{},{
+   title:"Jack & Jill: "+(scenario?.title||theme.title),canon,
+   model_version:MODEL_VERSION,adventure_key:scenario?.petal_slug||theme.id,
+   scenario_id:scenario?.id||null,experience_mode:mode
+ },"POST");
  const room=rooms[0];if(!room?.id)fail("Could not create room.",502);
- try{await db(peopleTable,{},[{room_id:room.id,role:"jack",token_hash:hash(tokens[0])},{room_id:room.id,role:"jill",token_hash:hash(tokens[1])}],"POST");}
+ const participants=mode==="individual"?[{room_id:room.id,role,token_hash:hash(tokens[0])}]:[
+   {room_id:room.id,role:"jack",token_hash:hash(tokens[0])},
+   {room_id:room.id,role:"jill",token_hash:hash(tokens[1])}
+ ];
+ try{await db(peopleTable,{},participants,"POST");}
  catch(e){await db(roomTable,{id:"eq."+room.id},undefined,"DELETE").catch(()=>{});throw e}
- return {ok:true,roomId:room.id,modelVersion:MODEL_VERSION,adventure:theme.id,expiresAt:room.expires_at,invitations:{a:origin+"/pilot/?invite="+tokens[0],b:origin+"/pilot/?invite="+tokens[1]},participants:{a:"Jack's coach",b:"Jill's coach"}};
+ return {ok:true,roomId:room.id,modelVersion:MODEL_VERSION,adventure:scenario?.id||theme.id,
+   experienceMode:mode,expiresAt:room.expires_at,
+   invitations:{a:origin+"/pilot/?invite="+tokens[0],...(mode==="shared"?{b:origin+"/pilot/?invite="+tokens[1]}:{})},
+   participants:{a:mode==="individual"?(role==="jack"?"Jack's private solo coaching":"Jill's private solo coaching"):"Jack's coach",
+     ...(mode==="shared"?{b:"Jill's coach"}:{})}};
 }
 
 async function auth(token){
@@ -47,8 +71,9 @@ export async function status(token){
  const shared=person.consented_at?await canonicalMessages(room):[];
  const submitted=person.submitted_checkpoint===room.checkpoint;
  const other=await db(peopleTable,{room_id:"eq."+room.id,role:"neq."+person.role,select:"role,submitted_checkpoint"});
- const both=other[0]?.submitted_checkpoint===room.checkpoint;
- return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:lessonFocus(room.checkpoint,room.adventure_key).milestones,modelVersion:room.model_version||MODEL_VERSION,reflectionComplete:!!person.reflection,ready:person.ready_checkpoint===room.checkpoint,phase:person.learning_phase,info:REMINDER};
+ const mode=room.experience_mode||"shared";
+ const both=mode==="individual"||other[0]?.submitted_checkpoint===room.checkpoint;
+ return {ok:true,role:person.role,title:room.title,experienceMode:mode,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:lessonFocus(room.checkpoint,room.adventure_key).milestones,modelVersion:room.model_version||MODEL_VERSION,reflectionComplete:!!person.reflection,ready:person.ready_checkpoint===room.checkpoint,phase:person.learning_phase,info:REMINDER};
 }
 
 /** Generate the first private dramatic question once per role, on demand.
@@ -60,7 +85,8 @@ export async function begin(token){
  if(!c.person.consented_at)fail("Accept the pilot consent first.",403);
  if(c.room.status!=="active"||c.room.checkpoint!==1)return status(token);
  if((await messages(c.room,c.person.role)).length>0)return status(token);
- const guide=openingGuide({role:c.person.role,themeKey:c.room.adventure_key,canon:c.room.canon,name:c.person.display_name});
+ const scenario=c.room.scenario_id?await getScenario(c.room.scenario_id):null;
+ const guide=openingGuide({role:c.person.role,themeKey:c.room.adventure_key,canon:c.room.canon,name:c.person.display_name,scenario,mode:c.room.experience_mode||"shared"});
  const opening=safeText(await ai(guide.instructions,JSON.stringify(guide.context),310),1500);
  if(opening.length<65||opening.length>1100)fail("Sophia couldn't introduce this scene yet.",502);
  try{
@@ -98,7 +124,8 @@ export async function talk(token,message){
  const clean=safeText(message,900);
  if(clean.length<2)fail("Write what you'd tell your character.");
  const prior=(await messages(c.room,c.person.role)).slice(-12);
- const guide=coachingGuide({role:c.person.role,checkpoint:c.room.checkpoint,themeKey:c.room.adventure_key,name:c.person.display_name,canon:c.room.canon,history:prior});
+ const scenario=c.room.scenario_id?await getScenario(c.room.scenario_id):null;
+ const guide=coachingGuide({role:c.person.role,checkpoint:c.room.checkpoint,themeKey:c.room.adventure_key,name:c.person.display_name,canon:c.room.canon,history:prior,scenario,mode:c.room.experience_mode||"shared"});
  const params=JSON.stringify({...guide.context,latestMessage:clean,currentProvisionalAction:c.person.draft||null});
  let output=await ai(guide.instructions,params,690,"coaching");
  let guided;
