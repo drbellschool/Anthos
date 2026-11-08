@@ -3,8 +3,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#102b3d">
 <title>Anthos | Jack &amp; Jill — Character-First Pilot 3.0</title>
-<link rel="stylesheet" href="/pilot/jj3.css?v=2">
-<script src="/pilot/jj3.js?v=2" defer></script>
+<link rel="stylesheet" href="/pilot/jj3.css?v=3">
+<script src="/pilot/jj3.js?v=3" defer></script>
 </head><body>
 <main class="app">
 <header class="masthead">
@@ -51,6 +51,12 @@
   </div>
   <div id="chatLog" class="chatlog" role="log" aria-live="polite" aria-relevant="additions">
   </div>
+  <div id="decision" class="decision" hidden>
+   <div class="kicker" id="decisionLabel">Jack has an idea</div>
+   <p id="decisionText"></p>
+   <button id="commit" type="button" class="gold">See how it goes →</button>
+   <p class="hint">You can keep talking instead. Nothing changes until you choose to see what happens.</p>
+  </div>
   <div id="compose" class="compose">
    <label id="composeLabel" for="message">Talk to your friend</label>
    <textarea id="message" rows="3" maxlength="900" placeholder="Say what you really think, ask a question, or suggest a move…"></textarea>
@@ -58,19 +64,13 @@
    <p class="hint">You can disagree with your character. Bad ideas are allowed. They may have entertaining consequences.</p>
   </div>
   <div id="manual" class="manual-choice" hidden>
-   <button type="button" id="manualToggle" class="secondary">Choose the next move myself <span aria-hidden="true">✎</span></button>
+   <button type="button" id="manualToggle" class="secondary">Have a different idea? <span aria-hidden="true">✎</span></button>
    <div id="manualForm" hidden>
-    <label id="manualLabel" for="manualMove">What should Jack do or say next?</label>
-    <textarea id="manualMove" rows="2" maxlength="820" placeholder="Describe one specific action in your own words…"></textarea>
-    <button type="button" id="saveMove" class="secondary">Review this move</button>
+    <label id="manualLabel" for="manualMove">What would you like Jack to try?</label>
+    <textarea id="manualMove" rows="2" maxlength="820" placeholder="Something Jack could try, in your own words…"></textarea>
+    <button type="button" id="saveMove" class="secondary">Let Jack consider it</button>
    </div>
-   <p class="hint">No special wording needed. You choose your character's next action; their spouse makes their own choice.</p>
-  </div>
-  <div id="decision" class="decision" hidden>
-   <div class="kicker">Your character's proposed move</div>
-   <p id="decisionText"></p>
-   <div class="controls"><button id="commit" type="button" class="gold">Let the story unfold →</button></div>
-   <p class="hint">You can keep talking first. This only becomes shared after you confirm the fictional move.</p>
+   <p class="hint">Talk normally. Only a move you approve can affect the shared story.</p>
   </div>
   <div id="waiting" class="waiting" hidden>
    <strong>You've sent your character into the story.</strong>
