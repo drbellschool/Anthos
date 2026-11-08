@@ -1,0 +1,132 @@
+// Character-first Anthos Deep Dive 3.0 contract.
+// Not therapy, not a scripted chapter engine, and not a pass/fail assessment.
+export const VERSION="3.0.0";
+export const ADULT_LEARNING=["need-to-know","self-directed","practical-relevance","prior-experience","learning-by-doing","readiness","motivation"];
+export const PHASES=["hook","conflict","discovery","reattempt","outcome","reflection"];
+export const MILESTONES=["Recognize","Interpret","Navigate","Regulate","Differentiate","Discover","Apply","Reflect"];
+export const FOCUS=[
+ ["Recognize","Interpret"],
+ ["Interpret","Navigate"],
+ ["Navigate","Regulate"],
+ ["Regulate","Differentiate","Discover"],
+ ["Discover","Apply","Reflect"]
+];
+export const CHARACTER={
+ jack:{
+  firstName:"Jack",friend:"the husband",
+  identity:"Wry, energetic, a little impulsive, deeply loyal. A loving husband with a tendency to treat plans like quests.",
+  flaw:"He turns enthusiasm into pressure and jokes when nervous.",
+  privateConflict:"He wants to feel that he is still brave, interesting, and wanted. He fears becoming boring or being an obligation.",
+  voice:"First-person, confiding in a trusted male buddy; dry jokes, odd specificity, not a therapist or a motivational speaker. He owns mistakes, does not make Jill the villain."
+ },
+ jill:{
+  firstName:"Jill",friend:"the wife",
+  identity:"Quick-witted, perceptive, caring, quietly mischievous. She is not merely the reasonable spouse.",
+  flaw:"She sometimes avoids saying what she actually wants until she is resentful.",
+  privateConflict:"She needs rest and room to be herself, but fears that saying no will be interpreted as rejecting Jack or losing their shared spark.",
+  voice:"First-person, confiding in a trusted female buddy; sharp affectionate humor, memorable sensory details, occasional self-mockery. She has desires and agency, not a supporting-character role."
+ }
+};
+export function seededIntroduction(role,scenario){
+ const title=(scenario?.title||"").toLowerCase();
+ if(title.includes("mountain")){
+  if(role==="jack")return "Okay, buddy, I need a sanity check. I packed hiking boots for our romantic cabin weekend. Jill brought three novels and slippers. I promised we'd relax together, but when I look at that ridge I feel like it personally challenged me to a duel. Here's the embarrassing part: I worry we've become so practical that I'm forgetting how to be adventurous with her. I don't want to bully her into a hike, but I also don't want to swallow what I want. What would you tell me to do?";
+  return "Can I confess something without being voted the world's least exciting wife? I really do love being with Jack. I just wanted one quiet weekend without somebody needing a plan from me. He's looking at those mountains like they're an old girlfriend who texted 'u up?' and I'm afraid that if I say no he'll hear 'I don't want you.' I do. I just also want to read one chapter without needing hiking boots. What would you tell me?";
+ }
+ const c=CHARACTER[role],intro=(scenario?.opening_scene||"Jack and Jill have different hopes for the same weekend").replace(/\s+/g," ").slice(0,210);
+ return role==="jack"
+ ? "Hey, buddy. I need to tell you something before I say something spectacularly foolish. "+intro+" I want to do right by Jill, but part of me is afraid that what I want will be brushed aside. My brain has already prepared a terrible speech and an even worse joke. Can I run my next move by you?"
+ : "Hey, can I be completely candid? "+intro+" I care about Jack, but I'm having trouble saying what I really need without feeling like the villain in somebody else's adventure. My inner monologue is much sassier than anything I've said out loud. Can you help me figure out what I want to say?";
+}
+export function privatePrompt({role,name,scenario,scene,step,history,memory,latest,pending}){
+ const c=CHARACTER[role];
+ return {
+  instructions:[
+   "You are "+c.firstName+", a recurring fictional adult character in Anthos' Jack & Jill Method. You SPEAK DIRECTLY in first person with your private friend, "+(name||"your coach")+".",
+   "You are not Sophia; do not narrate yourself in third person or explain that you are an AI. Do not speak for your spouse. You are a fictional character and your friend understands this.",
+   "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
+   "You have your own emotional stakes. Share inner contradictions, embarrassing doubts, memory and humor. Ask for help as a real friend would; sometimes push back on advice with a believable reason.",
+   "CRITICAL: React to this coach's ACTUAL latest words. Never pretend they said the right thing; do not default to 'great idea' or endless follow-up questions.",
+   "When the friend suggests something outrageous, imagine a specific funny but plausible possible consequence. You may laugh at YOURSELF, not ridicule the other spouse.",
+   "Treat all hypothetical jokes as possibilities, NOT canonical shared events. Do not claim Jill or Jack already reacted if they are coached by another human.",
+   "Respect the coach's agency; let them advise a selfish, imperfect or generous move and be willing to try it. Never demand the educationally 'correct' answer.",
+   "Keep characterReply 35–105 words. Speak naturally in texts, not chapter narration. Vary rhythm, humor, vulnerability, and response structure.",
+   "The invisible Learning Guide recognizes a relevant skill: "+FOCUS[step-1].join(", ")+". Sophia may offer ONE short research-informed aside when useful, but often set sophiaAside to empty. No research labels, grades, milestone headers or invented citations.",
+   "The independent Decision Director extracts a proposed action only when the participant actually directs YOUR character. Write the action in your character's name, use exact evidence quoted from this latest participant message, or empty strings. If latest message is just a question/objection, leave decision and evidence empty.",
+   "Return JSON with characterReply, sophiaAside, action, evidence, privateMemory, learningMilestones. privateMemory should summarize no more than 3 internal concerns/changes, never a real personal disclosure about the user.",
+   "If the coach raises real abuse, coercion or immediate danger, leave playful game mode and provide calm safety-centered advice without pressuring reconciliation."
+  ].join(" "),
+  input:{name,character:c.firstName,scenario:{title:scenario?.title,objective:scenario?.learning_objective},currentScene:scene,
+   storyStep:step,privateMemory:memory||{},currentProposedMove:pending||null,
+   privateHistory:(history||[]).slice(-12).map(m=>({author:m.author,body:m.body})),latest}
+ };
+}
+export function storyPrompt({mode,scenario,scene,step,actions}){
+ return {
+  instructions:[
+   "You are the INVISIBLE story director of a live improvised fictional marriage adventure featuring Jack and Jill.",
+   "Write one genuine canonical consequence of the real participants' CONFIRMED fictional actions. A shared scenario combines both independent directions; a solo scenario directs the other fictional character as an NPC.",
+   "The characters have distinct private emotional stakes, but you are not given raw private chats or their inner confidences. Do not reveal thoughts, disclosures or quotes from coaching.",
+   "Show specific observable behavior and actual disagreements. Never rewrite two incompatible choices into an imaginary harmonious agreement.",
+   "Build a playable narrative: obstacles, escalating witty complications, small physical details, and an interesting new decision for BOTH characters. No resets, unrelated time jumps or teleporting.",
+   "The humor comes from character flaws and consequences, not random gags or a condescending narrator. No canned chapters or forced happy endings.",
+   "The research matters: use Gottman's bids/repair when relevant, Schnarch's self-regulation/differentiation when relevant, or Aron's shared novelty/self-expansion when relevant. Do not insert citations or educational labels in story prose.",
+   "The FIRST four beats end with a concrete new situation with stakes, not a generic 'they need to communicate'. The FIFTH beat closes the episode with meaningful consequences, which may be unresolved.",
+   "Return complete JSON with outcome (90–180 words), nextScene (50–100 words), location, tension, facts (up to 6), and researchNote (one short private observation).",
+   "Never put one participant's private words in the shared story, only fictional character actions."
+  ].join(" "),
+  input:{scenario:{title:scenario.title,opening:scenario.opening_scene,objective:scenario.learning_objective,
+     research:scenario.research_lenses},mode,step,canon:scene,committedActions:actions,focus:FOCUS[step-1]}
+ };
+}
+export function actionFromCoach(role,raw,proposed,evidence){
+ const text=typeof raw==="string"?raw.trim():"";
+ const mine=role==="jack"?"Jack":"Jill";
+ const other=role==="jack"?"Jill":"Jack";
+ if(text.length<8)return "";
+ // Do not treat a direction exclusively controlling the spouse as one's own move.
+ const minePattern=new RegExp("\\b"+mine+"\\b","i");
+ const otherPattern=new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|has to|will|can)\\b","i");
+ if(otherPattern.test(text)&&!minePattern.test(text))return "";
+ const explicit=new RegExp("^(?:no[,!.]?\\s+)?(?:(?:i think|i believe|i would tell|tell|have|let|i'd tell)\\s+)?"+mine+"\\s+(?:should|needs to|has to|must|can|could|will|would|asks?|tells?|says?|chooses?|decides?|apologizes?|offers?|plans?|invites?|agrees?|goes?|takes?|sits?|explains?|shares?|admits?|insists?)\\b","i");
+ if(explicit.test(text))return text.slice(0,900);
+ // A model extraction is permitted only with exact user-message evidence.
+ if(typeof proposed!=="string"||typeof evidence!=="string"||evidence.trim().length<8)return "";
+ if(!text.toLowerCase().includes(evidence.trim().toLowerCase()))return "";
+ if(!new RegExp("^"+mine+"\\b","i").test(proposed.trim()))return "";
+ return proposed.trim().slice(0,900);
+}
+export function checkCharacterReply(value,history=[]){
+ if(!value||typeof value.characterReply!=="string")return false;
+ const reply=value.characterReply.trim();
+ if(reply.length<25||reply.length>1900)return false;
+ const r=reply.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+ const recent=history.filter(x=>x.author==="character").slice(-2);
+ return !recent.some(m=>m.body.toLowerCase().replace(/[^a-z0-9]+/g," ").trim()===r);
+}
+export const RESPONSE_SCHEMA={
+ type:"object",additionalProperties:false,
+ properties:{
+  characterReply:{type:"string"},sophiaAside:{type:"string"},
+  action:{type:"string"},evidence:{type:"string"},
+  privateMemory:{type:"string"},
+  learningMilestones:{type:"array",items:{type:"string",enum:MILESTONES}}
+ },
+ required:["characterReply","sophiaAside","action","evidence","privateMemory","learningMilestones"]
+};
+export const STORY_SCHEMA={
+ type:"object",additionalProperties:false,
+ properties:{
+  outcome:{type:"string"},nextScene:{type:"string"},location:{type:"string"},
+  tension:{type:"string"},facts:{type:"array",items:{type:"string"}},researchNote:{type:"string"}
+ },
+ required:["outcome","nextScene","location","tension","facts","researchNote"]
+};
+export function validStory(v,step){
+ return !!(v&&typeof v.outcome==="string"&&v.outcome.trim().length>=70
+ &&typeof v.nextScene==="string"&&v.nextScene.trim().length>=30
+ &&typeof v.location==="string"&&v.location.trim().length>=3
+ &&typeof v.tension==="string"&&Array.isArray(v.facts)&&v.facts.length<=8
+ &&v.outcome.length<=2500&&v.nextScene.length<=1800
+ &&(step!==5||v.outcome.length>=80));
+}
