@@ -1,6 +1,6 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,checkCharacterReply,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,checkCharacterReply,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -34,7 +34,7 @@ async function scenarioFor(room){
   petal_slug:room.petal_slug,research_lenses:["gottman","schnarch","aron"],mode:room.mode};
 }
 async function privateMessages(room,role){
- return await db(tables.messages,{room_id:"eq."+room.id,role:"eq."+role,order:"id.asc",limit:"180",select:"id,author,kind,body,step,created_at"})||[];
+ return await db(tables.messages,{room_id:"eq."+room.id,role:"eq."+role,order:"id.asc",limit:"180",select:"id,author,kind,body,step,created_at,request_key"})||[];
 }
 async function outcomes(room){
  return await db(tables.messages,{room_id:"eq."+room.id,role:"eq.shared",order:"id.asc",limit:"10",select:"id,author,kind,body,step,created_at"})||[];
@@ -131,7 +131,7 @@ export async function begin(token){
    memory:p.private_memory,latest:"The shared fictional scene has just advanced. Start by reacting as the character and privately confiding in your friend about what this NEW complication means to you. End with a vivid invitation to advise your next move.",pending:null});
   try{
    const result=await model(g.instructions+" This is a NEW CHARACTER INTRO; do not extract any decision because the coach has not spoken. Return empty action, evidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
-   if(checkCharacterReply(result,recent))intro=safe(result.characterReply,1600);
+   if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
   }catch{/* Safe, explicit fallback below; no invented canonical event. */}
   if(!intro){
    if(r.step===1)intro=seededIntroduction(p.role,scenario);
@@ -171,6 +171,8 @@ export async function talk(token,text,requestKey){
   response=await model(guide.instructions+" Your last proposed reply repeated something you already said. React to the NEW text with fresh, specific, character-voiced humor and vulnerability.",guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
  }
  if(!checkCharacterReply(response,history))problem("The character's response repeated itself. Your message is still here—please retry.",502);
+ response.characterReply=plainCharacterLanguage(response.characterReply);
+ response.sophiaAside=plainCharacterLanguage(response.sophiaAside);
  const next=actionFromCoach(p.role,clean,response.action,response.evidence)||oldAction;
  const milestones=Array.isArray(response.learningMilestones)?response.learningMilestones.filter(x=>MILESTONES.includes(x)).slice(0,3):[];
  const learning=p.learning_log&&typeof p.learning_log==="object"&&!Array.isArray(p.learning_log)?{...p.learning_log}:{};
@@ -178,7 +180,12 @@ export async function talk(token,text,requestKey){
  const memory={note:safe(response.privateMemory,380)||p.private_memory?.note||""};
  let aside=safe(response.sophiaAside,490);
  const recentAsides=history.filter(m=>m.author==="sophia"&&m.step===r.step).length;
- if(recentAsides>0)aside=""; // No recurring educational interjections or mini-lectures.
+ // A generic "compromise is good" lecture is not a useful interruption.
+ // Let the character respond first; only offer an occasional practical aside
+ // after the opening exchange of a checkpoint, when there is something real to notice.
+ if(recentAsides>0||history.filter(m=>m.author==="coach"&&m.step===r.step).length===0
+    ||/\b(?:research|empathizing|mutual respect|connection|reducing tension|preferences|styles)\b/i.test(aside))
+   aside="";
  const inserted=await db("rpc/anthos_jj3_write_turn",{},{
   p_room:r.id,p_participant:p.id,p_step:r.step,p_key:requestKey,
   p_user:clean,p_character:safe(response.characterReply,2000),
@@ -211,12 +218,12 @@ async function resolveRoom(room){
    }catch(e){if(attempt===1)throw e}
   }
   if(!story)problem("The next story event needs another attempt. Try again.",502);
-  const next={scene:safe(story.nextScene,1800),location:safe(story.location,140),
+  const next={scene:safe(plainCharacterLanguage(story.nextScene),1800),location:safe(story.location,140),
    tension:safe(story.tension,500),facts:story.facts.slice(0,8).map(x=>safe(x,200)),
    research:safe(story.researchNote,450),title:scenario.title};
   const published=await db("rpc/anthos_jj3_publish",{},{
    p_room:room.id,p_step:current.step,p_token:claimToken,
-   p_outcome:safe(story.outcome,2500),p_scene:next
+   p_outcome:safe(plainCharacterLanguage(story.outcome),2500),p_scene:next
   },"POST");
   if(published!==true)problem("Another story update completed first. Refresh the page.",409);
  }catch(e){
@@ -225,6 +232,30 @@ async function resolveRoom(room){
   },"POST").catch(()=>{});
   throw e;
  }
+}
+/** A manually confirmed move is available even if AI misses a natural-language suggestion.
+ * It never publishes or submits automatically; it only becomes a pending proposal.
+ */
+export async function choose(token,raw){
+ const {person:p,room:r}=await participant(token);
+ if(!p.consented_at)problem("Join before choosing a move.",403);
+ if(r.status!=="active"||r.processing_token||p.submitted_step===r.step)
+  problem("This story moment has already moved on. Refresh to continue.",409);
+ const clean=safe(raw,820);
+ if(clean.length<10)problem("Describe one specific thing your character could do or say.");
+ const name=p.role==="jack"?"Jack":"Jill",other=p.role==="jack"?"Jill":"Jack";
+ if(new RegExp("^"+other+"\\s+(?:should|needs?|has to|must|will|can|could)\\b","i").test(clean))
+  problem("You can only choose what "+name+" will do. "+other+"'s coach controls their choices.");
+ let move=clean;
+ if(!new RegExp("^"+name+"\\b","i").test(clean)){
+  const own=new RegExp("^(?:I (?:think|want|would like) "+name+" to|let "+name+")\\s+","i");
+  move=own.test(clean)?name+" will "+clean.replace(own,""):name+" tries this: "+clean;
+ }
+ const saved=await db("rpc/anthos_jj3_set_choice",{},{
+  p_room:r.id,p_participant:p.id,p_step:r.step,p_action:move
+ },"POST");
+ if(saved!==true)problem("The scene changed while you were choosing. Refresh and try again.",409);
+ return status(token);
 }
 export async function submit(token){
  const {person:p,room:r}=await participant(token);
@@ -256,7 +287,7 @@ export async function reflect(token,reflection){
  let closing="";
  try{
   const response=await model(guide.instructions+" The adventure has FINISHED. The coach is reflecting on a real-life relationship skill. Respond warmly as "+CHARACTER[p.role].firstName+" with a short personal farewell and one funny callback; no new fictional decision.",guide.input,RESPONSE_SCHEMA,"jj3_final_reflection");
-  closing=safe(response.characterReply,1100);
+  closing=safe(plainCharacterLanguage(response.characterReply),1100);
  }catch{closing=p.role==="jack"?"Thanks for having my back. I'm going to try actually listening before I pack three kinds of hiking boots next time.":"Thanks for being in my corner. I'm keeping my books, my opinions, and maybe a little room for the unexpected."}
  const saved=await db(tables.people,{id:"eq."+p.id,reflection:"is.null"},{reflection:clean},"PATCH");
  if(saved?.length){
