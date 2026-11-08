@@ -111,31 +111,45 @@ export async function talk(token,message){
 }
 
 async function resolve(room){
- const fresh=(await db(roomTable,{id:"eq."+room.id,select:"*"}))[0];
- if(!fresh||fresh.status!=="active")return;
+ const current=(await db(roomTable,{id:"eq."+room.id,select:"*"}))[0];
+ if(!current||current.status!=="active")return;
  const members=await db(peopleTable,{room_id:"eq."+room.id,select:"role,submitted_checkpoint,submitted_text"});
- if(members.length!==2||members.some(x=>x.submitted_checkpoint!==fresh.checkpoint))return;
- if(fresh.resolving && fresh.processing_at && Date.now()-new Date(fresh.processing_at).getTime()<70000)return;
- if(fresh.resolving){await db(roomTable,{id:"eq."+room.id,resolving:"eq.true"},{resolving:false,processing_at:null},"PATCH",{minimal:true});}
- const claimed=await db(roomTable,{id:"eq."+room.id,checkpoint:"eq."+fresh.checkpoint,resolving:"eq.false"},{resolving:true,processing_at:new Date().toISOString()},"PATCH");
+ if(members.length!==2||members.some(x=>x.submitted_checkpoint!==current.checkpoint||!x.submitted_text))return;
+ if(current.resolving){
+   if(!current.processing_at||Date.now()-new Date(current.processing_at).getTime()<70000)return;
+   // Release only a demonstrably stale lock; never steal a live resolution.
+   await db(roomTable,{id:"eq."+room.id,checkpoint:"eq."+current.checkpoint,resolving:"eq.true",processing_at:"lt."+new Date(Date.now()-70000).toISOString()},{resolving:false,processing_at:null},"PATCH",{minimal:true});
+ }
+ const claimed=await db(roomTable,{id:"eq."+room.id,checkpoint:"eq."+current.checkpoint,resolving:"eq.false"},
+    {resolving:true,processing_at:new Date().toISOString()},"PATCH");
  if(!claimed.length)return;
  try{
-  const j=members.find(x=>x.role==="jack")?.submitted_text||"";
-  const l=members.find(x=>x.role==="jill")?.submitted_text||"";
-  const prompt=`You are Sophia, a skilled improvisational story director for fictional married couple Jack and Jill. Both players submitted their own character's intended decision. Create ONE canonical event that combines BOTH instructions with meaningful consequences, cohesive location/timeline, and escalating playful comedy, while preserving fictional agency and research-based relationship learning. No prewritten chapters. Preserve facts already established. No direct quotes, private confessions or references to real participants; only fictional Jack and Jill behavior. Do not invent any private disclosures. Keep real participant wording out of the shared story. Return ONLY valid JSON with keys "outcome","scene","location","tension","research","facts". outcome 80-130 words including immediate consequence and a concrete fictional event. scene 35-75 words describing the next dilemma, except after fifth checkpoint when scene is a warm closing. research one short accurate skill/insight tied to actual fictional behavior (Gottman, Schnarch or Aron, with no invented citation). facts array up to 6 short continuity facts. No clinical diagnosis. Avoid using the same location repeatedly without causal transition. The first outcome must materially depend on both choices.`;
-  const raw=await ai(prompt,JSON.stringify({checkpoint:fresh.checkpoint,previous:fresh.canon,JackDecision:j,JillDecision:l,phase:fresh.checkpoint===1?"hook and conflict":fresh.checkpoint===5?"climax and reflection":"escalation, discovery, reattempt"}),1050,"story");
-  let parsed;try{parsed=JSON.parse(raw.replace(/^\`\`\`(?:json)?\s*|\s*\`\`\`$/g,""))}catch{fail("Sophia's story result was incomplete.",502)}
-  for(const k of ["outcome","scene","location","tension","research"])if(typeof parsed[k]!=="string"||parsed[k].trim().length<(k==="location"?3:8))fail("Sophia's story failed validation.",502);
-  if(!Array.isArray(parsed.facts))fail("Story continuity failed validation.",502);
-  const next={scene:parsed.scene.slice(0,1300),location:parsed.location.slice(0,120),tension:parsed.tension.slice(0,500),research:parsed.research.slice(0,500),facts:parsed.facts.slice(0,6).map(x=>String(x).slice(0,200))};
-  await db(msgTable,{}, {room_id:room.id,role:"canon",author:"story",checkpoint:fresh.checkpoint,body:parsed.outcome.slice(0,2500)},"POST");
-  const done=fresh.checkpoint>=5;
-  await db(roomTable,{id:"eq."+room.id,checkpoint:"eq."+fresh.checkpoint,resolving:"eq.true"},{canon:next,checkpoint:done?5:fresh.checkpoint+1,status:done?"complete":"active",resolving:false,processing_at:null},"PATCH",{minimal:true});
+   const jack=members.find(x=>x.role==="jack").submitted_text;
+   const jill=members.find(x=>x.role==="jill").submitted_text;
+   const guide=storyGuide({checkpoint:current.checkpoint,themeKey:current.adventure_key,canon:current.canon,jackAction:jack,jillAction:jill});
+   let parsed=null;
+   for(let attempt=0;attempt<2;attempt++){
+     const raw=await ai(guide.instructions+(attempt?" The last output failed continuity or privacy checks. Correct any repetition or unsafe disclosure; keep both characters' ownership.":""),JSON.stringify(guide.context),1050,"story");
+     try{parsed=JSON.parse(raw.replace(/^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$/g,""))}catch{parsed=null}
+     if(storyIsSafe(parsed,current.canon,[jack,jill]))break;
+     parsed=null;
+   }
+   if(!parsed)fail("Sophia needs another attempt to resolve the scene.",502);
+   const next={scene:parsed.scene.slice(0,1300),location:parsed.location.slice(0,120),
+     tension:parsed.tension.slice(0,500),research:parsed.research.slice(0,500),
+     facts:parsed.facts.slice(0,8).map(x=>String(x).slice(0,200))};
+   // Postgres performs both the event insert and checkpoint transition atomically.
+   // Duplicate calls cannot publish a second result.
+   const committed=await db("rpc/anthos_jj2_commit_story",{},
+      {p_room_id:room.id,p_checkpoint:current.checkpoint,p_outcome:parsed.outcome.slice(0,2500),p_canon:next},"POST");
+   if(committed!==true)fail("The story has changed; refresh to see the latest outcome.",409);
  }catch(e){
-  await db(roomTable,{id:"eq."+room.id,resolving:"eq.true"},{resolving:false,processing_at:null},"PATCH",{minimal:true}).catch(()=>{});
-  throw e;
+   await db(roomTable,{id:"eq."+room.id,checkpoint:"eq."+current.checkpoint,resolving:"eq.true"},
+      {resolving:false,processing_at:null},"PATCH",{minimal:true}).catch(()=>{});
+   throw e;
  }
 }
+
 export async function submit(token){
  const c=await auth(token);
  if(!c.person.consented_at)fail("Accept the pilot consent first.",403);
