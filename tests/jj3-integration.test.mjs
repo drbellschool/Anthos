@@ -42,7 +42,7 @@ function harness(mode="shared",{invalidFirst=false}={}){
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
     :{characterReply:type==="jj3_intro"?"Buddy, that happened so fast. I'm worried Jill thinks I only care about hiking. I have a ridiculous plan, but I'm not sure I should say it out loud. Can you help me think through it?":
-       "Oh, that's a real suggestion. I want to try that, but I'm nervous I'll come off as selfish. Part of me wants adventure and part of me wants Jill to feel heard. I might even apologize to the inflatable moose if this gets any stranger.",
+       "Oh, that's a real suggestion in round "+aiCalls+". I want to try that, but I'm nervous I'll come off as selfish. Part of me wants adventure and part of me wants Jill to feel heard. I might even apologize to the inflatable moose if this gets any stranger.",
       sophiaAside:"",action:"",evidence:"",privateMemory:"Still afraid to seem unadventurous.",
       learningMilestones:["Recognize"]};
    return out({status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(reply)}]}]});
