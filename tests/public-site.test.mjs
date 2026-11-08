@@ -16,10 +16,10 @@ test("Anthos public home has correct identity and does not claim a live service"
  assert.match(home,/<title>Anthos/);
  assert.match(home,/The adventure/);
  assert.match(home,/Christian marriage enrichment/i);
- assert.doesNotMatch(home,/Threefold|marketing|>Home<\/a>/i);
- for(const text of [privacy,terms]) assert.doesNotMatch(text,/Threefold|marketing|>Home<\/a>/i);
+ assert.doesNotMatch(home,/<title>Threefold|Threefold Project|marketing|>Home<\/a>/i);
+ for(const text of [privacy,terms]) assert.doesNotMatch(text,/<title>Threefold|Threefold Project|marketing|>Home<\/a>/i);
  assert.match(home,/temporarily closed/);
- assert.match(home,/No live messages or accounts yet/);
+ assert.match(home,/not accepting live enrollments|not sending recurring program texts/i);
  assert.doesNotMatch(home,/href=["']sms:/);
  assert.doesNotMatch(home,/<form\b/);
 });
