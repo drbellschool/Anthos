@@ -77,9 +77,12 @@ function render(s){
  $("compose").hidden=completed||s.submitted;
  $("manual").hidden=completed||s.submitted;
  $("manualForm").hidden=!manualOpen;
- $("manualToggle").textContent=s.action?"Change "+s.character+"'s move":"Choose "+s.character+"'s next move";
- $("manualLabel").textContent="What should "+s.character+" do or say next?";
+ $("manualToggle").textContent=s.action?"Have a different idea?":"Have an idea for "+s.character+"?";
+ $("manualLabel").textContent="What could "+s.character+" try?";
+ $("saveMove").textContent="Let "+s.character+" consider it";
  $("decision").hidden=completed||s.submitted||!s.action;
+ $("decisionLabel").textContent=s.character+" has an idea";
+ $("commit").textContent="See how it goes →";
  if(s.action)$("decisionText").textContent=s.action;
  $("waiting").hidden=completed||!s.submitted;
  if(s.submitted){
@@ -134,7 +137,7 @@ $("manualToggle").addEventListener("click",()=>{
 });
 $("saveMove").addEventListener("click",async()=>{
  const move=$("manualMove").value.trim();
- if(move.length<10){error("Describe a specific thing your character will do or say.");return}
+ if(move.length<10){error("Tell your friend a little more about the idea.");return}
  const saved=await afterAction("choose",{move});
  if(saved){
   manualOpen=false;$("manualMove").value="";
@@ -144,7 +147,8 @@ $("saveMove").addEventListener("click",async()=>{
 });
 $("commit").addEventListener("click",async()=>{
  if(!state?.action||busy)return;
- if(!confirm("Let "+state.character+" try this move?\n\n"+state.action+"\n\nOnly the fictional action becomes part of the shared adventure. Your private dialogue remains private."))return;
+ // The visible "See how it goes" button explicitly confirms the reviewed move.
+ // No second browser confirmation breaks the conversation.
  const ok=await afterAction("submit");
  if(!ok)await load();
 });
