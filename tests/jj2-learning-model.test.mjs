@@ -24,7 +24,7 @@ test("readiness depends on an actionable decision, never research mastery or pra
 });
 test("the story guide enforces role ownership, coherent fiction and private input only",()=>{
  const guide=storyGuide({checkpoint:1,themeKey:"christmas",canon:getTheme("christmas").opening,jackAction:"Jack apologizes.",jillAction:"Jill shares her priorities."});
- assert.match(guide.instructions,/BOTH actions/);
+ assert.match(guide.instructions,/BOTH coached actions/);
  assert.ok(!("privateRecentMessages" in guide.context));
  assert.equal(guide.context.jackAction,"Jack apologizes.");
  const coaching=coachingGuide({role:"jack",checkpoint:1,themeKey:"christmas",name:"A",canon:getTheme("christmas").opening,history:[]});
