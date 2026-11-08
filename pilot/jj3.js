@@ -9,9 +9,9 @@ if(/^[A-Za-z0-9_-]{43}$/.test(supplied)){
  url.searchParams.delete("invite");history.replaceState(null,"",url.pathname+url.search+url.hash);
 }
 const token=supplied||sessionStorage.getItem(storedKey)||"";
-let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0,manualOpen=false;
+let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0,composeMode="chat",chatDraft="",moveDraft="";
 const error=t=>{$("error").textContent=t||""};
-const busySet=v=>{busy=v;for(const id of ["send","commit","check","saveReflection","manualToggle","saveMove"])$(id).disabled=v};
+const busySet=v=>{busy=v;for(const id of ["send","commit","check","saveReflection","modeToggle"])$(id).disabled=v};
 async function api(action,body={}){
  const option={headers:{"x-anthos-pilot-token":token},credentials:"same-origin",cache:"no-store"};
  if(action){option.method="POST";option.headers["Content-Type"]="application/json";option.body=JSON.stringify({action,...body})}
@@ -52,8 +52,10 @@ function render(s){
  $("chatName").textContent=s.character;
  $("chatAvatar").textContent=s.character[0];
  $("chatSubtitle").textContent=s.character==="Jack"?"Your mountain-loving, slightly chaotic friend":"Your sharp-witted friend with a lot on her mind";
- $("composeLabel").textContent="Message "+s.character;
- $("message").placeholder=s.character==="Jack"?"Talk to Jack like an actual friend…":"Talk to Jill like an actual friend…";
+ $("composeLabel").textContent=composeMode==="chat"?"Message "+s.character:"What might "+s.character+" try?";
+ $("message").placeholder=composeMode==="chat"?"Just talk to "+s.character+"…":"Your idea, in everyday words…";
+ $("send").textContent=composeMode==="chat"?"Send to "+s.character+" →":"Suggest to "+s.character+" →";
+ $("modeToggle").textContent=composeMode==="chat"?(s.action?"Suggest something different":"Have an idea for "+s.character+"?"):"Back to the conversation";
  const shared=s.shared||[],latest=shared.at(-1);
  $("sharedSection").hidden=!latest;
  if(latest){
@@ -75,13 +77,9 @@ function render(s){
  if(wasNearBottom||!log.dataset.initialized)log.scrollTop=log.scrollHeight;
  log.dataset.initialized="yes";
  $("compose").hidden=completed||s.submitted;
- $("manual").hidden=completed||s.submitted;
- $("manualForm").hidden=!manualOpen;
- $("manualToggle").textContent=s.action?"Have a different idea?":"Have an idea for "+s.character+"?";
- $("manualLabel").textContent="What could "+s.character+" try?";
- $("saveMove").textContent="Let "+s.character+" consider it";
+
  $("decision").hidden=completed||s.submitted||!s.action;
- $("decisionLabel").textContent=s.character+" has an idea";
+ $("decisionLabel").textContent=s.character+"'s thinking of trying…";
  $("commit").textContent="See how it goes →";
  if(s.action)$("decisionText").textContent=s.action;
  $("waiting").hidden=completed||!s.submitted;
@@ -125,25 +123,28 @@ $("joinForm").addEventListener("submit",async event=>{
 $("send").addEventListener("click",async()=>{
  if(busy)return;
  const text=$("message").value.trim();
- if(text.length<2){error("Write something to your character first.");return}
+ if(text.length<(composeMode==="chat"?2:10)){
+  error(composeMode==="chat"?"Say something to your friend first.":"Suggest one specific thing your friend could try.");return;
+ }
+ if(composeMode==="move"){
+  const saved=await afterAction("choose",{move:text});
+  if(saved){
+   $("message").value="";moveDraft="";composeMode="chat";
+   if(state)render(state);
+   $("decision").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+  return;
+ }
  if(text!==queuedText){queuedText=text;queuedKey=crypto.randomUUID()}
  const result=await afterAction("talk",{message:text,requestKey:queuedKey});
  if(result){$("message").value="";queuedKey=null;queuedText="";const log=$("chatLog");log.scrollTop=log.scrollHeight}
 });
-$("manualToggle").addEventListener("click",()=>{
- manualOpen=!manualOpen;
+$("modeToggle").addEventListener("click",()=>{
+ if(busy)return;
+ if(composeMode==="chat"){chatDraft=$("message").value;composeMode="move";$("message").value=moveDraft;}
+ else{moveDraft=$("message").value;composeMode="chat";$("message").value=chatDraft;}
  if(state)render(state);
- if(manualOpen)$("manualMove").focus();
-});
-$("saveMove").addEventListener("click",async()=>{
- const move=$("manualMove").value.trim();
- if(move.length<10){error("Tell your friend a little more about the idea.");return}
- const saved=await afterAction("choose",{move});
- if(saved){
-  manualOpen=false;$("manualMove").value="";
-  if(state)render(state);
-  $("decision").scrollIntoView({behavior:"smooth",block:"nearest"});
- }
+ $("message").focus();
 });
 $("commit").addEventListener("click",async()=>{
  if(!state?.action||busy)return;
