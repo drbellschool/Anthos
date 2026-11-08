@@ -95,7 +95,7 @@ async function load(quiet=false){
    openingStep=s.step;
    try{render(await api("begin"))}catch(e){openingStep=null;if(!quiet)error(e.message)}
   }
-  if(s.consent&&s.submitted&&s.otherSubmitted&&!s.processing&&s.status==="active"&&Date.now()-lastProgressTry>10000){
+  if(s.consent&&s.submitted&&s.otherSubmitted&&s.status==="active"&&Date.now()-lastProgressTry>10000){
    lastProgressTry=Date.now();
    try{render(await api("progress"))}catch(e){if(!quiet)error(e.message)}
   }
