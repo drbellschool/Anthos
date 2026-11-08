@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {status,consent,talk,submit} from "../api/jack-jill-pilot-core.mjs";
+import {status,consent,talk,submit,reflect} from "../api/jack-jill-pilot-core.mjs";
 const roomId="11111111-1111-4111-8111-111111111111";
 const tokenJack="j".repeat(43),tokenJill="l".repeat(43);
 const hash=x=>createHash("sha256").update(x).digest("hex");
@@ -16,11 +16,12 @@ function harness(){
   if(u.hostname==="api.openai.com"){
    aiCalls++;const payload=JSON.parse(opts.body);
    const coaching=payload.text?.format?.name==="anthos_jj2_coaching";
+   const isReflection=!payload.text?.format;
    const input=JSON.parse(payload.input);
    const message=input.latestMessage||"";
    const character=input.role||"Jack";
    const actionable=/should|tell|ask|invite|apologize|visit|plan|say|choose/i.test(message);
-   const value=coaching?{
+   const value=isReflection?"Your reflection recognizes a concrete step. Consider one small conversation you could initiate this week.":coaching?{
       reply:actionable?"The holiday is getting deliciously complicated. Your idea gives your character something concrete to try. Ready to see what happens?":"That's a good question. What would you actually advise your character to do?",
       ready:false,phase:"discovery",learningEvidence:"Explored assumptions",
       learningMilestones:["Recognize"],decision:actionable?character+" should openly discuss the holiday plans.":"",
@@ -81,5 +82,30 @@ test("JJ2: private coaching; deterministic readiness; exactly one canonical shar
   await assert.rejects(submit(tokenJack),/Keep talking with Sophia/);
   assert.equal(h.room.checkpoint,2);
   assert.equal(h.entries.filter(x=>x.role==="canon").length,1);
+ }finally{h.restore()}
+});
+
+test("JJ2: five coordinated decisions complete one adventure and permit private reflections",async()=>{
+ const h=harness();
+ try{
+   await consent(tokenJack,"Alex");await consent(tokenJill,"Sam");
+   for(let i=1;i<=5;i++){
+     const jack=await talk(tokenJack,"Jack should apologize for his assumptions and ask Jill what matters to her.");
+     const jill=await talk(tokenJill,"Jill should explain her hopes and ask Jack for a collaborative plan.");
+     assert.equal(jack.ready,true);
+     assert.equal(jill.ready,true);
+     await submit(tokenJack);
+     await submit(tokenJill);
+     assert.equal(h.room.status,i===5?"complete":"active");
+     assert.equal(h.entries.filter(x=>x.role==="canon").length,i);
+   }
+   const done=await reflect(tokenJack,"I want to ask better questions when I am making a plan.");
+   assert.equal(done.reflectionComplete,true);
+   assert.ok(done.transcript.some(x=>x.body.includes("reflection recognizes a concrete step")));
+   const partner=await status(tokenJill);
+   assert.equal(partner.reflectionComplete,false);
+   assert.ok(!partner.transcript.some(x=>x.body.includes("I want to ask better questions")));
+   await reflect(tokenJack,"A second attempt should not add a new reflection.");
+   assert.equal(h.entries.filter(x=>x.role==="jack"&&x.checkpoint===6&&x.author==="participant").length,1);
  }finally{h.restore()}
 });
