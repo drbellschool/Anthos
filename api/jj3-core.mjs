@@ -125,7 +125,7 @@ export async function begin(token){
  if(recent.some(m=>m.kind==="intro"&&m.step===r.step))return status(token);
  const scenario=await scenarioFor(r);
  let intro="";
- if(r.step===1)intro=seededIntroduction(p.role,scenario);
+ if(r.step===1&&/mountain/i.test(scenario.title))intro=seededIntroduction(p.role,scenario);
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
    memory:p.private_memory,latest:"The shared fictional scene has just advanced. Start by reacting as the character and privately confiding in your friend about what this NEW complication means to you. End with a vivid invitation to advise your next move.",pending:null});
@@ -134,10 +134,13 @@ export async function begin(token){
    if(checkCharacterReply(result,recent))intro=safe(result.characterReply,1600);
   }catch{/* Safe, explicit fallback below; no invented canonical event. */}
   if(!intro){
+   if(r.step===1)intro=seededIntroduction(p.role,scenario);
+   else {
    const name=CHARACTER[p.role].firstName;
    intro=name==="Jack"
     ?"Okay, buddy, new development. "+safe(r.scene?.scene,280)+" I have opinions, a questionable plan, and a growing suspicion that I'm about to embarrass myself. I want to handle this without flattening what Jill cares about. What would you tell me?"
     :"Oh, this has become a situation. "+safe(r.scene?.scene,280)+" I have a pretty good idea what I want, but I'm afraid it will sound selfish if I say it out loud. Can I tell you my plan before I make things worse?";
+  }
   }
  }
  try{
@@ -163,8 +166,11 @@ export async function talk(token,text,requestKey){
  const oldAction=p.pending_step===r.step?p.pending_action||"":"";
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history,
    memory:p.private_memory,latest:clean,pending:oldAction});
- const response=await model(guide.instructions,guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
- if(!checkCharacterReply(response,history))problem("The character's reply didn't come through. Your message is still here—retry.",502);
+ let response=await model(guide.instructions,guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
+ if(!checkCharacterReply(response,history)){
+  response=await model(guide.instructions+" Your last proposed reply repeated something you already said. React to the NEW text with fresh, specific, character-voiced humor and vulnerability.",guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
+ }
+ if(!checkCharacterReply(response,history))problem("The character's response repeated itself. Your message is still here—please retry.",502);
  const next=actionFromCoach(p.role,clean,response.action,response.evidence)||oldAction;
  const milestones=Array.isArray(response.learningMilestones)?response.learningMilestones.filter(x=>MILESTONES.includes(x)).slice(0,3):[];
  const learning=p.learning_log&&typeof p.learning_log==="object"&&!Array.isArray(p.learning_log)?{...p.learning_log}:{};
