@@ -17,7 +17,7 @@ function harness(mode='shared'){
   if(u.hostname==="api.openai.com"){
    aiCalls++;const payload=JSON.parse(opts.body);
    const coaching=payload.text?.format?.name==="anthos_jj2_coaching";
-   const isOpening=!payload.text?.format && payload.instructions?.includes("Create the FIRST private message");
+   const isOpening=!payload.text?.format && payload.instructions?.includes("the one natural, witty guide");
    const isReflection=!payload.text?.format && !isOpening;
    const input=JSON.parse(payload.input);
    const message=input.latestMessage||"";
@@ -76,11 +76,19 @@ test("JJ2: private coaching; deterministic readiness; exactly one canonical shar
   assert.equal(jill.ready,true);
   await submit(tokenJill);
   assert.equal(h.room.checkpoint,2,"Both submitted decisions advance one shared story");
+  const nextJack=await begin(tokenJack);
+  const nextJill=await begin(tokenJill);
+  assert.equal(nextJack.transcript.at(-1).checkpoint,-2,"Jack gets a new story-specific question after the shared event");
+  assert.equal(nextJill.transcript.at(-1).checkpoint,-2,"Jill gets an independent question about the new complication");
+  assert.equal((await begin(tokenJack)).transcript.filter(m=>m.checkpoint===-2).length,1,"Refreshing cannot duplicate the opening");
   const a=await status(tokenJack),b=await status(tokenJill);
   assert.equal(a.shared.length,1);
   assert.deepEqual(a.shared,b.shared);
   assert.ok(!b.transcript.some(x=>x.body.includes("invite both mothers")));
-  assert.equal(h.aiCalls,4,"Three coaching replies and one story resolution");
+  assert.equal(h.aiCalls,6,"Three coaching replies, one story resolution, and two follow-up scene prompts");
+  const agreeing=await talk(tokenJack,"Sounds good");
+  assert.equal(agreeing.ready,false,"Bare assent cannot silently resubmit the earlier checkpoint action");
+  assert.equal(agreeing.draft,"","Previous decision cannot leak into a new checkpoint");
   await assert.rejects(submit(tokenJack),/Keep talking with Sophia/);
   assert.equal(h.room.checkpoint,2);
   assert.equal(h.entries.filter(x=>x.role==="canon").length,1);
