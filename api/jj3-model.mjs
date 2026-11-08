@@ -167,7 +167,7 @@ export function actionFromCharacterWords(role,coachMessage,characterReply){
  if(!match)return "";
  const rest=match[2].trim().replace(/[,;:\s]+$/,"");
  // Cut trailing conditional clauses rather than inventing what the other spouse will do.
- const bounded=rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim();
+ const bounded=rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
  if(bounded.length<5)return "";
  return name+" will "+match[1].toLowerCase()+" "+bounded+".";
 }
