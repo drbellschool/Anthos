@@ -73,7 +73,7 @@ $("send").addEventListener("click",async()=>{
 });
 $("advance").addEventListener("click",async()=>{
  if(busy||!current?.draft)return;
- if(!confirm("Commit this latest advice to your character? Your spouse will not see this private message, but the character's actions will shape the shared story."))return;
+ if(!confirm("Confirm your character’s next move:\n\n"+current.draft+"\n\nOnly this fictional action will enter the shared story. Your private conversation stays private."))return;
  busySet(true);error("");
  try{render(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}
 });
