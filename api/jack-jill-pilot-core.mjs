@@ -1,5 +1,5 @@
 import {createHash,randomBytes} from "node:crypto";
-import {MODEL_VERSION, MILESTONES, getTheme, lessonFocus, resolveReadiness, coachingGuide, storyGuide, storyIsSafe, avoidRepetitiveResponse} from "./jj2-learning-model.mjs";
+import {MODEL_VERSION, MILESTONES, getTheme, lessonFocus, resolveReadiness, coachingGuide, storyGuide, storyIsSafe, avoidRepetitiveResponse, openingGuide} from "./jj2-learning-model.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const hash=s=>createHash("sha256").update(s).digest("hex");
@@ -49,6 +49,30 @@ export async function status(token){
  const other=await db(peopleTable,{room_id:"eq."+room.id,role:"neq."+person.role,select:"role,submitted_checkpoint"});
  const both=other[0]?.submitted_checkpoint===room.checkpoint;
  return {ok:true,role:person.role,title:room.title,checkpoint:room.checkpoint,checkpointTotal:5,roomStatus:room.status,consent:!!person.consented_at,name:person.display_name||"",canon:room.canon,transcript,shared,submitted,otherSubmitted:both,processing:room.resolving,draft:submitted?"":person.draft||"",milestones:MILESTONES,learningFocus:lessonFocus(room.checkpoint,room.adventure_key).milestones,modelVersion:room.model_version||MODEL_VERSION,reflectionComplete:!!person.reflection,ready:person.ready_checkpoint===room.checkpoint,phase:person.learning_phase,info:REMINDER};
+}
+
+/** Generate the first private dramatic question once per role, on demand.
+ * The unique filtered DB index prevents duplicate openings on retries.
+ * No canonical story event or partner response is created here.
+ */
+export async function begin(token){
+ const c=await auth(token);
+ if(!c.person.consented_at)fail("Accept the pilot consent first.",403);
+ if(c.room.status!=="active"||c.room.checkpoint!==1)return status(token);
+ if((await messages(c.room,c.person.role)).length>0)return status(token);
+ const guide=openingGuide({role:c.person.role,themeKey:c.room.adventure_key,canon:c.room.canon,name:c.person.display_name});
+ const opening=safeText(await ai(guide.instructions,JSON.stringify(guide.context),310),1500);
+ if(opening.length<65||opening.length>1100)fail("Sophia couldn't introduce this scene yet.",502);
+ try{
+   await db(msgTable,{},{
+     room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:0,body:opening
+   },"POST",{minimal:true});
+ }catch(e){
+   // Parallel begin calls may race; a duplicate opening is rejected by the index.
+   const stored=await messages(c.room,c.person.role);
+   if(!stored.some(m=>m.checkpoint===0&&m.author==="sophia"))throw e;
+ }
+ return status(token);
 }
 export async function consent(token,name){
  const c=await auth(token);
