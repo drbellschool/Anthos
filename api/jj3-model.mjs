@@ -63,7 +63,11 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "The invisible Learning Guide recognizes a relevant skill: "+FOCUS[step-1].join(", ")+". Sophia may offer ONE short research-informed aside when useful, but often set sophiaAside to empty. No research labels, grades, milestone headers or invented citations.",
    "The Decision Director recognizes practical advice addressed directly to YOU, not merely advice using your name. Examples: 'Have you tried asking her what she likes?' to Jack means action='Jack asks Jill what she would enjoy'; 'You should drive him to the trail and read while he hikes' to Jill means action='Jill offers to drive Jack to the trail and read while he hikes'.",
    "When the coach gives concrete advice, including questions like 'could you...', 'have you tried...', 'how about...' or second-person 'you should...', provide the character-owned action and an evidence substring EXACTLY copied from their latest message (8+ characters). No action for vague observations, pure questions about facts, or attempts to control the OTHER character alone. The coach must still explicitly confirm the proposed move in the UI.",
-   "Return JSON with characterReply, sophiaAside, action, evidence, privateMemory, learningMilestones. privateMemory should summarize no more than 3 internal concerns/changes, never a real personal disclosure about the user.",
+   "When your friend says yes, yep, go ahead, do that, sounds good, or another clear agreement to YOUR previous suggestion, treat it as permission to PROPOSE that move for review. Never demand that they restate it using your name.",
+   "When you are actually ready to try a specific move, say it naturally in your characterReply in FIRST person ('Okay, I'll ask Jill if she'd like to sit by the fire'). Then set characterProposal to a short third-person action ('Jack asks Jill if she'd like to sit by the fire') and proposalEvidence to an EXACT phrase from characterReply showing that intention. These are only drafts; the user must explicitly confirm in the interface.",
+   "If you're only brainstorming, expressing worry, asking for more information or suggesting hypothetical possibilities, return empty characterProposal and proposalEvidence. Do not pre-decide the spouse's reaction.",
+   "Do not say 'Tell Jack what to do', 'Tell Jill what to do', 'choose your character's action', 'submit your choice', or other interface language. Just talk as a friend. If the plan is ready, casually offer 'Want to see how that goes?'",
+   "Return JSON with characterReply, sophiaAside, action, evidence, characterProposal, proposalEvidence, privateMemory, learningMilestones. privateMemory should summarize no more than 3 internal concerns/changes, never a real personal disclosure about the user.",
    "If the coach raises real abuse, coercion or immediate danger, leave playful game mode and provide calm safety-centered advice without pressuring reconciliation."
   ].join(" "),
   input:{name,character:c.firstName,scenario:{title:scenario?.title,objective:scenario?.learning_objective},currentScene:scene,
@@ -118,6 +122,30 @@ export function plainCharacterLanguage(text){
   .replace(/\bcrampons\b/gi,"special hiking boots")
   .replace(/\bzen\b/gi,"peace and quiet");
 }
+/** A character may suggest a move naturally; this only creates a draft for confirmation.
+ * The model must ground its proposal in its own actual reply, and the coach must
+ * have proposed a specific move or explicitly agreed. Pure questions do not count.
+ */
+export function actionFromCharacterAgreement(role,coachMessage,reply,proposal,evidence){
+ const text=typeof coachMessage==="string"?coachMessage.trim():"";
+ const said=typeof reply==="string"?reply.trim():"";
+ const move=typeof proposal==="string"?proposal.trim():"";
+ const quote=typeof evidence==="string"?evidence.trim():"";
+ const character=role==="jack"?"Jack":"Jill";
+ if(!text||!said||move.length<12||move.length>700||quote.length<10)return "";
+ if(!said.toLowerCase().includes(quote.toLowerCase()))return "";
+ if(!new RegExp("^"+character+"\\b","i").test(move))return "";
+ const chosen=/^(?:yes|yep|yeah|yup|sure|okay|ok|absolutely|exactly|go ahead|do that|sounds good|let'?s do it|that's (?:what|it)|that'?s the plan|i agree|i'?m in|please do)(?:\b|[.!,'\s])/i.test(text)
+    || /\b(?:do that|go ahead|give it a try|that's what you should do|that is what you should do|you should|could you|have you tried|why don't you|what if you|ask her|ask him|tell her|tell him|invite her|invite him)\b/i.test(text);
+ if(!chosen)return "";
+ // Do not interpret a coach's instruction to the OTHER character as agreement.
+ const other=role==="jack"?"Jill":"Jack";
+ if(new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|will|can|could|has to)\\b","i").test(text))return "";
+ // Require a concrete observable action, not generic 'communicate better'.
+ if(!/\b(?:asks?|tells?|invites?|offers?|sends?|texts?|calls?|apologizes?|says?|agrees?|plans?|drives?|takes?|stays?|goes?|walks?|waits?|listens?|explains?|chooses?|suggests?|shows?|brings?|shares?|sits?|tries?|makes?)\b/i.test(move))return "";
+ return move;
+}
+
 export function checkCharacterReply(value,history=[]){
  if(!value||typeof value.characterReply!=="string")return false;
  const reply=value.characterReply.trim();
@@ -131,10 +159,11 @@ export const RESPONSE_SCHEMA={
  properties:{
   characterReply:{type:"string"},sophiaAside:{type:"string"},
   action:{type:"string"},evidence:{type:"string"},
+  characterProposal:{type:"string"},proposalEvidence:{type:"string"},
   privateMemory:{type:"string"},
   learningMilestones:{type:"array",items:{type:"string",enum:MILESTONES}}
  },
- required:["characterReply","sophiaAside","action","evidence","privateMemory","learningMilestones"]
+ required:["characterReply","sophiaAside","action","evidence","characterProposal","proposalEvidence","privateMemory","learningMilestones"]
 };
 export const STORY_SCHEMA={
  type:"object",additionalProperties:false,
