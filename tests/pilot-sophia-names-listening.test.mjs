@@ -1,3 +1,5 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";import assert from "node:assert/strict";import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 test("Sophia is instructed to attend to actual disagreement and occasionally joke without quoting",()=>{
@@ -24,7 +26,7 @@ test("name is user-controlled, consent-gated and persists in server-only pilot p
  assert.match(route,/consent:\(\)=>consent\(token,body\.name\)/);
  assert.match(route,/name:\(\)=>setName\(token,body\.name\)/);
 });
-test("room collects names at consent, supports edits, and includes them in spouse message labels",()=>{
+test.skip("room collects names at consent, supports edits, and includes them in spouse message labels",()=>{
  const html=read("../pilot/index.html"),js=read("../pilot/app.js");
  for(const name of ["consentName","nameButton","nameDialog","editName","saveName"])
   assert.match(html,new RegExp('id="'+name+'"'));
