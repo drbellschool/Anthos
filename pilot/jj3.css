@@ -9,3 +9,9 @@
 .conversation>.decision .hint{font-size:11px;color:#627c6a}
 .conversation>.manual-choice{margin-top:10px;padding-top:10px}
 .conversation>.manual-choice>button{background:#f0f4f4;color:#527083;border:1px solid #dce5e7;padding:9px 12px;font-size:12px}
+
+/* One shared composer, with a quiet optional alternate-idea mode. */
+.compose .alternate-action{font-size:12px;color:#648094;display:inline-block;margin:0 0 2px 0;padding:5px 0;text-decoration:underline;text-underline-offset:3px}
+.compose .alternate-action:hover{color:#295c7b}
+.conversation .decision{border-radius:12px;margin:12px 0 8px}
+.conversation .decision #commit{font-weight:750}
