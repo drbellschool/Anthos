@@ -4,6 +4,13 @@ export const VERSION="3.0.0";
 export const ADULT_LEARNING=["need-to-know","self-directed","practical-relevance","prior-experience","learning-by-doing","readiness","motivation"];
 export const PHASES=["hook","conflict","discovery","reattempt","outcome","reflection"];
 export const MILESTONES=["Recognize","Interpret","Navigate","Regulate","Differentiate","Discover","Apply","Reflect"];
+export const PHASE_GOALS=[
+ "Hook: meet the character and discover the hidden relationship tension",
+ "Conflict: let distinct choices cause escalating consequences",
+ "Discovery: notice the research-relevant pattern inside the fictional event",
+ "Reattempt: try a fresh response without forcing a correct answer",
+ "Outcome: let the choices land in a meaningful ending, even if imperfect"
+];
 export const FOCUS=[
  ["Recognize","Interpret"],
  ["Interpret","Navigate"],
@@ -57,7 +64,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "If the coach raises real abuse, coercion or immediate danger, leave playful game mode and provide calm safety-centered advice without pressuring reconciliation."
   ].join(" "),
   input:{name,character:c.firstName,scenario:{title:scenario?.title,objective:scenario?.learning_objective},currentScene:scene,
-   storyStep:step,privateMemory:memory||{},currentProposedMove:pending||null,
+   storyStep:step,internalPhase:PHASE_GOALS[step-1],privateMemory:memory||{},currentProposedMove:pending||null,
    privateHistory:(history||[]).slice(-12).map(m=>({author:m.author,body:m.body})),latest}
  };
 }
@@ -76,7 +83,7 @@ export function storyPrompt({mode,scenario,scene,step,actions}){
    "Never put one participant's private words in the shared story, only fictional character actions."
   ].join(" "),
   input:{scenario:{title:scenario.title,opening:scenario.opening_scene,objective:scenario.learning_objective,
-     research:scenario.research_lenses},mode,step,canon:scene,committedActions:actions,focus:FOCUS[step-1]}
+     research:scenario.research_lenses},mode,step,internalPhase:PHASE_GOALS[step-1],canon:scene,committedActions:actions,focus:FOCUS[step-1]}
  };
 }
 export function actionFromCoach(role,raw,proposed,evidence){
