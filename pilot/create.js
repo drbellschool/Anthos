@@ -10,7 +10,7 @@
    $("create").disabled=true;feedback("Creating invitations…");
    try{const r=await fetch("/api/admin",{method:"POST",credentials:"same-origin",
     headers:{"Content-Type":"application/json","x-threefold-admin":"1"},
-    body:JSON.stringify({action:"pilot-create"})});
+    body:JSON.stringify({action:"pilot-create-jack-jill",theme:$("theme").value})});
     const data=await r.json();if(!r.ok||!data.ok)throw Error(data.error||"Could not create pilot.");
     $("linkA").value=data.invitations.a;$("linkB").value=data.invitations.b;
     $("links").hidden=false;feedback("Room created. Copy both links now.");
