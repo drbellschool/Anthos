@@ -88,3 +88,14 @@ test("both Jack and Jill may propose an action from their own text without anoth
  assert.equal(actionFromCharacterWords("jack","No, Jill should agree to everything.",jack),"");
  assert.equal(actionFromCharacterWords("jack","Yes, go ahead.","I could maybe ask Jill one day."),"");
 });
+
+test("the actual November 8 pilot approvals advance both natural character proposals",()=>{
+ const jackCoach="So go make a plan and see if it works out.";
+ const jackReply="Alright, I'll try pitching a blend plan to Jill. I'll ask what her kind of quiet looks like first, then suggest some mountain time that could fit around that.";
+ const jillCoach="I think that will work and it’s worth the risk. Give it a try.";
+ const jillReply="All right, I'll pitch the morning hike plus afternoon lakeside plan to Jack. Hopefully, he digs the compromise.";
+ assert.equal(actionFromCharacterWords("jack",jackCoach,jackReply),"Jack plans to pitch a blend plan to Jill.");
+ assert.equal(actionFromCharacterWords("jill",jillCoach,jillReply),"Jill will pitch the morning hike plus afternoon lakeside plan to Jack.");
+ assert.equal(actionFromCharacterWords("jack","What time is lunch?",jackReply),"");
+ assert.equal(actionFromCharacterWords("jill","Jack should just go alone.",jillReply),"");
+});
