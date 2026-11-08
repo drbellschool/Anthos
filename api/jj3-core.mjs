@@ -1,7 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -184,9 +184,8 @@ export async function talk(token,text,requestKey){
  if(!checkCharacterReply(response,history))problem("The character's response repeated itself. Your message is still here—please retry.",502);
  response.characterReply=plainCharacterLanguage(response.characterReply);
  response.sophiaAside=plainCharacterLanguage(response.sophiaAside);
- // A friend saying "Yes, do that" is meaningful agreement, not an empty turn.
- // Character-authored proposals are drafts ONLY: the coach still presses the
- // separate confirmation button before any shared scene can advance.
+ // The coach may authorize a fictional action in normal speech. The story
+ // resolves without another button once both coaches independently do so.
  const next=actionFromCoach(p.role,clean,response.action,response.evidence)
    ||actionFromCharacterAgreement(p.role,clean,response.characterReply,
      response.characterProposal,response.proposalEvidence)
@@ -210,6 +209,22 @@ export async function talk(token,text,requestKey){
   p_aside:aside,p_action:next,p_memory:memory,p_learning:learning
  },"POST");
  if(inserted!==true)problem("The scene advanced while you were writing. Refresh and try again.",409);
+ // A clear go-ahead is the confirmation. Vague brainstorming remains private chat.
+ // The two-step SQL commit is idempotent, and resolveRoom atomically waits for
+ // both participants (or one in an individual Deep Dive).
+ if(next && explicitGoAhead(clean)){
+  const committed=await db("rpc/anthos_jj3_submit",{},{
+   p_room:r.id,p_participant:p.id,p_step:r.step
+  },"POST");
+  if(committed===true){
+   try{await resolveRoom(r)}
+   catch(e){
+    // The coach's actual words and committed character move are already durable.
+    // Return the current state; automatic progress polling retries publication.
+    // Do not ask the coach to resubmit their message or click a hidden button.
+   }
+  }
+ }
  return status(token);
 }
 async function resolveRoom(room){
@@ -306,7 +321,10 @@ export async function submit(token){
 export async function progress(token){
  const {person:p,room:r}=await participant(token);
  if(!p.consented_at)problem("Join before checking the outcome.",403);
- await resolveRoom(r);
+ if(r.status==="active"){
+  try{await resolveRoom(r)}
+  catch{/* Keep waiting; a later automatic check can retry without losing actions. */}
+ }
  return status(token);
 }
 export async function reflect(token,reflection){
