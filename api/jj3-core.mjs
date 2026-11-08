@@ -1,6 +1,6 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,checkCharacterReply,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,checkCharacterReply,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -130,7 +130,7 @@ export async function begin(token){
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
    memory:p.private_memory,latest:"The shared fictional scene has just advanced. Start by reacting as the character and privately confiding in your friend about what this NEW complication means to you. End with a vivid invitation to advise your next move.",pending:null});
   try{
-   const result=await model(g.instructions+" This is a NEW CHARACTER INTRO; do not extract any decision because the coach has not spoken. Return empty action, evidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
+   const result=await model(g.instructions+" This is a NEW CHARACTER INTRO; the coach has not spoken. Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
    if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
   }catch{/* Safe, explicit fallback below; no invented canonical event. */}
   if(!intro){
@@ -173,7 +173,13 @@ export async function talk(token,text,requestKey){
  if(!checkCharacterReply(response,history))problem("The character's response repeated itself. Your message is still here—please retry.",502);
  response.characterReply=plainCharacterLanguage(response.characterReply);
  response.sophiaAside=plainCharacterLanguage(response.sophiaAside);
- const next=actionFromCoach(p.role,clean,response.action,response.evidence)||oldAction;
+ // A friend saying "Yes, do that" is meaningful agreement, not an empty turn.
+ // Character-authored proposals are drafts ONLY: the coach still presses the
+ // separate confirmation button before any shared scene can advance.
+ const next=actionFromCoach(p.role,clean,response.action,response.evidence)
+   ||actionFromCharacterAgreement(p.role,clean,response.characterReply,
+     response.characterProposal,response.proposalEvidence)
+   ||oldAction;
  const milestones=Array.isArray(response.learningMilestones)?response.learningMilestones.filter(x=>MILESTONES.includes(x)).slice(0,3):[];
  const learning=p.learning_log&&typeof p.learning_log==="object"&&!Array.isArray(p.learning_log)?{...p.learning_log}:{};
  for(const m of milestones)learning[m]={status:"explored",step:r.step};
@@ -286,7 +292,7 @@ export async function reflect(token,reflection){
   history:(await privateMessages(r,p.role)).slice(-8),memory:p.private_memory,latest:clean,pending:null});
  let closing="";
  try{
-  const response=await model(guide.instructions+" The adventure has FINISHED. The coach is reflecting on a real-life relationship skill. Respond warmly as "+CHARACTER[p.role].firstName+" with a short personal farewell and one funny callback; no new fictional decision.",guide.input,RESPONSE_SCHEMA,"jj3_final_reflection");
+  const response=await model(guide.instructions+" The adventure has FINISHED. No new move is possible; leave action, evidence, characterProposal and proposalEvidence empty. The coach is reflecting on a real-life relationship skill. Respond warmly as "+CHARACTER[p.role].firstName+" with a short personal farewell and one funny callback; no new fictional decision.",guide.input,RESPONSE_SCHEMA,"jj3_final_reflection");
   closing=safe(plainCharacterLanguage(response.characterReply),1100);
  }catch{closing=p.role==="jack"?"Thanks for having my back. I'm going to try actually listening before I pack three kinds of hiking boots next time.":"Thanks for being in my corner. I'm keeping my books, my opinions, and maybe a little room for the unexpected."}
  const saved=await db(tables.people,{id:"eq."+p.id,reflection:"is.null"},{reflection:clean},"PATCH");
