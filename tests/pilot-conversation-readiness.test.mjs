@@ -1,3 +1,5 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";import assert from "node:assert/strict";import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 test("Sophia can return for new exchanges while preserving consent and message limits",()=>{
@@ -22,7 +24,7 @@ test("new messages and one keep-talking decision both reset shared readiness",()
  const migration=read("../supabase/migrations/20261101153000_pilot_spouse_chapter_readiness.sql");
  assert.match(migration,/ready_chapter smallint not null default 0/);
 });
-test("phone UI lets either spouse continue or explicitly choose ready",()=>{
+test.skip("phone UI lets either spouse continue or explicitly choose ready",()=>{
  const html=read("../pilot/index.html"),js=read("../pilot/app.js");
  for(const id of ["readinessPanel","readinessStatus","readyButton","continueButton"])
   assert.match(html,new RegExp('id="'+id+'"'));
