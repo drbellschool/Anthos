@@ -3,8 +3,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#102b3d">
 <title>Anthos | Jack &amp; Jill — Character-First Pilot 3.0</title>
-<link rel="stylesheet" href="/pilot/jj3.css?v=1">
-<script src="/pilot/jj3.js?v=1" defer></script>
+<link rel="stylesheet" href="/pilot/jj3.css?v=2">
+<script src="/pilot/jj3.js?v=2" defer></script>
 </head><body>
 <main class="app">
 <header class="masthead">
@@ -56,6 +56,15 @@
    <textarea id="message" rows="3" maxlength="900" placeholder="Say what you really think, ask a question, or suggest a move…"></textarea>
    <div class="controls"><button id="send" type="button" class="primary">Send message <span aria-hidden="true">➤</span></button></div>
    <p class="hint">You can disagree with your character. Bad ideas are allowed. They may have entertaining consequences.</p>
+  </div>
+  <div id="manual" class="manual-choice" hidden>
+   <button type="button" id="manualToggle" class="secondary">Choose the next move myself <span aria-hidden="true">✎</span></button>
+   <div id="manualForm" hidden>
+    <label id="manualLabel" for="manualMove">What should Jack do or say next?</label>
+    <textarea id="manualMove" rows="2" maxlength="820" placeholder="Describe one specific action in your own words…"></textarea>
+    <button type="button" id="saveMove" class="secondary">Review this move</button>
+   </div>
+   <p class="hint">No special wording needed. You choose your character's next action; their spouse makes their own choice.</p>
   </div>
   <div id="decision" class="decision" hidden>
    <div class="kicker">Your character's proposed move</div>
