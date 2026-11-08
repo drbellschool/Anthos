@@ -136,6 +136,7 @@ export function storyIsSafe(story, canon, decisions) {
 }
 export function coachingGuide({role, checkpoint, themeKey, name, canon, history, scenario=null, mode="shared"}) {
   const focus = lessonFocus(checkpoint, themeKey);
+  const sources=scenario?Object.values(RESEARCH).filter(x=>scenario.research_lenses?.includes(x.source.toLowerCase())):focus.sources;
   const roleName = role === "jack" ? "Jack" : "Jill";
   return {
     instructions: [
@@ -154,12 +155,13 @@ export function coachingGuide({role, checkpoint, themeKey, name, canon, history,
     ].join(" "),
     context: {role: roleName, coachName:name||"", milestoneFocus:focus.milestones,
       theme:scenario?.title||focus.theme, storyObjective:scenario?.learning_objective||null,
-      petal:scenario?.petal_slug||null,mode,allowedResearch:focus.sources, currentCanon:canon,
+      petal:scenario?.petal_slug||null,mode,allowedResearch:sources, currentCanon:canon,
       privateRecentMessages:history.slice(-12)}
   };
 }
 export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction, scenario=null, mode="shared", soloRole="jack"}) {
-  const theme=getTheme(themeKey);
+  const theme=scenario?{title:scenario.title,premise:scenario.learning_objective,
+     conflicts:[scenario.learning_objective],humor:["An unforeseen complication grounded in the current opening","A comically awkward practical consequence","A genuine choice with competing legitimate needs"]}:getTheme(themeKey);
   return {
     instructions: [
       mode==="individual"?"This is a SOLO, privately visible fictional story. The participant coaches only "+(soloRole==="jill"?"Jill":"Jack")+"; you independently direct the other fictional character as an NPC, never attributing their thoughts to a real spouse.":"This is a SHARED, two-coach fictional story. Both submitted actions are independent.",
@@ -180,7 +182,7 @@ export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction,
 
 /** One private Sophia opening per participant; canon remains shared. */
 export function openingGuide({role,themeKey,canon,name,scenario=null,mode="shared"}){
- const theme=getTheme(themeKey), character=role==="jill"?"Jill":"Jack";
+ const theme=scenario?{title:scenario.title,premise:scenario.learning_objective,perspectives:{}}:getTheme(themeKey), character=role==="jill"?"Jill":"Jack";
  return {
   instructions: [
    "You are Sophia, the only visible narrator of the Anthos Jack and Jill adventure.",
