@@ -1,14 +1,83 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#142b40">
-<title>Anthos | Jack &amp; Jill Method — Private Pilot</title>
-<link rel="stylesheet" href="/pilot/jack-jill.css?v=4">
-<script src="/pilot/jack-jill.js?v=4" defer></script></head>
-<body><main class="app"><header><div><strong>✿ anthos</strong><small> &nbsp; JACK &amp; JILL 2.0</small></div><span id="roleTag" class="pill">PRIVATE PILOT</span></header>
-<section class="panel" id="welcome"><div class="kicker">Guided two-way learning adventure</div><h1 id="welcomeTitle">A Christmas Conundrum</h1><p id="welcomeDescription">Two private conversations. One evolving story. Sophia helps you coach Jack or Jill through escalating Christmas chaos.</p><p class="quiet">Private browser pilot only. No SMS is sent, and your spouse will not see your coaching transcript. Your character's actions may appear in the shared story.</p><form id="consentForm" hidden><label for="name">Your first name</label><input id="name" maxlength="32" required autocomplete="given-name"><p><label><input type="checkbox" id="agree" required style="width:auto"> I agree to private pilot processing by Anthos and its AI provider. I understand fictional outcomes may reveal character actions, never my private messages.</label></p><button type="submit">Join the adventure</button></form><p id="missing" hidden>This is a private invitation-only trial. Ask your Anthos administrator for a Jack or Jill invitation link.</p></section>
-<section id="trial" hidden>
-<section class="panel"><span class="kicker" id="step" hidden></span><h2 id="sceneTitle">Jack and Jill's next dilemma</h2><div id="scene" class="scene"></div></section>
-<section class="panel" id="sharedPanel" hidden><div class="kicker">Meanwhile, with Jack &amp; Jill…</div><div id="shared"></div><p class="quiet" id="sharedEmpty">Both coaches must submit before the next shared event is revealed.</p></section>
-<section class="panel"><div class="kicker">Sophia · Private conversation</div><div id="messages" role="log" aria-live="polite"></div><div id="entry"><label for="response" class="quiet" id="responseLabel">Your next move</label><textarea id="response" maxlength="900" placeholder="Coach your character, or ask Sophia a question…"></textarea><div class="buttons"><button id="send" type="button">Send to Sophia</button><button id="advance" class="secondary" type="button" disabled>See what happens →</button></div><p class="quiet" style="font-size:12px">You can talk through the choice—or put it into motion when you are ready.</p></div><div id="waiting" class="wait" hidden><strong>Your choice is submitted.</strong><p id="waitText">Waiting for the other coach. Your conversation remains private.</p><button id="check" class="secondary" type="button">Check for the shared outcome</button></div></section>
-<section class="panel" id="reflectionPanel" hidden><div class="kicker">A moment for you</div><h2>Bring the lesson home</h2><p>What is one specific relationship skill or small action you want to practice? Your answer stays private.</p><textarea id="reflection" maxlength="900" placeholder="One thing I could try in my marriage is…"></textarea><div class="buttons"><button id="saveReflection" type="button">Save my reflection</button></div><p id="reflectionStatus" class="quiet"></p></section>
-
-</section><p id="error" role="alert"></p><div class="footer">ANTHOS · THE JACK &amp; JILL METHOD · PRIVATE EXPERIMENT</div></main></body></html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#102b3d">
+<title>Anthos | Jack &amp; Jill — Character-First Pilot 3.0</title>
+<link rel="stylesheet" href="/pilot/jj3.css?v=1">
+<script src="/pilot/jj3.js?v=1" defer></script>
+</head><body>
+<main class="app">
+<header class="masthead">
+ <div class="brand"><a href="/" aria-label="Anthos home">✿ anthos</a><small>THE JACK &amp; JILL METHOD</small></div>
+ <span class="version">PRIVATE BROWSER PILOT 3.0</span>
+</header>
+<section id="welcome" class="surface">
+ <p class="kicker">You're about to become someone's trusted friend.</p>
+ <h1 id="welcomeTitle">Meet Jack &amp; Jill</h1>
+ <p id="welcomeText">Jack and Jill each have a problem—and something they're afraid to say out loud. You won't just give them answers. You'll actually get to know them.</p>
+ <div id="characterIntro" class="character-intro">
+  <div class="portrait" id="introPortrait" aria-hidden="true">J</div>
+  <div><strong id="introCharacter">Your character</strong><p id="introIdentity">A fictional friend with a life of their own.</p></div>
+ </div>
+ <form id="joinForm" hidden>
+  <label for="joinName">What should your character call you?</label>
+  <input id="joinName" maxlength="32" autocomplete="given-name" placeholder="First name" required>
+  <label class="consent"><input type="checkbox" id="joinConsent" required><span>I'm at least 18 and voluntarily joining this private fictional marriage-enrichment pilot. I understand my messages are processed by Anthos and its AI service; my partner does not see my private coaching dialogue.</span></label>
+  <button type="submit" class="primary">Meet my new friend <span aria-hidden="true">→</span></button>
+ </form>
+ <div id="missing" hidden><p class="warning">This new pilot requires a fresh invitation. Previous Jack &amp; Jill pilot links are retired.</p></div>
+</section>
+<section id="experience" hidden>
+ <div class="introbar">
+  <div><p class="kicker" id="adventureLine">A shared adventure</p><h1 id="storyTitle">The adventure begins</h1></div>
+  <span class="moment" id="moment" aria-label="Story progress"></span>
+ </div>
+ <div class="storyprogress" id="storyProgress" aria-label="Progress through the adventure"></div>
+ <section class="scene surface">
+  <div class="kicker">The scene</div>
+  <p id="sceneText"></p>
+ </section>
+ <section class="story-result surface" id="sharedSection" hidden>
+  <div class="kicker" id="sharedLabel">Previously with Jack &amp; Jill…</div>
+  <p id="sharedText"></p>
+  <button id="historyToggle" type="button" class="textbutton" hidden>See previous outcomes</button>
+  <div id="sharedHistory" hidden></div>
+ </section>
+ <section class="conversation surface">
+  <div class="chathead">
+   <div class="avatar" id="chatAvatar" aria-hidden="true">J</div>
+   <div class="chatname"><strong id="chatName">Jack</strong><small id="chatSubtitle">Your fictional friend · private conversation</small></div>
+   <span class="private-tag"><span aria-hidden="true">●</span> PRIVATE</span>
+  </div>
+  <div id="chatLog" class="chatlog" role="log" aria-live="polite" aria-relevant="additions">
+  </div>
+  <div id="compose" class="compose">
+   <label id="composeLabel" for="message">Talk to your friend</label>
+   <textarea id="message" rows="3" maxlength="900" placeholder="Say what you really think, ask a question, or suggest a move…"></textarea>
+   <div class="controls"><button id="send" type="button" class="primary">Send message <span aria-hidden="true">➤</span></button></div>
+   <p class="hint">You can disagree with your character. Bad ideas are allowed. They may have entertaining consequences.</p>
+  </div>
+  <div id="decision" class="decision" hidden>
+   <div class="kicker">Your character's proposed move</div>
+   <p id="decisionText"></p>
+   <div class="controls"><button id="commit" type="button" class="gold">Let the story unfold →</button></div>
+   <p class="hint">You can keep talking first. This only becomes shared after you confirm the fictional move.</p>
+  </div>
+  <div id="waiting" class="waiting" hidden>
+   <strong>You've sent your character into the story.</strong>
+   <p id="waitingText">Your partner is still coaching the other character. Your messages stay private.</p>
+   <button id="check" type="button" class="secondary">Check the next scene</button>
+  </div>
+ </section>
+ <section id="reflectionPanel" class="surface reflection" hidden>
+  <div class="kicker">A thought to take home</div>
+  <h2>What stayed with you?</h2>
+  <p>The fictional story has ended. What is one small thing you might choose to try in your own relationship?</p>
+  <textarea id="reflection" rows="3" maxlength="900" placeholder="One thing I could practice is…"></textarea>
+  <button id="saveReflection" type="button" class="gold">Share privately with my character</button>
+  <p id="reflectionDone" hidden>✓ Your reflection is saved privately. Your character has one last thing to say.</p>
+ </section>
+</section>
+<p class="error" id="error" role="alert"></p>
+<footer>ANTHOS · TWO CHARACTERS · TWO PRIVATE FRIENDSHIPS · ONE EVOLVING STORY</footer>
+</main></body></html>
