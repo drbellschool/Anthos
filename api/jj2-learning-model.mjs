@@ -134,7 +134,7 @@ export function storyIsSafe(story, canon, decisions) {
   if (decisions.some(d => typeof d === "string" && d.length >= 42 && shared.includes(d.toLowerCase()))) return false;
   return true;
 }
-export function coachingGuide({role, checkpoint, themeKey, name, canon, history}) {
+export function coachingGuide({role, checkpoint, themeKey, name, canon, history, scenario=null, mode="shared"}) {
   const focus = lessonFocus(checkpoint, themeKey);
   const roleName = role === "jack" ? "Jack" : "Jill";
   return {
@@ -153,14 +153,16 @@ export function coachingGuide({role, checkpoint, themeKey, name, canon, history}
       "If the participant describes coercion, abuse or danger, drop playful escalation, avoid couple-blaming and give appropriate safety-oriented guidance."
     ].join(" "),
     context: {role: roleName, coachName:name||"", milestoneFocus:focus.milestones,
-      theme:focus.theme, allowedResearch:focus.sources, currentCanon:canon,
+      theme:scenario?.title||focus.theme, storyObjective:scenario?.learning_objective||null,
+      petal:scenario?.petal_slug||null,mode,allowedResearch:focus.sources, currentCanon:canon,
       privateRecentMessages:history.slice(-12)}
   };
 }
-export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction}) {
+export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction, scenario=null, mode="shared", soloRole="jack"}) {
   const theme=getTheme(themeKey);
   return {
     instructions: [
+      mode==="individual"?"This is a SOLO, privately visible fictional story. The participant coaches only "+(soloRole==="jill"?"Jill":"Jack")+"; you independently direct the other fictional character as an NPC, never attributing their thoughts to a real spouse.":"This is a SHARED, two-coach fictional story. Both submitted actions are independent.",
       "You direct one canonical, improvisational Jack and Jill world. Their two authenticated coaches have separately committed actions.",
       "Resolve BOTH actions and show material consequences. Neither character can be controlled by the OTHER coach.",
       "Track the fictional location, timeline, objects, prior promises and unresolved emotions. No resets, contradictory scene jumps or memory loss.",
@@ -171,13 +173,13 @@ export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction}
       "Strict JSON: outcome,scene,location,tension,research,facts. No chapter headings, lessons, scores, or researcher labels in story prose.",
       "End with a natural new dilemma or a meaningful fictional closing at the fifth decision."
     ].join(" "),
-    context: {theme:theme.title, premise:theme.premise, conflicts:theme.conflicts, humorIdeas:theme.humor,
-      checkpoint, currentCanon:canon, jackAction,jillAction, milestoneFocus:lessonFocus(checkpoint, themeKey).milestones}
+    context: {theme:scenario?.title||theme.title, premise:scenario?.opening_scene||theme.premise, conflicts:scenario?[scenario.learning_objective]:theme.conflicts, humorIdeas:theme.humor,
+      scenarioMode:mode, soloRole, checkpoint, currentCanon:canon, jackAction,jillAction, milestoneFocus:lessonFocus(checkpoint, themeKey).milestones}
   };
 }
 
 /** One private Sophia opening per participant; canon remains shared. */
-export function openingGuide({role,themeKey,canon,name}){
+export function openingGuide({role,themeKey,canon,name,scenario=null,mode="shared"}){
  const theme=getTheme(themeKey), character=role==="jill"?"Jill":"Jack";
  return {
   instructions: [
@@ -193,9 +195,9 @@ export function openingGuide({role,themeKey,canon,name}){
    "Keep 55 to 100 words, conversational, modern texting tone, one message only."
   ].join(" "),
   context:{
-   adventure:theme.title,premise:theme.premise,
-   perspective:theme.perspectives?.[role]||"",
-   character,coachName:name||"",currentCanon:canon
+   adventure:scenario?.title||theme.title,premise:scenario?.learning_objective||theme.premise,
+   perspective:scenario?("The coach guides "+character+" through a fictional dilemma about "+scenario.learning_objective+". This is "+(mode==="individual"?"a private solo story, without a second human coach":"a shared story with two independent coaches")+"."):theme.perspectives?.[role]||"",
+   character,coachName:name||"",mode,currentCanon:canon
   }
  };
 }
