@@ -25,6 +25,7 @@ function addBubble(host,who,body,you=false){
 function render(s){
  current=s;
  $("welcome").hidden=s.consent;
+ $("welcomeTitle").textContent=(s.title||"An Anthos Adventure").replace(/^Jack & Jill:\s*/,"");
  $("trial").hidden=!s.consent;
  $("consentForm").hidden=s.consent;
  $("missing").hidden=!!token;
@@ -36,11 +37,11 @@ function render(s){
  $("reflection").hidden=!!s.reflectionComplete;
  $("saveReflection").hidden=!!s.reflectionComplete;
  $("reflectionStatus").textContent=s.reflectionComplete?"Your reflection has been saved privately.":"";
- $("sceneTitle").textContent=finished?"A story worth remembering":s.shared?.length?"Meanwhile, with Jack and Jill…":"It starts with Christmas…";
+ $("sceneTitle").textContent=finished?"A story worth remembering":s.shared?.length?"Meanwhile, with Jack and Jill…":(s.title||"It begins…").replace(/^Jack & Jill:\s*/,"");
  $("scene").textContent=s.canon?.scene||"Sophia is preparing your story.";
  const host=$("messages");const last=host.scrollTop+host.clientHeight>=host.scrollHeight-80;
  host.replaceChildren();
- if(!s.transcript.length)addBubble(host,"Sophia",s.role==="jack"?"Two mothers. Two promises. One Christmas dinner. And Jack has only just realized what he's done. 😬 How would you advise him to approach Jill?":"Jill's mother has already set a place for her. Jack's mother has done exactly the same. Christmas has apparently been double-booked. What would you tell Jill?",false);
+ if(!s.transcript.length)addBubble(host,"Sophia",s.role==="jack"?"Jack has a situation on his hands—and you get to advise him. What would you tell him to do?":"Jill has a decision to make, and you are coaching her. What would you suggest she do?",false);
  for(const m of s.transcript)addBubble(host,m.author==="participant"?"You":"Sophia",m.body,m.author==="participant");
  if(last)host.scrollTop=host.scrollHeight;
  const sh=$("shared");sh.replaceChildren();
