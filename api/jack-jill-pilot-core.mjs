@@ -83,20 +83,21 @@ export async function status(token){
 export async function begin(token){
  const c=await auth(token);
  if(!c.person.consented_at)fail("Accept the pilot consent first.",403);
- if(c.room.status!=="active"||c.room.checkpoint!==1)return status(token);
- if((await messages(c.room,c.person.role)).length>0)return status(token);
+ if(c.room.status!=="active"||c.person.submitted_checkpoint===c.room.checkpoint)return status(token);
+ const promptCheckpoint=c.room.checkpoint===1?0:-c.room.checkpoint;
+ if((await messages(c.room,c.person.role)).some(x=>x.checkpoint===promptCheckpoint&&x.author==="sophia"))return status(token);
  const scenario=c.room.scenario_id?await getScenario(c.room.scenario_id):null;
- const guide=openingGuide({role:c.person.role,themeKey:c.room.adventure_key,canon:c.room.canon,name:c.person.display_name,scenario,mode:c.room.experience_mode||"shared"});
+ const guide=openingGuide({role:c.person.role,themeKey:c.room.adventure_key,canon:c.room.canon,name:c.person.display_name,scenario,mode:c.room.experience_mode||"shared",checkpoint:c.room.checkpoint});
  const opening=safeText(await ai(guide.instructions,JSON.stringify(guide.context),310),1500);
  if(opening.length<65||opening.length>1100)fail("Sophia couldn't introduce this scene yet.",502);
  try{
    await db(msgTable,{},{
-     room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:0,body:opening
+     room_id:c.room.id,role:c.person.role,author:"sophia",checkpoint:promptCheckpoint,body:opening
    },"POST",{minimal:true});
  }catch(e){
    // Parallel begin calls may race; a duplicate opening is rejected by the index.
    const stored=await messages(c.room,c.person.role);
-   if(!stored.some(m=>m.checkpoint===0&&m.author==="sophia"))throw e;
+   if(!stored.some(m=>m.checkpoint===promptCheckpoint&&m.author==="sophia"))throw e;
  }
  return status(token);
 }
@@ -126,7 +127,8 @@ export async function talk(token,message){
  const prior=(await messages(c.room,c.person.role)).slice(-12);
  const scenario=c.room.scenario_id?await getScenario(c.room.scenario_id):null;
  const guide=coachingGuide({role:c.person.role,checkpoint:c.room.checkpoint,themeKey:c.room.adventure_key,name:c.person.display_name,canon:c.room.canon,history:prior,scenario,mode:c.room.experience_mode||"shared"});
- const params=JSON.stringify({...guide.context,latestMessage:clean,currentProvisionalAction:c.person.draft||null});
+ const previousAction=c.person.ready_checkpoint===c.room.checkpoint&&c.person.submitted_checkpoint!==c.room.checkpoint?c.person.draft||null:null;
+ const params=JSON.stringify({...guide.context,latestMessage:clean,currentProvisionalAction:previousAction,priorSceneEvents:[]});
  let output=await ai(guide.instructions,params,690,"coaching");
  let guided;
  try{guided=JSON.parse(output)}catch{fail("Sophia's private response was incomplete.",502)}
@@ -143,7 +145,7 @@ export async function talk(token,message){
  const sourced=evidence.length>=8&&clean.toLowerCase().includes(evidence.toLowerCase());
  const ownsCharacter=new RegExp("^"+character+"\\b","i").test(guided.decision.trim());
  const newAction=sourced&&ownsCharacter?safeText(guided.decision,900):"";
- const action=newAction||safeText(c.person.draft,900);
+ const action=newAction||safeText(previousAction,900);
  const ready=resolveReadiness({action,priorReady:c.person.ready_checkpoint===c.room.checkpoint});
  const currentEvidence=c.person.learning_log&&typeof c.person.learning_log==="object"&&!Array.isArray(c.person.learning_log)?c.person.learning_log:{};
  const milestones=Array.isArray(guided.learningMilestones)?guided.learningMilestones.filter(m=>MILESTONES.includes(m)).slice(0,3):[];
