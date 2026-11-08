@@ -172,6 +172,13 @@ export function actionFromCharacterWords(role,coachMessage,characterReply){
  return name+" will "+match[1].toLowerCase()+" "+bounded+".";
 }
 
+/** Flag obvious AI-sounding agreement so we can request one better reply.
+ * This is a quality retry signal, NOT a hard gate that could strand a user.
+ */
+export function soundsTooPolished(reply){
+ const text=typeof reply==="string"?reply:"";
+ return /\b(?:you(?:'ve| have) convinced me|thanks for making me see|you nailed it|the simple play here|lesson learned|you(?:'re| are) absolutely right|we just need to communicate|we need to meet in the middle|it(?:'s| is) all about balance)\b/i.test(text);
+}
 export function checkCharacterReply(value,history=[]){
  if(!value||typeof value.characterReply!=="string")return false;
  const reply=value.characterReply.trim();
