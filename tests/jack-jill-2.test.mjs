@@ -5,9 +5,10 @@ import {status,consent,talk,submit,reflect,begin} from "../api/jack-jill-pilot-c
 const roomId="11111111-1111-4111-8111-111111111111";
 const tokenJack="j".repeat(43),tokenJill="l".repeat(43);
 const hash=x=>createHash("sha256").update(x).digest("hex");
-function harness(){
- const room={id:roomId,title:"Jack & Jill test",status:"active",checkpoint:1,adventure_key:"christmas",model_version:"2.1.0",canon:{scene:"Jack and Jill face two Christmas invitations.",location:"Kitchen",facts:["Two invitations"],tension:"Unspoken expectations",research:"Recognize"},resolving:false,processing_at:null,expires_at:"2099-01-01"};
+function harness(mode='shared'){
+ const room={id:roomId,title:"Jack & Jill test",status:"active",experience_mode:mode,checkpoint:1,adventure_key:"christmas",model_version:"2.1.0",canon:{scene:"Jack and Jill face two Christmas invitations.",location:"Kitchen",facts:["Two invitations"],tension:"Unspoken expectations",research:"Recognize"},resolving:false,processing_at:null,expires_at:"2099-01-01"};
  const people=[{room_id:roomId,role:"jack",token_hash:hash(tokenJack),consented_at:null,ready_checkpoint:null,display_name:null,draft:null,learning_log:{},submitted_checkpoint:null},{room_id:roomId,role:"jill",token_hash:hash(tokenJill),consented_at:null,ready_checkpoint:null,display_name:null,draft:null,learning_log:{},submitted_checkpoint:null}];
+ if(mode==="individual")people.splice(1,1);
  const entries=[];let aiCalls=0,next=0;
  const oldFetch=globalThis.fetch,oldSecret=process.env.SUPABASE_SERVICE_ROLE_KEY,oldAI=process.env.OPENAI_API_KEY;
  process.env.SUPABASE_SERVICE_ROLE_KEY="test-service-secret";process.env.OPENAI_API_KEY="test-openai-key";
@@ -130,5 +131,22 @@ test("JJ2: each coach receives one unique AI-driven private dramatic hook and no
   const repeat=await begin(tokenJack);
   assert.equal(repeat.transcript.length,1,"Opening must not duplicate after refresh");
   assert.equal(h.aiCalls,2,"Only one generation per role");
+ }finally{h.restore()}
+});
+
+test("JJ2: a private individual scenario completes without a second participant",async()=>{
+ const h=harness("individual");
+ try{
+  await consent(tokenJack,"Alex");
+  const hook=await begin(tokenJack);
+  assert.equal(hook.transcript.length,1);
+  assert.equal(hook.experienceMode,"individual");
+  const convo=await talk(tokenJack,"Jack should tell Jill he needs some quiet time while remaining kind.");
+  assert.equal(convo.ready,true);
+  const next=await submit(tokenJack);
+  assert.equal(h.room.checkpoint,2,"Solo checkpoint advances with one confirmed decision");
+  assert.equal(next.shared.length,1,"Outcome appears privately to solo participant");
+  assert.equal(h.entries.filter(x=>x.role==="canon").length,1);
+  assert.equal(h.people.length,1,"No real second participant was created");
  }finally{h.restore()}
 });
