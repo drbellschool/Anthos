@@ -22,7 +22,7 @@ function harness(){
    const character=input.role||"Jack";
    const actionable=/should|tell|ask|invite|apologize|visit|plan|say|choose/i.test(message);
    const value=isReflection?"Your reflection recognizes a concrete step. Consider one small conversation you could initiate this week.":coaching?{
-      reply:actionable?"The holiday is getting deliciously complicated. Your idea gives your character something concrete to try. Ready to see what happens?":"That's a good question. What would you actually advise your character to do?",
+      reply:actionable?"The holiday is getting complicated in round "+aiCalls+". Your idea gives your character something concrete to try. Ready to see what happens?":"That's a good question. What would you actually advise your character to do?",
       ready:false,phase:"discovery",learningEvidence:"Explored assumptions",
       learningMilestones:["Recognize"],decision:actionable?character+" should openly discuss the holiday plans.":"",
       decisionEvidence:actionable?message.slice(0,Math.min(45,message.length)):""
