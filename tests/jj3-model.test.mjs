@@ -30,7 +30,7 @@ test("character guidance protects coaching autonomy and the research remains beh
  const p=privatePrompt(args);
  assert.match(p.instructions,/first person/i);
  assert.match(p.instructions,/PRIVATE INTERNAL CONFLICT/);
- assert.match(p.instructions,/independent Decision Director/);
+ assert.match(p.instructions,/Decision Director recognizes practical advice/);
  assert.equal(p.input.privateMemory.note,"He worries he is boring.");
  assert.ok(!p.instructions.includes("award mastery"));
  const story=storyPrompt({mode:"shared",scenario:{title:"Mountains",opening_scene:"A cabin",learning_objective:"Respect preferences",research_lenses:["gottman"]},scene:{scene:"A cabin"},step:2,actions:[{character:"Jack",action:"Jack hikes alone"},{character:"Jill",action:"Jill reads"}]});
