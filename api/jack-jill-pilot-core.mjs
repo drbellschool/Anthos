@@ -160,7 +160,7 @@ export async function talk(token,message){
  const evidence=guided.decisionEvidence.trim();
  const sourced=evidence.length>=8&&clean.toLowerCase().includes(evidence.toLowerCase());
  const ownsCharacter=new RegExp("^"+character+"\\b","i").test(guided.decision.trim());
- const newAction=sourced&&ownsCharacter?safeText(guided.decision,900):explicitCharacterDecision(c.person.role,clean);
+ const newAction=explicitCharacterDecision(c.person.role,clean)||(sourced&&ownsCharacter?safeText(guided.decision,900):"");
  const action=newAction||safeText(previousAction,900);
  // Sophia must not announce an unavailable advancement action.
  if(!action && /see what happens/i.test(guided.reply))
