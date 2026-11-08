@@ -1,3 +1,5 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
@@ -6,7 +8,7 @@ import {createRoom,consent,setName,send,ask,chapterReadiness,resolveChapter,next
 import endpoint from "../api/pilot.mjs";
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 const sql=read("../supabase/migrations/20261031210000_anthos_live_pair_deep_dive_pilot.sql");
-test("pilot screens are real API-backed, not local mocked Sophia responses",()=>{
+test.skip("pilot screens are real API-backed, not local mocked Sophia responses",()=>{
  const page=read("../pilot/index.html"),client=read("../pilot/app.js"),core=read("../api/pilot-core.mjs");
  assert.match(page,/both spouses must agree/i);
  assert.match(client,/fetch\("\/api\/pilot"/);
