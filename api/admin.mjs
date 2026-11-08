@@ -3,7 +3,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
-import { createRoom as createJackJillRoom } from "./jack-jill-pilot-core.mjs";
+import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 import {listScenarios,saveScenario} from "./jj2-library.mjs";
@@ -283,7 +283,7 @@ export default {
       catch(e){return json({error:String(e.message||"Customer update failed.").slice(0,180)},e.status||502);}
     }
     if(action==="pilot-create-jack-jill" || action==="pilot-create-dynamic-couple" || action==="pilot-create-couple" || action==="pilot-create"){
-      try{return json(await createJackJillRoom(new URL(request.url).origin,typeof body.scenarioId==="string"&&body.scenarioId?body.scenarioId:(["christmas","anniversary","getaway"].includes(body.theme)?body.theme:"christmas"),body.soloRole));}
+      try{return json(await createJackJillRoom(new URL(request.url).origin,typeof body.scenarioId==="string"&&body.scenarioId?body.scenarioId:"a718d5e5-31bd-4bfa-9aa6-1712505015d1",body.soloRole));}
       catch(e){return json({error:String(e.message||"Could not create Jack & Jill pilot invitations.").slice(0,180)},e.status||502);}
     }
     if(action==="legacy-pilot-create-dynamic-couple-disabled"){
