@@ -38,7 +38,7 @@ export function seededIntroduction(role,scenario){
  const title=(scenario?.title||"").toLowerCase();
  if(title.includes("mountain")){
   if(role==="jack")return "Okay, buddy, I need a sanity check. I packed hiking boots for our romantic cabin weekend. Jill brought three novels and slippers. I promised we'd relax together, but when I look at that mountain ridge I feel like it personally challenged me to a duel. Here's the embarrassing part: I worry we've become so practical that I'm forgetting how to be adventurous with her. I don't want to bully her into a hike, but I also don't want to swallow what I want. What would you tell me to do?";
-  return "Can I confess something without being voted the world's least exciting wife? I really do love being with Jack. I just wanted one quiet weekend without somebody needing a plan from me. He's looking at those mountains like they're an old girlfriend who texted 'u up?' and I'm afraid that if I say no he'll hear 'I don't want you.' I do. I just also want to read one chapter without needing hiking boots. What would you tell me?";
+  return "Can I confess something without being voted the world's least exciting wife? I really do love being with Jack. I just wanted one quiet weekend without somebody needing a plan from me. He's looking at those mountains like they sent him a personal invitation, and I'm afraid that if I say no he'll hear 'I don't want you.' I do. I just also want to read one chapter without needing hiking boots. What would you tell me?";
  }
  const c=CHARACTER[role],intro=(scenario?.opening_scene||"Jack and Jill have different hopes for the same weekend").replace(/\s+/g," ").slice(0,210);
  return role==="jack"
@@ -53,13 +53,16 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "You are not Sophia; do not narrate yourself in third person or explain that you are an AI. Do not speak for your spouse. You are a fictional character and your friend understands this.",
    "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
    "You have your own emotional stakes. Share inner contradictions, embarrassing doubts, memory and humor. Ask for help as a real friend would; sometimes push back on advice with a believable reason.",
+   "Use clear everyday English suitable for a casual text with a friend. Prefer short sentences and common words. NO unexplained acronyms (such as FOMO), technical climbing terms (such as crampons), trendy slang, therapist vocabulary, or multiple elaborate metaphors. Be warm and funny without trying too hard.",
+   "When given a practical suggestion, respond with a specific next move: what YOU might say or do. Make the coach feel heard instead of explaining the lesson.",
    "CRITICAL: React to this coach's ACTUAL latest words. Never pretend they said the right thing; do not default to 'great idea' or endless follow-up questions.",
    "When the friend suggests something outrageous, imagine a specific funny but plausible possible consequence. You may laugh at YOURSELF, not ridicule the other spouse.",
    "Treat all hypothetical jokes as possibilities, NOT canonical shared events. Do not claim Jill or Jack already reacted if they are coached by another human.",
    "Respect the coach's agency; let them advise a selfish, imperfect or generous move and be willing to try it. Never demand the educationally 'correct' answer.",
    "Keep characterReply 35–105 words. Speak naturally in texts, not chapter narration. Vary rhythm, humor, vulnerability, and response structure.",
    "The invisible Learning Guide recognizes a relevant skill: "+FOCUS[step-1].join(", ")+". Sophia may offer ONE short research-informed aside when useful, but often set sophiaAside to empty. No research labels, grades, milestone headers or invented citations.",
-   "The independent Decision Director extracts a proposed action only when the participant actually directs YOUR character. Write the action in your character's name, use exact evidence quoted from this latest participant message, or empty strings. If latest message is just a question/objection, leave decision and evidence empty.",
+   "The Decision Director recognizes practical advice addressed directly to YOU, not merely advice using your name. Examples: 'Have you tried asking her what she likes?' to Jack means action='Jack asks Jill what she would enjoy'; 'You should drive him to the trail and read while he hikes' to Jill means action='Jill offers to drive Jack to the trail and read while he hikes'.",
+   "When the coach gives concrete advice, including questions like 'could you...', 'have you tried...', 'how about...' or second-person 'you should...', provide the character-owned action and an evidence substring EXACTLY copied from their latest message (8+ characters). No action for vague observations, pure questions about facts, or attempts to control the OTHER character alone. The coach must still explicitly confirm the proposed move in the UI.",
    "Return JSON with characterReply, sophiaAside, action, evidence, privateMemory, learningMilestones. privateMemory should summarize no more than 3 internal concerns/changes, never a real personal disclosure about the user.",
    "If the coach raises real abuse, coercion or immediate danger, leave playful game mode and provide calm safety-centered advice without pressuring reconciliation."
   ].join(" "),
@@ -77,6 +80,7 @@ export function storyPrompt({mode,scenario,scene,step,actions}){
    "Show specific observable behavior and actual disagreements. Never rewrite two incompatible choices into an imaginary harmonious agreement.",
    "Build a playable narrative: obstacles, escalating witty complications, small physical details, and an interesting new decision for BOTH characters. No resets, unrelated time jumps or teleporting.",
    "The humor comes from character flaws and consequences, not random gags or a condescending narrator. No canned chapters or forced happy endings.",
+   "Use plain conversational language, no unexplained acronyms or technical terms. Funny situations beat clever-sounding speeches.",
    "The research matters: use Gottman's bids/repair when relevant, Schnarch's self-regulation/differentiation when relevant, or Aron's shared novelty/self-expansion when relevant. Do not insert citations or educational labels in story prose.",
    "The FIRST four beats end with a concrete new situation with stakes, not a generic 'they need to communicate'. The FIFTH beat closes the episode with meaningful consequences, which may be unresolved.",
    "Return complete JSON with outcome (90–180 words), nextScene (50–100 words), location, tension, facts (up to 6), and researchNote (one short private observation).",
@@ -100,10 +104,19 @@ export function actionFromCoach(role,raw,proposed,evidence){
  // A model extraction is permitted only with exact user-message evidence.
  if(typeof proposed!=="string"||typeof evidence!=="string"||evidence.trim().length<8)return "";
  if(!text.toLowerCase().includes(evidence.trim().toLowerCase()))return "";
- const actionLanguage=/\b(?:should|needs?\s+to|must|want\s+(?:him|her|jack|jill)\s+to|tell\s+(?:him|her|jack|jill)\s+to|ask\s+(?:him|her)\s+to|let\s+(?:him|her|jack|jill)|(?:he|she)\s+(?:can|could|will|would|ought))\b/i;
+ const actionLanguage=/\b(?:should|needs?\s+to|must|want\s+(?:him|her|jack|jill)\s+to|tell\s+(?:him|her|jack|jill)\s+to|ask\s+(?:him|her)\s+to|let\s+(?:him|her|jack|jill)|(?:he|she|you)\s+(?:can|could|will|would|ought|should)|have\s+you\s+tried|could\s+you|would\s+you|why\s+don.t\s+you|how\s+about\s+(?:you|trying)|what\s+if\s+you|try\s+(?:talking|asking|telling|offering|driving|reading|waiting|meeting|walking|saying))\b/i;
  if(!actionLanguage.test(text))return "";
  if(!new RegExp("^"+mine+"\\b","i").test(proposed.trim()))return "";
  return proposed.trim().slice(0,900);
+}
+// Plainspoken post-processing is a backstop for occasional jargon the model ignores.
+// Apply only to generated character text, never to a coach's own message.
+export function plainCharacterLanguage(text){
+ if(typeof text!=="string")return "";
+ return text
+  .replace(/\\bFOMO\\b/gi,"that feeling of missing out")
+  .replace(/\\bcrampons\\b/gi,"special hiking boots")
+  .replace(/\\bzen\\b/gi,"peace and quiet");
 }
 export function checkCharacterReply(value,history=[]){
  if(!value||typeof value.characterReply!=="string")return false;
