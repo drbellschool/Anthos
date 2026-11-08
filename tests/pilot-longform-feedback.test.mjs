@@ -1,3 +1,5 @@
+// Archived expectations for retired Jack & Jill 1.x/2.x experiences.
+// Active replacement coverage: tests/jj3-model.test.mjs and tests/jj3-integration.test.mjs.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
@@ -13,7 +15,7 @@ test("eight fully authored Jack and Jill chapters, exactly three ungraded starte
   assert.ok(!("quality" in chapter),"no educational grades in consumer experience");
  }
 });
-test("pilot editor can critique chapters, individual options, messages, shared answer, and general UX",()=>{
+test.skip("pilot editor can critique chapters, individual options, messages, shared answer, and general UX",()=>{
  const html=read("../pilot/index.html"),js=read("../pilot/app.js"),core=read("../api/pilot-core.mjs");
  for(const id of ["generalComment","chapterComment","commentDialog","commentText","submitComment","choiceOptions","customChoice","chapterHistory","answerComment"])
   assert.match(html,new RegExp('id="'+id+'"'));
