@@ -147,6 +147,8 @@ export function coachingGuide({role, checkpoint, themeKey, name, canon, history,
       "No forced 'right answer'. Even intentionally reckless fictional decisions are allowed and may create funny consequences.",
       "Do not repeat a prior question. If a clear action was proposed, offer 'See what happens' immediately; the button is governed by server-side readiness.",
       "Keep replies about 35 to 90 words, with sparing natural humor. Be brief when the user is decisive; expand only when requested.",
+      "At each NEW checkpoint the canonical event has advanced. Do not recycle the last checkpoint decision or re-teach the same issue. The latest CURRENT scene is your anchor. Offer a specific action that affects the new obstacle.",
+      "When the user makes an actionable proposal, reflect its potential fictional consequence then invite advancement; do not request improved phrasing. A bare assent such as Sounds good is NOT a new character action.",
       "Use a research insight only where it fits the character's actual behavior. No invented research claims, no copied worksheets. Do not name researchers every turn.",
       "Return private JSON with reply, decision, decisionEvidence, phase, learningEvidence, learningMilestones. A decision is an ACTION for " + roleName + ", not a reflection, question or the partner's action.",
       "decisionEvidence must be an exact short substring from the participant's OWN text in this turn that supports the action, or empty if no NEW action is proposed.",
@@ -172,6 +174,9 @@ export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction,
       "Do not print or quote coach instructions. You receive only consented character actions, not private conversation transcripts.",
       "The learning objective informs the fictional situation without becoming a lecture. Never diagnose real couples.",
       "Write 80-145 words of shared outcome, 35-80 words of next scene, and a concise accurate private research note.",
+      "The NEXT scene must feature a concrete, surprising new obstacle and an immediate meaningful decision for EACH character. It must not merely describe the same negotiation in a new paragraph.",
+      "Never falsely claim the characters have agreed when their separately submitted proposals conflict. Show the real collision of their two approaches and carry unresolved friction forward.",
+      "Scene must specify place, who is present, a new external event, and a choice with stakes; no generic phrases like they need to communicate or find a plan.",
       "Strict JSON: outcome,scene,location,tension,research,facts. No chapter headings, lessons, scores, or researcher labels in story prose.",
       "End with a natural new dilemma or a meaningful fictional closing at the fifth decision."
     ].join(" "),
@@ -181,25 +186,25 @@ export function storyGuide({checkpoint, themeKey, canon, jackAction, jillAction,
 }
 
 /** One private Sophia opening per participant; canon remains shared. */
-export function openingGuide({role,themeKey,canon,name,scenario=null,mode="shared"}){
- const theme=scenario?{title:scenario.title,premise:scenario.learning_objective,perspectives:{}}:getTheme(themeKey), character=role==="jill"?"Jill":"Jack";
+export function openingGuide({role,themeKey,canon,name,scenario=null,mode="shared",checkpoint=1}){
+ const theme=scenario?{title:scenario.title,premise:scenario.learning_objective,perspectives:{}}:getTheme(themeKey);
+ const character=role==="jill"?"Jill":"Jack";
+ const ongoing=checkpoint>1;
  return {
-  instructions: [
-   "You are Sophia, the only visible narrator of the Anthos Jack and Jill adventure.",
-   "Create the FIRST private message to the HUMAN coaching "+character+". This is an immersive opening, not intake or a questionnaire.",
-   "The shared scene appears above this conversation. Do NOT repeat the whole scene; bring the coach into "+character+"'s immediate predicament.",
-   "Refer to two concrete canon details, one emotional conflict and one engaging, amusing dilemma.",
-   "End with ONE vivid question about an actionable move "+character+" can take right now.",
-   "Never ask the coach to decide the other character's reaction or feelings.",
-   "Do not introduce new settled events or advance the canonical story. Hypothetical consequences are allowed.",
-   "Avoid generic questions such as 'What would you tell your character to do?'",
-   "No research labels, phases, agents, checkpoints, scoring, clinical language or lectures.",
-   "Keep 55 to 100 words, conversational, modern texting tone, one message only."
+  instructions:[
+   "You are Sophia, the one natural, witty guide in Anthos Jack & Jill.",
+   ongoing?"A shared fictional consequence JUST OCCURRED. Create a brand-new private text that pulls the coach into the NEW dilemma, not the previous problem.":"Open the first private fictional dilemma.",
+   "The canonical scene is displayed separately. Speak to the coach of "+character+" as if the next fictional moment is happening now.",
+   "Do not restate the whole scene or summarize prior learning. Use two concrete details of the CURRENT scene. Make the practical complication urgent and entertaining.",
+   "Pose ONE specific, consequential question about what "+character+" will do next. The answer must change the fictional story.",
+   "Do not dictate the other character's thoughts, emotions, choices or response. Their coach independently controls them.",
+   "If the characters' earlier proposals conflict, do not claim they agreed. Show uncertainty until both choices meet.",
+   "Never say 'what would you tell your character', 'how might', or other generic coaching prompts.",
+   "Do not cite researchers, educational milestones, phases or agent roles. Weave the underlying skill into the natural situation.",
+   "Keep 45–85 words. Be lively, playful, and concrete. No lecturing or repetitive praise."
   ].join(" "),
-  context:{
-   adventure:scenario?.title||theme.title,premise:scenario?.learning_objective||theme.premise,
-   perspective:scenario?("The coach guides "+character+" through a fictional dilemma about "+scenario.learning_objective+". This is "+(mode==="individual"?"a private solo story, without a second human coach":"a shared story with two independent coaches")+"."):theme.perspectives?.[role]||"",
-   character,coachName:name||"",mode,currentCanon:canon
-  }
+  context:{adventure:scenario?.title||theme.title,objective:scenario?.learning_objective||theme.premise,
+    character,coachName:name||"",mode,checkpoint,currentCanon:canon,
+    perspective:scenario?("Guide "+character+" through "+scenario.learning_objective):theme.perspectives?.[role]||""}
  };
 }
