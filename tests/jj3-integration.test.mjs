@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
-import {status,join,begin,talk,submit,progress,reflect,createRoom} from "../api/jj3-core.mjs";
+import {status,join,begin,talk,choose,submit,progress,reflect,createRoom} from "../api/jj3-core.mjs";
 
 const rid="11111111-1111-4111-8111-111111111111";
 const sid="a718d5e5-31bd-4bfa-9aa6-1712505015d1";
@@ -58,6 +58,11 @@ function harness(mode="shared",{invalidFirst=false}={}){
    if(body.p_action){p.pending_step=room.step;p.pending_action=body.p_action}
    p.private_memory=body.p_memory;p.learning_log=body.p_learning;
    return out(true);
+  }
+  if(path.endsWith("/rpc/anthos_jj3_set_choice")){
+   const p=people.find(x=>x.id===body.p_participant);
+   if(!p||room.step!==body.p_step||room.status!=="active"||p.submitted_step===room.step)return out(false);
+   p.pending_step=body.p_step;p.pending_action=body.p_action;return out(true);
   }
   if(path.endsWith("/rpc/anthos_jj3_submit")){
    const p=people.find(x=>x.id===body.p_participant);
@@ -177,5 +182,35 @@ test("3.0 solo scenario doesn't require fictional spouse to have a separate huma
   assert.equal(result.step,2);
   assert.equal(h.messages.filter(m=>m.kind==="outcome").length,1);
   assert.equal(h.people.length,1);
+ }finally{h.restore()}
+});
+
+test("3.0 ordinary conversational advice has an always-available next-move fallback",async()=>{
+ const h=harness();
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  const jack=await talk(tokens.jack,"Have you tried talking to her about a compromise? Could you relax together?",randomUUID());
+  const jill=await talk(tokens.jill,"You should find a compromise. Could you drive him to the trail, then read your book while he's hiking?",randomUUID());
+  assert.equal(jack.messages.filter(m=>m.author==="coach").length,1);
+  assert.equal(jill.messages.filter(m=>m.author==="coach").length,1);
+  // Even if the language model did not extract a move, both friends can decide.
+  const a=await choose(tokens.jack,"Jack asks Jill what she would enjoy and suggests time to relax together.");
+  const b=await choose(tokens.jill,"Jill offers to drive Jack to the trail and read while he hikes.");
+  assert.match(a.action,/Jack asks Jill/);
+  assert.match(b.action,/Jill offers to drive/);
+  await submit(tokens.jack);
+  assert.equal(h.room.step,1,"Only Jack submitted: one shared story cannot resolve.");
+  await submit(tokens.jill);
+  assert.equal(h.room.step,2,"Both confirmed moves advance the shared story.");
+  assert.equal(h.messages.filter(m=>m.kind==="outcome").length,1);
+ }finally{h.restore()}
+});
+test("3.0 a coach cannot directly command the opposite fictional spouse",async()=>{
+ const h=harness();
+ try{
+  await join(tokens.jack,"Adam");
+  await assert.rejects(choose(tokens.jack,"Jill should agree to Jack's plan."),/only choose what Jack will do/);
+  assert.equal(h.people[0].pending_action,null);
  }finally{h.restore()}
 });
