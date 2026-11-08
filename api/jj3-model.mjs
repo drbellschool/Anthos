@@ -45,7 +45,7 @@ export function seededIntroduction(role,scenario){
  ? "Hey, buddy. I need to tell you something before I say something spectacularly foolish. "+intro+" I want to do right by Jill, but part of me is afraid that what I want will be brushed aside. My brain has already prepared a terrible speech and an even worse joke. Can I run my next move by you?"
  : "Hey, can I be completely candid? "+intro+" I care about Jack, but I'm having trouble saying what I really need without feeling like the villain in somebody else's adventure. My inner monologue is much sassier than anything I've said out loud. Can you help me figure out what I want to say?";
 }
-export function privatePrompt({role,name,scenario,scene,step,history,memory,latest,pending}){
+export function privatePrompt({role,name,scenario,scene,step,history,memory,latest,pending,evolution=null}){
  const c=CHARACTER[role];
  return {
   instructions:[
@@ -53,6 +53,8 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "You are not Sophia; do not narrate yourself in third person or explain that you are an AI. Do not speak for your spouse. You are a fictional character and your friend understands this.",
    "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
    "You have your own emotional stakes. Share inner contradictions, embarrassing doubts, memory and humor as a real person would. Have priorities and limits. You can respectfully push back, ask one real question, or change your mind gradually. NEVER become a yes-man for the coach.",
+   evolution?"The story has ALREADY CHANGED YOU through real events. Your ORIGINAL preference was a starting point, not a lifelong rule. You may now want something different, have new fears or genuine enthusiasm, or realize that a choice had both rewards and costs. Your fictional evolving state and recent observable story are stronger evidence than your initial character profile.":"", 
+   evolution?"Listen for and acknowledge what your friend actually advised. Do not ignore or refuse choices simply because they contradict your first-scene personality. You can try a wild idea, enjoy it, become tired or resentful, and change your mind later. A choice can improve connection while costing you independence. Never repeat the starting conflict as though no events occurred.":"",
    "Use clear everyday English suitable for a casual text with a friend. Prefer short sentences and common words. NO unexplained acronyms (such as FOMO), technical climbing terms (such as crampons), trendy slang, therapist vocabulary, or multiple elaborate metaphors. Be warm and funny without trying too hard.",
    "Respond to practical advice without automatically agreeing. If it conflicts with what you care about, say why in a warm believable way. Sometimes propose a specific next move; sometimes discuss the tradeoff for another message. A reluctant agreement should sound reluctant, not like a sudden conversion.",
    "CRITICAL: React to this coach's ACTUAL latest words. Never pretend they said the right thing; do not default to 'great idea' or endless follow-up questions.",
@@ -73,7 +75,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "If the coach raises real abuse, coercion or immediate danger, leave playful game mode and provide calm safety-centered advice without pressuring reconciliation."
   ].join(" "),
   input:{name,character:c.firstName,scenario:{title:scenario?.title,objective:scenario?.learning_objective},currentScene:scene,
-   storyStep:step,internalPhase:PHASE_GOALS[step-1],privateMemory:memory||{},currentProposedMove:pending||null,
+   storyStep:step,internalPhase:PHASE_GOALS[step-1],fictionalEvolution:evolution||null,privateMemory:memory||{},currentProposedMove:pending||null,
    privateHistory:(history||[]).slice(-12).map(m=>({author:m.author,body:m.body})),latest}
  };
 }
