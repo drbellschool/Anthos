@@ -3,8 +3,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#102b3d">
 <title>Anthos | Jack &amp; Jill — Character-First Pilot 3.0</title>
-<link rel="stylesheet" href="/pilot/jj3.css?v=4">
-<script src="/pilot/jj3.js?v=4" defer></script>
+<link rel="stylesheet" href="/pilot/jj3.css?v=5">
+<script src="/pilot/jj3.js?v=5" defer></script>
 </head><body>
 <main class="app">
 <header class="masthead">
@@ -51,23 +51,15 @@
   </div>
   <div id="chatLog" class="chatlog" role="log" aria-live="polite" aria-relevant="additions">
   </div>
-  <div id="decision" class="decision" hidden>
-   <div class="kicker" id="decisionLabel">Jack has a plan</div>
-   <p id="decisionText"></p>
-   <button id="commit" type="button" class="gold">See how it goes →</button>
-   <p class="hint">Or keep talking. Nothing happens in the story until you choose.</p>
-  </div>
   <div id="compose" class="compose">
    <label id="composeLabel" for="message">Talk to your friend</label>
    <textarea id="message" rows="3" maxlength="900" placeholder="Say what you really think, ask a question, or suggest a move…"></textarea>
    <div class="controls"><button id="send" type="button" class="primary">Send to Jack <span aria-hidden="true">➤</span></button></div>
-   <button id="modeToggle" class="textbutton alternate-action" type="button">Have another idea?</button>
-   <p class="hint">Talk normally. You can challenge your friend or help them think it through.</p>
+   <p class="hint">Just talk like friends. When you tell them to go for it, their choice becomes part of the story.</p>
   </div>
   <div id="waiting" class="waiting" hidden>
-   <strong>You've sent your character into the story.</strong>
-   <p id="waitingText">Your partner is still coaching the other character. Your messages stay private.</p>
-   <button id="check" type="button" class="secondary">Check the next scene</button>
+   <strong>Your friend is putting that plan into action.</strong>
+   <p id="waitingText">The other character is still making their move. Your conversation remains private.</p>
   </div>
  </section>
  <section id="reflectionPanel" class="surface reflection" hidden>
