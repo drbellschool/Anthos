@@ -9,9 +9,9 @@ if(/^[A-Za-z0-9_-]{43}$/.test(supplied)){
  url.searchParams.delete("invite");history.replaceState(null,"",url.pathname+url.search+url.hash);
 }
 const token=supplied||sessionStorage.getItem(storedKey)||"";
-let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0,composeMode="chat",chatDraft="",moveDraft="";
+let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0;
 const error=t=>{$("error").textContent=t||""};
-const busySet=v=>{busy=v;for(const id of ["send","commit","check","saveReflection","modeToggle"])$(id).disabled=v};
+const busySet=v=>{busy=v;for(const id of ["send","saveReflection"])$(id).disabled=v};
 async function api(action,body={}){
  const option={headers:{"x-anthos-pilot-token":token},credentials:"same-origin",cache:"no-store"};
  if(action){option.method="POST";option.headers["Content-Type"]="application/json";option.body=JSON.stringify({action,...body})}
@@ -52,10 +52,9 @@ function render(s){
  $("chatName").textContent=s.character;
  $("chatAvatar").textContent=s.character[0];
  $("chatSubtitle").textContent=s.character==="Jack"?"Your mountain-loving, slightly chaotic friend":"Your sharp-witted friend with a lot on her mind";
- $("composeLabel").textContent=composeMode==="chat"?"Message "+s.character:"What might "+s.character+" try?";
- $("message").placeholder=composeMode==="chat"?"Just talk to "+s.character+"…":"Your idea, in everyday words…";
- $("send").textContent=composeMode==="chat"?"Send to "+s.character+" →":"Suggest to "+s.character+" →";
- $("modeToggle").textContent=composeMode==="chat"?(s.action?"Suggest something different":"Have an idea for "+s.character+"?"):"Back to the conversation";
+ $("composeLabel").textContent="Message "+s.character;
+ $("message").placeholder="Just talk to "+s.character+"…";
+ $("send").textContent="Send to "+s.character+" →";
  const shared=s.shared||[],latest=shared.at(-1);
  $("sharedSection").hidden=!latest;
  if(latest){
@@ -78,10 +77,6 @@ function render(s){
  log.dataset.initialized="yes";
  $("compose").hidden=completed||s.submitted;
 
- $("decision").hidden=completed||s.submitted||!s.action;
- $("decisionLabel").textContent=s.character+"'s thinking of trying…";
- $("commit").textContent="See how it goes →";
- if(s.action)$("decisionText").textContent=s.action;
  $("waiting").hidden=completed||!s.submitted;
  if(s.submitted){
   $("waitingText").textContent=s.otherSubmitted?"Both moves are in. The shared story is being written.":"Your friend has made their move. We're waiting for the other private coach; nobody sees your messages.";
@@ -100,7 +95,7 @@ async function load(quiet=false){
    openingStep=s.step;
    try{render(await api("begin"))}catch(e){openingStep=null;if(!quiet)error(e.message)}
   }
-  if(s.consent&&s.submitted&&s.otherSubmitted&&!s.processing&&s.status==="active"&&Date.now()-lastProgressTry>12000){
+  if(s.consent&&s.submitted&&s.otherSubmitted&&!s.processing&&s.status==="active"&&Date.now()-lastProgressTry>10000){
    lastProgressTry=Date.now();
    try{render(await api("progress"))}catch(e){if(!quiet)error(e.message)}
   }
@@ -123,41 +118,15 @@ $("joinForm").addEventListener("submit",async event=>{
 $("send").addEventListener("click",async()=>{
  if(busy)return;
  const text=$("message").value.trim();
- if(text.length<(composeMode==="chat"?2:10)){
-  error(composeMode==="chat"?"Say something to your friend first.":"Suggest one specific thing your friend could try.");return;
- }
- if(composeMode==="move"){
-  const saved=await afterAction("choose",{move:text});
-  if(saved){
-   $("message").value="";moveDraft="";composeMode="chat";
-   if(state)render(state);
-   $("decision").scrollIntoView({behavior:"smooth",block:"nearest"});
-  }
-  return;
- }
+ if(text.length<2){error("Say something to your friend first.");return}
  if(text!==queuedText){queuedText=text;queuedKey=crypto.randomUUID()}
- const result=await afterAction("talk",{message:text,requestKey:queuedKey});
- if(result){$("message").value="";queuedKey=null;queuedText="";const log=$("chatLog");log.scrollTop=log.scrollHeight}
-});
-$("modeToggle").addEventListener("click",()=>{
- if(busy)return;
- if(composeMode==="chat"){chatDraft=$("message").value;composeMode="move";$("message").value=moveDraft;}
- else{moveDraft=$("message").value;composeMode="chat";$("message").value=chatDraft;}
- if(state)render(state);
- $("message").focus();
-});
-$("commit").addEventListener("click",async()=>{
- if(!state?.action||busy)return;
- // The visible "See how it goes" button explicitly confirms the reviewed move.
- // No second browser confirmation breaks the conversation.
- const ok=await afterAction("submit");
- if(!ok)await load();
-});
-$("check").addEventListener("click",async()=>{
- if(busy)return;
- if(state?.otherSubmitted&&state?.status==="active"){
-  const ok=await afterAction("progress");if(!ok)await load();
- }else await load();
+ const ok=await afterAction("talk",{message:text,requestKey:queuedKey});
+ if(ok){
+  $("message").value="";queuedKey=null;queuedText="";
+  $("chatLog").scrollTop=$("chatLog").scrollHeight;
+  if(state?.consent&&state.status==="active"&&!state.submitted&&!state.hasIntro)
+   await load(true);
+ }
 });
 $("saveReflection").addEventListener("click",async()=>{
  const reflection=$("reflection").value.trim();
