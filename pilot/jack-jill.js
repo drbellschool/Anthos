@@ -6,7 +6,7 @@ const params=new URLSearchParams(location.search);
 const supplied=params.get("invite")||"";
 if(/^[A-Za-z0-9_-]{43}$/.test(supplied)){sessionStorage.setItem(key,supplied);history.replaceState(null,"",location.pathname)}
 const token=supplied||sessionStorage.getItem(key)||"";
-let current=null,busy=false,signature="",openingAttempted=false;
+let current=null,busy=false,signature="",openingForCheckpoint=null;
 function error(e=""){$("error").textContent=e}
 async function api(action,data={}){
  const opt={headers:{"x-anthos-pilot-token":token},cache:"no-store",credentials:"same-origin"};
@@ -41,13 +41,14 @@ function render(s){
  $("scene").textContent=s.canon?.scene||"Sophia is preparing your story.";
  const host=$("messages");const last=host.scrollTop+host.clientHeight>=host.scrollHeight-80;
  host.replaceChildren();
- if(!s.transcript.length)addBubble(host,"Sophia","Sophia is setting the stage for "+(s.role==="jack"?"Jack":"Jill")+"…",false);
- for(const m of s.transcript)addBubble(host,m.author==="participant"?"You":"Sophia",m.body,m.author==="participant");
+ const activeMessages=(s.transcript||[]).filter(m=>s.checkpoint===1?(m.checkpoint===0||m.checkpoint===1):(m.checkpoint===-s.checkpoint||m.checkpoint===s.checkpoint));
+ if(!activeMessages.length)addBubble(host,"Sophia","A new complication is unfolding for "+(s.role==="jack"?"Jack":"Jill")+"…",false);
+ for(const m of activeMessages)addBubble(host,m.author==="participant"?"You":"Sophia",m.body,m.author==="participant");
  if(last)host.scrollTop=host.scrollHeight;
  $("sharedPanel").hidden=!(s.shared?.length||finished);
  $("sharedPanel").querySelector(".kicker").textContent=s.experienceMode==="individual"?"Your private story — what happened":"Meanwhile, with Jack & Jill…";
  const sh=$("shared");sh.replaceChildren();
- for(const m of s.shared){const div=document.createElement("div");div.className="storycard";div.textContent=m.body;sh.append(div)}
+ for(const m of s.shared.slice(-1)){const div=document.createElement("div");div.className="storycard";div.textContent=m.body;sh.append(div)}
  $("sharedEmpty").hidden=s.shared.length>0;
  $("entry").hidden=s.submitted||finished;
  $("waiting").hidden=!s.submitted||finished||s.experienceMode==="individual";
@@ -61,11 +62,13 @@ function render(s){
 }
 async function showAndOpen(s){
  render(s);
- if(s.consent&&s.roomStatus==="active"&&s.checkpoint===1&&!s.submitted&&s.transcript?.length===0&&!openingAttempted){
-   openingAttempted=true;
+ const openingIndex=s.checkpoint===1?0:-s.checkpoint;
+ const hasPrompt=(s.transcript||[]).some(m=>m.checkpoint===openingIndex&&m.author==="sophia");
+ if(s.consent&&s.roomStatus==="active"&&!s.submitted&&!hasPrompt&&openingForCheckpoint!==s.checkpoint){
+   openingForCheckpoint=s.checkpoint;
    $("send").disabled=true;$("response").disabled=true;
    try{render(await api("begin"));error("");}
-   catch(e){error("Sophia could not open this scene. Refresh the page to retry.");}
+   catch(e){openingForCheckpoint=null;error("Sophia could not introduce the next scene. Refresh to retry.");}
    finally{$("send").disabled=false;$("response").disabled=false;}
  }
 }
@@ -80,16 +83,16 @@ $("consentForm").addEventListener("submit",async e=>{
 $("send").addEventListener("click",async()=>{
  if(busy)return;const msg=$("response").value.trim();if(msg.length<2){error("Tell Sophia what you're thinking first.");return}
  busySet(true);error("");
- try{const result=await api("talk",{message:msg});$("response").value="";render(result)}
+ try{const result=await api("talk",{message:msg});$("response").value="";await showAndOpen(result)}
  catch(e){error(e.message)}finally{busySet(false)}
 });
 $("advance").addEventListener("click",async()=>{
  if(busy||!current?.draft)return;
  if(!confirm("Confirm your character’s next move:\n\n"+current.draft+"\n\nOnly this fictional action will enter the shared story. Your private conversation stays private."))return;
  busySet(true);error("");
- try{render(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}
+ try{await showAndOpen(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}
 });
-$("check").addEventListener("click",async()=>{if(current?.otherSubmitted&&!current?.processing){busySet(true);try{render(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}}else refresh()});
+$("check").addEventListener("click",async()=>{if(current?.otherSubmitted&&!current?.processing){busySet(true);try{await showAndOpen(await api("submit"))}catch(e){error(e.message)}finally{busySet(false)}}else refresh()});
 $("saveReflection").addEventListener("click",async()=>{const v=$("reflection").value.trim();if(v.length<12){error("Write one specific action or reflection first.");return}busySet(true);error("");try{render(await api("reflect",{reflection:v}))}catch(e){error(e.message)}finally{busySet(false)}});
 if(token){refresh();setInterval(()=>{if(current?.consent&&current.roomStatus==="active"&&!busy)refresh(true)},12000)}
 else{$("missing").hidden=false;$("consentForm").hidden=true;error("A private invitation is required.")}
