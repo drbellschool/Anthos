@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -57,4 +57,17 @@ test("model-proposed second-person coaching moves may be confirmed if supported 
  assert.equal(actionFromCoach("jack",jack,"Jack asks Jill about a compromise and offers a quiet hour.","Have you tried talking to her about a compromise"),"Jack asks Jill about a compromise and offers a quiet hour.");
  assert.equal(actionFromCoach("jill",jill,"Jill offers Jack a ride to his hike and reads by the lake.","Could you drive him to the trail"),"Jill offers Jack a ride to his hike and reads by the lake.");
  assert.equal(actionFromCoach("jack","What was the weather?","Jack goes hiking.","What was the weather?"),"");
+});
+
+test("an actual character proposal can follow casual agreement, but never pure inquiry or invented evidence",()=>{
+ const reply="Okay, I'll text Jill to ask if she'd enjoy a quiet evening. I hope she doesn't think I have a fever.";
+ const move="Jack texts Jill and offers a quiet evening.";
+ const evidence="I'll text Jill to ask if she'd enjoy a quiet evening";
+ assert.equal(actionFromCharacterAgreement("jack","Yes, do that.",reply,move,evidence),move);
+ assert.equal(actionFromCharacterAgreement("jack","Yep that's what you should do.",reply,move,evidence),move);
+ assert.equal(actionFromCharacterAgreement("jack","What time is it?",reply,move,evidence),"");
+ assert.equal(actionFromCharacterAgreement("jack","Yes, do that.",reply,move,"I will go hiking instead"),"");
+ assert.equal(actionFromCharacterAgreement("jack","No, Jill should agree to hike.",reply,move,evidence),"");
+ assert.equal(actionFromCharacterAgreement("jack","Yes, do that.",reply,"Jill agrees to hike.",evidence),"");
+ assert.equal(actionFromCharacterAgreement("jill","Yes, do that.",reply,move,evidence),"");
 });
