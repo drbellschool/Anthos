@@ -310,7 +310,10 @@ test("3.1 evolving story accumulates five causal consequences and preserves both
   assert.equal(h.events[4].after.completedBeats,5);
   assert.ok(h.room.evolution_state.characters.jill.meters.agency<
     h.events[0].before.characters.jill.meters.agency);
-  assert.equal(b.messages.some(m=>m.body.includes("Buddy, that happened")),false);
+  assert.equal(b.messages.some(m=>m.author==="coach"&&m.body.includes("Jack should invite Jill")),false,
+   "Jill cannot read Jack\'s actual private coach message");
+  assert.equal(a.messages.some(m=>m.author==="coach"&&m.body.includes("Jill should try a surprising")),false,
+   "Jack cannot read Jill\'s actual private coach message");
   assert.equal((await progress(tokens.jack)).shared.length,5,
    "Repeated progress requests cannot publish a duplicate shared outcome");
  }finally{h.restore()}
