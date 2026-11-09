@@ -38,3 +38,14 @@ test("an explicitly configured different model never receives unsupported Luna-o
  assert.equal(req.model,"gpt-6.1-sol");
  assert.equal("reasoning" in req,false);
 });
+
+test("autonomous middle scenes use bounded medium reasoning; fifth-beat closure stays high",()=>{
+ const middle=deepDiveRequest({...base,name:"jj_evolution_outcome",input:{autoplay:true,step:2},env:{}});
+ assert.deepEqual(middle.reasoning,{effort:"medium"});
+ assert.equal(middle.max_output_tokens,4500);
+ const retry=deepDiveRequest({...base,name:"jj_evolution_outcome",input:{autoplay:true,step:2},attempt:1,env:{}});
+ assert.equal(retry.max_output_tokens,6000);
+ const finale=deepDiveRequest({...base,name:"jj_evolution_finale",input:{autoplay:true,step:5},env:{}});
+ assert.deepEqual(finale.reasoning,{effort:"high"});
+ assert.equal(finale.max_output_tokens,7500);
+});
