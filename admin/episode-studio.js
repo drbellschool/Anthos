@@ -40,6 +40,7 @@ function collect(){
  for(const item of document.querySelectorAll("[data-episode-field]"))s[item.dataset.episodeField]=item.value;
  for(const p of PHASE_IDS)s.phases[p]=phaseField(p).value;
  s.primarySkill=$("episodePrimary").value;
+ s.soloCoach=$("episodeSoloRole").value;
  s.supportingSkills=[...current.studio.supportingSkills].filter(x=>x!==s.primarySkill).slice(0,2);
  s.checkpoints=CHECKPOINT_IDS.map(afterPhase=>({
   afterPhase,
@@ -141,7 +142,7 @@ function renderStoryboard(){
   ];
   for(const [value,label] of choices){
    const option=node("option","",label);option.value=value;
-   if(value==="both"&&current.mode==="individual")option.disabled=true;
+   if(current.mode==="individual"&&value!=="none"&&value!==current.studio.soloCoach)option.disabled=true;
    select.append(option);
   }
   audienceLabel.append(select);
@@ -192,6 +193,8 @@ function populate(){
   checkField(item.afterPhase,"humor").value=item.humorCue||"";
  }
  $("episodePrimary").value=s.primarySkill||"";
+ $("episodeSoloWrap").hidden=current.mode!=="individual";
+ $("episodeSoloRole").value=s.soloCoach||"jack";
  $("episodeStudioTitle").textContent=s.title||"Untitled episode";
  $("episodeMeta").textContent=(current.mode==="shared"?"SHARED · Jack and Jill / two private coaches":
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
@@ -257,7 +260,7 @@ async function generate(){
  setBusy(true);note("AI is preparing six story phases and targeted private interventions. Nothing will save automatically.");
  try{
   const data=await request("episode-studio-generate",{id:current.id,direction:field("creativeDirection").value});
-  current.studio=data.studio;current.dirty=true;populate();
+  current.studio=data.studio;current.dirty=true;renderStoryboard();populate();
   note("AI plan generated with "+(data.model||"OpenAI")+". You can change every field, including the recipients, check-in humor, and original jokes.");
  }catch(error){note(error.message,true)}finally{setBusy(false)}
 }
@@ -290,6 +293,14 @@ function back(){
 function setup(){
  if(!$("episodeStudio"))return;
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
+ $("episodeSoloRole").addEventListener("change",()=>{
+  if(!current||current.mode!=="individual")return;
+  const copy=collect();copy.soloCoach=$("episodeSoloRole").value;
+  copy.checkpoints=copy.checkpoints.map(p=>p.audience==="none"||p.audience===copy.soloCoach?p:
+   {...p,audience:"none",waitForReply:false});
+  current.studio=copy;renderStoryboard();populate();markDirty();
+  note("Solo coach updated. Interventions for the other role were disabled.");
+ });
  $("episodePrimary").addEventListener("change",()=>{
   if(!current)return;
   current.studio.primarySkill=$("episodePrimary").value;
