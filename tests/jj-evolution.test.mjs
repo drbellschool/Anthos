@@ -101,7 +101,8 @@ const actions=(variant,step)=>[
 ];
 test("initial state is a valid story model, not a psychological measurement",()=>{
  const state=initialEvolution(scenario);
- assert.equal(ENGINE_VERSION,"3.2.0");
+ assert.equal(ENGINE_VERSION,"3.3.0");
+ assert.equal(usesEvolution("3.2.0"),true);
  assert.equal(usesEvolution("3.1.0"),true,"Old pilot rooms retain the evolution engine");
  assert.equal(usesEvolution("3.2.0"),true);
  assert.equal(usesEvolution("3.0.0"),false);
