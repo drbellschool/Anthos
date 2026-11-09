@@ -17,7 +17,7 @@ export function deepDiveModel(env=process.env){
 }
 export function deepDiveRequest({instructions,input,schema,name,attempt=0,env=process.env}){
  const model=deepDiveModel(env);
- const story=name==="jj_evolution_outcome"||name==="jj3_story_outcome";
+ const story=["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(name);
  const luna=model==="gpt-6-luna";
  return {
   model,
