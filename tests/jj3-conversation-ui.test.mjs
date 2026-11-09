@@ -16,7 +16,10 @@ test("story progresses automatically while private messages remain conversationa
  assert.match(client,/afterAction\("talk",\{message:text,requestKey:queuedKey\}\)/);
  assert.match(client,/api\("progress"\)/);
  assert.match(client,/setInterval\(/);
- assert.match(client,/s\.submitted&&s\.otherSubmitted&&s\.status==="active"/);
+ assert.match(client,/s\.autoplay&&\(s\.step>1\|\|\(s\.submitted&&s\.otherSubmitted\)\)/,
+   "Auto mode must continue checking independently of new human messages");
+ assert.match(client,/s\.submitted&&s\.otherSubmitted/,
+   "Legacy two-coach progress still works");
  assert.doesNotMatch(client,/s\.otherSubmitted&&!s\.processing/);
  assert.match(html,/Your friend is putting that plan into action/);
 });
@@ -33,4 +36,11 @@ test("the final story has visible closure and private reflection is optional",()
  assert.match(client,/Final moment · One last choice/);
  assert.match(client,/Adventure complete · The end/);
  assert.doesNotMatch(html,/id="commit"|id="manualMove"|id="modeToggle"/);
+});
+
+test("autonomous pilot hides extra coaching input after the opening and keeps polling",()=>{
+ assert.match(client,/s\.autoplay&&s\.step>1/);
+ assert.match(client,/Jack and Jill are making their own choices now/);
+ assert.match(client,/setInterval\(\(\)=>\{if\(!busy.*?\},5000\)/);
+ assert.doesNotMatch(client,/afterAction\("submit"/);
 });
