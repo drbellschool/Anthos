@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
- ENGINE_VERSION,EVOLUTION_VERSION,AXES,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,initialEvolution,
+ ENGINE_VERSION,EVOLUTION_VERSION,usesEvolution,AXES,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,initialEvolution,
  validEvolution,validateEvolutionStory,evolveState,characterEvolutionContext,
  evolutionStoryPrompt,storySimilarity
 } from "../api/jj-evolution.mjs";
@@ -101,7 +101,10 @@ const actions=(variant,step)=>[
 ];
 test("initial state is a valid story model, not a psychological measurement",()=>{
  const state=initialEvolution(scenario);
- assert.equal(ENGINE_VERSION,"3.1.0");
+ assert.equal(ENGINE_VERSION,"3.2.0");
+ assert.equal(usesEvolution("3.1.0"),true,"Old pilot rooms retain the evolution engine");
+ assert.equal(usesEvolution("3.2.0"),true);
+ assert.equal(usesEvolution("3.0.0"),false);
  assert.equal(state.version,EVOLUTION_VERSION);
  assert.equal(state.completedBeats,0);
  assert.equal(state.arc.beats.length,0);
