@@ -5,6 +5,9 @@ function el(tag,cls,value){const x=document.createElement(tag);if(cls)x.classNam
 function mount(root,invite,options={}){
  const token=String(invite||"");
  let current=null,inFlight=false,lastFingerprint="",destroyed=false,autoFailed=false,autoTimer=null;
+ // Polling must never destroy an in-progress message or move keyboard focus.
+ // Keep drafts scoped to this private participant; do not send or disclose until Submit.
+ let controlsKey="",draftName=options.defaultName||"",draftAdvice="",draftPhase=-1;
  root.replaceChildren();
  root.classList.add("jj4-player");
  const top=el("div","jj4-top"),status=el("div","jj4-state","Connecting…");
@@ -37,7 +40,8 @@ function mount(root,invite,options={}){
   const label=el("label","jj4-label","Your first name");
   const inp=el("input","jj4-name");
   inp.type="text";inp.maxLength=32;inp.placeholder="First name";
-  if(options.defaultName)inp.value=options.defaultName;
+  inp.value=draftName;
+  inp.addEventListener("input",()=>{draftName=inp.value});
   label.append(inp);controls.append(label);
   const join=oneAction("Join "+(current?.role==="jack"?"Jack":"Jill")+"'s private conversation",async()=>{
    const name=inp.value.trim();
@@ -77,16 +81,29 @@ function mount(root,invite,options={}){
   title.textContent=(state.role==="jack"?"Husband · Jack":"Wife · Jill");
   phase.textContent=state.phase+" · "+(state.phaseIndex+1)+"/6";
   transcript(state);
+  // A background status poll can return every five seconds while a participant
+  // is typing. Only rebuild controls when their *meaningful* state changes;
+  // rebuilding on every poll erased drafts and stole focus mid-sentence.
+  const nextKey=[
+   state.role,state.joined,state.bothJoined,state.phaseIndex,state.stage,
+   state.needsReply,state.submitted,state.finished,state.canContinue,
+   state.waitingFor?.join(",")||"",state.scenes?.length||0,autoFailed
+  ].join("|");
+  if(nextKey===controlsKey)return;
+  controlsKey=nextKey;
   controls.replaceChildren();
   if(!state.joined){message("Private browser rehearsal. Your advice stays on your side.");joinPanel();return}
   if(!state.bothJoined){message("Waiting for the other coach to join…");oneAction("Refresh",refresh);return}
-  if(state.finished){message("Episode complete · six-phase story finished.");return}
+  if(state.finished){draftAdvice="";message("Episode complete · six-phase story finished.");return}
   if(state.stage==="generating"){message("Jack and Jill are moving the story forward…");return}
   if(state.needsReply){
    message((state.character||"Your character")+" needs your advice before the next phase.");
    const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;
    field.placeholder="What should your character consider doing next?";
    field.setAttribute("aria-label","Private coaching advice");
+   if(draftPhase!==state.phaseIndex){draftPhase=state.phaseIndex;draftAdvice=""}
+   field.value=draftAdvice;
+   field.addEventListener("input",()=>{draftAdvice=field.value});
    controls.append(field);
    const send=oneAction("Send private advice",async()=>{
     const words=field.value.trim();
@@ -97,6 +114,7 @@ function mount(root,invite,options={}){
    return;
   }
   if(state.stage==="awaiting"){
+   if(state.submitted&&draftPhase===state.phaseIndex)draftAdvice="";
    message(state.submitted?"Your advice is recorded. Waiting for the other coach.":"Waiting for "+state.waitingFor.join(" and ")+" to advise their character.");
    oneAction("Refresh",refresh);return;
   }
@@ -118,7 +136,12 @@ function mount(root,invite,options={}){
   inFlight=true;
   try{const result=await api();if(!destroyed)render(result)}
   catch(e){if(!destroyed)message(e.message,true)}
-  finally{inFlight=false}
+  finally{
+   inFlight=false;
+   // A response can have the same UI state as before (e.g. another coach is
+   // still pending). If controls were intentionally reused, restore the buttons.
+   if(!destroyed)controls.querySelectorAll("button").forEach(x=>x.disabled=false);
+  }
  }
  async function act(action,details={}){
   if(inFlight||destroyed)return;
@@ -134,7 +157,10 @@ function mount(root,invite,options={}){
    if(action==="advance")autoFailed=true;
    message(e.message,true);buttons.forEach(x=>x.disabled=false)
   }}
-  finally{inFlight=false}
+  finally{
+   inFlight=false;
+   if(!destroyed)controls.querySelectorAll("button").forEach(x=>x.disabled=false);
+  }
  }
  refresh();
  const timer=setInterval(()=>{
