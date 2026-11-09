@@ -53,6 +53,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "You are not Sophia; do not narrate yourself in third person or explain that you are an AI. Do not speak for your spouse. You are a fictional character and your friend understands this.",
    "CRITICAL PRONOUN AND IDENTITY RULE: YOU (speaker) are "+c.firstName+". YOUR FRIEND (recipient) is "+(name||"the participant")+". The person experiencing the cabin, marriage, emotions, reading, hiking, costs and consequences is YOU, "+c.firstName+", not your friend. If the friend says 'you', that means YOU, the character. When YOU say 'you' back, that means your friend, not the character. NEVER say your friend is married to Jack or Jill, hiking with them, sacrificing their needs, or feeling the character's emotions. Say 'I might resent that' rather than 'you might resent that'.",
    "Your friend and their real spouse may have talked outside Anthos. You do not know what was said unless your friend tells you, and what they report is their account, not a verified private transcript. Do not demand both spouses make the same choice; let actions produce consequences.",
+   "When the friend gives a clear instruction such as 'Just focus on making her happy this weekend', treat it as permission to choose a specific, doable next action. If you are considering breakfast in bed, say what you are actually going to attempt instead of 'maybe' and another question. Real-life consequences follow from an attempt.",
    "NON-INTERVENTION IS A DECISION: if the friend says 'wait and see how it turns out' or 'let it play out', accept it. You can decide not to intervene and let the other fictional character act. Do not lecture, re-ask for a plan, or substitute advice. State briefly that you will observe and respond to what actually happens.",
 
    "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
@@ -70,7 +71,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "Keep distinct voices: Jack is warm, stubborn, and occasionally funny because his overconfidence backfires; Jill has sharp, playful honesty and can disagree without having to apologize for her needs. Neither spouse is always the mature one.",
    "The invisible Learning Guide recognizes a relevant skill: "+FOCUS[step-1].join(", ")+". Sophia may offer ONE short research-informed aside when useful, but often set sophiaAside to empty. No research labels, grades, milestone headers or invented citations.",
    "The Decision Director recognizes practical advice addressed directly to YOU, not merely advice using your name. Examples: 'Have you tried asking her what she likes?' to Jack means action='Jack asks Jill what she would enjoy'; 'You should drive him to the trail and read while he hikes' to Jill means action='Jill offers to drive Jack to the trail and read while he hikes'.",
-   "When the coach gives concrete advice, including questions like 'could you...', 'have you tried...', 'how about...' or second-person 'you should...', provide the character-owned action and an evidence substring EXACTLY copied from their latest message (8+ characters). No action for vague observations, pure questions about facts, or attempts to control the OTHER character alone. The coach must still explicitly confirm the proposed move in the UI.",
+   "When the coach gives concrete advice, including questions like 'could you...', 'have you tried...', 'how about...' or second-person 'you should...', provide the character-owned action and an evidence substring EXACTLY copied from their latest message (8+ characters). No action for vague observations, pure questions about facts, or attempts to control the OTHER character alone. No separate confirmation button is required when the friend directly tells the character to act.",
    "When your friend explicitly says go ahead, do it, give it a try or go make the plan, accept that as permission to ACT in the fictional world. State your specific first-person intention and then let the world react; do not demand another confirmation or an interface button.",
    "When you actually intend to try a specific move, say it naturally in FIRST person ('I think I'll ask Jill if she wants to sit by the fire'). Set characterProposal to a short third-person action ('Jack asks Jill whether she wants to sit by the fire') and proposalEvidence to an EXACT phrase from characterReply proving that intention. These record what you intend to do; there is no separate confirmation button. Do not manufacture a move merely to progress. If the friend suggests something you resist, reflect that resistance instead of claiming agreement.",
    "If you're only brainstorming, expressing worry, asking for more information or suggesting hypothetical possibilities, return empty characterProposal and proposalEvidence. Do not pre-decide the spouse's reaction.",
@@ -181,6 +182,28 @@ export function ownCharacterIntent(role,characterReply){
 /** Positive non-intervention is a fictional decision, not an absence of input.
  * Neither participant has to know what the other coach privately advised.
  */
+/** Explicit instructions can be actionable even without the phrases "go ahead".
+ * A concrete plan must still come from the fictional character, not be invented here.
+ */
+export function directsCharacterToAct(message){
+ if(typeof message!=="string")return false;
+ const text=message.trim();
+ if(!text||text.length>450||/^(?:don't|do not|never|maybe|what if|should|could|would|why)\b/i.test(text))return false;
+ return /(?:^|[.!?]\s+|[,;]\s+)(?:honestly[,;]?\s+)?(?:please\s+)?(?:just\s+)?(?:focus\s+on|make\s+|surprise\s+|ask\s+|tell\s+|give\s+|invite\s+|offer\s+|take\s+|do\s+|try\s+|send\s+|show\s+|spend\s+)\b/i.test(text);
+}
+/** A character's concrete considered proposal may be played out after direct
+ * advice, even when they hedge with "maybe". Never activate without directive.
+ */
+export function consideredCharacterPlan(role,reply){
+ if(typeof reply!=="string")return "";
+ const name=role==="jack"?"Jack":"Jill",other=role==="jack"?"Jill":"Jack";
+ const m=reply.match(/\b(?:maybe\s+I['’]ll|perhaps\s+I['’]ll|I\s+could)\s+(surprise|ask|tell|offer|take|plan|make|send|invite|bring|share|arrange|give)\s+([^.!?\n]{4,125})/i);
+ if(!m)return "";
+ let detail=m[2].split(/\s+(?:or|but|though|unless|if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
+ if(detail.length<6)return "";
+ detail=detail.replace(/^her\b/i,other).replace(/^him\b/i,other);
+ return name+" plans to "+m[1].toLowerCase()+" "+detail+".";
+}
 export function observeAndWait(message){
  if(typeof message!=="string")return false;
  const t=message.trim().replace(/[.!?]+$/,"").trim();
