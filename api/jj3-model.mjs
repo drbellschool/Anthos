@@ -54,6 +54,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "CRITICAL PRONOUN AND IDENTITY RULE: YOU (speaker) are "+c.firstName+". YOUR FRIEND (recipient) is "+(name||"the participant")+". The person experiencing the cabin, marriage, emotions, reading, hiking, costs and consequences is YOU, "+c.firstName+", not your friend. If the friend says 'you', that means YOU, the character. When YOU say 'you' back, that means your friend, not the character. NEVER say your friend is married to Jack or Jill, hiking with them, sacrificing their needs, or feeling the character's emotions. Say 'I might resent that' rather than 'you might resent that'.",
    "Your friend and their real spouse may have talked outside Anthos. You do not know what was said unless your friend tells you, and what they report is their account, not a verified private transcript. Do not demand both spouses make the same choice; let actions produce consequences.",
    "When the friend gives a clear instruction such as 'Just focus on making her happy this weekend', treat it as permission to choose a specific, doable next action. If you are considering breakfast in bed, say what you are actually going to attempt instead of 'maybe' and another question. Real-life consequences follow from an attempt.",
+   "When your friend has given practical advice with a concrete next step, take initiative: respond as yourself (Jack or Jill) with an observable first-person decision in plain language, such as I’ll call, I’m checking, I will ask, or I’ll try. Do not ask for another confirmation, extra button, or repeat their suggestion back as a question. If it is merely brainstorming or the choice genuinely remains unclear, continue the conversation instead.",
    "NON-INTERVENTION IS A DECISION: if the friend says 'wait and see how it turns out' or 'let it play out', accept it. You can decide not to intervene and let the other fictional character act. Do not lecture, re-ask for a plan, or substitute advice. State briefly that you will observe and respond to what actually happens.",
 
    "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
@@ -166,7 +167,7 @@ export function actionFromCharacterAgreement(role,coachMessage,reply,proposal,ev
 export function ownCharacterIntent(role,characterReply){
  const reply=typeof characterReply==="string"?characterReply.trim():"";
  const name=role==="jack"?"Jack":"Jill";
- const match=reply.match(/\b(?:I['’]ll|I will|I am going to|I['’]m going to|I['’]m gonna|I['’]m planning to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(?:(?:just|casually|quietly|gently|finally|actually|simply|quickly|honestly)\s+)?(ask|tell|text|call|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|arrange|book|try)\b\s+([^.!?\n]{3,150})/i);
+ const match=reply.match(/\b(?:I['’]ll|I will|I am going to|I['’]m going to|I['’]m gonna|I['’]m planning to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(?:(?:just|casually|quietly|gently|finally|actually|simply|quickly|honestly)\s+)?(ask|tell|text|call|count|check|make|prepare|choose|play|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|arrange|book|try)\b\s+([^.!?\n]{3,150})/i);
  if(!match)return "";
  let verb=match[2].toLowerCase()==="pitching"?"pitch":match[2].toLowerCase();
  let rest=match[3].trim();
@@ -252,6 +253,40 @@ export function confusesFriendWithCharacter(reply,role){
  const spouse=role==="jack"?"Jill":"Jack";
  return new RegExp("\\b(?:you|your|you['’]re|you['’]ll)\\b.{0,85}\\b"+spouse+"['’]s\\b.{0,80}\\b(?:hiking|reading|plan|weekend|cabin)\\b","i").test(reply)
  || /\byou\s+(?:silently\s+)?(?:stewing|losing\s+yourself|stuck\s+alone|resenting|missing\s+your\s+rest)\b/i.test(reply);
+}
+/**
+ * 3.2: a friend explicitly advises a practical next step. A broad question,
+ * a hypothetical, or polite empathy is NOT permission to move the story.
+ */
+export function actionableCoachAdvice(message) {
+ if(typeof message!=="string")return false;
+ const t=message.trim();
+ if(t.length<8||t.length>900||/^(?:don't|do not|never|what if|maybe|could we|should we)\b/i.test(t))return false;
+ return /(?:^|[.!?]\s+|[,;]\s+)(?:(?:well\s+)?(?:buddy|girl|first|then|next|okay|alright)[, ]+)?(?:please\s+)?(?:just\s+)?(?:call|check|count|ask|tell|talk|invite|offer|plan|book|arrange|bring|share|take|listen|apologize|make|prepare|pick|choose|focus|play|try|decide|explain|help|look|let|compromise|start|send)\b/i.test(t)
+  || /\b(?:you should|you need to|why don't you|i would (?:call|ask|tell|try|offer)|my advice is to)\b/i.test(t);
+}
+/**
+ * Confirms a CHARACTER'S observable first-person intention, not a coach's
+ * speculation about the spouse. The character can carry it out once the
+ * friend clearly suggests an action.
+ */
+export function concreteCharacterMove(role,reply){
+ const name=role==="jill"?"Jill":"Jack";
+ const said=typeof reply==="string"?reply:"";
+ const existing=ownCharacterIntent(role,said);
+ if(existing)return existing;
+ const m=said.match(/\bI['’]m\s+(calling|checking|counting|asking|telling|inviting|offering|planning|booking|arranging|bringing|sharing|taking|listening|apologizing|making|preparing|choosing|playing|sending|trying|helping|explaining)\s+([^.!?\n]{5,140})/i);
+ if(!m)return "";
+ const verb={
+  calling:"call",checking:"check",counting:"count",asking:"ask",telling:"tell",
+  inviting:"invite",offering:"offer",planning:"plan",booking:"book",
+  arranging:"arrange",bringing:"bring",sharing:"share",taking:"take",
+  listening:"listen",apologizing:"apologize",making:"make",
+  preparing:"prepare",choosing:"choose",playing:"play",
+  sending:"send",trying:"try",helping:"help",explaining:"explain"
+ }[m[1].toLowerCase()];
+ const detail=m[2].split(/\s+(?:but|though|unless|because|if\s+(?:she|he|they)|however)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
+ return detail.length<7?"":name+" plans to "+verb+" "+detail+".";
 }
 export function briefApproval(message){
  if(typeof message!=="string")return false;
