@@ -213,3 +213,85 @@ h1{font-size:52px}.page-heading h1{font-size:47px}
 .modal{padding:23px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
+/* New Anthos member-view design preview; old sidebar dashboard retired. */
+:root{--ink:#304b3c;--cream:#f5f2eb;--paper:#fffcf6;--stroke:#e5dccc;--sage:#5c7d67;--rose:#9e7972}
+body{background:#f5f2ec;color:var(--ink)}
+.app{display:block}
+.sidebar{position:relative;inset:auto;width:auto;height:auto;min-height:0;transform:none;display:flex;flex-direction:row;align-items:center;gap:35px;padding:17px max(24px,calc((100vw - 1320px)/2));border-right:0;border-bottom:1px solid #e6ded0;background:#fffdf8;box-shadow:none}
+.sidebar.open{transform:none}
+.logo-block{margin:0;padding:0;flex:none}
+.logo-type{color:#344b3c}
+.side-label,.side-bottom{display:none}
+.side-nav{display:flex;flex-wrap:wrap;gap:4px}
+.nav-link{font-size:12px;border:0;border-radius:50px;padding:8px 12px;gap:7px}
+.nav-link.active{background:#edf1e9;box-shadow:none;border:0}
+.nav-symbol{width:17px;font-size:17px}
+.workspace{display:block}
+.topbar{height:44px;min-height:44px;background:transparent;border-bottom:0;padding:0 max(24px,calc((100vw - 1320px)/2))}
+main{max-width:1320px;padding:15px 24px 70px}
+.notice{background:transparent;border:0;color:#8e8e81;padding:0;margin-bottom:27px;font-size:10px}
+.notice strong{color:#8b775d}
+.demo-pill{background:#f7f0e2;border-color:#e5d6be;color:#927248}
+.pulse{background:#b58b54}
+.anthos-welcome{display:flex;justify-content:space-between;align-items:end;gap:28px;margin:7px 0 29px}
+.anthos-welcome h1{font-size:clamp(48px,5.8vw,78px);margin:0 0 14px}
+.anthos-welcome h1 em{color:#a37d76}
+.anthos-welcome p{color:#788275;max-width:610px;font-size:15px;margin:0;line-height:1.65}
+.year-mark{border-left:1px solid #ded1bf;padding-left:24px;display:flex;flex-direction:column;flex:none;align-items:start;color:#9b8b76;gap:3px}
+.year-mark span,.year-mark small{font-size:10px;letter-spacing:.15em;font-weight:700}
+.year-mark strong{font:normal 62px/1 Georgia,serif;color:#b0926d}
+.anthos-couple-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:19px}
+.anthos-weave{background:#fffcf6;border:1px solid var(--stroke);border-radius:23px;padding:25px 28px 18px;min-width:0;box-shadow:0 15px 38px #53432c08}
+.weave-heading{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.weave-heading h2{font:normal 30px Georgia,serif;letter-spacing:-.025em;margin:0}
+.weave-label{font-size:9px;letter-spacing:.1em;color:#9b886b;border:1px solid #e6d9c6;border-radius:40px;padding:8px 10px;white-space:nowrap}
+.rope-stage{min-height:300px;max-height:386px;margin:-3px auto -5px}
+.rope-stage svg{width:min(100%,390px);height:auto}
+.weave-description{font:italic 13px/1.55 Georgia,serif;color:#918c7f;max-width:390px;text-align:center;margin:0 auto 20px}
+.rope-choice{border-top:1px solid #e7ddcf;padding-top:15px;display:flex;align-items:center;gap:17px;flex-wrap:wrap}
+.rope-choice-intro{display:flex;flex-direction:column;flex:1;min-width:160px}
+.rope-choice-intro strong{font:normal 18px Georgia,serif}
+.rope-choice-intro span{font-size:10px;color:#8a8c7f}
+.rope-choice label{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.rope-choice label small{font-size:10px;color:#82867d;white-space:nowrap}
+.rope-color{width:36px;height:36px;border:1px solid #e3d7c8;border-radius:50%;padding:2px;background:#fff;cursor:pointer}
+.rope-color::-webkit-color-swatch-wrapper{padding:0}
+.rope-color::-webkit-color-swatch{border:0;border-radius:50%}
+.weave-progress{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #e7ddcf;margin-top:16px;padding-top:13px;text-align:center}
+.weave-progress>div{display:flex;align-items:baseline;justify-content:center;gap:10px}
+.weave-progress strong{font:normal 21px Georgia,serif}
+.weave-progress span{font-size:10px;color:#8d8b7f}
+.anthos-side-stack{display:flex;flex-direction:column;gap:15px;min-width:0}
+.anthos-chapter{background:linear-gradient(145deg,#e9efe6,#f0eee5);border:1px solid #dce3d7;border-radius:23px;padding:29px 36px;flex:1;display:flex;flex-direction:column}
+.chapter-index{font:italic 42px Georgia,serif;color:#64816b}
+.chapter-index span{font:normal 11px system-ui;color:#9ea89d}
+.anthos-chapter .overline{margin-top:15px}
+.anthos-chapter h2{font:normal clamp(35px,3.8vw,51px)/1.08 Georgia,serif;letter-spacing:-.03em;margin:8px 0 15px}
+.anthos-chapter h2 em{color:#a07d74}
+.anthos-chapter p{font-size:13px;line-height:1.7;color:#78887a;max-width:370px}
+.anthos-chapter-steps{margin-top:auto;border-top:1px solid #d9e1d4}
+.anthos-chapter-steps button{display:flex;align-items:center;gap:12px;padding:12px 2px;text-align:left;width:100%;border:0;border-bottom:1px solid #d9e1d4;background:transparent;color:#395647}
+.anthos-chapter-steps button:last-child{border-bottom:0}
+.anthos-chapter-steps button:hover{color:#a57857}
+.anthos-chapter-steps button>span{font:italic 21px Georgia,serif;color:#a98f67}
+.anthos-chapter-steps div{flex:1;display:flex;flex-direction:column}
+.anthos-chapter-steps strong{font-size:12px}
+.anthos-chapter-steps small{font-size:10px;color:#88978a}
+.anthos-chapter-steps b{font-weight:400}
+.anthos-verse{display:flex;gap:15px;border-radius:17px;border:1px solid #eadfcc;background:#fffaf1;padding:20px 24px}
+.anthos-verse>span{color:#bf995c;font-size:26px}
+.anthos-verse strong{font:normal 19px Georgia,serif}
+.anthos-verse p{font:italic 13px/1.5 Georgia,serif;color:#8a8b80;margin:5px 0 0}
+.anthos-actions-heading{margin:33px 0 16px}
+.anthos-actions-heading h2{font:normal 29px Georgia,serif;margin:8px 0 0}
+.anthos-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.anthos-tiles button{position:relative;background:#fffcf7;border:1px solid #e5dcca;border-radius:15px;display:flex;flex-direction:column;align-items:start;min-height:149px;padding:18px 20px;text-align:left;color:#385344}
+.anthos-tiles button:hover{border-color:#b99f79;transform:translateY(-1px)}
+.anthos-tiles button>span{font:29px Georgia,serif;color:#ba8c77}
+.anthos-tiles strong{font:normal 18px Georgia,serif;margin-top:auto}
+.anthos-tiles small{font-size:11px;color:#8c9085;margin-top:4px}
+.anthos-tiles b{font-weight:400;position:absolute;right:17px;bottom:16px}
+@media(max-width:1060px){.sidebar{gap:15px;padding:15px 22px}.nav-link{padding:8px;font-size:11px}.anthos-couple-grid{grid-template-columns:1fr 1fr}.anthos-weave{padding:20px}.anthos-chapter{padding:25px}}
+@media(max-width:840px){.sidebar{position:relative;inset:auto;width:auto;height:auto;min-height:0;transform:none;box-shadow:none;flex-wrap:wrap}.sidebar.open{transform:none}.side-nav{display:flex;overflow-x:auto;flex-wrap:nowrap;width:100%;scrollbar-width:thin}.nav-link{white-space:nowrap}.mobile-menu{display:none}.topbar{height:42px;padding:0 24px}main{padding:15px 24px 60px}.anthos-couple-grid{grid-template-columns:1fr}.anthos-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:570px){.sidebar{padding:13px 15px}.topbar{padding:0 15px}.breadcrumb{display:none}.notice{font-size:10px}.anthos-welcome{margin-top:5px}.anthos-welcome h1{font-size:50px}.anthos-welcome p{font-size:13px}.year-mark{display:none}main{padding:14px 15px 50px}.weave-heading{padding:0 7px}.weave-heading h2{font-size:24px}.weave-label{display:none}.rope-stage{min-height:295px}.rope-stage svg{width:min(100%,340px)}.rope-choice{gap:12px;justify-content:space-around}.rope-choice-intro{flex-basis:100%;text-align:center}.weave-progress>div{flex-direction:column;align-items:center;gap:0}.anthos-chapter{padding:25px}.anthos-actions-heading h2{font-size:24px}.anthos-tiles{gap:9px}.anthos-tiles button{padding:14px;min-height:125px}.anthos-tiles strong{font-size:16px}.anthos-tiles small{font-size:10px}}

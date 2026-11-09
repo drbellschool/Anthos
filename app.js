@@ -67,54 +67,67 @@
     const [sx,sy]=polar(radius,start),[ex,ey]=polar(radius,end);
     return "M "+sx+" "+sy+" A "+radius+" "+radius+" 0 0 1 "+ex+" "+ey;
   }
-  function flowerSvg() {
-    const palette=["#ac834d","#a97578","#728872"];
-    const petalTypes = [
-      ...state.whispers.map(()=>"whisper"),
-      ...state.datesCompleted.map(()=>"date")
-    ].slice(0,8);
-    let layers='<circle cx="210" cy="210" r="195" fill="none" stroke="#e4dbcd" stroke-width=".9"/>';
-    for(let i=0;i<8;i++){
-      const angle=i*45,active=petalTypes[i];
-      const fill=active?(active==="whisper"?"#bd9362":"#b78380"):"#eae4d9";
-      const opacity=active?".90":".72";
-      layers+='<g transform="rotate('+angle+' 210 210)"><path d="M 210 145 C 176 128 180 75 210 44 C 240 75 244 128 210 145 Z" fill="'+fill+'" opacity="'+opacity+'" stroke="#fffcf7" stroke-width="2"/><path d="M210 138 Q211 95 210 59" fill="none" stroke="'+(active?"#ffffff8c":"#d8ccbd")+'" stroke-width="1.1"/></g>';
+
+  // Browser-only colors until per-spouse login and shared progress are implemented.
+  const ROPE_KEY="anthos_rope_colors_v1";
+  const defaultColors=["#b47b69","#648575","#c4a065"];
+  const colorOK=x=>typeof x==="string"&&/^#[0-9a-f]{6}$/i.test(x);
+  let ropeColors=(()=>{
+    try{const v=JSON.parse(localStorage.getItem(ROPE_KEY)||"null");if(Array.isArray(v)&&v.length===3&&v.every(colorOK))return v;}catch{}
+    return defaultColors.slice();
+  })();
+  function ropePath(a,b,k){
+    let d="";
+    for(let z=0;z<=8;z++){
+      const angle=(a+(b-a)*z/8)*Math.PI/180;
+      const r=173+7.8*Math.sin((angle+Math.PI/2)*18+k*Math.PI*2/3);
+      d+=(z?"L":"M")+(210+r*Math.cos(angle)).toFixed(2)+" "+(210+r*Math.sin(angle)).toFixed(2)+" ";
     }
-    for(let segment=0;segment<8;segment++){
-      const done=segment<state.diveCompleted,start=-90+segment*45+3,end=start+39;
-      for(let s=0;s<3;s++){
-        const r=171+s*4,stroke=done?palette[s]:"#d8d1c5";
-        layers+='<path d="'+arc(r,start,end)+'" fill="none" stroke="'+stroke+'" stroke-width="'+(done?3.6:2.3)+'" stroke-linecap="round" opacity="'+(done?"1":".7")+'"/>';
-      }
-      if(done) {
-        const middle=-90+segment*45+22;
-        const a=polar(169,middle-1.5),b=polar(183,middle+1.5);
-        layers+='<path d="M'+a.join(" ")+' L'+b.join(" ")+'" stroke="#f6eee0" stroke-width="2.5" stroke-linecap="round"/>';
+    return d;
+  }
+  function flowerSvg(){
+    const p=progress();
+    const petalTypes=[...state.whispers.map(()=>"whisper"),...state.datesCompleted.map(()=>"date")].slice(0,12);
+    let svg='<defs><filter id="cord-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#6c5c43" flood-opacity=".18"/></filter></defs>';
+    svg+='<circle cx="210" cy="210" r="191" stroke="#e8dfd2" fill="none"/>';
+    svg+='<circle cx="210" cy="210" r="150" stroke="#e4dbcf" fill="none" stroke-dasharray="1 8"/>';
+    for(let i=0;i<12;i++){
+      const active=petalTypes[i],fill=active?(active==="whisper"?"#b99266":"#b7807c"):"#e9e2d7";
+      svg+='<g transform="rotate('+(i*30)+' 210 210)"><path d="M210 145 C190 132 191 107 210 85 C229 107 230 132 210 145Z" fill="'+fill+'" stroke="#fffaf3" stroke-width="1.7"/><path d="M210 136 Q210 109 210 99" fill="none" stroke="#fff8ee" opacity=".8"/></g>';
+    }
+    const pieces=72,completed=Math.round(p.crossings/8*pieces);
+    for(let i=0;i<pieces;i++){
+      const a=-90+i*5-.4,b=a+5.8,active=i<completed;
+      const order=[i%3,(i+1)%3,(i+2)%3];
+      for(const k of order){
+        const d=ropePath(a,b,k);
+        const atTip=active&&i>=completed-3;
+        const tipScale=atTip?.45+.55*(completed-i)/3:1;
+        const width=(active?10.8*tipScale:10.2).toFixed(2);
+        svg+='<path d="'+d+'" fill="none" stroke="#fffcf7" stroke-width="'+(Number(width)+3.4)+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?1:.55)+'"/>';
+        svg+='<path d="'+d+'" fill="none" stroke="'+ropeColors[k]+'" stroke-width="'+width+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?(atTip?.7:1):.50)+'" filter="url(#cord-shadow)"/>';
+        svg+='<path d="'+d+'" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="'+(active?.25:.14)+'"/>';
       }
     }
-    layers+='<circle cx="210" cy="210" r="61" fill="#fffcf5" stroke="#e1d4c0" stroke-width="1.6"/>';
-    layers+='<circle cx="210" cy="210" r="53" fill="none" stroke="#e3d9cc" stroke-dasharray="1.3 5" stroke-width="1"/>';
-    layers+='<text x="210" y="205" text-anchor="middle" font-family="Georgia,serif" fill="#405646" font-size="24" letter-spacing="-1">threefold</text>';
-    layers+='<text x="210" y="225" text-anchor="middle" font-family="Arial,sans-serif" fill="#ac8560" font-size="8.5" letter-spacing="2.2">OUR STORY</text>';
-    return '<svg viewBox="0 0 420 420" role="img" aria-label="'+petalTypes.length+' petals opened and '+state.diveCompleted+' of eight Deep Dive crossings woven." xmlns="http://www.w3.org/2000/svg">'+layers+'</svg>';
+    svg+='<circle cx="210" cy="210" r="60" fill="#fffcf6" stroke="#e7d8c7" stroke-width="1.6"/>';
+    svg+='<circle cx="210" cy="210" r="54" fill="none" stroke="#e2d6c7" stroke-dasharray="1 5"/>';
+    svg+='<text x="210" y="207" text-anchor="middle" font-family="Georgia,serif" fill="#344d3e" font-size="29" letter-spacing="-1.4">anthos</text>';
+    svg+='<text x="210" y="228" text-anchor="middle" font-family="Arial,sans-serif" fill="#9b7d55" font-size="7.4" letter-spacing="1.6">OUR THREEFOLD STORY</text>';
+    svg+='<text x="210" y="245" text-anchor="middle" font-family="Arial,sans-serif" fill="#858a7d" font-size="9">'+p.crossings+' OF 8 CROSSINGS</text>';
+    return '<svg viewBox="0 0 420 420" role="img" aria-label="Interwoven threefold cord, '+p.crossings+' of eight crossings completed, '+p.petals+' petals opened" xmlns="http://www.w3.org/2000/svg">'+svg+'</svg>';
   }
-  function progress(){
-    return {petals:Math.min(8,state.whispers.length+state.datesCompleted.length),crossings:state.diveCompleted};
-  }
-  function refreshCounters(){
-    renderHome();
-    renderJourney();
-  }
+  function progress(){return {petals:Math.min(12,state.whispers.length+state.datesCompleted.length),crossings:state.diveCompleted};}
+  function refreshCounters(){renderHome();renderJourney();}
   function renderHome(){
     const p=progress();
     $("homeArt").innerHTML=flowerSvg();
-    $("homePetalCount").textContent=p.petals;
+    $("homePetalCount").textContent=p.petals+" / 12";
     $("homeBraidCount").textContent=p.crossings+" / 8";
   }
   function renderJourney(){
     const p=progress();
     $("journeyArt").innerHTML=flowerSvg();
-    $("journeyPetals").textContent=p.petals+" / 8";
+    $("journeyPetals").textContent=p.petals+" / 12";
     $("journeyBraid").textContent=p.crossings+" / 8";
     $("journeyWhispers").textContent=state.whispers.length;
     $("journeyDates").textContent=state.datesCompleted.length;
@@ -404,6 +417,16 @@
     });
     document.addEventListener("keydown",ev=>{
       if(ev.key==="Escape"&&!$("shareOverlay").hidden)closeShare();
+    });
+
+    document.querySelectorAll(".rope-color").forEach(input=>{
+      const k=Number(input.dataset.strand);input.value=ropeColors[k];
+      input.addEventListener("input",()=>{
+        if(!colorOK(input.value))return;
+        ropeColors[k]=input.value;
+        try{localStorage.setItem(ROPE_KEY,JSON.stringify(ropeColors));}catch{}
+        renderHome();renderJourney();
+      });
     });
     if(!state.datePlan)state.datePlan=emptyState().datePlan;
     renderHome();renderWhispers();renderDate();renderDive();renderJourney();

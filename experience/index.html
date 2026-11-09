@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f5f1e9">
   <meta name="robots" content="noindex,nofollow">
-  <title>Experience Demo | Anthos · Anthos</title>
+  <title>Our Story — Anthos</title>
   <meta name="description" content="Preview the first Anthos experience: Love Whispers, adventures, a Deep Dive, and a story that grows with you.">
   <link rel="stylesheet" href="../styles.css">
   <script src="../content.js" defer></script>
@@ -36,30 +36,46 @@
       <header class="topbar">
         <button class="mobile-menu" id="menuToggle" type="button" aria-label="Toggle navigation" aria-expanded="false">☰</button>
         <div class="breadcrumb">ANTHOS <span>/</span> <strong id="breadcrumb">OUR BEGINNING</strong></div>
-        <div class="top-actions"><span class="demo-pill"><span class="pulse"></span> INTERACTIVE DEMO</span><button id="resetDemo" type="button" class="reset-btn" title="Erase demonstration progress">Reset demo</button></div>
+        <div class="top-actions"><span class="demo-pill"><span class="pulse"></span> DESIGN PREVIEW</span><button id="resetDemo" type="button" class="reset-btn" title="Erase demonstration progress">Reset demo</button></div>
       </header>
       <main id="main">
-        <div class="notice" role="note"><strong>Preview experience</strong><span>These are fictional sample accounts and activities. Progress stays only in this browser; nothing is sent to your partner, Telnyx, OpenAI, or a database.</span></div>
+        <div class="notice" role="note"><strong>Preview experience</strong><span>This is a local interactive preview. Progress and strand colors remain only in this browser; no spouse account or database is connected.</span></div>
 
-        <section class="view" data-page="home">
-          <div class="intro-copy"><div class="overline">A STORY WORTH WEAVING</div><h1>The adventure<br><em>awaits.</em></h1><p>Not a checklist for a better marriage. An invitation to discover one another again, one unexpected moment at a time.</p></div>
-          <div class="home-grid">
-            <div class="feature-card art-card">
-              <div class="art-label">THE LIFE YOU'RE WEAVING</div>
-              <div class="blossom-wrap" id="homeArt" aria-label="A threefold cord and growing petals"></div>
-              <div class="art-foot"><div><strong id="homePetalCount">0</strong><span>Petals opened</span></div><div class="vertical-line"></div><div><strong id="homeBraidCount">0 / 8</strong><span>Story crossings</span></div></div>
-            </div>
-            <div class="next-column">
-              <div class="quote-card"><span class="small-gold">✦ A SMALL BEGINNING</span><h2>Keep choosing<br><em>each other.</em></h2><p>Start with a quiet thought, make something together, or step inside a story. There is no perfect pace.</p><button class="button primary" type="button" data-go="whispers">Begin with a Whisper <span>↗</span></button></div>
-              <div class="mini-list"><button type="button" data-go="dates"><span>01</span><div><strong>Plan a little adventure</strong><small>A first braid, a new memory</small></div><b>↗</b></button><button type="button" data-go="dive"><span>02</span><div><strong>Step into a Deep Dive</strong><small>Eight chapters, one meaningful choice</small></div><b>↗</b></button></div>
+
+        <section class="view new-home" data-page="home">
+          <div class="anthos-welcome">
+            <div><div class="overline">OUR SHARED JOURNEY</div><h1>Still becoming<br><em>more us.</em></h1><p>Not another task to finish. A beautiful way to remember the little things that make a marriage grow.</p></div>
+            <div class="year-mark"><span>THE YEAR AHEAD</span><strong>12</strong><small>CHAPTERS OF US</small></div>
+          </div>
+          <div class="anthos-couple-grid">
+            <article class="anthos-weave">
+              <div class="weave-heading"><div><div class="overline">THREE STRANDS · ONE STORY</div><h2>The life you're weaving.</h2></div><span class="weave-label">YOUR THREEFOLD CORD</span></div>
+              <div class="blossom-wrap rope-stage" id="homeArt" aria-label="Circular braided progress of your threefold story"></div>
+              <p class="weave-description">Each meaningful moment opens another petal. Each story crossing brings a little more color to your cord.</p>
+              <div class="rope-choice"><div class="rope-choice-intro"><strong>Make it yours.</strong><span>Pick your three strand colors.</span></div>
+                <label><input type="color" class="rope-color" data-strand="0" value="#b47b69" aria-label="Your strand color"><small>Your strand</small></label>
+                <label><input type="color" class="rope-color" data-strand="1" value="#648575" aria-label="Your partner's strand color"><small>Partner's strand</small></label>
+                <label><input type="color" class="rope-color" data-strand="2" value="#c4a065" aria-label="Third strand color"><small>Third strand</small></label>
+              </div>
+              <div class="weave-progress"><div><strong id="homeBraidCount">0 / 8</strong><span>Story crossings</span></div><div><strong id="homePetalCount">0 / 12</strong><span>Petals opened</span></div></div>
+            </article>
+            <div class="anthos-side-stack">
+              <article class="anthos-chapter"><div class="chapter-index">01 <span>/ 12</span></div><div class="overline">YOUR NEXT CHAPTER</div><h2>Make room<br>for <em>wonder.</em></h2><p>Grow a little closer through a surprising story, a thoughtful conversation, and one adventure worth remembering.</p>
+                <div class="anthos-chapter-steps">
+                  <button data-go="whispers" type="button"><span>01</span><div><strong>Notice each other</strong><small>Begin with a Love Whisper</small></div><b>↗</b></button>
+                  <button data-go="dive" type="button"><span>02</span><div><strong>Step into a story</strong><small>Explore a Deep Dive demo</small></div><b>↗</b></button>
+                  <button data-go="dates" type="button"><span>03</span><div><strong>Make a memory</strong><small>Plan your next adventure</small></div><b>↗</b></button>
+                </div>
+              </article>
+              <article class="anthos-verse"><span>✦</span><div><strong>Every story is worth tending.</strong><p>There is no perfect pace. Keep choosing each other, one little moment at a time.</p></div></article>
             </div>
           </div>
-          <div class="section-caption">FOUR WAYS TO GROW TOGETHER</div>
-          <div class="feature-grid">
-            <button data-go="whispers" type="button" class="feature-tile"><span class="tile-glyph">✧</span><strong>Love Whispers</strong><small>Words worth saying</small><span class="tile-arrow">↗</span></button>
-            <button data-go="dates" type="button" class="feature-tile"><span class="tile-glyph">↗</span><strong>Date Adventures</strong><small>Novelty with intention</small><span class="tile-arrow">↗</span></button>
-            <button data-go="dive" type="button" class="feature-tile"><span class="tile-glyph">≋</span><strong>Deep Dives</strong><small>Learn inside a story</small><span class="tile-arrow">↗</span></button>
-            <button data-go="journey" type="button" class="feature-tile"><span class="tile-glyph">◌</span><strong>your Anthos journey</strong><small>See what you've woven</small><span class="tile-arrow">↗</span></button>
+          <div class="anthos-actions-heading"><div class="overline">THE LITTLE THINGS ADD UP</div><h2>Where will your story take you?</h2></div>
+          <div class="anthos-tiles">
+            <button type="button" data-go="whispers"><span>✧</span><strong>Love Whispers</strong><small>Words worth sharing</small><b>↗</b></button>
+            <button type="button" data-go="dive"><span>≋</span><strong>Deep Dives</strong><small>Learn inside a story</small><b>↗</b></button>
+            <button type="button" data-go="dates"><span>☼</span><strong>Date Adventures</strong><small>Make a new memory</small><b>↗</b></button>
+            <button type="button" data-go="journey"><span>❀</span><strong>Our Story</strong><small>See what you've woven</small><b>↗</b></button>
           </div>
         </section>
 
