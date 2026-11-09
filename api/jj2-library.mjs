@@ -55,3 +55,15 @@ export async function saveScenario(data){
  if(rows.length!==1)bad("Version conflict. Reload the library.",409);
  return {ok:true,scenario:rows[0]};
 }
+
+/** Admin-only Episode Studio draft persistence. Existing live room behavior is unchanged. */
+export async function persistEpisodeStudio(id,expected,studio){
+ if(typeof id!=="string"||!uuid.test(id))bad("Invalid scenario ID.");
+ const row=await getScenario(id);
+ if(row.content_version!==expected)bad("This episode was edited elsewhere. Reload before saving.",409);
+ const rows=await rest("anthos_jj2_scenarios",
+  {id:"eq."+id,content_version:"eq."+expected},
+  {episode_studio:studio,content_version:expected+1,updated_at:new Date().toISOString()},"PATCH");
+ if(rows.length!==1)bad("Version conflict. Reload before saving.",409);
+ return rows[0];
+}
