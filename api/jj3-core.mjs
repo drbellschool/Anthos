@@ -127,7 +127,7 @@ export async function begin(token){
  if(recent.some(m=>m.kind==="intro"&&m.step===r.step))return status(token);
  const scenario=await scenarioFor(r);
  let intro="";
- if(r.step===1&&/mountain/i.test(scenario.title))intro=seededIntroduction(p.role,scenario);
+ if(r.step===1&&/mountain/i.test(scenario.title))intro=seededIntroduction(p.role,scenario,p.name);
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
    memory:p.private_memory,latest:"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
@@ -137,7 +137,7 @@ export async function begin(token){
    if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
   }catch{/* Safe, explicit fallback below; no invented canonical event. */}
   if(!intro){
-   if(r.step===1)intro=seededIntroduction(p.role,scenario);
+   if(r.step===1)intro=seededIntroduction(p.role,scenario,p.name);
    else {
    const name=CHARACTER[p.role].firstName;
    intro=name==="Jack"
