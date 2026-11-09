@@ -81,6 +81,20 @@ export const EVOLUTION_STORY_SCHEMA={
   "newDilemma","relationshipConnection","relationshipTrust","unresolvedThread","impacts"]
 };
 
+/** The final beat is a real ending, not a new story prompt or cliffhanger.
+ * These fields describe FICTIONAL character growth from observable events.
+ */
+export const EVOLUTION_FINAL_SCHEMA={
+ ...EVOLUTION_STORY_SCHEMA,
+ properties:{...EVOLUTION_STORY_SCHEMA.properties,
+  closing:{type:"object",additionalProperties:false,properties:{
+   jackChange:{type:"string"},jillChange:{type:"string"},
+   relationshipTruth:{type:"string"},sophiaInsight:{type:"string"},
+   invitation:{type:"string"}
+  },required:["jackChange","jillChange","relationshipTruth","sophiaInsight","invitation"]}
+ },
+ required:[...EVOLUTION_STORY_SCHEMA.required,"closing"]
+};
 export function validateEvolutionStory(story,previous,step,confirmedActions) {
  const errors=[];
  if(!validEvolution(previous)){errors.push("invalid_previous_state");return {ok:false,errors}}
@@ -91,15 +105,25 @@ export function validateEvolutionStory(story,previous,step,confirmedActions) {
  if(!object(story))return {ok:false,errors:[...errors,"missing_story"]};
  if(trim(story.outcome,5000).length<90)errors.push("outcome_too_short");
  if(trim(story.nextScene,3000).length<55)errors.push("next_scene_too_short");
- if(trim(story.location).length<3||trim(story.newDilemma,600).length<25)errors.push("no_playable_new_dilemma");
+ if(trim(story.location).length<3)errors.push("missing_location");
+ if(step<5&&trim(story.newDilemma,600).length<25)errors.push("no_playable_new_dilemma");
+ if(step===5){
+  if(trim(story.newDilemma).length!==0)errors.push("finale_must_not_open_new_dilemma");
+  const c=story.closing;
+  if(!object(c))errors.push("missing_final_closure");
+  else for(const [field,min] of [["jackChange",25],["jillChange",25],
+    ["relationshipTruth",25],["sophiaInsight",35],["invitation",20]]){
+   if(trim(c[field],800).length<min)errors.push("missing_closure_"+field);
+  }
+ }
  if(!Array.isArray(story.facts)||story.facts.length>8)errors.push("invalid_facts");
  if(trim(story.tension).length<8)errors.push("missing_tension");
  if(!Number.isInteger(story.relationshipConnection)||Math.abs(story.relationshipConnection)>LIMIT ||
   !Number.isInteger(story.relationshipTrust)||Math.abs(story.relationshipTrust)>LIMIT)
   errors.push("relationship_impact_out_of_range");
- const nextWords=words(story.newDilemma);
- if(nextWords.size<4)errors.push("dilemma_not_concrete");
  if(step<5){
+  const nextWords=words(story.newDilemma);
+  if(nextWords.size<4)errors.push("dilemma_not_concrete");
   for(const old of [previous.arc.lastDilemma,...previous.arc.seenDilemmas]){
    if(storySimilarity(old,story.newDilemma)>.79){errors.push("stale_dilemma");break}
   }
@@ -150,11 +174,13 @@ export function evolveState(previous,story,step,confirmedActions){
   gain:{jack:trim(story.impacts.jack.immediateGain),jill:trim(story.impacts.jill.immediateGain)},
   cost:{jack:trim(story.impacts.jack.delayedCost),jill:trim(story.impacts.jill.delayedCost)},
   impacts:{jack:Object.fromEntries(AXES.map(k=>[k,story.impacts.jack[k]])),
-   jill:Object.fromEntries(AXES.map(k=>[k,story.impacts.jill[k]]))}
+   jill:Object.fromEntries(AXES.map(k=>[k,story.impacts.jill[k]]))},
+  ...(step===5?{closure:{...story.closing}}:{})
  };
  next.arc.beats.push(events);
  next.arc.seenDilemmas=recentPush(next.arc.seenDilemmas,next.arc.lastDilemma,6);
  next.arc.lastDilemma=trim(story.newDilemma,300);
+ if(step===5)next.arc.closure={...story.closing};
  next.completedBeats=step;
  if(!validEvolution(next))throw new Error("Invalid evolved fictional state");
  return next;
@@ -193,9 +219,11 @@ export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution
    "impacts must have ONE bounded integer delta between -4 and 4 for every axis. These are internal narrative signals, NEVER clinical truth or actual measurements of the human couple. At least one axis per character must change.",
    "For each impact evidence must be a verbatim phrase of at least 12 characters copied from your visible outcome that supports your proposed change. newWant reflects what the character currently wants AFTER this event. beliefShift can be empty unless clearly established.",
    "immediateGain and delayedCost describe observable outcomes where they genuinely occur; either may be empty if not present in this event, but not both. Relationship connection and trust deltas range -4 to 4.",
-   "newDilemma is a concise, specific, actionable NEW conflict, not the previous one. unresolvedThread holds a real unfinished problem. Closing at fifth beat may remain bittersweet; no mandatory happy ending.",
+   step===5?"FINAL BEAT: This is an ENDING, not another chapter. Resolve the current practical issue through the confirmed actions and show its real consequences. If safety or access is involved, show a credible safe resolution rather than ignoring the danger. Do NOT introduce any new dilemma, teaser, cliffhanger, question, or unearned perfect reconciliation. Set newDilemma to EXACTLY an empty string. nextScene is a 55+ character final tableau showing how the day actually ended, not a new decision. tension may name a lingering relationship truth, without reopening the story.":"newDilemma is a concise, specific, actionable NEW conflict rooted in what the couple just did, not the previous one. unresolvedThread holds a real unfinished problem.",
+   step===5?"Include closing with five fields: jackChange and jillChange describe separately what each fictional spouse learned or changed FROM OBSERVABLE STORY EVENTS; relationshipTruth acknowledges what is better and what is unfinished without insisting on a happy ending; sophiaInsight is a warm 1-2 sentence research-informed observation grounded in this fictional experience, no clinical evaluation or scoring; invitation is one OPTIONAL small real-world couple action the participants may choose, not a homework requirement. Do not quote or infer either human participant's private coaching text.":"The last beat will provide the reflective ending, not this beat.",
    "Wit comes from Jack and Jill being human. Avoid formulaic resolutions and tidy lessons. Outcome 100-170 words, nextScene 55-100 words, ordinary accessible English.",
-   "Eight hidden learning milestones may inform consequences, but NEVER gate progress or appear as visible chapters."
+   "Eight hidden learning milestones may inform consequences, but NEVER gate progress or appear as visible chapters.",
+   step===5?"Close this episode decisively. No line should ask the participants to decide what Jack or Jill will do next. Sophia can name a useful pattern without rating the coaches or prescribing therapy.":""
   ].join(" "),
   input:{scenario:{title:scenario.title,learningObjective:scenario.learning_objective,
     researchLenses:scenario.research_lenses,initialScene:scenario.opening_scene},
