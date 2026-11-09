@@ -87,7 +87,8 @@ function mount(root,invite,options={}){
   const nextKey=[
    state.role,state.joined,state.bothJoined,state.phaseIndex,state.stage,
    state.needsReply,state.submitted,state.finished,state.canContinue,
-   state.waitingFor?.join(",")||"",state.scenes?.length||0,autoFailed
+   // Another coach submitting is not a reason to steal this coach's focus.
+   state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,autoFailed
   ].join("|");
   if(nextKey===controlsKey)return;
   controlsKey=nextKey;
