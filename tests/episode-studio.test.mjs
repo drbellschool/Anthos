@@ -93,7 +93,7 @@ test("Admin retains left navigation and shows objectives, six-phase flow, integr
 });
 test("Check-ins are placed between phases and offer private sender targeting, reply gating and a humor cue",()=>{
  assert.match(ui,/if\(index===current\.phases\.length-1\)continue/);
- assert.match(ui,/data\.checkpointAudience/);
+ assert.match(ui,/dataset\.checkpointAudience/);
  assert.match(ui,/Jack → husband only/);
  assert.match(ui,/Jack \+ Jill → both, separately/);
  assert.match(ui,/Jill → wife only/);
