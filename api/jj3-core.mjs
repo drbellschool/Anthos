@@ -351,7 +351,7 @@ async function resolveRoom(room){
    problem("The story state needs repair before it can advance. No choices were lost.",502);
   const prompt=evolving
    ?evolutionStoryPrompt({mode:current.mode,scenario,scene:current.scene,step:current.step,
-     actions,evolution:current.evolution_state,autoplay:!!current.autoplay})
+     actions,evolution:current.evolution_state,autoplay:!!current.autoplay,guided:guidedRoom(current)})
    :storyPrompt({mode:current.mode,scenario,scene:current.scene,step:current.step,actions});
   let story=null,validationProblems=[];
   for(let attempt=0;attempt<(current.autoplay?1:2);attempt++){
