@@ -1,7 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {deepDiveRequest} from "./jj-model-config.mjs";
-import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
+import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
 import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
@@ -314,10 +314,11 @@ async function resolveRoom(room){
    try{
     const retry=attempt
      ?" Your prior outcome was not usable: "+validationProblems.slice(0,5).join(", ")+
-      ". Show the consequences and make the new dilemma different from the opening conflict."
+      (current.step===5?". End the episode with a complete closure, no new dilemma, and an actual resolution.":". Show consequences and a fresh dilemma rather than repeating the opening conflict.")
      :"";
     const candidate=await model(prompt.instructions+retry,prompt.input,
-     evolving?EVOLUTION_STORY_SCHEMA:STORY_SCHEMA,evolving?"jj_evolution_outcome":"jj3_story_outcome");
+     evolving?(current.step===5?EVOLUTION_FINAL_SCHEMA:EVOLUTION_STORY_SCHEMA):STORY_SCHEMA,
+     evolving?(current.step===5?"jj_evolution_finale":"jj_evolution_outcome"):"jj3_story_outcome");
     const verdict=evolving
      ?validateEvolutionStory(candidate,current.evolution_state,current.step,actions)
      :{ok:validStory(candidate,current.step),errors:["invalid_story"]};
@@ -328,7 +329,14 @@ async function resolveRoom(room){
   if(!story)problem("The next event needs a fresh attempt; your choices remain saved.",502);
   const next={scene:safe(plainCharacterLanguage(story.nextScene),1800),location:safe(story.location,140),
    tension:safe(story.tension,500),facts:story.facts.slice(0,8).map(x=>safe(x,200)),
-   research:safe(story.researchNote,450),title:scenario.title};
+   research:safe(story.researchNote,450),title:scenario.title,
+   ...(evolving&&current.step===5?{closure:{
+    jackChange:safe(story.closing.jackChange,650),
+    jillChange:safe(story.closing.jillChange,650),
+    relationshipTruth:safe(story.closing.relationshipTruth,650),
+    sophiaInsight:safe(story.closing.sophiaInsight,750),
+    invitation:safe(story.closing.invitation,500)
+   }}:{})};
   const evolved=evolving?evolveState(current.evolution_state,story,current.step,actions):null;
   const published=await db(evolving?"rpc/anthos_jj3_publish_evolution":"rpc/anthos_jj3_publish",{},{
    p_room:room.id,p_step:current.step,p_token:claimToken,
