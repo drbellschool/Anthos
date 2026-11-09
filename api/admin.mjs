@@ -76,9 +76,9 @@ function validOrigin(request) {
 async function bodyJSON(request) {
   if (!(request.headers.get("content-type")||"").toLowerCase().startsWith("application/json")) throw new Error("JSON only");
   const size = Number(request.headers.get("content-length") || "0");
-  if (size > 16000) throw new Error("Request too large");
+  if (size > 32768) throw new Error("Request too large");
   const text = await request.text();
-  if (text.length > 16000) throw new Error("Request too large");
+  if (text.length > 32768) throw new Error("Request too large");
   const data = JSON.parse(text);
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid data");
   return data;
