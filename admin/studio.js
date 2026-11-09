@@ -144,7 +144,7 @@
       button.addEventListener("click",()=>showTab(button.dataset.studioTab)));
     document.querySelectorAll(".persona-run").forEach(button=>
       button.addEventListener("click",()=>rehearsePersona(button.dataset.persona,button)));
-    setupPersonas();deepDive();
+    setupPersonas();if($("objectiveCards"))deepDive();
     document.addEventListener("threefold-auth",event=>{
       const ok=Boolean(event.detail?.authenticated);
       $("studioNav").hidden=!ok;

@@ -1,0 +1,60 @@
+/* Anthos 4.0 Episode Studio: editorial workspace consistent with existing admin sidebar. */
+.episode-overview{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 22px}
+.episode-overview span{background:#e8efe9;border:1px solid #d0dcd5;border-radius:11px;padding:11px 14px;color:#1b4236;font-size:12px;font-weight:650}
+.episode-studio[hidden],#jj2Browse[hidden],.episode-page[hidden]{display:none!important}
+.episode-studio{margin-top:12px;background:#fafbf9;border:1px solid #cfdcd7;border-radius:16px;padding:20px;display:grid;gap:16px;color:#163b32}
+.episode-studio-head{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.episode-studio-head h3{font-family:Georgia,serif;font-size:clamp(23px,2.2vw,33px);font-weight:500;line-height:1.12;margin:5px 0}
+.episode-studio-head .eyebrow{margin:12px 0 0}
+.episode-quiet{border:0;background:transparent;padding:0;color:#315d52;text-decoration:underline;cursor:pointer;font-size:12px;font-weight:650}
+.episode-save-state{border:1px solid #ccded2;border-radius:999px;background:#e7f2e8;color:#285e3a;font-size:11px;padding:7px 12px;white-space:nowrap;font-weight:700}
+.episode-save-state.modified{background:#fff2dc;color:#745221;border-color:#ead3a6}
+.episode-actions{display:flex;flex-wrap:wrap;gap:9px}
+.episode-notice{background:#f0f6f1;border-radius:9px;padding:10px 12px;border:1px solid #d3e5d8;font-size:13px;color:#295742}
+.episode-notice.error{background:#fff2f1;color:#843e32;border-color:#eacbc3}
+.episode-studio label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:730;color:#365e55}
+.episode-studio input:not([type="checkbox"]),.episode-studio textarea,.episode-studio select{display:block;width:100%;background:#fff;border:1px solid #c9d8d1;border-radius:10px;padding:11px 12px;font-family:inherit;font-size:13px;line-height:1.45;color:#183c35;resize:vertical;box-sizing:border-box}
+.episode-studio input:focus,.episode-studio textarea:focus,.episode-studio select:focus{outline:2px solid #9bcab4;outline-offset:1px}
+.episode-studio textarea{min-height:70px}
+.episode-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;border-bottom:1px solid #c9d8cf;padding:0 0 10px}
+.episode-tabs button{background:#f0f2ee;border:1px solid #d8e2dc;color:#2a5043;border-radius:8px;padding:12px 6px;font-size:12px;font-weight:750;cursor:pointer}
+.episode-tabs button.active{background:#0c4a34;color:#fff;border-color:#0c4a34}
+.episode-page{display:grid;gap:15px;padding-top:6px}
+.episode-page h4{font:500 25px/1.2 Georgia,serif;color:#153e31;margin:0}
+.episode-page p{font-size:13px;line-height:1.5;color:#5f736b;margin:0}
+.episode-researchers{display:flex;flex-wrap:wrap;gap:8px}
+.episode-researcher{background:#f6f5ee;border:1px solid #d7dfd9;padding:11px 18px;border-radius:10px;color:#2b5943;font-weight:750;cursor:pointer}
+.episode-researcher.active{background:#0d5238;color:white;border-color:#0d5238}
+.episode-skill-list{max-height:435px;overflow:auto;display:grid;align-content:start;gap:6px;padding:2px}
+.episode-skill{background:white;border:1px solid #d8e4dc;display:grid;grid-template-columns:minmax(0,1fr) 105px 100px;align-items:center;gap:8px;border-radius:9px;padding:10px}
+.episode-skill-text{display:grid;gap:3px}
+.episode-skill-text strong{font-size:13px;color:#193b31}
+.episode-skill-text small{font-size:11px;line-height:1.3;color:#65786e}
+.episode-mini{background:#eff3ed;border:1px solid #d4ded7;border-radius:7px;color:#2c5745;padding:8px 7px;font-size:11px;font-weight:700;cursor:pointer}
+.episode-mini.selected{background:#dceee1;border-color:#8cc0a3;color:#135b38}
+.episode-mini:disabled{opacity:.5;cursor:not-allowed}
+.episode-grid{display:grid;gap:13px}
+.episode-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.episode-field-title{font-size:12px;color:#365e55}
+.episode-supports{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;min-height:38px;font-size:12px;color:#648075}
+.episode-support-pill{background:#e0eee8;color:#225841;border:1px solid #b7d6c5;border-radius:20px;font-size:11px;padding:7px 10px;cursor:pointer}
+.episode-phase-list{display:grid;gap:9px}
+.episode-phase-row{display:grid;grid-template-columns:180px minmax(0,1fr);gap:14px;align-items:start;background:#fff;border:1px solid #d6e1da;border-radius:11px;padding:13px}
+.episode-phase-head{display:flex;align-items:center;gap:9px;color:#28483b}
+.episode-phase-head strong{font-size:15px}
+.episode-phase-number{width:30px;height:30px;border-radius:50%;background:#f4dfc9;color:#5f3e25;display:grid;place-items:center;font-weight:800}
+.episode-phase-row:nth-child(2) .episode-phase-number{background:#f3cecc}
+.episode-phase-row:nth-child(3) .episode-phase-number{background:#d7ebf7}
+.episode-phase-row:nth-child(4) .episode-phase-number{background:#f9ebc6}
+.episode-phase-row:nth-child(5) .episode-phase-number{background:#dcecd6}
+.episode-phase-row:nth-child(6) .episode-phase-number{background:#e8ddf4}
+.episode-phase-row small{display:block;color:#5f7568;font-size:11px;margin-bottom:8px}
+.episode-hint{background:#fff8e9;border-left:3px solid #d8b581;border-radius:6px;padding:12px}
+.episode-readiness{border:1px solid #d9e4db;border-radius:12px;overflow:hidden;background:white}
+.episode-check{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #edf1ed;font-size:12px;color:#76564b}
+.episode-check span:first-child{font-size:17px;color:#ad8f7c}
+.episode-check.ok{color:#295940}
+.episode-check.ok span:first-child{color:#2c8351}
+.episode-page .episode-summary{padding:13px;color:#20513c;font-weight:750;background:#edf5ee}
+@media(max-width:920px){.episode-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.episode-phase-row{grid-template-columns:1fr}}
+@media(max-width:640px){.episode-studio{padding:12px}.episode-grid.two{grid-template-columns:1fr}.episode-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.episode-skill{grid-template-columns:minmax(0,1fr) 85px 85px}.episode-skill-text strong{font-size:12px}.episode-mini{font-size:10px}}
