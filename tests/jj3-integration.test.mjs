@@ -73,11 +73,16 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
       unresolvedThread:"The couple must decide how much to change their plans without losing themselves",
       impacts:{jack:effect("jack"),jill:effect("jill")}};
    };
+   const authorized=/go make a plan|give it a try/i.test(input.latest||"");
+   const characterName=input.character||"Jack";
+   const authorizedReply=characterName==="Jack"
+    ?"Okay, I'm gonna ask Jill what kind of weekend she wants, then suggest a hike that works for both of us."
+    :"I'm gonna ask Jack what his backup plan is, then we can figure out what actually sounds fun.";
    const reply=type==="jj_evolution_outcome"?evolutionMock():type==="jj3_story_outcome"?
       {outcome:"Jack starts toward his mountain, and Jill heads for the reading terrace. Both have chosen independently, so their morning becomes funny and complicated. A ranger announces the ridge has closed while a festival starts on the lakeshore, setting up an unexpected reunion later in the day.",
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
-    :{characterReply:type==="jj3_intro"?"Buddy, that happened so fast. I'm worried Jill thinks I only care about hiking. I have a ridiculous plan, but I'm not sure I should say it out loud. Can you help me think through it?":
+    :{characterReply:authorized?authorizedReply:type==="jj3_intro"?"Buddy, that happened so fast. I'm worried Jill thinks I only care about hiking. I have a ridiculous plan, but I'm not sure I should say it out loud. Can you help me think through it?":
        /^(?:yes|yep|sure|go ahead|do that)/i.test(input.latest||"")?
        "Okay, I'm going to text Jill and ask whether she'd like a quiet evening together. I'm nervous I'll sound like I've been replaced by a suspiciously considerate stranger.":
        "Oh, that's a real suggestion in round "+aiCalls+". I want to try that, but I'm nervous I'll come off as selfish. Part of me wants adventure and part of me wants Jill to feel heard. I might even apologize to the inflatable moose if this gets any stranger.",
