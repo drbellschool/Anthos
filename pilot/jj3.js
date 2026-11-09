@@ -45,7 +45,8 @@ function render(s){
  const completed=s.status==="complete";
  $("adventureLine").textContent=s.mode==="individual"?"Private solo adventure":"Two private friendships · One shared adventure";
  $("storyTitle").textContent=s.title||"An Anthos Adventure";
- $("moment").textContent=completed?"Adventure complete":"Moment "+s.step+" of 5";
+ $("moment").textContent=completed?"Adventure complete · The end":s.step===5?"Final moment · One last choice":"Moment "+s.step+" of 5";
+ $("sceneLabel").textContent=completed?"How the story ends":s.step===5?"The final situation":"The scene";
  const prog=$("storyProgress");prog.replaceChildren();
  for(let n=1;n<=5;n++){const d=document.createElement("span");d.className=n<s.step||completed?"done":n===s.step?"current":"";prog.append(d)}
  $("sceneText").textContent=s.scene?.scene||"An entirely new adventure is about to begin.";
@@ -88,7 +89,7 @@ function render(s){
   $("waitingText").textContent=s.otherSubmitted?"Both moves are in. The shared story is being written.":"Your friend has made their move. We're waiting for the other private coach; nobody sees your messages.";
  }
  $("reflectionPanel").hidden=!completed;
- if(completed)$("moment").textContent="Adventure complete · The end";
+
  $("reflection").hidden=!!s.reflectionComplete;
  $("saveReflection").hidden=!!s.reflectionComplete;
  $("reflectionDone").hidden=!s.reflectionComplete;
