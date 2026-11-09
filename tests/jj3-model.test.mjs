@@ -190,7 +190,7 @@ test("a game-night opening must give Jack and Jill separate playable decisions",
  assert.match(jack,/^Adam,/);
  assert.match(jill,/^Alissa,/);
  for(const text of [jack,jill]){
-  assert.match(text,/rubber duck/i);
+  assert.match(text,/rubber[- ]duck/i);
   assert.match(text,/tape/i);
   assert.match(text,/six minutes|six-minute/i);
   assert.match(text,/\?/);
