@@ -30,6 +30,7 @@ function messageBubble(entry){
 }
 function render(s){
  state=s;
+ $("versionLabel").textContent="PRIVATE BROWSER PILOT "+(s.version||"");
  $("welcome").hidden=s.consent;$("experience").hidden=!s.consent;
  $("welcomeTitle").textContent="Meet "+s.character;
  $("welcomeText").textContent=s.character==="Jack"
