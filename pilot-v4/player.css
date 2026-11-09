@@ -24,3 +24,11 @@
 .jj4-standalone .jj4-player{flex:1;min-height:560px}
 .jj4-notice{font:12px/1.4 system-ui;color:#617b6d;margin:0}
 @media(max-width:670px){.jj4-standalone{padding:8px}.jj4-standalone .jj4-player{min-height:calc(100vh - 100px)}}
+
+/* Sophia is a distinct post-story educator, not a seventh forced scene. */
+.jj4-entry.sophia{background:#edf4ec;border:1px solid #7ba690;border-left:4px solid #2c8057;padding:13px}
+.jj4-entry.sophia .jj4-entry-label{color:#276048;font-size:10px}
+.jj4-entry.sophia p{font-size:12.5px;line-height:1.7;white-space:pre-wrap}
+.jj4-sources{display:grid;gap:5px;border-top:1px solid #c9dbc9;padding-top:9px;margin-top:10px}
+.jj4-source{color:#185b43;font-size:11px;text-decoration:underline;line-height:1.4}
+.jj4-source:hover{text-decoration:none}
