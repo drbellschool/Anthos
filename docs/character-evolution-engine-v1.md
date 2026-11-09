@@ -60,10 +60,10 @@ Both Jack's and Jill's private conversations, their step introductions, and the 
 
 - The Deep Dive-specific Vercel variable is \`ANTHOS_JJ_MODEL=gpt-6-luna\` in production and preview.
 - \`ANTHOS_JJ_MODEL\` takes precedence over the hardcoded Luna default; the legacy global \`OPENAI_MODEL\` no longer controls Jack & Jill. This prevents unrelated Anthos features from being changed incidentally.
-- Private character replies use \`reasoning.effort=none\` to prioritize responsive natural conversation; shared story/causal evolution outcomes use \`low\` to allow additional planning.
-- First-attempt structured output budgets are 2,100 tokens for individual replies and 3,900 for story outcomes; retries get 3,000 and 5,000 respectively. These are budgets, not fixed usage.
+- Private character replies use \`reasoning.effort=medium\` to understand nuanced advice and natural permissions; shared story/causal evolution outcomes use \`high\` to coordinate both choices and their lasting consequences.
+- First-attempt output budgets are 3,900 tokens for character replies and 7,500 for story outcomes; retries get 5,500 and 10,000 respectively. Hidden reasoning tokens count toward these budgets. Response timeouts allow more time for the higher reasoning effort.
 - Preserve \`store:false\` and schema-constrained JSON outputs. The API key stays in a server-only environment variable.
-- Automated request-interception tests verify model identifier, reasoning effort, schema and token budgets. A green build does not prove live story quality or provider-side permissions; validate with the normal private pilot before customer launch.
+- Automated request-interception tests verify model identifier, reasoning effort, schema and token budgets. A green build does not prove live story quality or provider-side permissions; validate with the normal private pilot before customer launch. Higher reasoning might reduce redundant conversation turns, but may increase latency and per-request cost; measure both.
 
 Official documentation: https://developers.openai.com/api/docs/models/gpt-6-luna
 
