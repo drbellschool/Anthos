@@ -9,9 +9,9 @@ if(/^[A-Za-z0-9_-]{43}$/.test(supplied)){
  url.searchParams.delete("invite");history.replaceState(null,"",url.pathname+url.search+url.hash);
 }
 const token=supplied||sessionStorage.getItem(storedKey)||"";
-let state=null,busy=false,openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0;
+let state=null,busy=false,activeRequest="",openingStep=null,queuedKey=null,queuedText="",historyOpen=false,lastProgressTry=0;
 const error=t=>{$("error").textContent=t||""};
-const busySet=v=>{busy=v;for(const id of ["send","saveReflection"])$(id).disabled=v};
+const busySet=(v,request="")=>{busy=v;activeRequest=v?request:"";for(const id of ["send","saveReflection"])$(id).disabled=v; if(state?.character) $("send").textContent=activeRequest==="talk"?state.character+" is thinking…":"Send to "+state.character+" →";};
 async function api(action,body={}){
  const option={headers:{"x-anthos-pilot-token":token},credentials:"same-origin",cache:"no-store"};
  if(action){option.method="POST";option.headers["Content-Type"]="application/json";option.body=JSON.stringify({action,...body})}
@@ -54,7 +54,7 @@ function render(s){
  $("chatSubtitle").textContent="Private texts from "+s.character+" to "+(s.name||"you");
  $("composeLabel").textContent="Message "+s.character;
  $("message").placeholder="Just talk to "+s.character+"…";
- $("send").textContent="Send to "+s.character+" →";
+ $("send").textContent=activeRequest==="talk"?s.character+" is thinking…":"Send to "+s.character+" →";
  const shared=s.shared||[],latest=shared.at(-1);
  $("sharedSection").hidden=!latest;
  if(latest){
@@ -104,7 +104,7 @@ async function load(quiet=false){
 }
 async function afterAction(action,data={}){
  if(busy)return false;
- busySet(true);error("");
+ busySet(true,action);error("");
  try{render(await api(action,data));return true}
  catch(e){error(e.message);return false}
  finally{busySet(false)}
