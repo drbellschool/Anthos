@@ -49,7 +49,7 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
  const c=CHARACTER[role];
  return {
   instructions:[
-   "You are "+c.firstName+", a recurring fictional adult character in Anthos' Jack & Jill Method. You SPEAK DIRECTLY in first person with your private friend, "+(name||"your coach")+".",
+   "You are "+c.firstName+", sending private text messages DIRECTLY to your friend "+(name||"your friend")+". The other person typing is "+(name||"your friend")+", not your spouse and not Sophia. Use their name naturally when it fits. Speak in first person as a real person texting a friend.",
    "You are not Sophia; do not narrate yourself in third person or explain that you are an AI. Do not speak for your spouse. You are a fictional character and your friend understands this.",
    "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
    "You have your own emotional stakes. Share inner contradictions, embarrassing doubts, memory and humor as a real person would. Have priorities and limits. You can respectfully push back, ask one real question, or change your mind gradually. NEVER become a yes-man for the coach.",
@@ -68,9 +68,9 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
    "The Decision Director recognizes practical advice addressed directly to YOU, not merely advice using your name. Examples: 'Have you tried asking her what she likes?' to Jack means action='Jack asks Jill what she would enjoy'; 'You should drive him to the trail and read while he hikes' to Jill means action='Jill offers to drive Jack to the trail and read while he hikes'.",
    "When the coach gives concrete advice, including questions like 'could you...', 'have you tried...', 'how about...' or second-person 'you should...', provide the character-owned action and an evidence substring EXACTLY copied from their latest message (8+ characters). No action for vague observations, pure questions about facts, or attempts to control the OTHER character alone. The coach must still explicitly confirm the proposed move in the UI.",
    "When your friend explicitly says go ahead, do it, give it a try or go make the plan, accept that as permission to ACT in the fictional world. State your specific first-person intention and then let the world react; do not demand another confirmation or an interface button.",
-   "When you actually intend to try a specific move, say it naturally in FIRST person ('I think I'll ask Jill if she wants to sit by the fire'). Set characterProposal to a short third-person action ('Jack asks Jill whether she wants to sit by the fire') and proposalEvidence to an EXACT phrase from characterReply proving that intention. These are drafts only; the coach must explicitly confirm. Do not manufacture a move merely to progress. If the friend suggests something you resist, reflect that resistance instead of claiming agreement.",
+   "When you actually intend to try a specific move, say it naturally in FIRST person ('I think I'll ask Jill if she wants to sit by the fire'). Set characterProposal to a short third-person action ('Jack asks Jill whether she wants to sit by the fire') and proposalEvidence to an EXACT phrase from characterReply proving that intention. These record what you intend to do; there is no separate confirmation button. Do not manufacture a move merely to progress. If the friend suggests something you resist, reflect that resistance instead of claiming agreement.",
    "If you're only brainstorming, expressing worry, asking for more information or suggesting hypothetical possibilities, return empty characterProposal and proposalEvidence. Do not pre-decide the spouse's reaction.",
-   "Do not say 'Tell Jack what to do', 'Tell Jill what to do', 'choose your character's action', 'submit your choice', or other interface language. Just talk as a friend. If the plan is ready, casually offer 'Want to see how that goes?'",
+   "Do not say 'Tell Jack what to do', 'Tell Jill what to do', 'choose your character's action', 'submit your choice', or other interface language. Just talk as a friend. If the plan is ready and your friend agreed, move forward naturally instead of asking the same question again.",
    "Return JSON with characterReply, sophiaAside, action, evidence, characterProposal, proposalEvidence, privateMemory, learningMilestones. privateMemory should summarize no more than 3 internal concerns/changes, never a real personal disclosure about the user.",
    "If the coach raises real abuse, coercion or immediate danger, leave playful game mode and provide calm safety-centered advice without pressuring reconciliation."
   ].join(" "),
@@ -154,33 +154,43 @@ export function actionFromCharacterAgreement(role,coachMessage,reply,proposal,ev
  * Only direct first-person intent with an observable verb is previewed.
  * It NEVER commits the action, and does not direct the other character.
  */
-export function actionFromCharacterWords(role,coachMessage,characterReply){
- const coach=typeof coachMessage==="string"?coachMessage.trim():"";
+/** Extract what a fictional character explicitly decided to do, never their spouse's choice.
+ * This is story continuity, not a clinical inference. The instruction must be in
+ * the character's own first-person words and refer to an observable action.
+ */
+export function ownCharacterIntent(role,characterReply){
  const reply=typeof characterReply==="string"?characterReply.trim():"";
- if(coach.length<3||!reply)return "";
- const name=role==="jack"?"Jack":"Jill",other=role==="jack"?"Jill":"Jack";
- const directedOther=new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|will|can|could|has to)\\b","i");
- if(directedOther.test(coach))return "";
- // Natural permissions are valid even if they do not start with "yes".
- // Never turn a question or a mere observation into a decision.
- const consent=/\b(?:yes|yep|yeah|sure|okay|ok|absolutely|exactly|go ahead|do that|sounds good|i agree|let'?s do it|give it a try|try it|go make a plan|go for it|worth the risk|see if it works|see what happens|that's the plan|that will work|make a plan|you should|could you|would you|have you tried|what if|how about|why don.t you|ask|tell|invite|offer|text|call|suggest|plan)\b/i;
- if(!consent.test(coach))return "";
- // Must be the character's OWN definite intention, not a hypothetical.
- const intent=/\b(?:I['’]ll|I will|I am going to|I'm going to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(ask|tell|text|call|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|try)\b\s+([^.!?\n]{3,150})/i;
- const match=reply.match(intent);
+ const name=role==="jack"?"Jack":"Jill";
+ const match=reply.match(/\b(?:I['’]ll|I will|I am going to|I['’]m going to|I['’]m gonna|I['’]m planning to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(ask|tell|text|call|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|arrange|book|try)\b\s+([^.!?\n]{3,150})/i);
  if(!match)return "";
- const verb=match[2].toLowerCase()==="pitching"?"pitch":match[2].toLowerCase();
+ let verb=match[2].toLowerCase()==="pitching"?"pitch":match[2].toLowerCase();
  let rest=match[3].trim();
- // "I'll try pitching..." and "I'll try to pitch..." carry the same plan.
  if(verb==="try"){
-  const sub=rest.match(/^(?:to\s+)?(pitch|propose|suggest|ask|tell|offer|plan|invite|text|call|send|take|bring|share|schedule|arrange|book|drive|meet|walk|explain|apologize)(?:ing)?\s+(.+)$/i);
-  if(!sub)return "";
-  rest=sub[2]; 
-  return name+" plans to "+sub[1].toLowerCase()+" "+rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"")+".";
+  const nested=rest.match(/^(?:to\s+)?(pitch|propose|suggest|ask|tell|offer|plan|invite|text|call|send|take|bring|share|schedule|arrange|book|drive|meet|walk|explain|apologize)(?:ing)?\s+(.+)$/i);
+  if(!nested)return "";
+  verb=nested[1].toLowerCase();rest=nested[2];
  }
  const bounded=rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
  if(bounded.length<5)return "";
- return name+(match[1]?" plans to ":" will ")+verb+" "+bounded+".";
+ return name+" plans to "+verb+" "+bounded+".";
+}
+export function briefApproval(message){
+ if(typeof message!=="string")return false;
+ const text=message.trim().replace(/[.!]+$/,"").trim();
+ return /^(?:yes|yep|yeah|sure|okay|ok|absolutely|exactly|go ahead|do that|sounds good|sounds like it|that sounds good|works for me|give it a try|go for it|i agree|let'?s do it|i think that will work)(?:[,!. ]*)$/i.test(text);
+}
+export function asksForAction(message){
+ if(typeof message!=="string")return false;
+ return /\b(?:what are you planning (?:on )?doing|what(?:'s| is) your plan|so what will you do|what are you going to do|what do you plan to do|go (?:and )?(?:make|try|do)|tell (?:her|him)|ask (?:her|him)|you should|you need to|give it a try|let'?s try)\b/i.test(message);
+}
+export function actionFromCharacterWords(role,coachMessage,characterReply){
+ const coach=typeof coachMessage==="string"?coachMessage.trim():"";
+ if(coach.length<3)return "";
+ const other=role==="jack"?"Jill":"Jack";
+ if(new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|will|can|could|has to)\\b","i").test(coach))return "";
+ if(!briefApproval(coach)&&!explicitGoAhead(coach)&&!asksForAction(coach)&&
+   !/\b(?:maybe|should|could you|would you|try|have you|what if|how about|ask|tell|invite|offer|text|call|suggest|plan)\b/i.test(coach))return "";
+ return ownCharacterIntent(role,characterReply);
 }
 
 /** Flag obvious AI-sounding agreement so we can request one better reply.
