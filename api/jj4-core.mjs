@@ -225,6 +225,44 @@ export async function advance(token){
  }
  return status(token);
 }
+/** Sophia's independent post-story epilogue.
+ * Includes a research-grounded closing for older completed 4.0 pilots. */
+export async function sophia(token){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join the episode before Sophia's closing reflection.",403);
+ if(room.stage!=="complete")return status(token);
+ const claim=randomUUID();
+ const acquired=await db("rpc/anthos_jj4_claim_closure",{},
+  {p_room:room.id,p_claim:claim},"POST");
+ if(acquired!==true)return status(token);
+ try{
+  const [scenes,people]=await Promise.all([
+   db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",
+    order:"phase_index.asc",limit:"6",select:"body,phase_index"}),
+   db(P,{room_id:"eq."+room.id,select:"role,first_name"})
+  ]);
+  const sanitized=(scenes||[]).map(scene=>{
+   let body=scene.body||"";
+   for(const p of people||[]){
+    const name=p.first_name?.trim();
+    if(!name||name.length<2||["jack","jill"].includes(name.toLowerCase()))continue;
+    for(const candidate of new Set([name,name.toLowerCase(),name.toUpperCase()])){
+     body=body.split(candidate).join(p.role==="jack"?"Jack":"Jill");
+    }
+   }
+   return {...scene,body};
+  });
+  const closure=await draftSophiaClosure(room.episode,sanitized);
+  const committed=await db("rpc/anthos_jj4_commit_closure",{},
+   {p_room:room.id,p_claim:claim,p_message:closure},"POST");
+  if(committed!==true)error("Sophia's closing reflection could not be saved. Retry.",502);
+ }catch(e){
+  await db(R,{id:"eq."+room.id,processing_token:"eq."+claim,stage:"eq.complete"},
+   {processing_token:null,processing_at:null},"PATCH").catch(()=>{});
+  throw e;
+ }
+ return status(token);
+}
 export async function coach(token,body,requestKey){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join before advising your character.",403);
