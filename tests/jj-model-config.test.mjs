@@ -23,7 +23,7 @@ test("private character messages use Luna with medium reasoning for thoughtful f
  assert.equal(retry.max_output_tokens,5500);
 });
 test("shared story outcomes use Luna high reasoning for consistent evolving consequences",()=>{
- for(const name of ["jj_evolution_outcome","jj3_story_outcome"]){
+ for(const name of ["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"]){
   const first=deepDiveRequest({...base,name,env:{}});
   const retry=deepDiveRequest({...base,name,attempt:1,env:{}});
   assert.equal(first.model,"gpt-6-luna");
