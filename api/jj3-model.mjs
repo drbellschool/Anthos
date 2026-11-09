@@ -274,9 +274,10 @@ export function concreteCharacterMove(role,reply){
  const name=role==="jill"?"Jill":"Jack";
  const said=typeof reply==="string"?reply:"";
  const existing=ownCharacterIntent(role,said);
- if(existing)return existing;
+ // Prefer the action already being taken ("I'm calling") over a later
+ // supporting promise ("I'll ask Jack"). This avoids skipping the main step.
  const m=said.match(/\bI['’]m\s+(calling|checking|counting|asking|telling|inviting|offering|planning|booking|arranging|bringing|sharing|taking|listening|apologizing|making|preparing|choosing|playing|sending|trying|helping|explaining)\s+([^.!?\n]{5,140})/i);
- if(!m)return "";
+ if(!m)return existing;
  const verb={
   calling:"call",checking:"check",counting:"count",asking:"ask",telling:"tell",
   inviting:"invite",offering:"offer",planning:"plan",booking:"book",
