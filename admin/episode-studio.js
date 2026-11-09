@@ -338,6 +338,21 @@ async function pilotEpisode(){
   pilot=room;
   const board=$("episodePilotBoard");
   board.hidden=false;
+  const plan=$("episodePilotPlan");
+  plan.replaceChildren();
+  const snapshot=collect();
+  for(const [index,phase] of current.phases.entries()){
+   const row=node("li","episode-pilot-plan-item");
+   row.append(node("strong","",phase.title+" — "));
+   row.append(node("span","",snapshot.phases?.[phase.id]||"No summary saved."));
+   if(index<5){
+    const cp=snapshot.checkpoints.find(x=>x.afterPhase===phase.id);
+    const role=cp?.audience==="both"?"Both private coaches":
+      cp?.audience==="jack"?"Jack → husband":cp?.audience==="jill"?"Jill → wife":"No intervention";
+    row.append(node("small","",role+" · "+(cp?.purpose||"Story continues")));
+   }
+   plan.append(row);
+  }
   const jack=$("episodeHusbandLink"),jill=$("episodeWifeLink");
   jack.href=room.invitations.jack;jill.href=room.invitations.jill;
   $("episodePilotStatus").textContent=
