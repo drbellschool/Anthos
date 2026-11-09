@@ -21,7 +21,8 @@ test("story progresses automatically while private messages remain conversationa
  assert.match(client,/s\.submitted&&s\.otherSubmitted/,
    "Legacy two-coach progress still works");
  assert.doesNotMatch(client,/s\.otherSubmitted&&!s\.processing/);
- assert.match(html,/Your friend is putting that plan into action/);
+ assert.match(html,/Jack and Jill are living out the adventure/);
+ assert.match(html,/carry the story forward without more coaching/);
 });
 
 test("the final story has visible closure and private reflection is optional",()=>{
