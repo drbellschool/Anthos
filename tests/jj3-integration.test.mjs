@@ -12,10 +12,10 @@ const scenario={id:sid,title:"One of Us Loves Mountains",petal_slug:"adventure-p
  opening_scene:"Jack has packed hiking gear. Jill has brought her books. Both want a different weekend in the same cabin.",
  learning_objective:"Respect the distinct needs for rest and adventure.",research_lenses:["gottman","schnarch","aron"]};
 
-function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false}={}){
+function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false,guided=false}={}){
  let room={id:rid,title:scenario.title,scenario_id:sid,petal_slug:"adventure-play",mode,
-  status:"active",step:1,autoplay,scene:{scene:scenario.opening_scene,tension:scenario.learning_objective},
-  ...(evolving?{engine_version:ENGINE_VERSION,evolution_state:initialEvolution(scenario)}:{}),
+  status:"active",step:1,autoplay,guidance_mode:guided?"guided":"legacy",scene:{scene:scenario.opening_scene,tension:scenario.learning_objective},
+  ...(evolving?{engine_version:guided?"3.3.0":ENGINE_VERSION,evolution_state:initialEvolution(scenario)}:{}),
   processing_token:null,processing_at:null,expires_at:"2099-01-01"};
  const people=[{id:"22222222-2222-4222-8222-222222222222",room_id:rid,role:"jack",token_hash:hash(tokens.jack),
     name:null,consented_at:null,pending_step:null,pending_action:null,submitted_step:null,submitted_action:null,
@@ -121,15 +121,17 @@ function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false
   const path=u.pathname,qs=u.searchParams;
   if(path.endsWith("/rpc/anthos_jj3_commit_coach_move")){
    const p=people.find(x=>x.id===body.p_participant);
-   if(!room.autoplay||room.step!==1||!p||p.submitted_step===1||
-    messages.some(m=>m.role===p.role&&m.kind==="coach"&&m.step===1))return out(false);
-   messages.push({id:++next,room_id:rid,role:p.role,author:"coach",kind:"coach",step:1,
+   const validStep=room.guidance_mode==="guided"?[1,3,5].includes(body.p_step):body.p_step===1;
+   if(!room.autoplay||room.step!==body.p_step||!validStep||!p||p.submitted_step===room.step||
+    messages.some(m=>m.role===p.role&&m.kind==="coach"&&m.step===room.step))return out(false);
+   messages.push({id:++next,room_id:rid,role:p.role,author:"coach",kind:"coach",step:room.step,
     body:body.p_user,request_key:body.p_key});
-   p.pending_step=1;p.pending_action=body.p_action;p.submitted_step=1;p.submitted_action=body.p_action;
+   p.pending_step=room.step;p.pending_action=body.p_action;p.submitted_step=room.step;p.submitted_action=body.p_action;
    return out(true);
   }
   if(path.endsWith("/rpc/anthos_jj3_autoplay_moves")){
    if(!room.autoplay||room.step!==body.p_step||room.step<2||room.status!=="active"||
+    (room.guidance_mode==="guided"&&![2,4].includes(room.step))||
     room.processing_token||people.some(p=>p.submitted_step===room.step))return out(false);
    for(const p of people){
     const action=p.role==="jack"?body.p_jack:body.p_jill;
@@ -538,5 +540,59 @@ test("legacy 3.1-style rooms do not auto-advance just because a coach revisits",
   assert.equal(h.aiCalls,before);
   assert.equal(h.room.step,1);
   assert.equal(h.messages.filter(m=>m.kind==="coach").length,0);
+ }finally{h.restore()}
+});
+
+test("3.3 keeps human influence at meaningful turning points and never requires extra acknowledgements",async()=>{
+ const h=harness("shared",{evolving:true,autoplay:true,guided:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  assert.equal((await status(tokens.jack)).version,"3.3.0");
+  assert.equal((await status(tokens.jack)).guidanceMode,"guided");
+  await begin(tokens.jack);await begin(tokens.jill);
+  await talk(tokens.jack,"Jack should give Jill the tape and listen.",randomUUID());
+  await talk(tokens.jill,"Jill should explain the rules and let the duck fail.",randomUUID());
+  let scene=await progress(tokens.jack);
+  assert.equal(scene.step,2);
+  assert.equal(scene.needsInput,false);
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,2);
+  let decisions=await progress(tokens.jack);
+  assert.equal(decisions.step,2);
+  scene=await progress(tokens.jack);
+  assert.equal(scene.step,3,"The story must PAUSE at the first new conflict");
+  assert.equal(scene.needsInput,true);
+  const before=h.aiCalls;
+  scene=await progress(tokens.jack);
+  assert.equal(scene.step,3,"Polling cannot steal the turn from Adam and Alissa");
+  assert.equal(h.aiCalls,before,"No autonomous decisions while waiting for human choices");
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,2);
+  await begin(tokens.jack);await begin(tokens.jill);
+  assert.equal((await status(tokens.jill)).hasIntro,true);
+  const adam=await talk(tokens.jack,"Jack should ask Jill if she wants to lead now.",randomUUID());
+  assert.equal(adam.submitted,true);
+  assert.equal(adam.step,3);
+  assert.equal((await progress(tokens.jill)).step,3,"One friend cannot unilaterally advance the shared pivot");
+  await talk(tokens.jill,"Jill should take the lead but include Jack in the choice.",randomUUID());
+  scene=await progress(tokens.jack);
+  assert.equal(scene.step,4);
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,4);
+  await progress(tokens.jill);
+  scene=await progress(tokens.jill);
+  assert.equal(scene.step,5);
+  assert.equal(scene.needsInput,true,"Final outcome belongs to participant choices");
+  assert.equal((await progress(tokens.jill)).step,5);
+  await begin(tokens.jack);await begin(tokens.jill);
+  await talk(tokens.jill,"Jill should choose how to complete the task without embarrassing Jack.",randomUUID());
+  assert.equal((await progress(tokens.jill)).step,5);
+  await talk(tokens.jack,"Jack should support Jill's final decision and stop keeping score.",randomUUID());
+  const finale=await progress(tokens.jill);
+  assert.equal(finale.status,"complete");
+  assert.equal(finale.shared.length,5);
+  assert.equal(finale.scene.closure?.sophiaInsight?.length>20,true);
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,6);
+  assert.equal(h.messages.filter(m=>m.kind==="reply").length,0);
+  assert.equal(h.events.length,5);
+  assert.equal((await progress(tokens.jill)).shared.length,5,"Completed rooms stay complete on repeat checks");
+  assert.equal((await status(tokens.jack)).messages.some(m=>m.role==="jill"),false);
  }finally{h.restore()}
 });
