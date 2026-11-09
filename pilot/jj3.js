@@ -79,24 +79,32 @@ function render(s){
  const wasNearBottom=log.scrollTop+log.clientHeight>=log.scrollHeight-100;
  log.replaceChildren();
  const visible=(s.messages||[]).filter(m=>m.step===s.step||(completed&&m.step===6));
- if(!visible.length){const bubble=document.createElement("div");bubble.className="bubble pending";bubble.textContent=s.autoplay&&s.step>1
+ if(!visible.length){const bubble=document.createElement("div");bubble.className="bubble pending";bubble.textContent=s.autoplay&&!(s.guidanceMode==="guided"&&[1,3,5].includes(s.step))
   ?"Your private advice has launched the adventure. Watch the shared scenes above as Jack and Jill make their own choices."
   :s.character+" is putting their thoughts into words…";log.append(bubble)}
  else for(const m of visible)log.append(messageBubble(m));
  if(wasNearBottom||!log.dataset.initialized)log.scrollTop=log.scrollHeight;
  log.dataset.initialized="yes";
- $("compose").hidden=completed||s.submitted||(s.autoplay&&s.step>1);
-
- $("waiting").hidden=completed||(!(s.submitted||(s.autoplay&&s.step>1)));
- if(s.autoplay&&s.step>1){
+ const guided=s.guidanceMode==="guided";
+ const decisionPoint=guided&&[1,3,5].includes(s.step);
+ const autoplayBetween=s.autoplay&&(!guided||!decisionPoint);
+ $("compose").hidden=completed||s.submitted||(s.autoplay&&!decisionPoint);
+ $("waiting").hidden=completed||!(s.submitted||autoplayBetween);
+ if(guided&&decisionPoint&&s.submitted){
+  $("waitingText").textContent=s.otherSubmitted
+   ?"You both shaped this turning point. Jack and Jill are living out those choices…"
+   :"Your advice matters here. The story continues after your partner has also responded.";
+ }else if(autoplayBetween){
   $("waitingText").textContent=s.autoRetrying
-   ?"The characters are trying the next scene again. No more messages needed."
-   :"Jack and Jill are making their own choices now. Their story and its consequences will appear above automatically.";
+   ?"The scene is retrying. Neither friend needs to send another message."
+   :"Jack and Jill are acting on the situation themselves. A new turning point will invite you back.";
  }else if(s.submitted){
   $("waitingText").textContent=s.otherSubmitted
    ?"Both friends have spoken. Jack and Jill are acting on their choices…"
    :"Your advice is saved. Once the other friend responds, Jack and Jill will take over.";
  }
+ if(guided&&decisionPoint&&!s.submitted)
+  $("composeLabel").textContent="Your advice matters at this turning point";
  $("reflectionPanel").hidden=!completed;
 
  $("reflection").hidden=!!s.reflectionComplete;
@@ -108,7 +116,7 @@ async function load(quiet=false){
  busySet(true);
  try{
   const s=await api();render(s);
-  if(s.consent&&s.status==="active"&&!s.submitted&&!s.hasIntro&&openingStep!==s.step){
+  if(s.consent&&s.status==="active"&&(!s.autoplay||s.guidanceMode!=="guided"||[1,3,5].includes(s.step))&&!s.submitted&&!s.hasIntro&&openingStep!==s.step){
    openingStep=s.step;
    try{render(await api("begin"))}catch(e){openingStep=null;if(!quiet)error(e.message)}
   }
