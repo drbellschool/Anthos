@@ -20,3 +20,17 @@ test("story progresses automatically while private messages remain conversationa
  assert.doesNotMatch(client,/s\.otherSubmitted&&!s\.processing/);
  assert.match(html,/Your friend is putting that plan into action/);
 });
+
+test("the final story has visible closure and private reflection is optional",()=>{
+ assert.match(html,/id="endingSection"/);
+ for(const id of ["jackChange","jillChange","relationshipTruth","sophiaInsight","takeawayInvitation"])
+  assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/One last message to your friend/);
+ assert.match(html,/\(optional\)/);
+ assert.match(html,/Return to Anthos/);
+ assert.match(client,/s\.scene\?\.closure/);
+ assert.match(client,/\$\("endingSection"\)\.hidden=!completed\|\|!closing/);
+ assert.match(client,/Final moment · One last choice/);
+ assert.match(client,/Adventure complete · The end/);
+ assert.doesNotMatch(html,/id="commit"|id="manualMove"|id="modeToggle"/);
+});
