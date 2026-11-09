@@ -317,12 +317,13 @@ function renderReadiness(){
  const active=collect().checkpoints.filter(x=>x.audience!=="none").length;
  box.append(node("p","episode-editorial-note",active+" of 5 optional check-ins assigned."));
 }
-function closePilot(){
+function closePilot(clearRoom=false){
  for(const instance of pilotPlayers)instance?.destroy();
- pilotPlayers=[];pilot=null;
+ pilotPlayers=[];
+ if(clearRoom)pilot=null;
  const board=$("episodePilotBoard");if(board)board.hidden=true;
 }
-async function pilotEpisode(){
+async function pilotEpisode(reset=false){
  if(!current||busy)return;
  if(current.mode!=="shared"){note("The two-coach 4.0 browser pilot currently supports shared episodes.",true);return}
  if(current.dirty||!current.hasSaved){
@@ -330,10 +331,14 @@ async function pilotEpisode(){
   return;
  }
  if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
- setBusy(true);$("episodeLaunchPilot").disabled=true;
+ if(pilot&&(!confirm("Start a fresh 4.0 test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
+ setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodePilotReset").disabled=true;
  note("Creating a new, private 4.0 episode rehearsal…");
  try{
-  const room=await request("episode-studio-pilot-v4",{scenarioId:current.id});
+  const previousRoomId=pilot?.roomId||null;
+  const room=await request("episode-studio-pilot-v4",{
+   scenarioId:current.id,previousRoomId
+  });
   closePilot();
   pilot=room;
   const board=$("episodePilotBoard");
@@ -356,7 +361,9 @@ async function pilotEpisode(){
   const jack=$("episodeHusbandLink"),jill=$("episodeWifeLink");
   jack.href=room.invitations.jack;jill.href=room.invitations.jill;
   $("episodePilotStatus").textContent=
-   "Fresh "+room.engine+" private test created. Each side has independent coaching. Only scenes are shared; no SMS is sent. Invitations expire "+new Date(room.expiresAt).toLocaleDateString()+".";
+   (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
+   "Fresh "+room.engine+" private test uses your latest SAVED six-phase plan. "+
+   "Each private coach starts at Hook; no SMS is sent. Invitations expire "+new Date(room.expiresAt).toLocaleDateString()+".";
   const jToken=new URL(room.invitations.jack).searchParams.get("invite");
   const wToken=new URL(room.invitations.jill).searchParams.get("invite");
   pilotPlayers=[
@@ -366,7 +373,7 @@ async function pilotEpisode(){
   board.scrollIntoView({behavior:"smooth",block:"start"});
   note("Version 4.0 test room created. Both private coach panels are ready below.");
  }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false}
+ finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodePilotReset").disabled=false}
 }
 async function copyPilot(which){
  const url=pilot?.invitations?.[which];
@@ -378,7 +385,7 @@ async function copyPilot(which){
 async function openEditor(id,petal,mode){
  if(busy)return;
  if(current?.dirty&&!confirm("Discard unsaved changes and open another episode?"))return;
- closePilot();
+ closePilot(true);
  const studio=$("episodeStudio");
  studio.hidden=false;$("jj2Browse").hidden=true;
  document.querySelector('[data-studio-page="deepdives"]').classList.add("studio-editing");
@@ -431,7 +438,7 @@ async function save(){
 function back(){
  if(busy)return;
  if(current?.dirty&&!confirm("Leave without saving your episode changes?"))return;
- closePilot();
+ closePilot(true);
  current=null;
  $("episodeStudio").hidden=true;$("jj2Browse").hidden=false;
  document.querySelector('[data-studio-page="deepdives"]').classList.remove("studio-editing");
@@ -455,8 +462,9 @@ function setup(){
   current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==current.studio.primarySkill);
   markDirty();paintSkills();paintSupports();
  });
- $("episodeLaunchPilot").addEventListener("click",pilotEpisode);
- $("episodePilotClose").addEventListener("click",closePilot);
+ $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false));
+ $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true));
+ $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
  $("episodeGenerate").addEventListener("click",generate);

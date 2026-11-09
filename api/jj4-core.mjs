@@ -4,6 +4,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
+import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -45,12 +46,18 @@ function targetRoles(room){
  const audience=checkpoint(room)?.audience;
  return audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[];
 }
-export async function createRoom(origin,scenarioId){
+export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!UUID.test(scenarioId||""))error("Choose a saved 4.0 episode first.");
  const scenario=await getScenario(scenarioId);
  if(scenario.mode!=="shared")error("The 4.0 dual-coach pilot currently supports shared episodes only.");
  if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
  const draft=normalizeStudio(scenario.episode_studio,scenario);
+ if(previousRoomId!==null){
+  if(!UUID.test(previousRoomId))error("Invalid previous test room identifier.");
+  const previous=(await db(R,{id:"eq."+previousRoomId,select:"id,scenario_id,stage"}))?.[0];
+  if(!previous||previous.scenario_id!==scenario.id)
+   error("Previous test does not belong to this saved episode.",409);
+ }
  if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
  const created=(await db(R,{},{
@@ -68,8 +75,16 @@ export async function createRoom(origin,scenarioId){
   await db(R,{id:"eq."+created.id},undefined,"DELETE").catch(()=>{});
   throw err;
  }
+ let previousRetired=null;
+ if(previousRoomId){
+  try{
+   const affected=await db(R,{id:"eq."+previousRoomId,scenario_id:"eq."+scenario.id},
+    {stage:"retired",processing_token:null,processing_at:null,updated_at:new Date().toISOString()},"PATCH");
+   previousRetired=Array.isArray(affected)&&affected.length===1;
+  }catch{previousRetired=false}
+ }
  return {ok:true,engine:"4.0.0",title:draft.title,roomId:created.id,
-  invitations,expiresAt:created.expires_at,
+  invitations,expiresAt:created.expires_at,previousRetired,
   note:"Private browser pilot. No actual text messages will be sent."};
 }
 async function messages(room,role){
@@ -86,6 +101,7 @@ export async function status(token){
  const {scenes,mine,people}=joined?await messages(room,person.role):{scenes:[],mine:[],people:[]};
  const targets=targetRoles(room),needsReply=room.stage==="awaiting"&&targets.includes(person.role)&&person.submitted_phase!==room.phase_index;
  const bothJoined=people.filter(x=>x.joined_at).length===2;
+ const hasSophia=scenes.some(x=>x.kind==="sophia");
  return {ok:true,version:"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
@@ -93,6 +109,8 @@ export async function status(token){
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&["needs_scene","flow"].includes(room.stage),
   scenes,messages:mine,finished:room.stage==="complete",
+  hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
+  researchSources:hasSophia?RESEARCH_SOURCES:[],
   info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
 }
 export async function join(token,name){
@@ -118,7 +136,19 @@ async function directScene(room,phaseIndex){
  if(!storyDirection||storyDirection.trim().length<30)
   error("This phase has no saved Studio direction. Return to the Episode Studio before piloting.",409);
  const cp=checkpoint({...room,phase_index:phaseIndex});
- const cast=Object.fromEntries((people||[]).map(x=>[x.role,x.first_name||x.role]));
+ // Coach names belong to the private participants, never the fictional cast.
+ const fictionalNames={jack:"Jack",jill:"Jill"};
+ const scrub=value=>{
+  let out=String(value||"");
+  for(const person of people||[]){
+   const name=person.first_name?.trim();
+   if(!name||name.length<2||["jack","jill"].includes(name.toLowerCase()))continue;
+   for(const candidate of new Set([name,name.toLowerCase(),name.toUpperCase()])){
+    out=out.split(candidate).join(fictionalNames[person.role]||"the coach");
+   }
+  }
+  return out;
+ };
  const input={title:room.title,primaryObjective:room.episode.primarySkill,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
   premise:room.episode.premise,phase,phaseNumber:phaseIndex+1,
@@ -129,8 +159,9 @@ async function directScene(room,phaseIndex){
   boundaries:room.episode.boundaries,voice:room.episode.tone,
   lockedEditorialFields:room.episode.locks||[],
   personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
-  checkpoint:cp,participants:cast,
-  history:(history||[]).reverse().map(m=>({role:m.role,kind:m.kind,phase:PHASES4[m.phase_index],body:m.body}))};
+  checkpoint:cp,fictionalCharacters:fictionalNames,
+  history:(history||[]).reverse().map(m=>({role:m.role,kind:m.kind,
+   phase:PHASES4[m.phase_index],body:scrub(m.body)}))};
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan. Each of the six phases has its own saved summary in savedSixPhaseStoryboard. DO NOT invent another premise, competing subplot, different problem, surprise twist, timeline reset, new objective or alternative outcome.",
@@ -139,8 +170,12 @@ async function directScene(room,phaseIndex){
   "Editor text marked lockedEditorialFields is canon and cannot be contradicted, overwritten, reframed, or replaced by model inventions. If coach advice clashes with established facts or the creator's boundaries, the character may consider that advice without rewriting the plan.",
   "A new story complication is allowed only when it follows directly from the saved plot beat, established situation, or actual coach advice. It must not create a new central conflict. Keep the plot within the six planned phases.",
   "Keep absolute continuity with all prior scene history and the stored episode premise. Do not restart the story, change locations without explanation, or invent messages the real coaches never sent.",
+  "The fictional characters must ALWAYS be named Jack and Jill. The real husband and wife are separate PRIVATE coaches, never story characters. Do not use or guess the coaches' names in the fictional scenes.",
   "Coaches are the husband counseling Jack privately and the wife counseling Jill privately. Privately supplied advice can change fictional actions, but never quote, attribute, expose, paraphrase verbatim, or disclose one coach's message to the other.",
   "Honor the educational objectives without repeatedly explaining psychological theory. The characters are believable people, not puppets and not therapists. Make every phase distinct; advance toward a complete consequence-based ending by phase six.",
+  "Avoid syrupy reciprocal insight speeches, instantly idealized reconciliation, repeated cozy couch scenes, or characters quoting the intended lesson to each other. Show believable hesitation and actions instead of moralizing exposition.",
+  "Hook, Conflict and Discovery must retain enough unresolved tension for a real Reattempt. Outcome can arrive at imperfect but credible closure; Reflection may notice what changed without pretending every difference disappeared.",
+  "Any author-supplied joke is optional and must arise naturally from that phase's actual choices. Do not force coincidence, comic callbacks, or a new romantic gesture simply because humor appears in the plan.",
   "Use only humor ideas the editor actually supplied, when appropriate to the saved phase or checkpoint. Do not invent an unrelated comic premise. Do not force a joke or turn awkward intimacy into pressure, coercion or humiliation; maintain mutual respect and boundaries.",
   "At the end of this phase, follow exactly the checkpoint audience and purpose selected in the Studio. Do not ask for a reply if the checkpoint is disabled. Do not invent a third intervention or a different intended recipient.",
   "The authored six-phase storyboard and its locked passages outrank creativity. Each saved stage is mandatory in exact order: Hook, Conflict, Discovery, Reattempt, Outcome, Reflection.",
@@ -166,9 +201,9 @@ async function directScene(room,phaseIndex){
  if(brief(result.scene,2500).length<80)error("The AI didn't produce a complete scene; retry.",502);
  const audience=cp?.audience||"none";
  const fallback=(role)=>{const name=role==="jack"?"Jack":"Jill";return name+": "+brief(cp?.purpose||"I need your advice about the situation already unfolding.",420)+" What would you suggest?";};
- return {scene:brief(result.scene,2500),
-  jackPrompt:["jack","both"].includes(audience)?brief(result.jackPrompt,1200)||fallback("jack"):"",
-  jillPrompt:["jill","both"].includes(audience)?brief(result.jillPrompt,1200)||fallback("jill"):""};
+ return {scene:brief(scrub(result.scene),2500),
+  jackPrompt:["jack","both"].includes(audience)?brief(scrub(result.jackPrompt),1200)||fallback("jack"):"",
+  jillPrompt:["jill","both"].includes(audience)?brief(scrub(result.jillPrompt),1200)||fallback("jill"):""};
 }
 export async function advance(token){
  const {person,room}=await participant(token);
@@ -189,6 +224,44 @@ export async function advance(token){
  }catch(e){
   await db(R,{id:"eq."+room.id,processing_token:"eq."+claim},
     {stage:"needs_scene",processing_token:null,processing_at:null},"PATCH").catch(()=>{});
+  throw e;
+ }
+ return status(token);
+}
+/** Sophia's independent post-story epilogue.
+ * Includes a research-grounded closing for older completed 4.0 pilots. */
+export async function sophia(token){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join the episode before Sophia's closing reflection.",403);
+ if(room.stage!=="complete")return status(token);
+ const claim=randomUUID();
+ const acquired=await db("rpc/anthos_jj4_claim_closure",{},
+  {p_room:room.id,p_claim:claim},"POST");
+ if(acquired!==true)return status(token);
+ try{
+  const [scenes,people]=await Promise.all([
+   db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",
+    order:"phase_index.asc",limit:"6",select:"body,phase_index"}),
+   db(P,{room_id:"eq."+room.id,select:"role,first_name"})
+  ]);
+  const sanitized=(scenes||[]).map(scene=>{
+   let body=scene.body||"";
+   for(const p of people||[]){
+    const name=p.first_name?.trim();
+    if(!name||name.length<2||["jack","jill"].includes(name.toLowerCase()))continue;
+    for(const candidate of new Set([name,name.toLowerCase(),name.toUpperCase()])){
+     body=body.split(candidate).join(p.role==="jack"?"Jack":"Jill");
+    }
+   }
+   return {...scene,body};
+  });
+  const closure=await draftSophiaClosure(room.episode,sanitized);
+  const committed=await db("rpc/anthos_jj4_commit_closure",{},
+   {p_room:room.id,p_claim:claim,p_message:closure},"POST");
+  if(committed!==true)error("Sophia's closing reflection could not be saved. Retry.",502);
+ }catch(e){
+  await db(R,{id:"eq."+room.id,processing_token:"eq."+claim,stage:"eq.complete"},
+   {processing_token:null,processing_at:null},"PATCH").catch(()=>{});
   throw e;
  }
  return status(token);

@@ -210,3 +210,7 @@
 .episode-pilot-plan-list{padding-left:24px;display:grid;gap:5px;margin:10px 0;font-size:11px;line-height:1.4;color:#405d4e}
 .episode-pilot-plan-item strong{color:#234b37}
 .episode-pilot-plan-item small{display:block;color:#5b765f;font-size:10px}
+
+.episode-pilot-buttons{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.episode-pilot-buttons .button.primary{background:#165a42;color:#fff;border-color:#165a42}
+@media(max-width:700px){.episode-pilot-buttons{width:100%}.episode-pilot-buttons .button{flex:1}}
