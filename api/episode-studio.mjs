@@ -36,12 +36,31 @@ export const PHASES=Object.freeze([
  {id:"outcome",title:"Outcome",hint:"Resolve the original problem through earned consequences."},
  {id:"reflection",title:"Reflection",hint:"Offer a voluntary, practical takeaway rather than a test."}
 ]);
+/** Check-ins are editorial possibilities between phases, not scripted SMS or five required gates. */
+export const CHECKPOINT_AFTER=Object.freeze(PHASES.slice(0,-1).map(p=>p.id));
+export const CHECKPOINT_AUDIENCES=Object.freeze(["none","jack","both","jill"]);
+const ALLOWED_AUDIENCES=new Set(CHECKPOINT_AUDIENCES);
 const ID_SET=new Set(SKILLS.map(s=>s.id));
 const FIELDS={title:120,premise:1700,learningObjective:450,jackMotivation:650,jillMotivation:650,
  boundaries:1100,tone:650,humorNotes:1300,runningGags:1300,researchNotes:1000,
  closureCriteria:900,reflectionPrompt:600,creativeDirection:650};
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
 const clean=(v,max)=>typeof v==="string"?v.trim().slice(0,max):"";
+export const defaultCheckpoints=()=>CHECKPOINT_AFTER.map(afterPhase=>({
+ afterPhase,audience:"none",purpose:"",humorCue:"",waitForReply:false
+}));
+function normalizeCheckpoints(input,mode){
+ const entries=Array.isArray(input)?input:[];
+ return CHECKPOINT_AFTER.map(afterPhase=>{
+  const found=entries.find(p=>p&&p.afterPhase===afterPhase)||{};
+  let audience=ALLOWED_AUDIENCES.has(found.audience)?found.audience:"none";
+  // A solo Deep Dive has one coach; it cannot require two private replies.
+  if(mode==="individual"&&audience==="both")audience="none";
+  return {afterPhase,audience,purpose:clean(found.purpose,600),
+    humorCue:clean(found.humorCue,700),
+    waitForReply:audience!=="none"&&found.waitForReply===true};
+ });
+}
 export function defaultStudio(scenario){
  return {title:scenario.title||"",premise:scenario.opening_scene||"",
   learningObjective:scenario.learning_objective||"",primarySkill:"",
@@ -49,7 +68,8 @@ export function defaultStudio(scenario){
   tone:"Grounded, warm and playful; let character flaws create the comedy. Avoid cheesy AI jokes.",
   humorNotes:"",runningGags:"",researchNotes:"",closureCriteria:"",
   reflectionPrompt:"",creativeDirection:"",
-  phases:Object.fromEntries(PHASES.map(x=>[x.id,""]))};
+  phases:Object.fromEntries(PHASES.map(x=>[x.id,""])),
+  checkpoints:defaultCheckpoints()};
 }
 export function normalizeStudio(input,scenario){
  const defaults=defaultStudio(scenario),value=input&&typeof input==="object"&&!Array.isArray(input)?input:{};
@@ -59,6 +79,7 @@ export function normalizeStudio(input,scenario){
  out.supportingSkills=Array.isArray(value.supportingSkills)?
   [...new Set(value.supportingSkills.filter(v=>ID_SET.has(v)&&v!==out.primarySkill))].slice(0,2):[];
  out.phases=Object.fromEntries(PHASES.map(p=>[p.id,clean(value.phases?.[p.id],850)]));
+ out.checkpoints=normalizeCheckpoints(value.checkpoints,scenario.mode);
  return out;
 }
 export async function readEpisodeStudio(id){
@@ -67,7 +88,8 @@ export async function readEpisodeStudio(id){
   title:scenario.title,opening_scene:scenario.opening_scene,learning_objective:scenario.learning_objective,
   content_version:scenario.content_version,status:scenario.status,
   episode_saved:!!scenario.episode_studio&&Object.keys(scenario.episode_studio).length>0},
-  studio:normalizeStudio(scenario.episode_studio,scenario),skills:SKILLS,phases:PHASES};
+  studio:normalizeStudio(scenario.episode_studio,scenario),skills:SKILLS,phases:PHASES,
+  checkpointAudiences:CHECKPOINT_AUDIENCES};
 }
 export async function saveEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
@@ -82,6 +104,14 @@ export async function saveEpisodeStudio(body){
   if(typeof input.phases?.[phase.id]!=="string"||input.phases[phase.id].length>850)
    bad("Review the "+phase.title+" story phase.");
  }
+ if(!Array.isArray(input.checkpoints)||input.checkpoints.length!==5||
+    input.checkpoints.some((p,i)=>!p||p.afterPhase!==CHECKPOINT_AFTER[i]||
+     !ALLOWED_AUDIENCES.has(p.audience)||typeof p.purpose!=="string"||p.purpose.length>600||
+     typeof p.humorCue!=="string"||p.humorCue.length>700||
+     typeof p.waitForReply!=="boolean"))
+    bad("Review all five optional intervention points.");
+ if(scenario.mode==="individual"&&input.checkpoints.some(p=>p.audience==="both"))
+    bad("Individual episodes cannot request both coaches at one intervention.");
  if(input.primarySkill&&!ID_SET.has(input.primarySkill))bad("Choose a valid primary objective.");
  if(!Array.isArray(input.supportingSkills)||input.supportingSkills.length>2||
   input.supportingSkills.some(s=>!ID_SET.has(s)||s===input.primarySkill))bad("Choose at most two distinct supporting objectives.");
@@ -103,8 +133,13 @@ const schema={
   creativeDirection:{type:"string"},
   phases:{type:"object",additionalProperties:false,properties:
    Object.fromEntries(PHASES.map(p=>[p.id,{type:"string"}])),
-   required:PHASES.map(p=>p.id)}
- },required:[...Object.keys(FIELDS),"primarySkill","supportingSkills","phases"]
+   required:PHASES.map(p=>p.id)},
+  checkpoints:{type:"array",items:{type:"object",additionalProperties:false,properties:{
+    afterPhase:{type:"string",enum:CHECKPOINT_AFTER},
+    audience:{type:"string",enum:CHECKPOINT_AUDIENCES},
+    purpose:{type:"string"},humorCue:{type:"string"},waitForReply:{type:"boolean"}
+   },required:["afterPhase","audience","purpose","humorCue","waitForReply"]}}
+ },required:[...Object.keys(FIELDS),"primarySkill","supportingSkills","phases","checkpoints"]
 };
 export async function generateEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
@@ -115,12 +150,19 @@ export async function generateEpisodeStudio(body){
   "You are a meticulous curriculum editor designing one dynamic fictional marriage-enrichment adventure for Anthos.",
   "Return an editable editor draft, NOT SMS messages or a fixed script.",
   "The six phases are internal narrative purposes, not mandatory messages, gates, grades, or a predetermined number of turns.",
+  "The five OPTIONAL checkpoint slots occur AFTER the first five phases, before the next phase. Return exactly five checkpoint objects in hook/conflict/discovery/reattempt/outcome order.",
+  "For each checkpoint, choose audience none, jack (Jack privately texts the husband), jill (Jill privately texts the wife), or both (two separate private messages). Both never means a shared/group conversation.",
+  "A checkpoint is a turning point where advice can meaningfully alter the next scene, not a mechanical phase announcement or a learning quiz.",
+  "Choose only about 2–3 real check-ins; set remaining audience to none. Vary recipients when justified (Jack-only, Both, Jill-only are possible). In individual mode, never choose both.",
+  "Set waitForReply true only if a character genuinely needs an active decision; false means the director can continue autonomously.",
+  "Give every active check-in a brief concrete purpose. The humorCue is optional character-driven situational comedy that might naturally occur between phases, never a fixed SMS punchline.",
+
   "Give each of Hook, Conflict, Discovery, Reattempt, Outcome, Reflection a concise 1-3 sentence directional summary that a live story director could improvise around.",
   "Use ONE primary relationship skill and at most TWO supporting skills from the provided ID list. Choose pedagogically coherent goals.",
   "Gottman: emotional bids, repair and conflict. Schnarch: differentiation and self-regulation (theoretical framework, not a quantified study). Aron: self-expansion, shared novelty and growth.",
   "Do not fabricate research quotations, citations, scientific effects or diagnoses; do not imply an endorsement or measure a real couple's skill.",
   "Jack and Jill must have independent motives, character agency and consequences that can be funny without humiliating either one.",
-  "Suggest subtle situational humor in humorNotes and runningGags, clearly as editable seeds. NEVER stuff a scene with generic one-liners or forced punchlines.",
+  "Suggest subtle situational humor in humorNotes and runningGags, clearly as editable seeds. Humor should primarily be available for scene transitions/check-ins. NEVER stuff a scene with generic one-liners or forced punchlines.",
   "The reattempt must offer real choice, not require one correct response. Final outcome must close the original conflict even if imperfect.",
   "Respect safety, consent, differences and individual privacy. This is education, not therapy.",
   "All string fields should be filled with useful draft copy. Keep fields under 600 chars, premise 100-500 chars, individual phases 90-290 chars, title under 120."
@@ -129,7 +171,9 @@ export async function generateEpisodeStudio(body){
    opening:scenario.opening_scene,learningObjective:scenario.learning_objective,research:scenario.research_lenses},
   optionalEditorialDirection:direction,
   validSkills:SKILLS.map(s=>({id:s.id,researcher:s.researcher,title:s.title})),
-  sixPhaseDefinitions:PHASES};
+  sixPhaseDefinitions:PHASES,
+  checkpointSequence:CHECKPOINT_AFTER.map((afterPhase,index)=>({
+    afterPhase,beforePhase:PHASES[index+1].id,kind:"optional private intervention"}))};
  const model=process.env.ANTHOS_STUDIO_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
  let response;try{
   response=await fetch("https://api.openai.com/v1/responses",{
@@ -142,6 +186,9 @@ export async function generateEpisodeStudio(body){
  const data=await response.json();
  const text=(data.output||[]).flatMap(o=>(o.content||[]).filter(c=>c.type==="output_text").map(c=>c.text)).join("");
  let draft;try{draft=JSON.parse(text)}catch{bad("AI did not return a complete draft. Retry without losing your edits.",502)}
+ if(!Array.isArray(draft.checkpoints)||draft.checkpoints.length!==5||
+     CHECKPOINT_AFTER.some((p,i)=>draft.checkpoints[i]?.afterPhase!==p))
+    bad("AI returned incomplete intervention assignments. Retry.",502);
  const studio=normalizeStudio(draft,scenario);
  if(studio.premise.length<75||studio.learningObjective.length<12||!studio.primarySkill||
     PHASES.some(p=>studio.phases[p.id].length<30))bad("AI returned an incomplete draft. Retry.",502);
