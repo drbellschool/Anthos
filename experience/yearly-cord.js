@@ -6,6 +6,9 @@
   "use strict";
   const NS = "http://www.w3.org/2000/svg";
   const R = 192;
+  // The mask must cover all braided fibers, including the outer edge at March–April.
+  // Keep the feathered progress tip aligned with this same full-width band.
+  const REVEAL_WIDTH = 132;
   const CIRCUMFERENCE = 2 * Math.PI * R;
   const DEFAULT = ["#df4051","#2c91d4","#21a66a"];
   const valid = v => typeof v === "string" && /^#[a-f0-9]{6}$/i.test(v);
@@ -79,7 +82,7 @@
       '</g>'
     ].join("");
     return '<svg class="anthos-cord-svg" viewBox="0 0 560 560" role="img" aria-label="A genuine three strand braided rope growing around a yearly circle" xmlns="' + NS + '">'+
-      '<defs><mask id="' + uid + '"><circle data-cord-id="reveal" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1207"/><g data-cord-id="tip"></g></mask></defs>'+
+      '<defs><mask id="' + uid + '" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="560" height="560"><circle data-cord-id="reveal" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="' + REVEAL_WIDTH + '" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1207"/><g data-cord-id="tip"></g></mask></defs>'+
       '<circle cx="280" cy="280" r="192" fill="none" stroke="#8e735b" stroke-width="43" opacity=".07"/>'+
       '<image data-cord-id="faded" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet" opacity=".43"/>'+
       '<g mask="url(#' + uid + ')"><image data-cord-id="colored" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet"/></g>'+
@@ -95,7 +98,7 @@
     if(tail>0) for(let j=0;j<10;j++){
       const circle=document.createElementNS(NS,"circle");
       const attributes={cx:"280",cy:"280",r:String(R),fill:"none",stroke:"white",
-        "stroke-width":"76",transform:"rotate(-90 280 280)",
+        "stroke-width":String(REVEAL_WIDTH),transform:"rotate(-90 280 280)",
         "stroke-dasharray":(tail/10+.25).toFixed(3)+" "+(CIRCUMFERENCE+1).toFixed(3),
         "stroke-dashoffset":(-solid-j*tail/10).toFixed(3),
         opacity:(1-Math.pow((j+1)/10,1.65)).toFixed(3)};
