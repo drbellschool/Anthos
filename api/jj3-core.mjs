@@ -2,7 +2,7 @@ import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {deepDiveRequest} from "./jj-model-config.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -163,6 +163,27 @@ export async function talk(token,text,requestKey){
  if(!uuidOK(requestKey))problem("This message needs a valid request identifier.");
  const history=await privateMessages(r,p.role);
  if(history.some(x=>x.request_key===requestKey))return status(token);
+ // A friend saying "let me know how it turns out" is a natural handoff, not
+ // a request for another suggestion. The last CHARACTER reply must ground
+ // any concrete step; private dialogue from the other coach is never read.
+ const latestCharacter=[...history].reverse().find(x=>x.step===r.step&&x.author==="character"&&x.kind==="reply");
+ if(storyHandoff(clean,latestCharacter?.body)){
+  const move=followThroughAction(p.role,latestCharacter?.body);
+  const reply=p.role==="jack"
+   ?(p.name?p.name+", ":"")+"You're right, the day is actually going pretty well. I'm going to enjoy what we're doing and tell you how it turns out."
+   :(p.name?p.name+", ":"")+"I'll tell you how it goes. We're already doing something together, so I'm going to enjoy it and see what happens next.";
+  const stored=await db("rpc/anthos_jj3_write_turn",{},{
+   p_room:r.id,p_participant:p.id,p_step:r.step,p_key:requestKey,
+   p_user:clean,p_character:reply,p_aside:"",p_action:move,
+   p_memory:p.private_memory||{},p_learning:p.learning_log||{}
+  },"POST");
+  if(stored!==true)problem("The scene changed while you were writing. Refresh to continue.",409);
+  const committed=await db("rpc/anthos_jj3_submit",{},{
+   p_room:r.id,p_participant:p.id,p_step:r.step
+  },"POST");
+  if(committed===true){try{await resolveRoom(r)}catch{/* Keep the saved move; automatic polling retries. */}}
+  return status(token);
+ }
  // Choosing to observe is a meaningful shared-story decision. Do not ask the
  // friend to invent a second plan or see the other coach's private messages.
  if(r.mode==="shared"&&observeAndWait(clean)){
