@@ -1,0 +1,126 @@
+/* Anthos: image-reference Yearly Cord dashboard. Scoped to the home view.
+   The three-strand braid itself is rendered from the original approved rope texture. */
+:root { --cord-burgundy:#682c3a; --cord-burgundy-dark:#502331; --cord-gold:#bd8f53; --cord-cream:#fff7e8; --cord-ink:#604147; }
+main:has(.yearly-dashboard:not([hidden])){max-width:1540px;padding:7px 20px 40px}
+main:has(.yearly-dashboard:not([hidden]))>.notice{display:none}
+.workspace:has(.yearly-dashboard:not([hidden])){background:linear-gradient(170deg,#fff0d6 0%,#f7d6ad 68%,#dfd2cf 87%,#f4e4cc 88%);min-height:100vh}
+.yearly-dashboard{font-family:Georgia,serif;color:var(--cord-ink)}
+.yearly-dashboard button{cursor:pointer}
+.yearly-heading{text-align:center;position:relative;margin:0 auto 12px;min-height:77px}
+.yearly-heading h1{font:normal clamp(40px,4.3vw,66px)/1.02 Georgia,serif;letter-spacing:-.035em;color:var(--cord-burgundy-dark);margin:0}
+.yearly-heading .yearly-kicker{font:800 10px/1.4 system-ui,sans-serif;letter-spacing:.22em;color:#86534d;position:relative;top:66px}
+.yearly-heading p{font:700 10px/1.4 system-ui,sans-serif;letter-spacing:.20em;text-transform:uppercase;color:#875f52;margin:17px 0 0}
+.yearly-preview-pill{position:absolute;right:0;top:10px;border:1px solid #cfac7c;border-radius:30px;padding:9px 12px;letter-spacing:.1em;font:750 9px system-ui,sans-serif;color:#765444;background:#fff6e4b9}
+.yearly-layout{display:grid;grid-template-columns:minmax(275px,347px) minmax(380px,1fr) minmax(275px,347px);gap:15px;align-items:start}
+.yearly-aside{display:flex;flex-direction:column;gap:12px;min-width:0}
+.yearly-panel{overflow:hidden;background:#fffaf0df;border:1px solid #d7bfa6;border-radius:15px;box-shadow:0 6px 15px #8c623b0e}
+.yearly-panel h2{background:var(--cord-burgundy);color:#fff9ef;font:normal 19px/1.15 Georgia,serif;padding:10px 15px;margin:0}
+.yearly-panel-body{padding:13px 15px;font-size:12px;line-height:1.44}
+.yearly-panel-body p{margin:0 0 10px}
+.yearly-panel-body p:last-child{margin-bottom:0}
+.yearly-scripture{font:italic 12px/1.5 Georgia,serif;color:#a16a62}
+.yearly-strand{display:flex;gap:10px;align-items:center;border-bottom:1px solid #e5d4c1;padding:7px 0}
+.yearly-strand:first-child{padding-top:0}.yearly-strand:last-child{border:0;padding-bottom:0}
+.yearly-strand-icon{height:35px;width:35px;flex:0 0 35px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 6px #694e4c50;display:grid;place-items:center;color:white;font:22px Georgia,serif}
+.strand-heart{background:linear-gradient(#ff8991,#bc293c)}
+.strand-growth{background:linear-gradient(#93c5f6,#3365b7)}
+.strand-discover{background:linear-gradient(#82cf8d,#277a4c)}
+.yearly-strand strong,.yearly-strand small{display:block}
+.yearly-strand strong{font-size:14px;color:#713241}
+.yearly-strand small{font-size:11px;color:#7e685f;margin-top:2px;line-height:1.3}
+.yearly-color-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.yearly-color-row label{font:700 10px/1.4 system-ui,sans-serif;color:#80695d}
+.yearly-color-row input.rope-color{display:block;border:1px solid #d5b99c;width:100%;height:40px;border-radius:8px;padding:3px;background:#fff9f1;margin:4px 0 0}
+.yearly-color-row .rope-color::-webkit-color-swatch{border-radius:4px}
+.yearly-palettes{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.yearly-palettes button{border:1px solid #dec3a2;background:#fff8eb;border-radius:20px;font:700 9px system-ui,sans-serif;color:#795c54;padding:5px 7px}
+.yearly-palettes button.selected{border-color:#8a4350;box-shadow:0 0 0 1px #8a4350 inset}
+.yearly-progress-adjust{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.yearly-progress-adjust button{border:1px solid #c89e69;border-radius:50%;background:#fff8e9;color:#723341;height:35px;width:35px;font:24px Georgia,serif;box-shadow:0 2px 5px #ad7c4c38;display:grid;place-items:center;padding:0}
+.yearly-progress-adjust strong{font:800 13px system-ui,sans-serif;color:#723341}
+.yearly-slider-label{display:block;font:700 9px system-ui,sans-serif;color:#8b726b;margin-top:8px}
+#cordSlider{accent-color:#8b3949;width:100%;padding:0;height:14px;border:0;background:transparent;margin:8px 0}
+.yearly-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.yearly-actions button{background:var(--cord-burgundy);border:1px solid var(--cord-burgundy);border-radius:7px;color:white;font:700 10px/1.2 system-ui,sans-serif;padding:9px 6px}
+.yearly-actions button+button{background:#fff7e8;border-color:#cba674;color:#754e45}
+.yearly-center{background:radial-gradient(ellipse at center 37%,#fff8e7 3%,#ffebc6 49%,#fce1b9 74%,#efceab 100%);border-radius:23px;min-height:610px;position:relative;text-align:center;overflow:hidden;padding:17px 4px 11px}
+.yearly-center::before{content:"";position:absolute;inset:auto 0 0;height:90px;pointer-events:none;opacity:.5;background:linear-gradient(150deg,transparent 12%,#bca7a0 12% 25%,transparent 25% 37%,#c2a49a 37% 48%,transparent 48% 70%,#b89d98 70% 88%,transparent 88%),linear-gradient(to top,#ad9a9a9c,transparent);clip-path:polygon(0 70%,10% 42%,18% 52%,28% 15%,43% 77%,55% 46%,67% 68%,77% 35%,90% 58%,100% 17%,100% 100%,0 100%)}
+.yearly-ring-caption{font:800 10px/1.5 system-ui,sans-serif;letter-spacing:.22em;color:#8c5f51;position:relative;z-index:1}
+.yearly-ring-stage{width:min(100%,570px);aspect-ratio:1;position:relative;margin:0 auto}
+.yearly-ring{width:100%;height:100%;display:grid;place-items:center}
+.yearly-ring svg,.yearly-mini-ring svg,.blossom-wrap.large svg{display:block;width:100%;height:100%}
+.anthos-cord-svg{overflow:visible;filter:drop-shadow(0 3px 4px #553e2a26)}
+.yearly-ring.cord-error::after{content:"Braid artwork unavailable";display:block;font-size:12px;color:#823644}
+.yearly-months{position:absolute;inset:0;pointer-events:none}
+.yearly-month-dot{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;display:grid;place-items:center;border-radius:50%;height:37px;width:37px;padding:0;font:800 10px system-ui,sans-serif;border:2px solid #d9b890;background:#fff5e4;color:#a47a5f;box-shadow:0 4px 7px #b5865a2d}
+.yearly-month-dot.complete{background:#783a48;color:#fff;border-color:#c7a475}
+.yearly-month-dot.current{background:#b8895e;color:white;border-color:#803a49}
+.yearly-month-dot:hover{transform:translate(-50%,-50%) scale(1.11)}
+.yearly-status{font:800 10px/1.5 system-ui,sans-serif;letter-spacing:.1em;color:#996b50;position:relative;z-index:1;margin-top:-7px}
+.yearly-local-disclaimer{font:italic 12px Georgia,serif;color:#967b6e;margin:2px 0 0;position:relative;z-index:1}
+.yearly-center-links{display:flex;justify-content:center;gap:9px;margin-top:11px;position:relative;z-index:1}
+.yearly-center-links button{border:1px solid #ccab88;background:#fff2daa8;color:#713c44;border-radius:14px;padding:6px 10px;font:700 10px system-ui,sans-serif}
+.yearly-math{padding-top:12px;padding-bottom:12px}
+.yearly-math>div{display:grid;grid-template-columns:23px 1fr 68px;align-items:center;gap:5px;min-height:36px;border-bottom:1px solid #decfbe;text-align:center;font-size:11px}
+.yearly-math>div:last-child{border-bottom:0}
+.yearly-math>div span{color:#8b3c4c;font:18px Georgia,serif;text-align:left}
+.yearly-math strong{font:700 15px Georgia,serif;color:var(--cord-burgundy);text-align:right}
+.yearly-mini-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;text-align:center}
+.yearly-mini-gallery>div{min-width:0}
+.yearly-mini-ring{width:100%;aspect-ratio:1;margin:0 auto}
+.yearly-mini-gallery strong{display:block;font:700 17px Georgia,serif;color:#753341}
+.yearly-mini-gallery small{display:block;font:10px Georgia,serif;color:#896960}
+.yearly-mini-caption{text-align:center;color:#997e74;font:11px system-ui,sans-serif;margin-top:8px!important}
+.yearly-milestones{padding-top:10px;padding-bottom:7px}
+.yearly-milestones>div{display:flex;align-items:center;gap:10px;border-bottom:1px solid #e0cfb9;min-height:32px;color:#a3958c}
+.yearly-milestones>div.complete{color:#745c54}
+.yearly-milestones>div span{flex:0 0 21px;height:21px;border:1px solid #ccb6a0;border-radius:50%;display:grid;place-items:center;font:700 12px system-ui,sans-serif;color:#ad998b}
+.yearly-milestones>div.complete span{background:#357951;color:#fff;border-color:#357951}
+.yearly-milestone-note{font:italic 10px/1.4 Georgia,serif;color:#9c887d;margin:7px 0 0!important}
+.yearly-month-rail{display:flex;align-items:center;gap:16px;border:1px solid #d4ad7c;background:#fff9eade;border-radius:15px;padding:8px 12px;margin-top:9px;box-shadow:0 4px 10px #9e78512a}
+.yearly-month-rail>strong{white-space:nowrap;color:#713241;font:700 13px Georgia,serif}
+#cordMonthRail{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;flex:1}
+.yearly-month-pill{border:1px solid #d2b59a;border-radius:25px;background:#fae9d3;color:#a07f70;min-height:41px;padding:4px 1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.yearly-month-pill strong{font:800 10px system-ui,sans-serif}
+.yearly-month-pill small{font:10px system-ui,sans-serif}
+.yearly-month-pill.complete{background:#397e59;border-color:#397e59;color:white}
+.yearly-month-pill.current{border-color:#95644c;background:#dfc099;color:#5d3440}
+.yearly-story-links{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:11px;color:#83665b;font:11px system-ui,sans-serif;margin:13px 0 0}
+.yearly-story-links button{background:transparent;border:0;color:#713343;text-decoration:underline;font:700 11px system-ui,sans-serif;padding:2px}
+.yearly-petal-count{margin-left:auto}
+.yearly-dashboard button:focus-visible{outline:3px solid #306c9a;outline-offset:2px}
+@media(max-width:1275px){
+ .yearly-layout{grid-template-columns:minmax(235px,290px) minmax(350px,1fr) minmax(235px,290px);gap:10px}
+ .yearly-panel h2{font-size:17px}
+ .yearly-panel-body{padding:10px}
+ .yearly-center{min-height:545px}
+ .yearly-month-dot{width:32px;height:32px;font-size:9px}
+}
+@media(max-width:1050px){
+ .yearly-layout{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"hero hero" "left right"}
+ .yearly-left{grid-area:left}.yearly-center{grid-area:hero;max-width:700px;width:100%;justify-self:center}.yearly-right{grid-area:right}
+ .yearly-heading .yearly-kicker{position:static;top:auto;margin-top:7px}
+ .yearly-preview-pill{position:static;display:inline-block;margin-top:7px}
+ .yearly-heading h1{margin-top:4px}
+ .yearly-heading p{margin-top:5px}
+ .yearly-center{min-height:0}
+ .yearly-ring-stage{width:min(100%,550px)}
+ .yearly-month-rail{display:block}
+ #cordMonthRail{margin-top:10px}
+}
+@media(max-width:650px){
+ main:has(.yearly-dashboard:not([hidden])){padding:9px 11px 40px}
+ .yearly-layout{grid-template-columns:1fr;grid-template-areas:"hero" "left" "right"}
+ .yearly-heading h1{font-size:44px}
+ .yearly-heading .yearly-kicker{font-size:8px;letter-spacing:.12em}
+ .yearly-ring-caption{font-size:8px}
+ .yearly-ring-stage{width:100%}
+ .yearly-month-dot{width:28px;height:28px;font-size:8px;border-width:1px}
+ .yearly-center{padding:15px 2px}
+ .yearly-status{font-size:8px;letter-spacing:0;margin-top:0}
+ .yearly-local-disclaimer{font-size:10px}
+ #cordMonthRail{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .yearly-month-rail>strong{font-size:12px}
+ .yearly-petal-count{margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){.yearly-dashboard *{transition:none!important}}
