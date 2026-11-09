@@ -79,18 +79,61 @@
       '</g>'
     ].join("");
     return '<svg class="anthos-cord-svg" viewBox="0 0 560 560" role="img" aria-label="A genuine three strand braided rope growing around a yearly circle" xmlns="' + NS + '">'+
-      '<defs><mask id="' + uid + '"><circle data-cord-id="reveal" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1207"/></mask></defs>'+
+      '<defs>'+
+      '<linearGradient id="' + uid + '-fade-in" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="white" stop-opacity="1"/></linearGradient>'+
+      '<linearGradient id="' + uid + '-fade-out" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>'+
+      '<mask id="' + uid + '"><circle data-cord-id="reveal" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1207"/>'+
+      '<path data-cord-id="fade-in" fill="none" stroke="url(#' + uid + '-fade-in)" stroke-width="76" stroke-linecap="butt"/>'+
+      '<path data-cord-id="fade-out" fill="none" stroke="url(#' + uid + '-fade-out)" stroke-width="76" stroke-linecap="butt"/></mask></defs>'+
       '<circle cx="280" cy="280" r="192" fill="none" stroke="#8e735b" stroke-width="43" opacity=".07"/>'+
       '<image data-cord-id="faded" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet" opacity=".27"/>'+
       '<g mask="url(#' + uid + ')"><image data-cord-id="colored" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet"/></g>'+
       (compact ? '' : '<g data-cord-id="markers"></g>')+
       mainText+'</svg>';
   }
+  // Feather ONLY the colored/unfinished transitions in the SVG mask.
+  // The original 960px braid, its colors, size, and month geometry remain unchanged.
+  function featherMask(host, length, full) {
+    const circle=byId(host,"reveal");
+    const fadeIn=byId(host,"fade-in"),fadeOut=byId(host,"fade-out");
+    if(!circle||!fadeIn||!fadeOut)return;
+    if(full||length<=0){
+      circle.setAttribute("stroke-dasharray",(full?CIRCUMFERENCE:0).toFixed(4)+" "+(CIRCUMFERENCE+1).toFixed(4));
+      circle.setAttribute("stroke-dashoffset","0");
+      fadeIn.removeAttribute("d");fadeOut.removeAttribute("d");
+      return;
+    }
+    // 12px at the fixed January starting seam; 28px at the moving endpoint.
+    // These short gradients fade image opacity, not individual rope pixels.
+    const first=Math.min(12,length*.5);
+    const last=Math.min(28,(length-first));
+    const solid=Math.max(0,length-first-last);
+    circle.setAttribute("stroke-dasharray",solid.toFixed(4)+" "+(CIRCUMFERENCE+1).toFixed(4));
+    circle.setAttribute("stroke-dashoffset",(-first).toFixed(4));
+    const point=arcLength=>{
+      const angle=-Math.PI/2+arcLength/R;
+      return {x:280+R*Math.cos(angle),y:280+R*Math.sin(angle)};
+    };
+    const place=(path,start,end,gradientId)=>{
+      if(end<=start+0.001){path.removeAttribute("d");return;}
+      const p1=point(start),p2=point(end);
+      path.setAttribute("d","M"+p1.x.toFixed(5)+" "+p1.y.toFixed(5)+" A192 192 0 0 1 "+p2.x.toFixed(5)+" "+p2.y.toFixed(5));
+      const gradient=host.querySelector('[id="'+gradientId+'"]');
+      if(gradient){
+        gradient.setAttribute("x1",String(p1.x));gradient.setAttribute("y1",String(p1.y));
+        gradient.setAttribute("x2",String(p2.x));gradient.setAttribute("y2",String(p2.y));
+      }
+    };
+    const uid=circle.closest("mask")?.id;
+    if(!uid)return;
+    place(fadeIn,0,first,uid+"-fade-in");
+    place(fadeOut,first+solid,length,uid+"-fade-out");
+  }
   function showProgress(host, value) {
     const total=clamp(value), length=CIRCUMFERENCE*total/96;
     const reveal=byId(host,"reveal");
     if(!reveal)return;
-    reveal.setAttribute("stroke-dasharray",length.toFixed(3)+" "+(CIRCUMFERENCE+1).toFixed(3));
+    featherMask(host,length,total>=96);
     // Keep the original prototype's precise SVG month positions, not CSS percentages.
     const markers=byId(host,"markers");
     if(markers){
