@@ -38,6 +38,57 @@
     return sourcePromise;
   }
   const rgb = hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
+
+  // The approved source image includes an unnaturally smooth outer alpha silhouette:
+  // the last few pixels of several braided strands were flattened in the asset itself.
+  // Stretch the actual fiber pixels along each radial spoke to restore an irregular
+  // edge instead of drawing fake vector braid segments or widening the progress mask.
+  function restoreStrandSilhouette(original) {
+    const w=original.width,h=original.height;
+    const padding=Math.max(20,Math.round(Math.min(w,h)*.033));
+    const restored=document.createElement("canvas");
+    restored.width=w+2*padding;restored.height=h+2*padding;
+    const context=restored.getContext("2d",{willReadFrequently:true});
+    if(!context)throw new Error("Canvas 2D unavailable");
+    context.drawImage(original,padding,padding);
+    const destImage=context.getImageData(0,0,restored.width,restored.height);
+    const source=original.getContext("2d",{willReadFrequently:true}).getImageData(0,0,w,h).data;
+    const dest=destImage.data,cx=w/2,cy=h/2;
+    const maxRadius=Math.floor(Math.min(w,h)*.5)-2;
+    const minRadius=Math.floor(Math.min(w,h)*.30);
+    // One or more samples per source pixel along the circumference avoids seams.
+    const steps=Math.ceil(2*Math.PI*maxRadius*1.8);
+    const innerBand=Math.max(12,Math.round(Math.min(w,h)*.021));
+    const amplitude=Math.max(7,Math.round(Math.min(w,h)*.014));
+    for(let k=0;k<steps;k++){
+      const angle=k*2*Math.PI/steps,c=Math.cos(angle),sn=Math.sin(angle);
+      let outer=-1;
+      for(let radius=maxRadius;radius>=minRadius;radius--){
+        const x=Math.round(cx+radius*c),y=Math.round(cy+radius*sn);
+        if(x<0||y<0||x>=w||y>=h)continue;
+        if(source[(y*w+x)*4+3]>175){outer=radius;break;}
+      }
+      if(outer<0)continue;
+      // The three smoothly phase-shifted oscillations recreate the tiny natural
+      // bulges at successive over-under strand crossings, rather than a hard arc.
+      const wave=.52+.29*Math.sin(angle*30+.8)+.19*Math.sin(angle*55-1.1);
+      const extension=Math.max(2,Math.min(amplitude,Math.round(amplitude*wave)));
+      const from=outer-innerBand;
+      for(let d=-innerBand;d<=extension;d+=.70){
+        const srcRadius=from+(d+innerBand)*innerBand/(innerBand+extension);
+        const sx=Math.round(cx+srcRadius*c),sy=Math.round(cy+srcRadius*sn);
+        const tx=Math.round(padding+cx+(outer+d)*c),ty=Math.round(padding+cy+(outer+d)*sn);
+        if(sx<0||sy<0||sx>=w||sy>=h||tx<0||ty<0||tx>=restored.width||ty>=restored.height)continue;
+        const a=(sy*w+sx)*4,b=(ty*restored.width+tx)*4;
+        const alpha=source[a+3];
+        if(alpha<10)continue;
+        dest[b]=source[a];dest[b+1]=source[a+1];dest[b+2]=source[a+2];
+        dest[b+3]=alpha;
+      }
+    }
+    context.putImageData(destImage,0,0);
+    return {canvas:restored,overscan:450*padding/w};
+  }
   async function tinted(colors) {
     const key = colors.join("|").toLowerCase();
     if (tintCache.has(key)) return tintCache.get(key);
@@ -61,9 +112,9 @@
           data[i+3]=alpha;
         }
         context.putImageData(image,0,0);
-        return canvas.toDataURL("image/png");
+        return restoreStrandSilhouette(canvas).canvas.toDataURL("image/png");
       }
-      return {faded:paint(neutral),colored:paint(palette)};
+      return {faded:paint(neutral),colored:paint(palette),overscan:450*Math.max(20,Math.round(Math.min(width,height)*.033))/width};
     })();
     tintCache.set(key,task);
     if(tintCache.size>7) tintCache.delete(tintCache.keys().next().value);
@@ -126,8 +177,16 @@
     if(item.colors.join("|")===key)return;
     item.colors=colors;
     const revision=++item.revision;
-    tinted(colors).then(({faded,colored})=>{
+    tinted(colors).then(({faded,colored,overscan})=>{
       if(revision!==item.revision||!host.isConnected)return;
+      for(const id of ["faded","colored"]){
+        const image=byId(host,id);
+        if(!image)continue;
+        image.setAttribute("x",String(55-overscan));
+        image.setAttribute("y",String(55-overscan));
+        image.setAttribute("width",String(450+2*overscan));
+        image.setAttribute("height",String(450+2*overscan));
+      }
       byId(host,"faded")?.setAttribute("href",faded);
       byId(host,"colored")?.setAttribute("href",colored);
       host.classList.add("cord-loaded");
