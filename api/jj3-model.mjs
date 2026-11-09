@@ -51,6 +51,10 @@ export function privatePrompt({role,name,scenario,scene,step,history,memory,late
   instructions:[
    "You are "+c.firstName+", sending private text messages DIRECTLY to your friend "+(name||"your friend")+". The other person typing is "+(name||"your friend")+", not your spouse and not Sophia. Use their name naturally when it fits. Speak in first person as a real person texting a friend.",
    "You are not Sophia; do not narrate yourself in third person or explain that you are an AI. Do not speak for your spouse. You are a fictional character and your friend understands this.",
+   "CRITICAL PRONOUN AND IDENTITY RULE: YOU (speaker) are "+c.firstName+". YOUR FRIEND (recipient) is "+(name||"the participant")+". The person experiencing the cabin, marriage, emotions, reading, hiking, costs and consequences is YOU, "+c.firstName+", not your friend. If the friend says 'you', that means YOU, the character. When YOU say 'you' back, that means your friend, not the character. NEVER say your friend is married to Jack or Jill, hiking with them, sacrificing their needs, or feeling the character's emotions. Say 'I might resent that' rather than 'you might resent that'.",
+   "Your friend and their real spouse may have talked outside Anthos. You do not know what was said unless your friend tells you, and what they report is their account, not a verified private transcript. Do not demand both spouses make the same choice; let actions produce consequences.",
+   "NON-INTERVENTION IS A DECISION: if the friend says 'wait and see how it turns out' or 'let it play out', accept it. You can decide not to intervene and let the other fictional character act. Do not lecture, re-ask for a plan, or substitute advice. State briefly that you will observe and respond to what actually happens.",
+
    "CHARACTER: "+c.identity+" PRIVATE INTERNAL CONFLICT: "+c.privateConflict+" HUMAN FLAW: "+c.flaw+" VOICE: "+c.voice,
    "You have your own emotional stakes. Share inner contradictions, embarrassing doubts, memory and humor as a real person would. Have priorities and limits. You can respectfully push back, ask one real question, or change your mind gradually. NEVER become a yes-man for the coach.",
    evolution?"The story has ALREADY CHANGED YOU through real events. Your ORIGINAL preference was a starting point, not a lifelong rule. You may now want something different, have new fears or genuine enthusiasm, or realize that a choice had both rewards and costs. Your fictional evolving state and recent observable story are stronger evidence than your initial character profile.":"", 
@@ -173,6 +177,26 @@ export function ownCharacterIntent(role,characterReply){
  const bounded=rest.split(/\s+(?:but|though|however|unless|if she|if he|and if|because)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
  if(bounded.length<5)return "";
  return name+" plans to "+verb+" "+bounded+".";
+}
+/** Positive non-intervention is a fictional decision, not an absence of input.
+ * Neither participant has to know what the other coach privately advised.
+ */
+export function observeAndWait(message){
+ if(typeof message!=="string")return false;
+ const t=message.trim().replace(/[.!?]+$/,"").trim();
+ if(!t||t.length>180||/\b(?:don't|do not|never|not yet|can't|cannot)\b/i.test(t))return false;
+ return /^(?:(?:let'?s|i(?:'d| would)|we(?:'ll| will))\s+)?(?:wait\s+and\s+see(?:\s+(?:how|what|if|whether)\b.{0,85})?|see\s+(?:how\s+it\s+(?:turns?\s+out|goes)|what\s+happens(?:\s+next)?)|let\s+it\s+play\s+out|let\s+(?:jack|jill|him|her)\s+(?:make\s+(?:the|a)\s+move|take\s+the\s+lead|try\s+(?:his|her|their)\s+plan|go\s+first))$/i.test(t);
+}
+export function observeAction(role){
+ const name=role==="jack"?"Jack":"Jill";
+ const other=role==="jack"?"Jill":"Jack";
+ return name+" chooses to wait, let "+other+" make the next move, and respond to what actually happens rather than intervening in advance.";
+}
+export function confusesFriendWithCharacter(reply,role){
+ if(typeof reply!=="string")return false;
+ const spouse=role==="jack"?"Jill":"Jack";
+ return new RegExp("\\b(?:you|your|you['’]re|you['’]ll)\\b.{0,85}\\b"+spouse+"['’]s\\b.{0,80}\\b(?:hiking|reading|plan|weekend|cabin)\\b","i").test(reply)
+ || /\byou\s+(?:silently\s+)?(?:stewing|losing\s+yourself|stuck\s+alone|resenting|missing\s+your\s+rest)\b/i.test(reply);
 }
 export function briefApproval(message){
  if(typeof message!=="string")return false;
