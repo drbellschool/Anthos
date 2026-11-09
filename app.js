@@ -105,7 +105,7 @@
         const tipScale=atTip?.45+.55*(completed-i)/3:1;
         const width=(active?10.8*tipScale:10.2).toFixed(2);
         svg+='<path d="'+d+'" fill="none" stroke="#fffcf7" stroke-width="'+(Number(width)+3.4)+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?1:.55)+'"/>';
-        svg+='<path d="'+d+'" fill="none" stroke="'+ropeColors[k]+'" stroke-width="'+width+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?(atTip?.7:1):.27)+'" filter="url(#cord-shadow)"/>';
+        svg+='<path d="'+d+'" fill="none" stroke="'+ropeColors[k]+'" stroke-width="'+width+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?(atTip?.7:1):.50)+'" filter="url(#cord-shadow)"/>';
         svg+='<path d="'+d+'" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="'+(active?.25:.14)+'"/>';
       }
     }
