@@ -6,8 +6,8 @@
  * The state changes only when an observable fictional action is committed and
  * one canonical story consequence is atomically published.
  */
-export const ENGINE_VERSION="3.2.0";
-export const EVOLUTION_ENABLED_VERSIONS=["3.1.0",ENGINE_VERSION];
+export const ENGINE_VERSION="3.3.0";
+export const EVOLUTION_ENABLED_VERSIONS=["3.1.0","3.2.0",ENGINE_VERSION];
 export const usesEvolution=version=>EVOLUTION_ENABLED_VERSIONS.includes(version);
 export const EVOLUTION_VERSION="evolution-1";
 export const AXES=["connection","agency","trust","energy","friction","curiosity"];
