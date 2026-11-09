@@ -1,0 +1,198 @@
+// Anthos 4.0 private browser pilot. Separate tables from the retired 3.x engine.
+// All participant access is authenticated by a unique secret URL token; private coach
+// messages are returned only to that role. Nothing sends an SMS.
+import {createHash,randomBytes,randomUUID} from "node:crypto";
+import {getScenario} from "./jj2-library.mjs";
+import {normalizeStudio,PHASES} from "./episode-studio.mjs";
+
+const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
+const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
+const ROLE=["jack","jill"];
+const PHASES4=PHASES.map(x=>x.id);
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+const TOKEN=/^[A-Za-z0-9_-]{43}$/;
+const sha=x=>createHash("sha256").update(x).digest("hex");
+const brief=(s,max=1100)=>typeof s==="string"?s.trim().slice(0,max):"";
+const error=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
+async function db(resource,query={},body,method="GET"){
+ const key=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+ if(!key)error("Pilot database credentials are unavailable.",503);
+ const url=new URL(BASE+resource);
+ for(const [k,v] of Object.entries(query))url.searchParams.set(k,String(v));
+ let res;try{res=await fetch(url,{method,headers:{
+  apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",
+  Prefer:"return=representation"},
+  ...(body===undefined?{}:{body:JSON.stringify(body)}),
+  signal:AbortSignal.timeout(15000)
+ });}catch{error("Pilot database could not be reached.",502)}
+ if(!res.ok)error(res.status===409?"The episode was updated. Refresh and retry.":"Pilot database rejected the operation.",res.status===409?409:502);
+ return res.json().catch(()=>null);
+}
+async function participant(token){
+ if(!TOKEN.test(token||""))error("This 4.0 invitation is missing or invalid.",401);
+ const person=(await db(P,{token_hash:"eq."+sha(token),select:"*"}))?.[0];
+ if(!person)error("This invitation does not exist or has been retired.",401);
+ const room=(await db(R,{id:"eq."+person.room_id,select:"*"}))?.[0];
+ if(!room||new Date(room.expires_at).getTime()<Date.now())error("This invitation expired.",410);
+ if(room.stage==="retired")error("This episode pilot has been retired.",410);
+ return {person,room};
+}
+function checkpoint(room){
+ return room.phase_index<5?
+ room.episode?.checkpoints?.find(c=>c.afterPhase===PHASES4[room.phase_index]):null;
+}
+function targetRoles(room){
+ const audience=checkpoint(room)?.audience;
+ return audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[];
+}
+export async function createRoom(origin,scenarioId){
+ if(!UUID.test(scenarioId||""))error("Choose a saved 4.0 episode first.");
+ const scenario=await getScenario(scenarioId);
+ if(scenario.mode!=="shared")error("The 4.0 dual-coach pilot currently supports shared episodes only.");
+ if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
+ const draft=normalizeStudio(scenario.episode_studio,scenario);
+ if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
+  error("Finish the primary objective and all six phase summaries before piloting.",409);
+ const created=(await db(R,{},{
+  title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0
+ },"POST"))?.[0];
+ if(!created?.id)error("Could not create the pilot room.",502);
+ const invitations={};
+ try{
+  for(const role of ROLE){
+   const secret=randomBytes(32).toString("base64url");
+   await db(P,{},{room_id:created.id,role,token_hash:sha(secret)},"POST");
+   invitations[role]=origin+"/pilot-v4/?invite="+secret;
+  }
+ }catch(err){
+  await db(R,{id:"eq."+created.id},undefined,"DELETE").catch(()=>{});
+  throw err;
+ }
+ return {ok:true,engine:"4.0.0",title:draft.title,roomId:created.id,
+  invitations,expiresAt:created.expires_at,
+  note:"Private browser pilot. No actual text messages will be sent."};
+}
+async function messages(room,role){
+ const [scenes,mine,people]=await Promise.all([
+  db(M,{room_id:"eq."+room.id,role:"eq.shared",order:"id.asc",limit:"40",select:"id,kind,body,phase_index,created_at"}),
+  db(M,{room_id:"eq."+room.id,role:"eq."+role,order:"id.asc",limit:"60",select:"id,kind,body,phase_index,created_at"}),
+  db(P,{room_id:"eq."+room.id,select:"role,joined_at,submitted_phase"})
+ ]);
+ return {scenes:scenes||[],mine:mine||[],people:people||[]};
+}
+export async function status(token){
+ const {person,room}=await participant(token);
+ const joined=!!person.joined_at;
+ const {scenes,mine,people}=joined?await messages(room,person.role):{scenes:[],mine:[],people:[]};
+ const targets=targetRoles(room),needsReply=room.stage==="awaiting"&&targets.includes(person.role)&&person.submitted_phase!==room.phase_index;
+ const bothJoined=people.filter(x=>x.joined_at).length===2;
+ return {ok:true,version:"4.0.0",title:room.title,role:person.role,
+  character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
+  joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
+  stage:room.stage,needsReply,submitted:person.submitted_phase===room.phase_index,
+  waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
+  canContinue:bothJoined&&["needs_scene","flow"].includes(room.stage),
+  scenes,messages:mine,finished:room.stage==="complete",
+  info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
+}
+export async function join(token,name){
+ const {person}=await participant(token);
+ const first=brief(name,32);
+ if(!/^[\p{L}\p{M} .'-]{1,32}$/u.test(first))error("Enter a first name to join.");
+ if(!person.joined_at)await db(P,{id:"eq."+person.id,joined_at:"is.null"},
+  {first_name:first,joined_at:new Date().toISOString()},"PATCH");
+ return status(token);
+}
+const OUTPUT_SCHEMA={type:"object",additionalProperties:false,properties:{
+ scene:{type:"string"},jackPrompt:{type:"string"},jillPrompt:{type:"string"}
+},required:["scene","jackPrompt","jillPrompt"]};
+async function directScene(room,phaseIndex){
+ const key=process.env.OPENAI_API_KEY?.trim();
+ if(!key)error("OpenAI is not configured for this pilot.",503);
+ const [history,people]=await Promise.all([
+  db(M,{room_id:"eq."+room.id,order:"id.desc",limit:"28",select:"id,kind,role,body,phase_index"}),
+  db(P,{room_id:"eq."+room.id,select:"role,first_name,joined_at"})
+ ]);
+ const phase=PHASES4[phaseIndex];
+ const storyDirection=room.episode.phases[phase];
+ const cp=checkpoint({...room,phase_index:phaseIndex});
+ const cast=Object.fromEntries((people||[]).map(x=>[x.role,x.first_name||x.role]));
+ const input={title:room.title,primaryObjective:room.episode.primarySkill,
+  supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
+  premise:room.episode.premise,phase,phaseNumber:phaseIndex+1,
+  phaseStoryDirection:storyDirection,
+  resolution:room.episode.closureCriteria,reflection:room.episode.reflectionPrompt,
+  jackMotivation:room.episode.jackMotivation,jillMotivation:room.episode.jillMotivation,
+  boundaries:room.episode.boundaries,voice:room.episode.tone,
+  personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
+  checkpoint:cp,participants:cast,
+  history:(history||[]).reverse().map(m=>({role:m.role,kind:m.kind,phase:PHASES4[m.phase_index],body:m.body}))};
+ const instructions=[
+  "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
+  "Produce exactly ONE fresh canonical scene, no scripts or staged dialogue lists. Describe concrete decisions and outcomes made by fictional Jack and Jill. Develop a vivid situation, 110-200 words, with witty grounded character-driven consequences.",
+  "Keep absolute continuity with all prior scene history and the stored episode premise. Do not restart the story, change locations without explanation, or invent messages the real coaches never sent.",
+  "Coaches are the husband counseling Jack privately and the wife counseling Jill privately. Privately supplied advice can change fictional actions, but never quote, attribute, expose, paraphrase verbatim, or disclose one coach's message to the other.",
+  "Honor the educational objectives without repeatedly explaining psychological theory. The characters are believable people, not puppets and not therapists. Make every phase distinct; advance toward a complete consequence-based ending by phase six.",
+  "Honor the creator's authored humor, especially the relevant checkpoint humor cue. Avoid cheesy punchlines, compulsory jokes, and any pressure, coercion or humiliation around physical intimacy. Include mutual respect for individual boundaries.",
+  "The saved phase summary is authoritative direction, including creator-locked material. Do not override authored motivations, locked facts, or the research purpose.",
+  "If the current phase is Reflection, conclude the fictional episode with earned closure and a concise practical, optional real-life reflection. No new conflict or request for coaching.",
+  "Return JSON: scene, jackPrompt, jillPrompt. Each prompt must be a short, natural, personal text from that character asking their private friend about ONE consequential decision at this checkpoint.",
+  "If checkpoint audience is none, or the story is complete, return empty strings for both prompts. If jack-only, Jill's prompt is empty, and vice versa. If both, create two distinctly personal private prompts, never a group message.",
+  "If waitForReply is false, prompts may be scene observations and the story will continue without requiring an answer.",
+  "Do not describe the coach's private messages in the canonical shared scene or the other private prompt.",
+ ].join(" ");
+ const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
+ let result;try{
+  const response=await fetch("https://api.openai.com/v1/responses",{
+   method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+   body:JSON.stringify({model,store:false,instructions,input:JSON.stringify(input),
+    max_output_tokens:1600,text:{format:{type:"json_schema",name:"anthos_jj4_scene",strict:true,schema:OUTPUT_SCHEMA}}}),
+   signal:AbortSignal.timeout(55000)
+  });
+  if(!response.ok)error("The character AI request failed.",502);
+  const data=await response.json();
+  const raw=(data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("");
+  result=JSON.parse(raw);
+ }catch(e){if(e.status)throw e;error("The character AI could not finish this scene. Please retry.",502)}
+ if(brief(result.scene,2500).length<80)error("The AI didn't produce a complete scene; retry.",502);
+ const audience=cp?.audience||"none";
+ const fallback=(role)=>{const name=role==="jack"?"Jack":"Jill";return name+" needs a second opinion about what to do next. What would you suggest?"};
+ return {scene:brief(result.scene,2500),
+  jackPrompt:["jack","both"].includes(audience)?brief(result.jackPrompt,1200)||fallback("jack"):"",
+  jillPrompt:["jill","both"].includes(audience)?brief(result.jillPrompt,1200)||fallback("jill"):""};
+}
+export async function advance(token){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join the episode first.",403);
+ if(!["needs_scene","flow"].includes(room.stage))return status(token);
+ const people=await db(P,{room_id:"eq."+room.id,select:"joined_at"});
+ if(!people||people.length!==2||people.some(x=>!x.joined_at))return status(token);
+ const claim=randomUUID();
+ const phase=await db("rpc/anthos_jj4_claim_scene",{}, {p_room:room.id,p_claim:claim},"POST");
+ if(typeof phase!=="number"||phase<0)return status(token);
+ try{
+  const latest=(await db(R,{id:"eq."+room.id,select:"*"}))?.[0];
+  const rendered=await directScene(latest,phase);
+  const saved=await db("rpc/anthos_jj4_commit_scene",{},
+   {p_room:room.id,p_claim:claim,p_phase:phase,p_story:rendered.scene,
+    p_jack:rendered.jackPrompt,p_jill:rendered.jillPrompt},"POST");
+  if(saved!==true)error("This scene was already completed elsewhere.",409);
+ }catch(e){
+  await db(R,{id:"eq."+room.id,processing_token:"eq."+claim},
+    {stage:"needs_scene",processing_token:null,processing_at:null},"PATCH").catch(()=>{});
+  throw e;
+ }
+ return status(token);
+}
+export async function coach(token,body,requestKey){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join before advising your character.",403);
+ if(room.stage!=="awaiting")return status(token);
+ const words=brief(body,900);
+ if(words.length<2)error("Write a short suggestion to your character.");
+ if(!UUID.test(requestKey||""))error("Invalid message request.");
+ const saved=await db("rpc/anthos_jj4_submit_coaching",{},
+  {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,p_message:words,p_key:requestKey},"POST");
+ if(saved!==true)return status(token);
+ return status(token);
+}
