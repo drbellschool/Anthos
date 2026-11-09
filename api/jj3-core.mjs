@@ -1,7 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -165,23 +165,50 @@ export async function talk(token,text,requestKey){
  if(!uuidOK(requestKey))problem("This message needs a valid request identifier.");
  const history=await privateMessages(r,p.role);
  if(history.some(x=>x.request_key===requestKey))return status(token);
+ // Choosing to observe is a meaningful shared-story decision. Do not ask the
+ // friend to invent a second plan or see the other coach's private messages.
+ if(r.mode==="shared"&&observeAndWait(clean)){
+  const move=observeAction(p.role);
+  const other=p.role==="jack"?"Jill":"Jack";
+  const reply=p.role==="jack"
+   ?(p.name?p.name+", ":"")+"I'll give Jill room to make her move. I can react to what actually happens instead of trying to predict the whole weekend."
+   :(p.name?p.name+", ":"")+"I'll let Jack try what he has in mind, then see how I actually feel about it. No need to argue with a plan that hasn't happened yet.";
+  const stored=await db("rpc/anthos_jj3_write_turn",{},{
+   p_room:r.id,p_participant:p.id,p_step:r.step,p_key:requestKey,
+   p_user:clean,p_character:reply,p_aside:"",p_action:move,
+   p_memory:p.private_memory||{},p_learning:p.learning_log||{}
+  },"POST");
+  if(stored!==true)problem("The scene moved while you were writing. Refresh to continue.",409);
+  const committed=await db("rpc/anthos_jj3_submit",{},{
+   p_room:r.id,p_participant:p.id,p_step:r.step
+  },"POST");
+  if(committed===true){try{await resolveRoom(r)}catch{/* The move is saved; automatic checking retries. */}}
+  return status(token);
+ }
  const scenario=await scenarioFor(r);
  const oldAction=p.pending_step===r.step?p.pending_action||"":"";
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history,
    memory:p.private_memory,latest:clean,pending:oldAction,
    evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
  let response=await model(guide.instructions,guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
- if(!checkCharacterReply(response,history)||soundsTooPolished(response.characterReply)){
+ if(!checkCharacterReply(response,history)||soundsTooPolished(response.characterReply)||confusesFriendWithCharacter(response.characterReply,p.role)){
   // Soft retry: a formulaic "you've convinced me" is just as immersion-breaking
   // as a repeated reply. An imperfect retry should never create an infinite stall.
   try{
    const revised=await model(guide.instructions+
-    " Your previous reply was either repetitive or sounded too agreeable and polished. Be a person, not a worksheet: respond with one honest thought, a concrete detail, and some genuine uncertainty or pushback. Avoid tidy lessons and filler.",
+    " Your previous reply was repetitive, too polished, or confused the friend with the character. Be a person texting YOUR FRIEND "+p.name+". YOU are "+CHARACTER[p.role].firstName+"; YOU experience the marriage and weekend, not your friend. Do not tell the friend that they are married to your spouse or that they are hiking/reading/stewing in the cabin. Speak about your own emotions in FIRST person, with one real thought. Avoid tidy lessons.",
     guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
    if(checkCharacterReply(revised,history))response=revised;
   }catch{/* Preserve the usable first reply rather than losing the entire exchange. */}
  }
  if(!checkCharacterReply(response,history))problem("The character's response repeated itself. Your message is still here—please retry.",502);
+ if(confusesFriendWithCharacter(response.characterReply,p.role)){
+  // Never show an identity-swapped reply; preserve the user's turn and let the
+  // character correct the point of view without requiring another click.
+  const other=p.role==="jack"?"Jill":"Jack";
+  response.characterReply=(p.name?p.name+", ":"")+"I caught myself getting ahead of things. I'm the one who has to live with how this goes with "+other+". I want to respond to what actually happens, not a disaster I've imagined.";
+  response.characterProposal="";response.proposalEvidence="";response.action="";response.evidence="";
+ }
  response.characterReply=plainCharacterLanguage(response.characterReply);
  response.sophiaAside=plainCharacterLanguage(response.sophiaAside);
  // The coach may authorize a fictional action in normal speech. The story
