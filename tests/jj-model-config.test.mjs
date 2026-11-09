@@ -9,27 +9,27 @@ test("Jack and Jill use GPT-6 Luna independently of the legacy Vercel OPENAI_MOD
  assert.equal(deepDiveModel({OPENAI_MODEL:"gpt-4.1-mini"}),"gpt-6-luna");
  assert.equal(deepDiveModel({OPENAI_MODEL:"gpt-4.1-mini",ANTHOS_JJ_MODEL:"gpt-6-luna"}),"gpt-6-luna");
 });
-test("private character messages use Luna with JSON schema and low-latency reasoning",()=>{
+test("private character messages use Luna with medium reasoning for thoughtful fewer-turn responses",()=>{
  const a=deepDiveRequest({...base,name:"jj3_character_reply",env:{OPENAI_MODEL:"gpt-4.1-mini"}});
  assert.equal(a.model,"gpt-6-luna");
- assert.deepEqual(a.reasoning,{effort:"none"});
+ assert.deepEqual(a.reasoning,{effort:"medium"});
  assert.equal(a.store,false);
  assert.equal(a.text.format.type,"json_schema");
  assert.equal(a.text.format.strict,true);
  assert.equal(a.text.format.schema,schema);
  assert.deepEqual(JSON.parse(a.input),base.input);
- assert.equal(a.max_output_tokens,2100);
+ assert.equal(a.max_output_tokens,3900);
  const retry=deepDiveRequest({...base,name:"jj3_character_reply",attempt:1,env:{}});
- assert.equal(retry.max_output_tokens,3000);
+ assert.equal(retry.max_output_tokens,5500);
 });
-test("shared story outcomes use Luna and a bounded low reasoning effort",()=>{
+test("shared story outcomes use Luna high reasoning for consistent evolving consequences",()=>{
  for(const name of ["jj_evolution_outcome","jj3_story_outcome"]){
   const first=deepDiveRequest({...base,name,env:{}});
   const retry=deepDiveRequest({...base,name,attempt:1,env:{}});
   assert.equal(first.model,"gpt-6-luna");
-  assert.deepEqual(first.reasoning,{effort:"low"});
-  assert.equal(first.max_output_tokens,3900);
-  assert.equal(retry.max_output_tokens,5000);
+  assert.deepEqual(first.reasoning,{effort:"high"});
+  assert.equal(first.max_output_tokens,7500);
+  assert.equal(retry.max_output_tokens,10000);
   assert.equal(first.text.format.name,name);
  }
 });
