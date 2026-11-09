@@ -204,3 +204,9 @@
 .episode-pilot-players{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:11px}
 .episode-pilot-players>.jj4-player{height:520px;max-height:75vh}
 @media(max-width:700px){.episode-pilot-links,.episode-pilot-players{grid-template-columns:1fr}.episode-pilot-players>.jj4-player{height:430px;max-height:none}.episode-pilot-heading{align-items:flex-start;flex-direction:column}}
+
+.episode-pilot-plan{margin:10px 0;border:1px solid #ccdfd1;background:#fff;border-radius:8px;padding:7px 11px}
+.episode-pilot-plan summary{font-size:11px;font-weight:800;color:#2e6046;cursor:pointer}
+.episode-pilot-plan-list{padding-left:24px;display:grid;gap:5px;margin:10px 0;font-size:11px;line-height:1.4;color:#405d4e}
+.episode-pilot-plan-item strong{color:#234b37}
+.episode-pilot-plan-item small{display:block;color:#5b765f;font-size:10px}
