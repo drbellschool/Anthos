@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {
  SKILLS,PHASES,CHECKPOINT_AFTER,CHECKPOINT_AUDIENCES,
- defaultStudio,defaultCheckpoints,normalizeStudio
+ defaultStudio,defaultCheckpoints,normalizeStudio,LOCKABLE_PATHS,normalizeLocks,preserveLockedText
 } from "../api/episode-studio.mjs";
 
 const html=readFileSync(new URL("../admin/index.html",import.meta.url),"utf8");
@@ -111,4 +111,64 @@ test("AI must draft targeted interventions, while saved drafts remain admin-only
  assert.match(ui,/Discard unsaved changes/);
  assert.match(ui,/No SMS or pilot was launched/);
  assert.doesNotMatch(ui,/pilot-create-jack-jill|\/pilot\/?\?/);
+});
+
+test("All editable text fields and phase/check-in text have lockable canonical paths",()=>{
+ assert.ok(LOCKABLE_PATHS.includes("title"));
+ assert.ok(LOCKABLE_PATHS.includes("learningObjective"));
+ assert.ok(LOCKABLE_PATHS.includes("humorNotes"));
+ assert.ok(LOCKABLE_PATHS.includes("phases.discovery"));
+ assert.ok(LOCKABLE_PATHS.includes("checkpoints.conflict.purpose"));
+ assert.ok(LOCKABLE_PATHS.includes("checkpoints.conflict.humorCue"));
+ assert.ok(LOCKABLE_PATHS.length>=29);
+ assert.deepEqual(normalizeLocks(["title","title","fake","phases.hook"]),["title","phases.hook"]);
+});
+test("AI outputs cannot change locked story, phase, or intervention humor, but unlocked fields may change",()=>{
+ const input=normalizeStudio({
+  title:"My original title",
+  premise:"My original plot premise for a dramatic scene with enough words to support the entire scenario and its transitions.",
+  humorNotes:"Authentic joke with personal voice",
+  phases:{hook:"The original opening must remain intact",conflict:"Original conflict"},
+  checkpoints:[{afterPhase:"conflict",audience:"both",purpose:"Ask both separately",humorCue:"Original comic callback",waitForReply:true}],
+  locks:["title","humorNotes","phases.hook","checkpoints.conflict.humorCue"]
+ },scenario);
+ const model=normalizeStudio({
+  title:"Model replacement",
+  premise:"The AI proposes an entirely different but long enough premise about travel and several characters.",
+  humorNotes:"Generic cheesy humor",
+  phases:{hook:"Model's new opening",conflict:"Model can revise this conflict"},
+  checkpoints:[{afterPhase:"conflict",audience:"both",purpose:"Model's new coaching purpose",humorCue:"Model's rewritten joke",waitForReply:true}]
+ },scenario);
+ const result=preserveLockedText(model,input);
+ assert.equal(result.title,"My original title");
+ assert.equal(result.humorNotes,"Authentic joke with personal voice");
+ assert.equal(result.phases.hook,"The original opening must remain intact");
+ assert.equal(result.checkpoints[1].humorCue,"Original comic callback");
+ assert.equal(result.premise,model.premise);
+ assert.equal(result.phases.conflict,"Model can revise this conflict");
+ assert.equal(result.checkpoints[1].purpose,"Model's new coaching purpose");
+ assert.deepEqual(result.locks,input.locks);
+});
+test("Lock state survives draft normalization; blank locked fields stay blank",()=>{
+ const d=normalizeStudio({locks:["premise","phases.reflection"],premise:"  Preserve  spaces  ",phases:{reflection:""}},scenario);
+ assert.equal(d.premise,"  Preserve  spaces  ");
+ const generated=normalizeStudio({premise:"A completely replaced premise.",phases:{reflection:"AI reflection"}},scenario);
+ const result=preserveLockedText(generated,d);
+ assert.equal(result.premise,"  Preserve  spaces  ");
+ assert.equal(result.phases.reflection,"");
+});
+test("Admin UI provides compact research cards and usage info, and sends current locked draft to AI",()=>{
+ assert.match(ui,/episode-researcher-icon/);
+ assert.match(ui,/episode-skill-check/);
+ assert.match(ui,/episode-usage-count/);
+ assert.match(ui,/episode-info-tooltip/);
+ assert.match(ui,/current.skillUsage/);
+ assert.match(ui,/dataset.lockPath/);
+ assert.match(ui,/input.readOnly=locked/);
+ assert.match(ui,/studio:before/);
+ assert.match(ui,/current.studio.locks/);
+ assert.match(css,/\.episode-info-wrap:hover/);
+ assert.match(css,/\.episode-lock-wrap.is-locked/);
+ assert.match(generator,/lockedText/);
+ assert.match(generator,/preserveLockedText\(generated,source\)/);
 });

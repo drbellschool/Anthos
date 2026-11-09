@@ -67,3 +67,24 @@ export async function persistEpisodeStudio(id,expected,studio){
  if(rows.length!==1)bad("Version conflict. Reload before saving.",409);
  return rows[0];
 }
+
+/** Count actual saved 4.0 objective assignments, not historical seed keywords.
+ *  Respond only with aggregate counts and episode titles to authenticated admin callers. */
+export async function listEpisodeSkillUsage(){
+ const rows=await rest("anthos_jj2_scenarios",{
+  select:"id,title,episode_studio",episode_studio:"not.is.null",limit:"200"
+ });
+ const usage={};
+ for(const row of rows){
+  const s=row.episode_studio;
+  if(!s||typeof s!=="object"||Array.isArray(s))continue;
+  const ids=new Set([s.primarySkill,...(Array.isArray(s.supportingSkills)?s.supportingSkills:[])]);
+  for(const id of ids){
+   if(typeof id!=="string"||!id)continue;
+   if(!usage[id])usage[id]=[];
+   usage[id].push({id:row.id,title:String(s.title||row.title||"Untitled episode").slice(0,120)});
+  }
+ }
+ for(const items of Object.values(usage))items.sort((a,b)=>a.title.localeCompare(b.title));
+ return usage;
+}

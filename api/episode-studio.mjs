@@ -1,6 +1,6 @@
 // Anthos Episode Studio: private, admin-only editorial planning. No customer data or SMS.
 // Scenario drafts are NOT automatically published to live Jack & Jill rooms.
-import {getScenario,persistEpisodeStudio} from "./jj2-library.mjs";
+import {getScenario,persistEpisodeStudio,listEpisodeSkillUsage} from "./jj2-library.mjs";
 
 export const SKILLS=Object.freeze([
  {id:"g-bids",researcher:"Gottman",title:"Recognize emotional bids",description:"Notice invitations for attention, comfort or connection."},
@@ -44,8 +44,45 @@ const ID_SET=new Set(SKILLS.map(s=>s.id));
 const FIELDS={title:120,premise:1700,learningObjective:450,jackMotivation:650,jillMotivation:650,
  boundaries:1100,tone:650,humorNotes:1300,runningGags:1300,researchNotes:1000,
  closureCriteria:900,reflectionPrompt:600,creativeDirection:650};
+export const LOCKABLE_PATHS=Object.freeze([
+ ...Object.keys(FIELDS),
+ ...PHASES.map(p=>"phases."+p.id),
+ ...CHECKPOINT_AFTER.flatMap(p=>["checkpoints."+p+".purpose","checkpoints."+p+".humorCue"])
+]);
+const LOCKABLE_SET=new Set(LOCKABLE_PATHS);
+export function normalizeLocks(value){
+ return Array.isArray(value)?[...new Set(value.filter(v=>typeof v==="string"&&LOCKABLE_SET.has(v)))]:[];
+}
+function getLockedValue(studio,path){
+ if(path.startsWith("phases."))return studio.phases?.[path.slice(7)];
+ if(path.startsWith("checkpoints.")){
+  const match=path.match(/^checkpoints\.([a-z]+)\.(purpose|humorCue)$/);
+  return match?studio.checkpoints?.find(x=>x.afterPhase===match[1])?.[match[2]]:undefined;
+ }
+ return studio[path];
+}
+function setLockedValue(studio,path,value){
+ if(path.startsWith("phases.")){studio.phases[path.slice(7)]=value;return;}
+ if(path.startsWith("checkpoints.")){
+  const match=path.match(/^checkpoints\.([a-z]+)\.(purpose|humorCue)$/);
+  if(match){const cp=studio.checkpoints.find(x=>x.afterPhase===match[1]);if(cp)cp[match[2]]=value;}
+  return;
+ }
+ studio[path]=value;
+}
+/** Always restore editor-locked text after model generation, regardless of its output. */
+export function preserveLockedText(generated,source){
+ const result={...generated,phases:{...generated.phases},
+  checkpoints:generated.checkpoints.map(x=>({...x}))};
+ for(const path of normalizeLocks(source.locks)){
+  const original=getLockedValue(source,path);
+  if(typeof original==="string")setLockedValue(result,path,original);
+ }
+ result.locks=normalizeLocks(source.locks);
+ return result;
+}
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
-const clean=(v,max)=>typeof v==="string"?v.trim().slice(0,max):"";
+const clean=(v,max)=>typeof v==="string"?v.slice(0,max):"";
 export const defaultCheckpoints=()=>CHECKPOINT_AFTER.map(afterPhase=>({
  afterPhase,audience:"none",purpose:"",humorCue:"",waitForReply:false
 }));
@@ -69,7 +106,7 @@ export function defaultStudio(scenario){
   humorNotes:"",runningGags:"",researchNotes:"",closureCriteria:"",
   reflectionPrompt:"",creativeDirection:"",
   phases:Object.fromEntries(PHASES.map(x=>[x.id,""])),
-  checkpoints:defaultCheckpoints()};
+  checkpoints:defaultCheckpoints(),locks:[]};
 }
 export function normalizeStudio(input,scenario){
  const defaults=defaultStudio(scenario),value=input&&typeof input==="object"&&!Array.isArray(input)?input:{};
@@ -81,16 +118,17 @@ export function normalizeStudio(input,scenario){
   [...new Set(value.supportingSkills.filter(v=>ID_SET.has(v)&&v!==out.primarySkill))].slice(0,2):[];
  out.phases=Object.fromEntries(PHASES.map(p=>[p.id,clean(value.phases?.[p.id],850)]));
  out.checkpoints=normalizeCheckpoints(value.checkpoints,scenario.mode,out.soloCoach);
+ out.locks=normalizeLocks(value.locks);
  return out;
 }
 export async function readEpisodeStudio(id){
- const scenario=await getScenario(id);
+ const [scenario,skillUsage]=await Promise.all([getScenario(id),listEpisodeSkillUsage()]);
  return {ok:true,scenario:{id:scenario.id,petal_slug:scenario.petal_slug,mode:scenario.mode,
   title:scenario.title,opening_scene:scenario.opening_scene,learning_objective:scenario.learning_objective,
   content_version:scenario.content_version,status:scenario.status,
   episode_saved:!!scenario.episode_studio&&Object.keys(scenario.episode_studio).length>0},
   studio:normalizeStudio(scenario.episode_studio,scenario),skills:SKILLS,phases:PHASES,
-  checkpointAudiences:CHECKPOINT_AUDIENCES};
+  checkpointAudiences:CHECKPOINT_AUDIENCES,skillUsage};
 }
 export async function saveEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
@@ -98,6 +136,9 @@ export async function saveEpisodeStudio(body){
  if(!Number.isInteger(expected)||expected<1)bad("Reload this scenario before saving.");
  if(!body.studio||typeof body.studio!=="object"||Array.isArray(body.studio))bad("Invalid editor draft.");
  const input=body.studio;
+ if(!Array.isArray(input.locks)||input.locks.length>LOCKABLE_PATHS.length||
+  input.locks.some(x=>typeof x!=="string"||!LOCKABLE_SET.has(x)))
+    bad("Invalid text-field lock settings.");
  for(const [field,max] of Object.entries(FIELDS)){
   if(typeof input[field]!=="string"||input[field].length>max)bad("Review the "+field+" field.");
  }
@@ -121,7 +162,8 @@ export async function saveEpisodeStudio(body){
  if(studio.title.length<5||studio.premise.length<75||studio.learningObjective.length<12)
   bad("Add a title, a 75-character premise, and a clear relationship objective before saving.");
  const saved=await persistEpisodeStudio(scenario.id,expected,studio);
- return {ok:true,content_version:saved.content_version,studio};
+ return {ok:true,content_version:saved.content_version,studio,
+  skillUsage:await listEpisodeSkillUsage()};
 }
 const schema={
  type:"object",additionalProperties:false,properties:{
@@ -147,11 +189,18 @@ const schema={
 export async function generateEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
  const direction=clean(body?.direction,650);
+ const source=normalizeStudio(body?.studio,scenario);
+ if(body?.studio&&(!Array.isArray(body.studio.locks)||
+     body.studio.locks.some(x=>!LOCKABLE_SET.has(x))))bad("Invalid locked fields.");
+ const lockedText=Object.fromEntries(source.locks.map(path=>[path,getLockedValue(source,path)]));
  const apiKey=process.env.OPENAI_API_KEY?.trim();
  if(!apiKey)bad("OpenAI is not configured for AI drafting.",503);
  const instructions=[
   "You are a meticulous curriculum editor designing one dynamic fictional marriage-enrichment adventure for Anthos.",
   "Return an editable editor draft, NOT SMS messages or a fixed script.",
+  "CRITICAL: The current draft contains author-owned LOCKED TEXT. Read its exact words as immutable canon; never contradict, reframe or override any locked passage. Adapt all unlocked episode fields, phases, and interventions to make the whole episode coherent with the locked material.",
+  "When a user locks original humor or a phase/check-in, treat it as deliberate creative direction. Weave other scenes and comedy around it rather than restating the text mechanically.",
+  "Preserve the author's main narrative conflict and meaningful constraints. Only propose replacement text for unlocked content; the server will restore exact locked values regardless of your response.",
   "The six phases are internal narrative purposes, not mandatory messages, gates, grades, or a predetermined number of turns.",
   "The five OPTIONAL checkpoint slots occur AFTER the first five phases, before the next phase. Return exactly five checkpoint objects in hook/conflict/discovery/reattempt/outcome order.",
   "For each checkpoint, choose audience none, jack (Jack privately texts the husband), jill (Jill privately texts the wife), or both (two separate private messages). Both never means a shared/group conversation.",
@@ -172,7 +221,8 @@ export async function generateEpisodeStudio(body){
  ].join(" ");
  const input={scenario:{title:scenario.title,petal:scenario.petal_slug,mode:scenario.mode,
    opening:scenario.opening_scene,learningObjective:scenario.learning_objective,research:scenario.research_lenses},
-  optionalEditorialDirection:direction,
+  currentEditableEpisode:source,lockedText,
+  optionalEditorialDirection:direction||source.creativeDirection,
   validSkills:SKILLS.map(s=>({id:s.id,researcher:s.researcher,title:s.title})),
   sixPhaseDefinitions:PHASES,
   checkpointSequence:CHECKPOINT_AFTER.map((afterPhase,index)=>({
@@ -192,8 +242,15 @@ export async function generateEpisodeStudio(body){
  if(!Array.isArray(draft.checkpoints)||draft.checkpoints.length!==5||
      CHECKPOINT_AFTER.some((p,i)=>draft.checkpoints[i]?.afterPhase!==p))
     bad("AI returned incomplete intervention assignments. Retry.",502);
- const studio=normalizeStudio(draft,scenario);
- if(studio.premise.length<75||studio.learningObjective.length<12||!studio.primarySkill||
-    PHASES.some(p=>studio.phases[p.id].length<30))bad("AI returned an incomplete draft. Retry.",502);
- return {ok:true,studio,model:data.model||model,note:"Generated preview only. Review, edit and explicitly save before using."};
+ const generated=normalizeStudio(draft,scenario);
+ const studio=preserveLockedText(generated,source);
+ // Author-selected solo coach is an editor setting, not AI-generated story text.
+ if(scenario.mode==="individual"){
+  studio.soloCoach=source.soloCoach;
+  studio.checkpoints=normalizeCheckpoints(studio.checkpoints,scenario.mode,studio.soloCoach);
+ }
+ if(studio.premise.trim().length<75||studio.learningObjective.trim().length<12||!studio.primarySkill||
+    PHASES.some(p=>studio.phases[p.id].trim().length<30))bad("AI returned an incomplete draft. Retry.",502);
+ return {ok:true,studio,model:data.model||model,
+  note:"Generated unlocked fields only. Locked text is preserved exactly; review before saving."};
 }
