@@ -1,6 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {deepDiveRequest} from "./jj-model-config.mjs";
+import {COACH_MOVE_SCHEMA,AUTOPLAY_MOVES_SCHEMA,validMove,validPair,coachMovePrompt,autoplayMovesPrompt} from "./jj-autoplay.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,usesEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
 import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,actionableCoachAdvice,concreteCharacterMove,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
@@ -50,7 +51,7 @@ export async function createRoom(origin,scenarioId,soloRole="jack"){
   facts:[],tension:scenario.learning_objective,research:scenario.research_lenses||[],title:scenario.title};
  const created=await db(tables.rooms,{},{
   title:scenario.title,scenario_id:scenario.id,petal_slug:scenario.petal_slug,
-  mode:scenario.mode,scene:canon,engine_version:ENGINE_VERSION,
+  mode:scenario.mode,scene:canon,engine_version:ENGINE_VERSION,autoplay:scenario.mode==="shared",
   evolution_state:initialEvolution(scenario)
  },"POST");
  const room=created?.[0];if(!room?.id)problem("Could not create a fresh room.",502);
@@ -79,10 +80,10 @@ export async function status(token){
  const mine=p.submitted_step===r.step&&r.status==="active";
  const partnerSubmitted=r.mode==="individual"||others?.[0]?.submitted_step===r.step;
  return {ok:true,version:r.engine_version||VERSION,title:r.title,role:p.role,character:CHARACTER[p.role].firstName,
-  mode:r.mode,step:r.step,totalSteps:5,status:r.status,scene:r.scene,consent,name:p.name||"",
+  mode:r.mode,step:r.step,totalSteps:5,status:r.status,scene:r.scene,consent,name:p.name||"",autoplay:!!r.autoplay,
   messages:privateLog,shared,submitted:mine,otherSubmitted:!!partnerSubmitted,
   processing:!!r.processing_token,action:mine?"":p.pending_step===r.step?p.pending_action||"":"",
-  reflectionComplete:!!p.reflection,hasIntro:privateLog.some(m=>m.kind==="intro"&&m.step===r.step),
+  reflectionComplete:!!p.reflection,hasIntro:(!!r.autoplay&&r.step>1)||privateLog.some(m=>m.kind==="intro"&&m.step===r.step),
   identity:CHARACTER[p.role].identity,
   learningHint:FOCUS[r.step-1]||[],info:"Browser-only private pilot. No SMS is sent."};
 }
@@ -165,6 +166,36 @@ export async function talk(token,text,requestKey){
  if(!uuidOK(requestKey))problem("This message needs a valid request identifier.");
  const history=await privateMessages(r,p.role);
  if(history.some(x=>x.request_key===requestKey))return status(token);
+ // Autoplay's contract: ONE actual friend response to the opening, no
+ // character acknowledgement, no follow-up requests for advice.
+ if(r.autoplay&&r.engine_version==="3.2.0"&&r.mode==="shared"){
+  if(r.step!==1)return status(token);
+  const intro=[...history].reverse().find(x=>x.kind==="intro"&&x.step===1&&x.author==="character");
+  const prompt=coachMovePrompt({role:p.role,coachMessage:clean,
+   characterIntro:intro?.body||"",scene:r.scene});
+  let action="";
+  for(let attempt=0;attempt<2;attempt++){
+   try{
+    const candidate=await model(prompt.instructions+(attempt?" Return ONLY a concrete 18-35 word third-person character action beginning with the character's name, grounded in the exact advice.":""),
+     prompt.input,COACH_MOVE_SCHEMA,"jj3_coach_move");
+    if(validMove(p.role,candidate?.action)){action=candidate.action.trim();break}
+   }catch(e){if(attempt===1)throw e}
+  }
+  if(!action)problem("The character could not turn that advice into a choice. Please rephrase it.",502);
+  const committed=await db("rpc/anthos_jj3_commit_coach_move",{},{
+   p_room:r.id,p_participant:p.id,p_step:r.step,p_key:requestKey,
+   p_user:clean,p_action:action
+  },"POST");
+  if(committed!==true){
+   const now=await status(token);
+   if(now.submitted||now.step>r.step)return now;
+   problem("The room changed while your message was sent. Refresh to continue.",409);
+  }
+  // When the other friend has already acted this returns the next SHARED
+  // scene. The entire sequel unfolds via self-driven progress checks.
+  try{await resolveRoom(r)}catch{/* Saved choices can retry in progress. */}
+  return status(token);
+ }
  // A friend saying "let me know how it turns out" is a natural handoff, not
  // a request for another suggestion. The last CHARACTER reply must ground
  // any concrete step; private dialogue from the other coach is never read.
@@ -394,14 +425,51 @@ export async function submit(token){
  await resolveRoom(r);
  return status(token);
 }
+async function autoplayRoom(room){
+ const current=(await db(tables.rooms,{id:"eq."+room.id,select:"*"}))?.[0];
+ if(!current||current.status!=="active")return;
+ if(!current.autoplay||current.engine_version!=="3.2.0"||current.mode!=="shared"){
+  await resolveRoom(current);return;
+ }
+ const members=await db(tables.people,{room_id:"eq."+current.id,
+  select:"role,submitted_step,submitted_action"});
+ if(members?.length!==2)return;
+ if(members.every(m=>m.submitted_step===current.step&&m.submitted_action)){
+  await resolveRoom(current);return;
+ }
+ // Step one belongs to the real friends; later steps belong to the
+ // evolving fictional characters. Never expose anyone's private chat here.
+ if(current.step===1||current.processing_token)return;
+ if(members.some(m=>m.submitted_step===current.step))return;
+ if(!validEvolution(current.evolution_state))throw new Error("Fictional story needs repair");
+ const scenario=await scenarioFor(current);
+ const prompt=autoplayMovesPrompt({scenario,scene:current.scene,
+  evolution:current.evolution_state,step:current.step});
+ let pair=null;
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   const candidate=await model(prompt.instructions+(attempt?" The previous character actions were not usable; both must be concrete and clearly different.":""),prompt.input,
+    AUTOPLAY_MOVES_SCHEMA,"jj3_autoplay_moves");
+   if(validPair(candidate)){pair=candidate;break}
+  }catch(e){if(attempt===1)throw e}
+ }
+ if(!pair)throw new Error("The next fictional decisions need another attempt.");
+ const accepted=await db("rpc/anthos_jj3_autoplay_moves",{},{
+  p_room:current.id,p_step:current.step,p_jack:pair.jack,p_jill:pair.jill
+ },"POST");
+ // A simultaneous progress request may have won the atomic claim. Both
+ // paths converge on the same immutable outcome, never duplicate a step.
+ if(accepted===true)await resolveRoom(current);
+}
 export async function progress(token){
  const {person:p,room:r}=await participant(token);
  if(!p.consented_at)problem("Join before checking the outcome.",403);
+ let retrying=false;
  if(r.status==="active"){
-  try{await resolveRoom(r)}
-  catch{/* Keep waiting; a later automatic check can retry without losing actions. */}
+  try{await autoplayRoom(r)}
+  catch{retrying=true}
  }
- return status(token);
+ return {...await status(token),autoRetrying:retrying};
 }
 export async function reflect(token,reflection){
  const {person:p,room:r}=await participant(token);
