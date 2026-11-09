@@ -26,8 +26,11 @@ function mount(root,invite,options={}){
  }
  function oneAction(text,callback,primary=false){
   const btn=el("button","jj4-button"+(primary?" primary":""),text);btn.type="button";
-  btn.disabled=inFlight;
-  btn.addEventListener("click",callback);controls.append(btn);return btn;
+  // render() can run before refresh()/act() clear inFlight. Never leave a freshly
+  // created Join button permanently disabled after a successful initial fetch.
+  btn.disabled=false;
+  btn.addEventListener("click",()=>{if(!inFlight&&!destroyed)callback()});
+  controls.append(btn);return btn;
  }
  function joinPanel(){
   controls.replaceChildren();
@@ -36,9 +39,18 @@ function mount(root,invite,options={}){
   inp.type="text";inp.maxLength=32;inp.placeholder="First name";
   if(options.defaultName)inp.value=options.defaultName;
   label.append(inp);controls.append(label);
-  oneAction("Join "+(current?.role==="jack"?"Jack":"Jill")+"'s private conversation",async()=>{
-   await act("join",{name:inp.value.trim()});
+  const join=oneAction("Join "+(current?.role==="jack"?"Jack":"Jill")+"'s private conversation",async()=>{
+   const name=inp.value.trim();
+   if(!name){message("Enter your first name to join.",true);inp.focus();return}
+   await act("join",{name});
   },true);
+  // The name field isn't inside a form, so Enter must explicitly activate Join.
+  inp.addEventListener("keydown",event=>{
+   if(event.key==="Enter"&&!event.isComposing){
+    event.preventDefault();
+    join.click();
+   }
+  });
  }
  function transcript(state){
   const seen=new Set(),entries=[];
