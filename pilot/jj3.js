@@ -25,7 +25,7 @@ function messageBubble(entry){
  const kind=entry.author==="coach"?"coach":entry.author==="sophia"?"sophia":"character";
  const b=document.createElement("article");b.className="bubble "+kind;
  const who=document.createElement("span");who.className="who";
- who.textContent=kind==="coach"?"You":kind==="sophia"?"Sophia":state.character;
+ who.textContent=kind==="coach"?(state.name||"You"):kind==="sophia"?"Sophia":state.character;
  b.append(who,document.createTextNode(entry.body));return b;
 }
 function render(s){
@@ -49,9 +49,9 @@ function render(s){
  const prog=$("storyProgress");prog.replaceChildren();
  for(let n=1;n<=5;n++){const d=document.createElement("span");d.className=n<s.step||completed?"done":n===s.step?"current":"";prog.append(d)}
  $("sceneText").textContent=s.scene?.scene||"An entirely new adventure is about to begin.";
- $("chatName").textContent=s.character;
+ $("chatName").textContent=s.character+" → "+(s.name||"friend");
  $("chatAvatar").textContent=s.character[0];
- $("chatSubtitle").textContent=s.character==="Jack"?"Your mountain-loving, slightly chaotic friend":"Your sharp-witted friend with a lot on her mind";
+ $("chatSubtitle").textContent="Private texts from "+s.character+" to "+(s.name||"you");
  $("composeLabel").textContent="Message "+s.character;
  $("message").placeholder="Just talk to "+s.character+"…";
  $("send").textContent="Send to "+s.character+" →";
