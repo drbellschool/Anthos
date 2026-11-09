@@ -34,16 +34,16 @@ export const CHARACTER={
   voice:"First-person, confiding in a trusted female buddy; sharp affectionate humor, memorable sensory details, occasional self-mockery. She has desires and agency, not a supporting-character role."
  }
 };
-export function seededIntroduction(role,scenario){
+export function seededIntroduction(role,scenario,name=""){
  const title=(scenario?.title||"").toLowerCase();
  if(title.includes("mountain")){
-  if(role==="jack")return "Okay, buddy, I need a sanity check. I packed hiking boots for our romantic cabin weekend. Jill brought three novels and slippers. I promised we'd relax together, but when I look at that mountain ridge I feel like it personally challenged me to a duel. Here's the embarrassing part: I worry we've become so practical that I'm forgetting how to be adventurous with her. I don't want to bully her into a hike, but I also don't want to swallow what I want. What would you tell me to do?";
+  if(role==="jack")return (name?name+", ":"")+"Okay, buddy, I need a sanity check. I packed hiking boots for our romantic cabin weekend. Jill brought three novels and slippers. I promised we'd relax together, but when I look at that mountain ridge I feel like it personally challenged me to a duel. Here's the embarrassing part: I worry we've become so practical that I'm forgetting how to be adventurous with her. I don't want to bully her into a hike, but I also don't want to swallow what I want. What would you tell me to do?";
   return "Can I confess something without being voted the world's least exciting wife? I really do love being with Jack. I just wanted one quiet weekend without somebody needing a plan from me. He's looking at those mountains like they sent him a personal invitation, and I'm afraid that if I say no he'll hear 'I don't want you.' I do. I just also want to read one chapter without needing hiking boots. What would you tell me?";
  }
  const c=CHARACTER[role],intro=(scenario?.opening_scene||"Jack and Jill have different hopes for the same weekend").replace(/\s+/g," ").slice(0,210);
  return role==="jack"
- ? "Hey, buddy. I need to tell you something before I say something spectacularly foolish. "+intro+" I want to do right by Jill, but part of me is afraid that what I want will be brushed aside. My brain has already prepared a terrible speech and an even worse joke. Can I run my next move by you?"
- : "Hey, can I be completely candid? "+intro+" I care about Jack, but I'm having trouble saying what I really need without feeling like the villain in somebody else's adventure. My inner monologue is much sassier than anything I've said out loud. Can you help me figure out what I want to say?";
+ ? (name?name+", ":"")+"Hey, buddy. I need to tell you something before I say something spectacularly foolish. "+intro+" I want to do right by Jill, but part of me is afraid that what I want will be brushed aside. My brain has already prepared a terrible speech and an even worse joke. Can I run my next move by you?"
+ : (name?name+", ":"")+"Hey, can I be completely candid? "+intro+" I care about Jack, but I'm having trouble saying what I really need without feeling like the villain in somebody else's adventure. My inner monologue is much sassier than anything I've said out loud. Can you help me figure out what I want to say?";
 }
 export function privatePrompt({role,name,scenario,scene,step,history,memory,latest,pending,evolution=null}){
  const c=CHARACTER[role];
