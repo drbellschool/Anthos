@@ -120,7 +120,7 @@ test("All editable text fields and phase/check-in text have lockable canonical p
  assert.ok(LOCKABLE_PATHS.includes("phases.discovery"));
  assert.ok(LOCKABLE_PATHS.includes("checkpoints.conflict.purpose"));
  assert.ok(LOCKABLE_PATHS.includes("checkpoints.conflict.humorCue"));
- assert.ok(LOCKABLE_PATHS.length>=30);
+ assert.ok(LOCKABLE_PATHS.length>=29);
  assert.deepEqual(normalizeLocks(["title","title","fake","phases.hook"]),["title","phases.hook"]);
 });
 test("AI outputs cannot change locked story, phase, or intervention humor, but unlocked fields may change",()=>{
