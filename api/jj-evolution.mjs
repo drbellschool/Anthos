@@ -6,7 +6,9 @@
  * The state changes only when an observable fictional action is committed and
  * one canonical story consequence is atomically published.
  */
-export const ENGINE_VERSION="3.1.0";
+export const ENGINE_VERSION="3.2.0";
+export const EVOLUTION_ENABLED_VERSIONS=["3.1.0",ENGINE_VERSION];
+export const usesEvolution=version=>EVOLUTION_ENABLED_VERSIONS.includes(version);
 export const EVOLUTION_VERSION="evolution-1";
 export const AXES=["connection","agency","trust","energy","friction","curiosity"];
 export const LIMIT=4;
@@ -211,6 +213,8 @@ export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution
    "One character may choose to wait and see while the other takes an active step. This is a legitimate and already confirmed fictional move, not an empty choice, failed lesson, or invitation for more questions. Make the active step actually HAPPEN and show what the observer discovers and how they respond.",
    "Human spouses may discuss their coaching offline. You have no transcript and cannot assert that Jill heard Adam or that Jack heard Alissa. You CAN see BOTH committed character actions here, and may depict a natural win-win when those choices are compatible. Do not invent hidden cooperation or reveal the private coaching conversations.",
    "The next event must physically progress the story: reveal an actual attempt, response and consequence. Never produce another scene where both just discuss possible plans or agree to review the weather later.",
+   "Do not make the couple wait for another intervention by Adam or Alissa if both committed fictional moves already exist. The scene MUST produce an event with consequences, even if the choices are compatible, independent, passive, conflicting, or imperfect.",
+   "Game-night and playful scenarios should use situational comedy grounded in what Jack and Jill actually did, without random escalation or humiliating either spouse. The opening scenario is a seed, not an endless repeated argument.",
    "No mind reading. The shared fictional world contains only observable actions; you do not have the human coaches' private messages. Never reveal or infer real spouse disclosures.",
    "For EACH character portray at least one specific consequence: an immediate gain, a cost or strain, OR both. Do NOT force a tidy gain-and-loss formula every beat. Sometimes a choice simply hurts; sometimes it works beautifully, with a delayed cost surfacing later. Both characters may move in different directions.",
    "The two characters can evolve gradually. Do NOT re-open the original debate as the next dilemma. The first four beats must create a DIFFERENT concrete external problem with new stakes. Introduce one funny character-driven consequence, not random slapstick.",
