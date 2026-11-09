@@ -82,7 +82,7 @@ export function preserveLockedText(generated,source){
  return result;
 }
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
-const clean=(v,max)=>typeof v==="string"?v.trim().slice(0,max):"";
+const clean=(v,max)=>typeof v==="string"?v.slice(0,max):"";
 export const defaultCheckpoints=()=>CHECKPOINT_AFTER.map(afterPhase=>({
  afterPhase,audience:"none",purpose:"",humorCue:"",waitForReply:false
 }));
