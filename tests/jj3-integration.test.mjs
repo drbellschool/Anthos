@@ -15,7 +15,7 @@ const scenario={id:sid,title:"One of Us Loves Mountains",petal_slug:"adventure-p
 function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false,guided=false}={}){
  let room={id:rid,title:scenario.title,scenario_id:sid,petal_slug:"adventure-play",mode,
   status:"active",step:1,autoplay,guidance_mode:guided?"guided":"legacy",scene:{scene:scenario.opening_scene,tension:scenario.learning_objective},
-  ...(evolving?{engine_version:guided?"3.3.0":ENGINE_VERSION,evolution_state:initialEvolution(scenario)}:{}),
+  ...(evolving?{engine_version:guided?"3.3.0":"3.2.0",evolution_state:initialEvolution(scenario)}:{}),
   processing_token:null,processing_at:null,expires_at:"2099-01-01"};
  const people=[{id:"22222222-2222-4222-8222-222222222222",room_id:rid,role:"jack",token_hash:hash(tokens.jack),
     name:null,consented_at:null,pending_step:null,pending_action:null,submitted_step:null,submitted_action:null,
