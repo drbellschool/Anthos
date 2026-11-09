@@ -34,7 +34,7 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
   if(u.hostname==="api.openai.com"){
    assert.equal(body.model,"gpt-6-luna","Deep Dive calls use GPT-6 Luna, not OPENAI_MODEL");
    assert.equal(body.reasoning?.effort,
-     body.text?.format?.name?.includes("outcome")?"low":"none");
+     body.text?.format?.name?.includes("outcome")?"high":"medium");
    assert.equal(body.text?.format?.type,"json_schema");
    aiCalls++;
    const input=JSON.parse(body.input);
