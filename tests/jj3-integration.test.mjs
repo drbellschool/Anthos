@@ -12,9 +12,9 @@ const scenario={id:sid,title:"One of Us Loves Mountains",petal_slug:"adventure-p
  opening_scene:"Jack has packed hiking gear. Jill has brought her books. Both want a different weekend in the same cabin.",
  learning_objective:"Respect the distinct needs for rest and adventure.",research_lenses:["gottman","schnarch","aron"]};
 
-function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
+function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false}={}){
  let room={id:rid,title:scenario.title,scenario_id:sid,petal_slug:"adventure-play",mode,
-  status:"active",step:1,scene:{scene:scenario.opening_scene,tension:scenario.learning_objective},
+  status:"active",step:1,autoplay,scene:{scene:scenario.opening_scene,tension:scenario.learning_objective},
   ...(evolving?{engine_version:ENGINE_VERSION,evolution_state:initialEvolution(scenario)}:{}),
   processing_token:null,processing_at:null,expires_at:"2099-01-01"};
  const people=[{id:"22222222-2222-4222-8222-222222222222",room_id:rid,role:"jack",token_hash:hash(tokens.jack),
@@ -92,7 +92,14 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
    const authorizedReply=characterName==="Jack"
     ?"Okay, I'm gonna ask Jill what kind of weekend she wants, then suggest a hike that works for both of us."
     :"I'm gonna ask Jack what his backup plan is, then we can figure out what actually sounds fun.";
-   const reply=(type==="jj_evolution_outcome"||type==="jj_evolution_finale")?evolutionMock():type==="jj3_story_outcome"?
+   const reply=type==="jj3_coach_move"?{
+      action:input.character==="Jack"
+       ?"Jack puts the tape aside, ignores the timer, and invites Jill to finish explaining the rules before they do anything else."
+       :"Jill chooses to stop fixing the duck and lets the contraption fail, making her point that she deserves to be heard."
+    }:type==="jj3_autoplay_moves"?{
+      jack:"Jack tries a surprising hands-on response to the next situation and risks looking foolish while making space for Jill.",
+      jill:"Jill takes initiative with the new problem, keeping her own voice and allowing the consequences to unfold with Jack."
+    }:(type==="jj_evolution_outcome"||type==="jj_evolution_finale")?evolutionMock():type==="jj3_story_outcome"?
       {outcome:"Jack starts toward his mountain, and Jill heads for the reading terrace. Both have chosen independently, so their morning becomes funny and complicated. A ranger announces the ridge has closed while a festival starts on the lakeshore, setting up an unexpected reunion later in the day.",
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
@@ -112,6 +119,24 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
    return out({status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(reply)}]}]});
   }
   const path=u.pathname,qs=u.searchParams;
+  if(path.endsWith("/rpc/anthos_jj3_commit_coach_move")){
+   const p=people.find(x=>x.id===body.p_participant);
+   if(!room.autoplay||room.step!==1||!p||p.submitted_step===1||
+    messages.some(m=>m.role===p.role&&m.kind==="coach"&&m.step===1))return out(false);
+   messages.push({id:++next,room_id:rid,role:p.role,author:"coach",kind:"coach",step:1,
+    body:body.p_user,request_key:body.p_key});
+   p.pending_step=1;p.pending_action=body.p_action;p.submitted_step=1;p.submitted_action=body.p_action;
+   return out(true);
+  }
+  if(path.endsWith("/rpc/anthos_jj3_autoplay_moves")){
+   if(!room.autoplay||room.step!==body.p_step||room.step<2||room.status!=="active"||
+    room.processing_token||people.some(p=>p.submitted_step===room.step))return out(false);
+   for(const p of people){
+    const action=p.role==="jack"?body.p_jack:body.p_jill;
+    p.pending_step=room.step;p.pending_action=action;p.submitted_step=room.step;p.submitted_action=action;
+   }
+   return out(true);
+  }
   if(path.endsWith("/rpc/anthos_jj3_write_turn")){
    const p=people.find(x=>x.id===body.p_participant);
    if(!p||room.step!==body.p_step||room.status!=="active"||p.submitted_step===room.step)return out(false);
@@ -456,5 +481,56 @@ test("3.1 the real moment-four supportive messages advance the story without mor
   assert.ok(a.some(x=>x.character==="Jill"&&/make lunch/.test(x.action)));
   assert.equal(jill.messages.some(x=>x.author==="coach"&&x.body.includes("great weekend")),false,
     "Alissa never receives Adam's private text");
+ }finally{h.restore()}
+});
+
+test("3.2 autoplay requires only one private answer each, then plays five consequential scenes and closes",async()=>{
+ const h=harness("shared",{evolving:true,autoplay:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  const first=await talk(tokens.jack,"Yes dude. Screw the timer.",randomUUID());
+  assert.equal(first.autoplay,true);
+  assert.equal(first.submitted,true);
+  assert.equal(first.step,1,"Must wait for both humans only at the beginning");
+  assert.equal(h.messages.filter(m=>m.kind==="reply").length,0,"Characters do not text back acknowledging the coaching");
+  const second=await talk(tokens.jill,"I'd make your point and let the duck crash.",randomUUID());
+  assert.equal(second.step,2,"Both friends' first advice produces the next shared scene");
+  assert.equal(h.events.length,1);
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,2,"One text from each human");
+  assert.equal(h.messages.filter(m=>m.kind==="reply").length,0,"No extra private character chatter");
+  assert.match(h.events[0].after.arc.beats[0].actions[0].action,/timer/);
+  assert.match(h.events[0].after.arc.beats[0].actions[1].action,/lets the contraption fail/);
+  const jackStart=await status(tokens.jack),jillStart=await status(tokens.jill);
+  assert.equal(jillStart.messages.some(m=>/Screw the timer/.test(m.body)),false,
+   "Jill's private screen does not contain Adam's advice");
+  assert.equal(jackStart.messages.some(m=>/duck crash/.test(m.body)),false,
+   "Jack's private screen does not contain Alissa's advice");
+  for(let nextStep=3;nextStep<=5;nextStep++){
+   const result=await progress(tokens.jack);
+   assert.equal(result.step,nextStep,"Auto director must not stall at moment "+(nextStep-1));
+   assert.equal(result.autoRetrying,false);
+  }
+  const final=await progress(tokens.jill);
+  assert.equal(final.status,"complete");
+  assert.equal(final.shared.length,5);
+  assert.ok(final.scene.closure?.sophiaInsight);
+  assert.equal(h.events.length,5);
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,2);
+  assert.equal(h.messages.filter(m=>m.kind==="reply").length,0);
+  assert.equal((await progress(tokens.jack)).shared.length,5,
+   "Revisiting progress must never double publish a scene");
+ }finally{h.restore()}
+});
+test("legacy 3.1-style rooms do not auto-advance just because a coach revisits",async()=>{
+ const h=harness("shared",{evolving:true,autoplay:false});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  const before=h.aiCalls;
+  await progress(tokens.jack);
+  assert.equal(h.aiCalls,before);
+  assert.equal(h.room.step,1);
+  assert.equal(h.messages.filter(m=>m.kind==="coach").length,0);
  }finally{h.restore()}
 });
