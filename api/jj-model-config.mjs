@@ -7,6 +7,8 @@
  * reasoning effort. Prioritize getting a real decision in one conversation
  * over repeatedly asking the same question. Medium is for private character
  * replies; high is for the shared consequence/character evolution director.
+ * In autonomous episodes medium reasoning is used for intermediate scenes to
+ * keep the story moving inside a bounded server request; finale stays high.
  */
 export const DEEP_DIVE_DEFAULT_MODEL="gpt-6-luna";
 export const DEEP_DIVE_MODEL_ENV="ANTHOS_JJ_MODEL";
@@ -19,6 +21,8 @@ export function deepDiveRequest({instructions,input,schema,name,attempt=0,env=pr
  const model=deepDiveModel(env);
  const story=["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(name);
  const luna=model==="gpt-6-luna";
+ const autoplay=Boolean(input?.autoplay);
+ const intermediate=autoplay&&name==="jj_evolution_outcome";
  return {
   model,
   store:false,
@@ -26,8 +30,8 @@ export function deepDiveRequest({instructions,input,schema,name,attempt=0,env=pr
   input:JSON.stringify(input),
   // Output budget includes hidden reasoning tokens. Higher effort needs more
   // headroom to finish the *visible* JSON response without truncation.
-  max_output_tokens:story?(attempt?10000:7500):(attempt?5500:3900),
-  ...(luna?{reasoning:{effort:story?"high":"medium"}}:{}),
+  max_output_tokens:intermediate?(attempt?6000:4500):story?(attempt?10000:7500):(attempt?5500:3900),
+  ...(luna?{reasoning:{effort:story&&!intermediate?"high":"medium"}}:{}),
   text:{format:{type:"json_schema",name,strict:true,schema}}
  };
 }
