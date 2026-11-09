@@ -1,7 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -219,15 +219,19 @@ export async function talk(token,text,requestKey){
  // Real people can decide to act: an affirmative "sounds good" accepts the
  // plan the character just proposed, even if the new reply paraphrases it.
  const acceptedPrevious=briefApproval(clean)&&previousIntent;
+ const directed=directsCharacterToAct(clean);
+ const considered=directed?consideredCharacterPlan(p.role,response.characterReply):"";
  const next=acceptedPrevious
    ||actionFromCoach(p.role,clean,response.action,response.evidence)
    ||actionFromCharacterAgreement(p.role,clean,response.characterReply,
      response.characterProposal,response.proposalEvidence)
    ||actionFromCharacterWords(p.role,clean,response.characterReply)
+   ||considered
    ||oldAction;
  const shouldAct=!!next&&(
    (!!previousIntent&&briefApproval(clean))
-   ||(!!currentIntent&&(explicitGoAhead(clean)||asksForAction(clean)))
+   ||(!!currentIntent&&(explicitGoAhead(clean)||asksForAction(clean)||directed))
+   ||(!!considered&&directed)
  );
  const milestones=Array.isArray(response.learningMilestones)?response.learningMilestones.filter(x=>MILESTONES.includes(x)).slice(0,3):[];
  const learning=p.learning_log&&typeof p.learning_log==="object"&&!Array.isArray(p.learning_log)?{...p.learning_log}:{};
