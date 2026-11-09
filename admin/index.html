@@ -158,7 +158,7 @@
               <div id="jj2Browse">
               <div class="jj2-toolbar">
                 <label>Petal<select id="jj2Petal"><option value="">All 12 petals</option></select></label>
-                <label>Experience<select id="jj2Mode"><option value="">Both</option><option value="shared">Shared</option><option value="individual">Individual</option></select></label>
+                <label>Experience<select id="jj2Mode"><option value="shared" selected>Shared (Jack &amp; Jill)</option><option value="individual">Individual / solo</option><option value="">All experiences</option></select></label>
                 <label>Review status<select id="jj2Status"><option value="">All statuses</option><option value="draft">Draft</option><option value="in_review">In review</option><option value="beta_ready">Beta ready</option><option value="retired">Retired</option></select></label>
                 <label>Find scenario<input id="jj2Search" type="search" maxlength="90" placeholder="Title, objective, petal"></label>
               </div>
@@ -167,90 +167,107 @@
               </div><!-- Browse -->
               <section id="episodeStudio" class="episode-studio" hidden aria-labelledby="episodeStudioTitle">
                 <header class="episode-studio-head">
-                  <div><button type="button" id="episodeBack" class="episode-quiet">← Back to library</button>
-                    <p class="eyebrow">ANTHOS 4.0 · THE JACK &amp; JILL METHOD</p>
+                  <div class="episode-heading">
+                    <button type="button" id="episodeBack" class="episode-quiet">← Episode library</button>
+                    <p class="eyebrow">ANTHOS · DEEP DIVE 4.0 / EPISODE DESIGN</p>
                     <h3 id="episodeStudioTitle">Objective &amp; Story Flow Studio</h3>
-                    <p id="episodeMeta" class="soft-text"></p>
+                    <p id="episodeMeta" class="episode-meta"></p>
                   </div>
-                  <span id="episodeSavedState" class="episode-save-state">Editorial draft</span>
+                  <div class="episode-header-controls">
+                    <span id="episodeSavedState" class="episode-save-state">Editorial draft</span>
+                    <button type="button" id="episodeGenerate" class="button">✦ AI fill episode</button>
+                    <button type="button" id="episodeValidate" class="button">Review</button>
+                    <button type="button" id="episodeSave" class="button primary">✓ Save episode</button>
+                  </div>
                 </header>
-                <div class="episode-actions">
-                  <button type="button" id="episodeGenerate" class="button primary">✦ AI · Complete all text boxes</button>
-                  <button type="button" id="episodeSave" class="button">Save editorial draft</button>
-                  <button type="button" id="episodeValidate" class="button">Review completeness</button>
-                </div>
-                <p id="episodeNotice" class="episode-notice" role="status">Select an episode to begin.</p>
-                <label class="episode-direction">Creative direction for the AI draft
-                  <textarea data-episode-field="creativeDirection" rows="2" maxlength="650" placeholder="Dry, situational humor. Avoid cheesy jokes; Jack and Jill must each have real motivations."></textarea>
-                </label>
-                <nav class="episode-tabs" aria-label="Episode editing sections">
-                  <button type="button" data-episode-tab="objectives" class="active">Objectives &amp; Skills</button>
-                  <button type="button" data-episode-tab="story">Story Setup</button>
-                  <button type="button" data-episode-tab="flow">Six-Phase Flow</button>
-                  <button type="button" data-episode-tab="humor">Humor &amp; Tone</button>
-                  <button type="button" data-episode-tab="review">Review &amp; Save</button>
-                </nav>
-                <section class="episode-page" data-episode-page="objectives">
-                  <h4>Relationship Objective Library</h4>
-                  <p>Pick one primary relationship skill and up to two supporting skills. These are editorial learning targets, not assessments of a couple.</p>
-                  <div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
-                  <div id="episodeSkillList" class="episode-skill-list"></div>
-                  <div class="episode-grid two">
-                    <label>Primary relationship skill<select id="episodePrimary"><option value="">Choose primary skill</option></select></label>
-                    <div><strong class="episode-field-title">Supporting skills (maximum 2)</strong>
-                      <div id="episodeSupports" class="episode-supports">Choose up to two from the list.</div>
+                <p id="episodeNotice" class="episode-notice" role="status">Choose a scenario to begin.</p>
+                <div class="episode-layout">
+                  <aside class="episode-pane episode-objectives" aria-label="Assign relationship objectives">
+                    <div class="episode-pane-header">
+                      <span class="eyebrow">01 · OBJECTIVES</span>
+                      <h4>Relationship Objective Library</h4>
+                      <p>Assign a primary skill and up to two supporting skills.</p>
                     </div>
-                  </div>
-                  <label>Primary learning objective, in your words
-                    <textarea data-episode-field="learningObjective" maxlength="450" rows="3" placeholder="What should the experience help a participant notice or practice?"></textarea>
-                  </label>
-                  <label>Research connection and educational guardrails
-                    <textarea data-episode-field="researchNotes" maxlength="1000" rows="4" placeholder="How should Gottman, Schnarch or Aron inform the experience?"></textarea>
-                  </label>
-                </section>
-                <section class="episode-page" data-episode-page="story" hidden>
-                  <h4>Story Setup</h4>
-                  <p>Write an initial situation, not a fixed scene-by-scene script. Let AI improvise around the couple's responses.</p>
-                  <label>Episode title<input data-episode-field="title" maxlength="120"></label>
-                  <label>Story premise<textarea data-episode-field="premise" maxlength="1700" rows="5"></textarea></label>
-                  <div class="episode-grid two">
-                    <label>Jack's underlying need and motivation<textarea data-episode-field="jackMotivation" maxlength="650" rows="4"></textarea></label>
-                    <label>Jill's underlying need and motivation<textarea data-episode-field="jillMotivation" maxlength="650" rows="4"></textarea></label>
-                  </div>
-                  <label>Story boundaries &amp; continuity rules<textarea data-episode-field="boundaries" maxlength="1100" rows="3"></textarea></label>
-                </section>
-                <section class="episode-page" data-episode-page="flow" hidden>
-                  <h4>Six-Phase Dynamic Story Flow</h4>
-                  <p>Provide direction, not actual text messages or mandatory turns. The AI makes choices and consequences based on what Jack, Jill, and their separate coaches actually do.</p>
-                  <div id="episodePhases" class="episode-phase-list"></div>
-                  <label>Closure criteria: What makes this adventure feel finished?
-                    <textarea data-episode-field="closureCriteria" maxlength="900" rows="3"></textarea>
-                  </label>
-                  <label>Optional real-life reflection invitation
-                    <textarea data-episode-field="reflectionPrompt" maxlength="600" rows="3"></textarea>
-                  </label>
-                </section>
-                <section class="episode-page" data-episode-page="humor" hidden>
-                  <h4>Your Humor Library</h4>
-                  <p>You're the comedy writer. Write your own jokes, character quirks, and running callbacks. AI drafts are only suggestions, never required punchlines.</p>
-                  <label>Original humor ideas, jokes &amp; situational comedy
-                    <textarea data-episode-field="humorNotes" maxlength="1300" rows="7" placeholder="A funny situation you invented, an awkward habit, a line the character might naturally say..."></textarea>
-                  </label>
-                  <label>Running gags &amp; callbacks
-                    <textarea data-episode-field="runningGags" maxlength="1300" rows="5" placeholder="Example: Jack always blames navigation technology when the real issue is his refusal to ask for directions."></textarea>
-                  </label>
-                  <label>Character voices and comedic boundaries
-                    <textarea data-episode-field="tone" maxlength="650" rows="4"></textarea>
-                  </label>
-                  <p class="episode-hint">The AI should use these as optional material when it fits the action. Don't derail the story to land a joke or turn your original humor into repetitive spam.</p>
-                </section>
-                <section class="episode-page" data-episode-page="review" hidden>
-                  <h4>Episode Review &amp; Readiness</h4>
-                  <p>Validate the plan, check the original objective, and save an editable editorial draft. The 4.0 runtime is still being built, so this screen never starts a 3.x test.</p>
-                  <div id="episodeReadiness" class="episode-readiness" aria-live="polite"></div>
-                  <div class="episode-actions"><button type="button" id="episodeReviewSave" class="button primary">Save 4.0 editorial draft</button></div>
-                  <p class="episode-hint">Status: internal editorial work. No SMS sent, couples assigned, or published episodes changed.</p>
-                </section>
+                    <div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
+                    <div id="episodeSkillList" class="episode-skill-list"></div>
+                    <div class="episode-assigned">
+                      <label>Primary skill
+                        <select id="episodePrimary"><option value="">Select an objective</option></select>
+                      </label>
+                      <strong class="episode-field-title">Supporting skills · max 2</strong>
+                      <div id="episodeSupports" class="episode-supports">Choose up to two from the library.</div>
+                      <label>What should the couple practice?
+                        <textarea data-episode-field="learningObjective" maxlength="450" rows="3" placeholder="Learning target in your own words."></textarea>
+                      </label>
+                    </div>
+                  </aside>
+                  <section class="episode-pane episode-story" aria-label="Episode and six phase storyboard">
+                    <div class="episode-pane-header">
+                      <span class="eyebrow">02 · EPISODE DESIGN</span>
+                      <h4>Story &amp; Six-Phase Flow</h4>
+                      <p>Story summaries only. Jack, Jill and Sophia improvise the actual conversation.</p>
+                    </div>
+                    <div class="episode-basics">
+                      <label>Episode title
+                        <input data-episode-field="title" maxlength="120">
+                      </label>
+                      <label>Petal <span id="episodePetal" class="episode-petal-label"></span></label>
+                      <label class="episode-wide" id="episodeSoloWrap" hidden>Individual episode: who receives the private coaching?
+                        <select id="episodeSoloRole"><option value="jack">Husband · Jack's friend</option><option value="jill">Wife · Jill's friend</option></select>
+                      </label>
+                      <label class="episode-wide">Story premise
+                        <textarea data-episode-field="premise" maxlength="1700" rows="3" placeholder="A vivid situation, not a fixed script."></textarea>
+                      </label>
+                      <details class="episode-more episode-wide">
+                        <summary>Character motivations &amp; creative direction</summary>
+                        <div class="episode-more-fields">
+                          <label>Jack's need and motivation<textarea data-episode-field="jackMotivation" maxlength="650" rows="2"></textarea></label>
+                          <label>Jill's need and motivation<textarea data-episode-field="jillMotivation" maxlength="650" rows="2"></textarea></label>
+                          <label>Continuity &amp; safety boundaries<textarea data-episode-field="boundaries" maxlength="1100" rows="2"></textarea></label>
+                          <label>Additional instructions for AI drafting<textarea data-episode-field="creativeDirection" maxlength="650" rows="2" placeholder="Dry humor, coherent consequences, no forced jokes..."></textarea></label>
+                        </div>
+                      </details>
+                    </div>
+                    <div class="episode-flow-heading"><strong>Six-Phase Story Flow</strong><span>5 optional private intervention slots between phases</span></div>
+                    <div id="episodePhases" class="episode-phase-list"></div>
+                    <details class="episode-more episode-final-notes">
+                      <summary>Ending &amp; reflection guardrails</summary>
+                      <div class="episode-more-fields">
+                        <label>Closure criteria<textarea data-episode-field="closureCriteria" maxlength="900" rows="3" placeholder="What makes the original conflict feel resolved?"></textarea></label>
+                        <label>Real-life reflection invitation<textarea data-episode-field="reflectionPrompt" maxlength="600" rows="3" placeholder="An optional takeaway, not a relationship grade."></textarea></label>
+                      </div>
+                    </details>
+                  </section>
+                  <aside class="episode-pane episode-humor" aria-label="Humor and research notes">
+                    <div class="episode-pane-header">
+                      <span class="eyebrow">03 · YOUR CREATIVE VOICE</span>
+                      <h4>My Humor Library</h4>
+                      <p>Your jokes and callbacks take priority over generic AI humor.</p>
+                    </div>
+                    <label>Original jokes &amp; situational comedy
+                      <textarea data-episode-field="humorNotes" maxlength="1300" rows="5" placeholder="One original bit per line. Characters may use them when the moment fits."></textarea>
+                    </label>
+                    <button type="button" id="episodeAddHumor" class="episode-add-humor">+ Add a humor idea</button>
+                    <label>Running gags &amp; callbacks
+                      <textarea data-episode-field="runningGags" maxlength="1300" rows="3" placeholder="Ongoing character habits or comic patterns."></textarea>
+                    </label>
+                    <label>Character voices &amp; boundaries
+                      <textarea data-episode-field="tone" maxlength="650" rows="3"></textarea>
+                    </label>
+                    <div class="episode-quiet-rule">Each intervention below also has its own humor cue. Humor is optional; never stop the story just for a punchline.</div>
+                    <div class="episode-right-section">
+                      <h5>Research Connection</h5>
+                      <label>Research-informed notes for Sophia
+                        <textarea data-episode-field="researchNotes" maxlength="1000" rows="4"></textarea>
+                      </label>
+                    </div>
+                    <div class="episode-right-section">
+                      <h5>Episode Goals &amp; Readiness</h5>
+                      <div id="episodeReadiness" class="episode-readiness" aria-live="polite"></div>
+                      <p class="episode-editorial-note">This saves an editorial plan. Live SMS and the 4.0 story director are not yet connected.</p>
+                    </div>
+                  </aside>
+                </div>
               </section>
             </div>
           </section>
