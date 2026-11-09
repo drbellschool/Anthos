@@ -189,3 +189,18 @@
  .episode-objectives .episode-skill-text strong{font-size:10px}
  .episode-objectives .episode-skill-text small{font-size:8.8px}
 }
+
+/* Test lab uses the same two private browser clients as the invitation URLs. */
+.episode-pilot-lab{background:#eff7f0;border:1px solid #b7d7c1;border-radius:13px;margin-top:16px;padding:15px;color:#193f30}
+.episode-pilot-lab[hidden]{display:none!important}
+.episode-pilot-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.episode-pilot-heading h4{font:500 23px Georgia,serif;margin:3px 0 5px}
+.episode-pilot-heading p{font:11px/1.4 system-ui;color:#648071;margin:0}
+.episode-pilot-links{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.episode-pilot-link{background:#fff;border:1px solid #d5e6d9;border-radius:9px;padding:10px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.episode-pilot-link strong{font-size:12px}
+.episode-pilot-link a{font-size:11px;color:#176d46;text-decoration:underline}
+.episode-pilot-link .button{padding:5px 8px;font-size:10px;margin-left:auto}
+.episode-pilot-players{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:11px}
+.episode-pilot-players>.jj4-player{height:520px;max-height:75vh}
+@media(max-width:700px){.episode-pilot-links,.episode-pilot-players{grid-template-columns:1fr}.episode-pilot-players>.jj4-player{height:430px;max-height:none}.episode-pilot-heading{align-items:flex-start;flex-direction:column}}
