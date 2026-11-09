@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
- ENGINE_VERSION,EVOLUTION_VERSION,AXES,EVOLUTION_STORY_SCHEMA,initialEvolution,
+ ENGINE_VERSION,EVOLUTION_VERSION,AXES,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,initialEvolution,
  validEvolution,validateEvolutionStory,evolveState,characterEvolutionContext,
  evolutionStoryPrompt,storySimilarity
 } from "../api/jj-evolution.mjs";
@@ -63,8 +63,9 @@ function beat(state,step,variant="collaborative"){
   "At the lake the two choose to act on their earlier plans. Jack spots the new sign, looks at the map and realizes that the day is not going as expected. "+
   "Jill checks the time and notices a new complication neither had planned for. They both get something from the attempt, but it also changes what they want next. "+
   "Neither pretends the earlier disagreement has disappeared; the next decision grows out of what they actually did.";
- const nextScene=
-  "Just before dinner, "+newDilemmas[step-1]+
+ const nextScene=step===5
+  ?"At the end of the day, Jack and Jill sit quietly by the lake, remembering what happened during their difficult weekend. Both know the experience is finished and there will not be another argument about plans tonight."
+  :"Just before dinner, "+newDilemmas[step-1]+
   " Their earlier choices now matter, and both need to decide how to respond without pretending the weekend has been reset.";
  const impactFor=(role)=>({
    ...o[role],evidence:role==="jack"?
@@ -81,10 +82,17 @@ function beat(state,step,variant="collaborative"){
   tension:"A consequence of the couple's last choice becomes visible at the lakeside",
   facts:["They have to make a fresh decision","The previous choice has consequences"],
   researchNote:"Characters can honor competing needs and still discover new interests.",
-  newDilemma:newDilemmas[step-1],
+  newDilemma:step===5?"":newDilemmas[step-1],
   relationshipConnection:o.rel[0],relationshipTrust:o.rel[1],
   unresolvedThread:"The couple has not agreed how to preserve both connection and independence",
-  impacts:{jack:impactFor("jack"),jill:impactFor("jill")}
+  impacts:{jack:impactFor("jack"),jill:impactFor("jill")},
+  ...(step===5?{closing:{
+   jackChange:"Jack came to recognize that adventure can mean making space for Jill and trying something less familiar.",
+   jillChange:"Jill learned that she can discover unexpected joy while still recognizing the limits of her own energy.",
+   relationshipTruth:"They remain different people, but their choices showed them new ways to respond without forcing agreement.",
+   sophiaInsight:"A shared moment matters because both people can notice and respond to one another. Being honest about your own needs can coexist with being curious about someone else's.",
+   invitation:"If it feels right, ask your partner about one small thing you could enjoy together this week."
+  }}:{})
  };
 }
 const actions=(variant,step)=>[
@@ -141,6 +149,24 @@ test("character-specific context protects the other coach's private transcript",
  assert.ok(!("private_memory" in jill));
  assert.ok(!("otherCharacterSecrets" in jill));
  assert.ok(JSON.stringify(jill).includes("Jill"));
+});
+test("fifth beat closes the experience rather than introducing another problem",()=>{
+ const state=initialEvolution(scenario);
+ for(let n=1;n<5;n++)state.arc.beats.push({beat:n});
+ state.completedBeats=4;
+ const good=beat(state,5,"collaborative");
+ const moves=actions("collaborative",5);
+ assert.equal(validateEvolutionStory(good,state,5,moves).ok,true);
+ assert.equal(good.newDilemma,"");
+ assert.equal(EVOLUTION_FINAL_SCHEMA.required.includes("closing"),true);
+ assert.equal(EVOLUTION_STORY_SCHEMA.required.includes("closing"),false);
+ const after=evolveState(state,good,5,moves);
+ assert.equal(after.arc.closure.sophiaInsight,good.closing.sophiaInsight);
+ assert.equal(after.arc.lastDilemma,"");
+ const bad={...good,newDilemma:"A brand new argument opens a new chapter at the lake."};
+ assert.ok(validateEvolutionStory(bad,state,5,moves).errors.includes("finale_must_not_open_new_dilemma"));
+ const missing={...good,closing:null};
+ assert.ok(validateEvolutionStory(missing,state,5,moves).errors.includes("missing_final_closure"));
 });
 test("novel consequences are required; copied old dilemmas fail validation",()=>{
  const state=initialEvolution(scenario),decisions=actions("collaborative",1);
