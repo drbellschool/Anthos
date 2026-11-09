@@ -3,8 +3,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#102b3d">
 <title>Anthos | Jack &amp; Jill — Character-First Pilot 3.0</title>
-<link rel="stylesheet" href="/pilot/jj3.css?v=5">
-<script src="/pilot/jj3.js?v=7" defer></script>
+<link rel="stylesheet" href="/pilot/jj3.css?v=6">
+<script src="/pilot/jj3.js?v=8" defer></script>
 </head><body>
 <main class="app">
 <header class="masthead">
@@ -43,6 +43,20 @@
   <button id="historyToggle" type="button" class="textbutton" hidden>See previous outcomes</button>
   <div id="sharedHistory" hidden></div>
  </section>
+ <section class="ending surface" id="endingSection" hidden aria-label="Adventure conclusion">
+  <p class="kicker">The final page</p>
+  <h2>How this adventure changed them</h2>
+  <div class="ending-people">
+   <article><h3>Jack</h3><p id="jackChange"></p></article>
+   <article><h3>Jill</h3><p id="jillChange"></p></article>
+  </div>
+  <h3>Where they stand</h3>
+  <p id="relationshipTruth"></p>
+  <div class="sophia-ending"><strong>A thought from Sophia</strong><p id="sophiaInsight"></p></div>
+  <h3>A thought to take with you</h3>
+  <p id="takeawayInvitation"></p>
+  <p class="hint">An invitation, not an assignment. Your real relationship is yours to navigate.</p>
+ </section>
  <section class="conversation surface">
   <div class="chathead">
    <div class="avatar" id="chatAvatar" aria-hidden="true">J</div>
@@ -64,11 +78,12 @@
  </section>
  <section id="reflectionPanel" class="surface reflection" hidden>
   <div class="kicker">A thought to take home</div>
-  <h2>What stayed with you?</h2>
-  <p>The fictional story has ended. What is one small thing you might choose to try in your own relationship?</p>
+  <h2>One last message to your friend <small>(optional)</small></h2>
+  <p>The adventure is finished. If you like, send your friend one last thought about what stayed with you. Or leave the story here.</p>
   <textarea id="reflection" rows="3" maxlength="900" placeholder="One thing I could practice is…"></textarea>
   <button id="saveReflection" type="button" class="gold">Share privately with my character</button>
-  <p id="reflectionDone" hidden>✓ Your reflection is saved privately. Your character has one last thing to say.</p>
+  <p id="reflectionDone" hidden>✓ Your final message is saved privately. Your friend has replied.</p>
+  <a class="home-link" href="/">Return to Anthos</a>
  </section>
 </section>
 <p class="error" id="error" role="alert"></p>
