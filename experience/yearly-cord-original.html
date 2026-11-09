@@ -23,7 +23,13 @@
 <defs>
  <filter id="braidShadow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.4" /></filter>
  <filter id="texture" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="2" seed="7" result="noise"/><feColorMatrix in="noise" type="saturate" values="0" result="gray"/><feComponentTransfer in="gray" result="grain"><feFuncA type="linear" slope="0.10"/></feComponentTransfer><feBlend in="SourceGraphic" in2="grain" mode="multiply"/></filter>
- <mask id="reveal"><circle id="revealCircle" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1206.372"/></mask>
+ <linearGradient id="featherStartGradient" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="white" stop-opacity="1"/></linearGradient>
+ <linearGradient id="featherEndGradient" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+ <mask id="reveal">
+  <circle id="revealCircle" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1206.372"/>
+  <path id="featherStart" fill="none" stroke="url(#featherStartGradient)" stroke-width="76" stroke-linecap="butt"/>
+  <path id="featherEnd" fill="none" stroke="url(#featherEndGradient)" stroke-width="76" stroke-linecap="butt"/>
+ </mask>
  <linearGradient id="centerGold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d2ad70"/><stop offset=".5" stop-color="#9e7948"/><stop offset="1" stop-color="#d9bb84"/></linearGradient>
 </defs>
 <circle cx="280" cy="280" r="192" fill="none" stroke="#a58e76" stroke-width="42" opacity=".095" />
@@ -88,10 +94,33 @@ function markers(){
   text.textContent=monthNames[m];g.appendChild(text);
  }
 }
+// Subtle smooth opacity fade. No changes to the original rope pixels or coordinates.
+function featherProgress(length){
+ const ring=$('revealCircle'),start=$('featherStart'),end=$('featherEnd');
+ if(length<=0||length>=CIRCUMFERENCE-.0001){
+  ring.setAttribute('stroke-dasharray',(length<=0?0:CIRCUMFERENCE).toFixed(4)+' '+(CIRCUMFERENCE+1).toFixed(4));
+  ring.setAttribute('stroke-dashoffset','0');
+  start.removeAttribute('d');end.removeAttribute('d');
+  return;
+ }
+ const first=Math.min(12,length*.5),last=Math.min(28,length-first);
+ const solid=Math.max(0,length-first-last);
+ ring.setAttribute('stroke-dasharray',solid.toFixed(4)+' '+(CIRCUMFERENCE+1).toFixed(4));
+ ring.setAttribute('stroke-dashoffset',(-first).toFixed(4));
+ const point=v=>{const theta=-Math.PI/2+v/R;return [280+R*Math.cos(theta),280+R*Math.sin(theta)]};
+ const draw=(path,grad,a,b)=>{
+  if(b<=a+.001){path.removeAttribute('d');return}
+  const u=point(a),v=point(b);
+  path.setAttribute('d','M '+u[0].toFixed(4)+' '+u[1].toFixed(4)+' A 192 192 0 0 1 '+v[0].toFixed(4)+' '+v[1].toFixed(4));
+  grad.setAttribute('x1',u[0]);grad.setAttribute('y1',u[1]);grad.setAttribute('x2',v[0]);grad.setAttribute('y2',v[1]);
+ };
+ draw(start,$('featherStartGradient'),0,first);
+ draw(end,$('featherEndGradient'),first+solid,length);
+}
 function paint(p){
  current=p;
  const length=Math.max(0,CIRCUMFERENCE*p/UNITS);
- $('revealCircle').setAttribute('stroke-dasharray',`${length.toFixed(4)} ${(CIRCUMFERENCE+1).toFixed(4)}`);
+ featherProgress(length);
  $('percentText').textContent=Math.round(p/96*100)+'%';
  $('countText').textContent=Math.round(p)+' OF 96 CHECKPOINTS';
  $('progressOutput').textContent=target+' / 96';
