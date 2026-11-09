@@ -41,7 +41,8 @@ test("the final story has visible closure and private reflection is optional",()
 
 test("autonomous pilot hides extra coaching input after the opening and keeps polling",()=>{
  assert.match(client,/s\.autoplay&&!expectingAdvice|const autoplayBetween=s\.autoplay&&/);
- assert.match(client,/Jack and Jill are making their own choices now/);
+ assert.match(client,/Jack and Jill are acting on the situation themselves/);
+ assert.match(client,/Your advice matters here/);
  assert.match(client,/setInterval\(\(\)=>\{if\(!busy.*?\},5000\)/);
  assert.doesNotMatch(client,/afterAction\("submit"/);
 });
