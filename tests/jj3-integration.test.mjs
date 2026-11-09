@@ -34,7 +34,7 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
   if(u.hostname==="api.openai.com"){
    assert.equal(body.model,"gpt-6-luna","Deep Dive calls use GPT-6 Luna, not OPENAI_MODEL");
    assert.equal(body.reasoning?.effort,
-     body.text?.format?.name?.includes("outcome")?"high":"medium");
+     ["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(body.text?.format?.name)?"high":"medium");
    assert.equal(body.text?.format?.type,"json_schema");
    aiCalls++;
    const input=JSON.parse(body.input);
@@ -69,13 +69,22 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
       beliefShift:role==="jack"?"Jack sees that a shared weekend can be surprising":
        "Jill recognizes both the joy and strain of trying something new"
     });
-    return {outcome,nextScene:"At the lake, "+issue+
+    return {outcome,nextScene:beat===5
+     ?"At the end of their weekend Jack and Jill sit together on the porch and laugh about the problems they faced. They have a quiet goodbye to the cabin, knowing their relationship is still theirs to work on."
+     :"At the lake, "+issue+
        ". Jack and Jill now have a concrete new choice to make, and neither can simply repeat the original plan.",
       location:"The lakeside festival",tension:"A new external problem forces a meaningful response",
       facts:[issue,"Both characters now face a new decision"],researchNote:"The prior choice has a benefit and a cost.",
-      newDilemma:issue,relationshipConnection:1,relationshipTrust:1,
-      unresolvedThread:"The couple must decide how much to change their plans without losing themselves",
-      impacts:{jack:effect("jack"),jill:effect("jill")}};
+      newDilemma:beat===5?"":issue,relationshipConnection:1,relationshipTrust:1,
+      unresolvedThread:"The couple still have different needs, but discovered something worth building on",
+      impacts:{jack:effect("jack"),jill:effect("jill")},
+      ...(beat===5?{closing:{
+       jackChange:"Jack learned that making room for quiet time does not mean giving up his adventurous identity.",
+       jillChange:"Jill discovered she could enjoy new experiences while still expressing her need for genuine rest.",
+       relationshipTruth:"They shared a better weekend than either had planned, but still need to keep noticing each other's needs.",
+       sophiaInsight:"Their progress came from responding to small opportunities for connection, not from winning the original argument. They can keep practicing that attention in ordinary moments.",
+       invitation:"Consider asking your partner which part of this week they would most enjoy sharing with you."
+      }}:{})};
    };
    const authorized=/go make a plan|give it a try/i.test(input.latest||"");
    const uncertainWeather=(input.latest||"").includes("What do you think about the wind?");
@@ -83,7 +92,7 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
    const authorizedReply=characterName==="Jack"
     ?"Okay, I'm gonna ask Jill what kind of weekend she wants, then suggest a hike that works for both of us."
     :"I'm gonna ask Jack what his backup plan is, then we can figure out what actually sounds fun.";
-   const reply=type==="jj_evolution_outcome"?evolutionMock():type==="jj3_story_outcome"?
+   const reply=(type==="jj_evolution_outcome"||type==="jj_evolution_finale")?evolutionMock():type==="jj3_story_outcome"?
       {outcome:"Jack starts toward his mountain, and Jill heads for the reading terrace. Both have chosen independently, so their morning becomes funny and complicated. A ranger announces the ridge has closed while a festival starts on the lakeshore, setting up an unexpected reunion later in the day.",
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
@@ -320,6 +329,12 @@ test("3.1 evolving story accumulates five causal consequences and preserves both
   assert.equal(a.shared.length,5);
   assert.equal(h.events[0].before.completedBeats,0);
   assert.equal(h.events[4].after.completedBeats,5);
+  assert.equal(h.room.scene.closure?.jackChange?.length>25,true);
+  assert.equal(h.room.scene.closure?.jillChange?.length>25,true);
+  assert.equal(h.room.scene.closure?.sophiaInsight?.length>35,true);
+  assert.equal(h.room.scene.closure?.invitation?.length>20,true);
+  assert.equal(h.room.evolution_state.arc.lastDilemma,"","The story must not leave a fresh unresolved decision");
+  assert.equal(h.room.evolution_state.arc.closure?.relationshipTruth?.length>20,true);
   assert.ok(h.room.evolution_state.characters.jill.meters.agency<
     h.events[0].before.characters.jill.meters.agency);
   assert.equal(b.messages.some(m=>m.author==="coach"&&m.body.includes("Jack should invite Jill")),false,
