@@ -70,3 +70,17 @@ test("Rehearsal progresses automatically between checkpoints without scripted co
  assert.match(player,/state\.needsReply/);
  assert.match(player,/state\.finished/);
 });
+
+test("Both private coach name fields submit on Enter and Join remains enabled after initial fetch",()=>{
+ // The same mounted component serves husband and wife; verify its join panel
+ // handles Enter without a form and its buttons are never left disabled.
+ assert.match(player,/const join=oneAction\("Join "/);
+ assert.match(player,/inp\.addEventListener\("keydown",event=>\{/);
+ assert.match(player,/event\.key==="Enter"&&!event\.isComposing/);
+ assert.match(player,/event\.preventDefault\(\)/);
+ assert.match(player,/join\.click\(\)/);
+ assert.match(player,/btn\.disabled=false/);
+ assert.doesNotMatch(player,/btn\.disabled=inFlight/);
+ assert.match(player,/if\(!inFlight&&!destroyed\)callback\(\)/);
+ assert.match(player,/if\(!name\)\{message\("Enter your first name to join\."/);
+});
