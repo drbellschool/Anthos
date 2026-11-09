@@ -146,7 +146,22 @@ function paintSkills(){
   count.title=entries.length+" saved 4.0 episode"+(entries.length===1?"":"s");
   const infoWrap=node("span","episode-info-wrap"),info=node("button","episode-skill-info","i");
   info.type="button";info.setAttribute("aria-label","Episodes using "+skill.title);
-  info.title=entries.length+" saved 4.0 episode"+(entries.length===1?"":"s");
+  info.setAttribute("aria-expanded","false");
+  const placeTooltip=()=>{
+   const rect=info.getBoundingClientRect();
+   tooltip.style.left=Math.max(8,Math.min(window.innerWidth-252,rect.right-230))+"px";
+   tooltip.style.top=Math.max(8,Math.min(window.innerHeight-230,rect.bottom+7))+"px";
+  };
+  info.addEventListener("mouseenter",placeTooltip);
+  info.addEventListener("focus",placeTooltip);
+  info.addEventListener("click",()=>{
+   placeTooltip();
+   const open=infoWrap.classList.toggle("open");
+   info.setAttribute("aria-expanded",String(open));
+  });
+  info.addEventListener("blur",()=>{
+   infoWrap.classList.remove("open");info.setAttribute("aria-expanded","false");
+  });
   const tooltip=node("span","episode-info-tooltip");
   tooltip.append(node("strong","",entries.length+" saved 4.0 "+(entries.length===1?"episode":"episodes")));
   if(entries.length){for(const episode of entries)tooltip.append(node("span","episode-usage-item",episode.title))}
