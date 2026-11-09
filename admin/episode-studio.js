@@ -7,6 +7,46 @@ const node=(tag,cls="",value)=>{const n=document.createElement(tag);if(cls)n.cla
 const PHASE_IDS=["hook","conflict","discovery","reattempt","outcome","reflection"];
 const CHECKPOINT_IDS=PHASE_IDS.slice(0,-1);
 let current=null,researcher="Gottman",busy=false,opening=false;
+const skillSymbols={"g-bids":"♡","g-toward":"☏","g-start":"▤","g-patterns":"⚠","g-repair":"↻","g-influence":"◎","g-appreciation":"♧","g-world":"◉","g-meaning":"⌂"};
+function lockPath(input){
+ if(input.dataset.episodeField)return input.dataset.episodeField;
+ if(input.dataset.episodePhase)return "phases."+input.dataset.episodePhase;
+ if(input.dataset.checkpointPurpose)return "checkpoints."+input.dataset.checkpointPurpose+".purpose";
+ if(input.dataset.checkpointHumor)return "checkpoints."+input.dataset.checkpointHumor+".humorCue";
+ return "";
+}
+function wireLocks(){
+ for(const input of document.querySelectorAll("[data-episode-field],[data-episode-phase],[data-checkpoint-purpose],[data-checkpoint-humor]")){
+  const key=lockPath(input);
+  if(!key||input.parentElement?.classList.contains("episode-lock-wrap"))continue;
+  const wrap=node("span","episode-lock-wrap");
+  input.parentNode.insertBefore(wrap,input);wrap.append(input);
+  const btn=node("button","episode-field-lock","🔓");btn.type="button";btn.dataset.lockPath=key;
+  btn.addEventListener("click",()=>{
+   if(!current)return;
+   const locks=new Set(current.studio.locks||[]);
+   if(locks.has(key))locks.delete(key);else locks.add(key);
+   current.studio.locks=[...locks];paintLocks();markDirty();
+  });
+  wrap.append(btn);
+ }
+ paintLocks();
+}
+function paintLocks(){
+ if(!current)return;
+ const selected=new Set(current.studio.locks||[]);
+ for(const btn of document.querySelectorAll("[data-lock-path]")){
+  const locked=selected.has(btn.dataset.lockPath);
+  const input=btn.parentNode.querySelector("textarea,input");
+  btn.classList.toggle("active",locked);
+  btn.textContent=locked?"🔒":"🔓";
+  btn.setAttribute("aria-pressed",String(locked));
+  btn.setAttribute("aria-label",(locked?"Unlock ":"Lock ")+btn.dataset.lockPath.replaceAll("."," "));
+  btn.title=locked?"Locked against AI changes. Click to unlock.":"Click to keep this exact text when AI rewrites the episode.";
+  if(input)input.readOnly=locked;
+  btn.parentNode.classList.toggle("is-locked",locked);
+ }
+}
 const note=(msg,isError=false)=>{const n=$("episodeNotice");n.textContent=msg;n.classList.toggle("error",isError)};
 const markDirty=()=>{
  if(!current||opening)return;
@@ -41,6 +81,7 @@ function collect(){
  for(const p of PHASE_IDS)s.phases[p]=phaseField(p).value;
  s.primarySkill=$("episodePrimary").value;
  s.soloCoach=$("episodeSoloRole").value;
+ s.locks=[...new Set(current.studio.locks||[])];
  s.supportingSkills=[...current.studio.supportingSkills].filter(x=>x!==s.primarySkill).slice(0,2);
  s.checkpoints=CHECKPOINT_IDS.map(afterPhase=>({
   afterPhase,
@@ -53,11 +94,15 @@ function collect(){
 }
 function paintResearchers(){
  const panel=$("episodeResearchers");panel.replaceChildren();
+ const symbols={Gottman:"♡",Schnarch:"◇",Aron:"♧"};
+ const descriptions={Gottman:"Connection & Conflict",Schnarch:"Differentiation & Growth",Aron:"Discovery & Expansion"};
  for(const name of ["Gottman","Schnarch","Aron"]){
-  const b=node("button","episode-researcher"+(researcher===name?" active":""),name);
-  b.type="button";b.setAttribute("aria-pressed",String(researcher===name));
-  b.addEventListener("click",()=>{researcher=name;paintResearchers();paintSkills()});
-  panel.append(b);
+  const button=node("button","episode-researcher"+(researcher===name?" active":""));
+  button.type="button";button.setAttribute("aria-pressed",String(researcher===name));
+  button.append(node("span","episode-researcher-icon",symbols[name]),node("strong","",name),
+    node("small","",descriptions[name]));
+  button.addEventListener("click",()=>{researcher=name;paintResearchers();paintSkills()});
+  panel.append(button);
  }
 }
 function paintSupports(){
@@ -78,29 +123,49 @@ function paintSkills(){
  if(!current)return;
  const box=$("episodeSkillList");box.replaceChildren();
  for(const skill of current.skills.filter(x=>x.researcher===researcher)){
-  const card=node("article","episode-skill"),desc=node("div","episode-skill-text");
-  desc.append(node("strong","",skill.title),node("small","",skill.description));
-  const primary=node("button","episode-mini"+(current.studio.primarySkill===skill.id?" selected":""),current.studio.primarySkill===skill.id?"Primary ✓":"Make primary");
-  primary.type="button";
-  primary.setAttribute("aria-pressed",String(current.studio.primarySkill===skill.id));
-  primary.addEventListener("click",()=>{
-   current.studio.primarySkill=skill.id;
-   current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==skill.id);
-   $("episodePrimary").value=skill.id;markDirty();paintSkills();paintSupports();
-  });
+  const isPrimary=current.studio.primarySkill===skill.id;
   const isSupporting=current.studio.supportingSkills.includes(skill.id);
-  const support=node("button","episode-mini"+(isSupporting?" selected":""),isSupporting?"Supporting ✓":"+ Support");
-  support.type="button";support.disabled=current.studio.primarySkill===skill.id;
+  const card=node("article","episode-skill"+(isPrimary?" primary":"")+(isSupporting?" supporting":""));
+  const pick=node("button","episode-skill-check",isPrimary?"✓":isSupporting?"＋":"");
+  pick.type="button";pick.setAttribute("aria-pressed",String(isPrimary));
+  pick.setAttribute("aria-label",(isPrimary?"Clear primary objective: ":"Choose primary objective: ")+skill.title);
+  pick.title=isPrimary?"Clear primary skill":"Make primary skill";
+  pick.addEventListener("click",()=>{
+   current.studio.primarySkill=isPrimary?"":skill.id;
+   current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==skill.id);
+   $("episodePrimary").value=current.studio.primarySkill;
+   markDirty();paintSkills();paintSupports();
+  });
+  const icon=node("span","episode-skill-icon",skillSymbols[skill.id]||(skill.researcher==="Schnarch"?"◇":"♧"));
+  icon.setAttribute("aria-hidden","true");
+  const desc=node("div","episode-skill-text");
+  desc.append(node("strong","",skill.title),node("small","",skill.description));
+  const entries=current.skillUsage?.[skill.id]||[];
+  const tools=node("div","episode-skill-tools");
+  const count=node("span","episode-usage-count",String(entries.length));
+  count.title=entries.length+" saved 4.0 episode"+(entries.length===1?"":"s");
+  const infoWrap=node("span","episode-info-wrap"),info=node("button","episode-skill-info","i");
+  info.type="button";info.setAttribute("aria-label","Episodes using "+skill.title);
+  info.title=entries.length+" saved 4.0 episode"+(entries.length===1?"":"s");
+  const tooltip=node("span","episode-info-tooltip");
+  tooltip.append(node("strong","",entries.length+" saved 4.0 "+(entries.length===1?"episode":"episodes")));
+  if(entries.length){for(const episode of entries)tooltip.append(node("span","episode-usage-item",episode.title))}
+  else tooltip.append(node("span","episode-usage-item","No saved episode uses this objective yet."));
+  infoWrap.append(info,tooltip);
+  const support=node("button","episode-skill-add"+(isSupporting?" added":""),isSupporting?"−":"+");
+  support.type="button";support.disabled=isPrimary;
   support.setAttribute("aria-pressed",String(isSupporting));
+  support.setAttribute("aria-label",(isSupporting?"Remove supporting skill: ":"Add supporting skill: ")+skill.title);
+  support.title=isSupporting?"Remove supporting objective":"Add supporting objective";
   support.addEventListener("click",()=>{
-   if(current.studio.supportingSkills.includes(skill.id))
-    current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==skill.id);
+   if(isSupporting)current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==skill.id);
    else if(current.studio.supportingSkills.length>=2){
-    note("Select at most two supporting skills. Remove one first.",true);return;
+    note("Choose at most two supporting skills. Remove one first.",true);return;
    }else current.studio.supportingSkills=[...current.studio.supportingSkills,skill.id];
    markDirty();paintSkills();paintSupports();
   });
-  card.append(desc,primary,support);box.append(card);
+  tools.append(count,infoWrap,support);
+  card.append(pick,icon,desc,tools);box.append(card);
  }
 }
 function labeledTextarea(labelText,datasetKey,value,max,placeholder){
@@ -170,6 +235,7 @@ function renderStoryboard(){
   input.addEventListener("change",markDirty);
   card.append(header,top,detail,empty);root.append(card);
  }
+ wireLocks();
 }
 function populate(){
  if(!current)return;
@@ -202,6 +268,7 @@ function populate(){
  $("episodePetal").textContent=current.petal;
  $("episodeSavedState").textContent=current.dirty?"Unsaved edits":current.hasSaved?"Saved draft":"New draft";
  $("episodeSavedState").classList.toggle("modified",current.dirty);
+ wireLocks();
  const primary=current.skills.find(x=>x.id===s.primarySkill);
  if(primary)researcher=primary.researcher;
  paintResearchers();paintSkills();paintSupports();
@@ -243,7 +310,7 @@ async function openEditor(id,petal,mode){
  $("episodeStudioTitle").textContent="Loading episode…";note("Loading objectives and story flow…");
  try{
   const data=await request(null,{id});
-  current={id,petal,mode,studio:data.studio,skills:data.skills,phases:data.phases,
+  current={id,petal,mode,studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,
    version:data.scenario.content_version,hasSaved:data.scenario.episode_saved,dirty:false};
   renderStoryboard();
   const select=$("episodePrimary");select.replaceChildren();
@@ -256,12 +323,16 @@ async function openEditor(id,petal,mode){
 }
 async function generate(){
  if(!current||busy)return;
- if(current.dirty&&!confirm("AI will replace your current unsaved edits, including humor and check-in notes. Continue?"))return;
+ if(current.dirty&&!confirm("AI will rewrite the UNLOCKED fields and keep locked text unchanged. Continue?"))return;
  setBusy(true);note("AI is preparing six story phases and targeted private interventions. Nothing will save automatically.");
  try{
-  const data=await request("episode-studio-generate",{id:current.id,direction:field("creativeDirection").value});
+  const before=collect();
+  const data=await request("episode-studio-generate",{
+   id:current.id,direction:field("creativeDirection").value,studio:before
+  });
   current.studio=data.studio;current.dirty=true;renderStoryboard();populate();
-  note("AI plan generated with "+(data.model||"OpenAI")+". You can change every field, including the recipients, check-in humor, and original jokes.");
+  note("AI revised unlocked fields with "+(data.model||"OpenAI")+". "+
+   (current.studio.locks?.length||0)+" locked text boxes remain unchanged. Save when ready.");
  }catch(error){note(error.message,true)}finally{setBusy(false)}
 }
 async function save(){
@@ -275,6 +346,7 @@ async function save(){
  try{
   const result=await request("episode-studio-save",{id:current.id,content_version:current.version,studio:s});
   current.version=result.content_version;current.studio=result.studio;current.hasSaved=true;current.dirty=false;
+  current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
   $("episodeSavedState").classList.remove("modified");
   note("Saved. The episode and all five optional intervention settings are stored. No SMS or pilot was launched.");
