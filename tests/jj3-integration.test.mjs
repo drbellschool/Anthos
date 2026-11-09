@@ -415,3 +415,31 @@ test("a nonintervention choice can arrive before the other character acts",async
   assert.equal(h.events.length,1);
  }finally{h.restore()}
 });
+
+test("3.1 the real moment-four supportive messages advance the story without more questions",async()=>{
+ const h=harness("shared",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  h.messages.push({id:9001,room_id:rid,role:"jack",author:"character",kind:"reply",step:1,
+    body:"Yeah, honestly, I am. Breakfast with Jill was lovely, and now we’re poking around for something fun we can do safely here.",
+    request_key:null});
+  h.messages.push({id:9002,room_id:rid,role:"jill",author:"character",kind:"reply",step:1,
+    body:"We started with cards, and I got smug enough about winning to make the cabin feel lively. We’re going to make lunch together next and see how the afternoon feels.",
+    request_key:null});
+  const earlierCalls=h.aiCalls;
+  const jack=await talk(tokens.jack,"I am glad to hear it man. Sounds like you're having a great weekend.",randomUUID());
+  assert.equal(jack.submitted,true,"Jack's ongoing afternoon is accepted as conversational closure");
+  assert.equal(h.room.step,1,"The story cannot advance before Alissa finishes");
+  assert.equal(h.aiCalls,earlierCalls,"A courtesy message must not demand another AI conversation");
+  const jill=await talk(tokens.jill,"Let me know how it turns out.",randomUUID());
+  assert.equal(jill.step,2);
+  assert.equal(h.events.length,1);
+  assert.equal(h.aiCalls,earlierCalls+1,"Only the shared consequence needs AI generation");
+  const a=h.events[0].after.arc.beats[0].actions;
+  assert.ok(a.some(x=>x.character==="Jack"&&/stay present/.test(x.action)));
+  assert.ok(a.some(x=>x.character==="Jill"&&/make lunch/.test(x.action)));
+  assert.equal(jill.messages.some(x=>x.author==="coach"&&x.body.includes("great weekend")),false,
+    "Alissa never receives Adam's private text");
+ }finally{h.restore()}
+});
