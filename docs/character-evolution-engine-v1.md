@@ -29,6 +29,18 @@ The six numerical signals (`connection`, `agency`, `trust`, `energy`, `friction`
 7. One SQL transaction publishes the shared consequence, advances the room, writes the new state, and appends an immutable evolution event.
 8. Each character's next private message receives the updated fictional context for **that character** and observable shared events; the initial personality remains only a baseline.
 
+## Shared autoplay — one steer, then lived consequences
+
+In shared 3.2 rooms created with `autoplay=true`, each real participant gives ONE private piece of advice during the opening scene. The engine extracts one observable character-owned action from each message and stores those actions without sending filler acknowledgement texts. It waits for the two separate private decisions, then publishes their combined fictional outcome.
+
+After that, **Jack and Jill act independently** through the remaining scenes without further human coaching, submissions or chapter buttons. The shared character-state ledger and current public scene drive their next actions. Each progress request does ONE bounded stage: either commits two fictional autonomous moves or publishes the next shared consequence. This separation lets the next browser poll retry after an AI timeout without losing actions or double-publishing an event.
+
+The public story director never receives raw private coaching text, participant names, private memories or private learning notes. It receives only fictional canonical actions and prior shared outcomes. A signed-in pilot screen automatically checks for the next event; completing the full adventure without a browser open would require a separate server-side scheduler, which is not part of this pilot.
+
+In these autonomous runs, Luna uses medium reasoning for intermediate story scenes to control serverless latency and high reasoning for the final meaningful closure. A short server-side claim lease guards single-writer publication. SQL RPCs for first-turn advice and later autonomous turns are restricted to the server service role.
+
+Old 3.1 rooms and shared 3.2 rooms without the opt-in autoplay flag retain their original multi-turn conversation rules. Solo Deep Dives are not silently converted to a two-participant autoplay pattern.
+
 ## Fifth-beat closure contract
 
 The fifth story consequence **ends the episode** instead of generating a sixth problem. Jack and Jill's final confirmed actions resolve the immediate practical situation, including safety concerns. The fiction may still contain ordinary unresolved feelings, but no new cliffhanger, crisis, task or request for another character decision.
