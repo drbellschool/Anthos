@@ -4,7 +4,7 @@
 function el(tag,cls,value){const x=document.createElement(tag);if(cls)x.className=cls;if(value!==undefined)x.textContent=String(value);return x}
 function mount(root,invite,options={}){
  const token=String(invite||"");
- let current=null,inFlight=false,lastFingerprint="",destroyed=false;
+ let current=null,inFlight=false,lastFingerprint="",destroyed=false,autoFailed=false,autoTimer=null;
  root.replaceChildren();
  root.classList.add("jj4-player");
  const top=el("div","jj4-top"),status=el("div","jj4-state","Connecting…");
@@ -89,8 +89,14 @@ function mount(root,invite,options={}){
    oneAction("Refresh",refresh);return;
   }
   if(state.canContinue){
-   message(state.scenes.length?"Ready for the next consequence.":"Both coaches joined. Ready to begin.");
-   oneAction(state.scenes.length?"Play next scene":"Start episode",async()=>act("advance"),true);
+   message(autoFailed?"Story needs a retry. Click to continue.":
+    state.scenes.length?"The next scene begins automatically…":"Both coaches joined. Starting the episode…");
+   oneAction(state.scenes.length?"Continue / retry scene":"Start episode",async()=>{
+    autoFailed=false;await act("advance");
+   },true);
+   if(!autoFailed&&!autoTimer)autoTimer=setTimeout(()=>{
+    autoTimer=null;if(!inFlight&&!destroyed&&current?.canContinue)act("advance");
+   },1200);
    return;
   }
   message("Updating the episode…");
@@ -110,8 +116,12 @@ function mount(root,invite,options={}){
   message(action==="advance"?"Writing the next scene…":action==="coach"?"Saving your advice…":"Joining…");
   try{
    const result=await api(action,details);
+   autoFailed=false;
    if(!destroyed)render(result);
-  }catch(e){if(!destroyed){message(e.message,true);buttons.forEach(x=>x.disabled=false)}}
+  }catch(e){if(!destroyed){
+   if(action==="advance")autoFailed=true;
+   message(e.message,true);buttons.forEach(x=>x.disabled=false)
+  }}
   finally{inFlight=false}
  }
  refresh();
@@ -119,7 +129,7 @@ function mount(root,invite,options={}){
   if(destroyed||inFlight||!current?.joined||current.finished)return;
   if(current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined)refresh();
  },5000);
- return {destroy(){destroyed=true;clearInterval(timer);root.replaceChildren()},refresh};
+ return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);root.replaceChildren()},refresh};
 }
 window.Anthos4Player={mount};
 })();
