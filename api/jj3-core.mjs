@@ -364,7 +364,12 @@ async function resolveRoom(room){
     validationProblems=verdict.errors;
    }catch(e){if(attempt===1)throw e}
   }
-  if(!story)problem("The next event needs a fresh attempt; your choices remain saved.",502);
+  if(!story){
+   // Only validator reason codes; never print actual coach text or private AI history.
+   console.warn("jj-autoplay-story-validation",JSON.stringify({step:current.step,
+    autoplay:!!current.autoplay,issues:validationProblems.slice(0,8)}));
+   problem("The next event needs a fresh attempt; your choices remain saved.",502);
+  }
   const next={scene:safe(plainCharacterLanguage(story.nextScene),1800),location:safe(story.location,140),
    tension:safe(story.tension,500),facts:story.facts.slice(0,8).map(x=>safe(x,200)),
    research:safe(story.researchNote,450),title:scenario.title,
@@ -384,6 +389,8 @@ async function resolveRoom(room){
   },"POST");
   if(published!==true)problem("Another story update completed first. Refresh the page.",409);
  }catch(e){
+  console.warn("jj-shared-outcome-retry",JSON.stringify({step:current.step,
+   status:e?.status||0,reason:String(e?.message||"unknown").slice(0,120)}));
   await db("rpc/anthos_jj3_release",{},{
    p_room:room.id,p_step:current.step,p_token:claimToken
   },"POST").catch(()=>{});
@@ -469,7 +476,9 @@ export async function progress(token){
  let retrying=false;
  if(r.status==="active"){
   try{await autoplayRoom(r)}
-  catch{retrying=true}
+  catch(e){retrying=true;
+   console.warn("jj-autoplay-next-retry",JSON.stringify({step:r.step,
+    status:e?.status||0,reason:String(e?.message||"unknown").slice(0,120)}));}
  }
  return {...await status(token),autoRetrying:retrying};
 }
