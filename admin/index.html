@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/admin/admin.css">
 <link rel="stylesheet" href="/admin/customers.css">
 <link rel="stylesheet" href="/admin/jj2-manager.css">
+<link rel="stylesheet" href="/admin/episode-studio.css">
 <script src="/content.js" defer></script>
 <script src="/admin/studio-blueprint.js" defer></script>
 <script src="/admin/admin.js" defer></script>
@@ -15,6 +16,7 @@
 <script src="/admin/couples.js" defer></script>
 <script src="/admin/progress.js" defer></script>
 <script src="/admin/jj2-manager.js" defer></script>
+<script src="/admin/episode-studio.js" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -31,8 +33,6 @@
       <button type="button" class="nav-item" data-studio-tab="couples"><span class="nav-icon">♧</span> Couple insights</button>
       <button type="button" class="nav-item" data-studio-tab="progress"><span class="nav-icon">◷</span> Implementation progress</button>
     </nav>
-    <a class="nav-item" href="/pilot/create/"><span class="nav-icon">✧</span> Create Jack &amp; Jill 3.0 pilot</a>
-    <a class="nav-item" href="/pilot/reviews/"><span class="nav-icon">✎</span> Legacy pilot feedback archive</a>
     <a class="nav-item" href="/experience/"><span class="nav-icon">↗</span> Couple experience demo</a>
     <div class="aside-footer">
       <p>What happens behind the scenes should feel just as intentional as what a couple sees.</p>
@@ -140,27 +140,13 @@
         </section>
 
         <section data-studio-page="deepdives" class="studio-page" hidden>
-          <div class="page-kicker">04 / LEARNING DESIGN & MASTERY</div>
-          <h2 class="studio-title">A story with <em>a purpose.</em></h2>
-          <p class="studio-lead">Sophia privately coaches each participant through one AI-directed story. Guided decisions, research-informed learning, and shared fictional outcomes replace scripted chapters and mastery tests.</p>
-          <article class="panel" aria-labelledby="deepDive2ModelHeading">
-            <div class="panel-top"><div><span class="eyebrow">DEEP DIVE 2.0 · THE JACK &amp; JILL METHOD</span><h3 class="mini-title" id="deepDive2ModelHeading">The complete learning model</h3></div><span class="state-label ready">Design objective</span></div>
-            <p class="soft-text">One shared adventure, two private coaching conversations, six flexible story phases and eight research-informed learning milestones. Guided decisions create the couple's shared fictional consequences.</p>
-            <a href="/admin/deep-dive-2-model.svg" target="_blank" rel="noopener" title="Open the Deep Dive 2.0 model at full size" style="display:block;margin:12px 0;border-radius:12px;overflow:hidden;background:#122940;border:1px solid rgba(112,142,154,.32)">
-              <img src="/admin/deep-dive-2-model.svg" alt="Anthos Deep Dive 2.0 learning model with eight milestones: Recognize, Interpret, Navigate, Regulate, Differentiate, Discover, Apply and Reflect. Two private SMS threads and one shared Jack and Jill story move through Hook, Conflict, Discovery, Reattempt, Outcome and Reflection." loading="lazy" decoding="async" style="display:block;width:100%;height:auto">
-            </a>
-            <p class="soft-text">Select the graphic to inspect it full-size. Version 2.1 connects the instructional model to the active, private Jack &amp; Jill browser pilot.</p>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0">
-              <div class="notice"><strong>7 adult-learning checks</strong><p>Need to know · Self-direction · Practical relevance · Prior experience · Learning by doing · Readiness · Motivation</p></div>
-              <div class="notice"><strong>6 experience phases</strong><p>Hook · Conflict · Discovery · Reattempt · Outcome · Reflection</p></div>
-              <div class="notice"><strong>8 learning milestones</strong><p>Recognize · Interpret · Navigate · Regulate · Differentiate · Discover · Apply · Reflect</p></div>
-              <div class="notice"><strong>7 internal agent roles</strong><p>Story · Learning · Dialogue · Decision · Privacy · Reflection · Quality Assurance</p></div>
-            </div>
-            <p class="soft-text">Pilot engine 3.0: private conversations with Jack and Jill as fully voiced fictional friends, character-owned decisions, Sophia as a supporting guide and atomic shared outcomes. The visible experience remains conversational; internal model labels are never presented to participants. <a href="/pilot/create/">Create a new themed pilot</a>.</p>
-          </article>
+          <div class="page-kicker">ANTHOS 4.0 · CURRICULUM &amp; NARRATIVE DESIGN</div>
+          <h2 class="studio-title">Deep Dive <em>Episode Studio.</em></h2>
+          <p class="studio-lead">Choose relationship objectives, outline six flexible phases, and set your own style of humor. Let AI complete the editorial fields, then revise freely. No scripted SMS dialogue, no eight-step milestone rail, and no legacy pilot launch.</p>
+          <div class="episode-overview"><span>Choose a scenario seed</span><span>Generate or edit its objectives and flow</span><span>Save a versioned Anthos 4.0 draft</span></div>
           <section class="panel jj2-library" id="jj2Library" aria-labelledby="jj2ManagerTitle">
-            <div class="panel-top"><div><span class="eyebrow">ANTHOS · DEEP DIVE LIBRARY</span><h3 class="mini-title" id="jj2ManagerTitle">12-Petal Scenario Manager</h3></div><button type="button" class="button" id="jj2Refresh">↻ Refresh</button></div>
-            <p class="soft-text">A reusable adventure library: five <strong>shared</strong> Jack-and-Jill decisions and five <strong>individual</strong> private explorations in each petal. Intros are draft story seeds—not scripted chapters, lessons or published customer content.</p>
+            <div class="panel-top"><div><span class="eyebrow">ANTHOS · DEEP DIVE LIBRARY</span><h3 class="mini-title" id="jj2ManagerTitle">12-Petal Episode Library</h3></div><button type="button" class="button" id="jj2Refresh">↻ Refresh</button></div>
+            <p class="soft-text">A reusable adventure library: five <strong>shared</strong> Jack-and-Jill decisions and five <strong>individual</strong> private explorations in each petal. Select a seed to build a new Anthos 4.0 episode. Existing 3.x rooms and SMS remain separate; saving here does not publish or start a pilot.</p>
             <div class="jj2-metrics" aria-label="Deep Dive catalog totals">
               <div><strong id="jj2CountTotal">—</strong><span>Scenario seeds</span></div>
               <div><strong id="jj2CountShared">—</strong><span>Shared / two coaches</span></div>
@@ -169,6 +155,7 @@
             </div>
             <p id="jj2Notice" class="soft-text" role="status">Sign in to inspect the scenario library.</p>
             <div id="jj2Controls" hidden>
+              <div id="jj2Browse">
               <div class="jj2-toolbar">
                 <label>Petal<select id="jj2Petal"><option value="">All 12 petals</option></select></label>
                 <label>Experience<select id="jj2Mode"><option value="">Both</option><option value="shared">Shared</option><option value="individual">Individual</option></select></label>
@@ -177,30 +164,96 @@
               </div>
               <div class="jj2-petals" id="jj2PetalGrid" aria-label="Scenario totals by petal"></div>
               <div class="jj2-list" id="jj2ScenarioList"></div>
-              <div class="jj2-editor" id="jj2Editor" hidden>
-                <div class="panel-top"><h3 id="jj2EditorTitle" class="mini-title">Review scenario</h3><button class="button" type="button" id="jj2EditorClose">Close</button></div>
-                <p id="jj2EditorMeta" class="soft-text"></p>
-                <label>Scenario title<input id="jj2EditTitle" maxlength="120"></label>
-                <label>Original, unfinished opening scene<textarea id="jj2EditOpening" rows="5" maxlength="1700"></textarea></label>
-                <label>Learning objective<textarea id="jj2EditObjective" rows="2" maxlength="450"></textarea></label>
-                <label>Editorial status<select id="jj2EditStatus"><option value="draft">Draft</option><option value="in_review">In review</option><option value="beta_ready">Beta ready</option><option value="retired">Retired</option></select></label>
-                <p class="soft-text">Mark beta ready only after editorial review. Research and safety review are still required for general release. Changes use version checks to prevent silent overwrites.</p>
-                <label id="jj2SoloRoleLabel" hidden>Solo coach character<select id="jj2SoloRole"><option value="jack">Coach Jack</option><option value="jill">Coach Jill</option></select></label>
-                <div class="jj2-actions"><button type="button" class="button primary" id="jj2Save">Save editorial changes</button><button type="button" class="button" id="jj2Try">Create private test room</button></div>
-                <div id="jj2PilotLinks" class="jj2-links" hidden><p><strong>New pilot invitations — copy now</strong></p><label>First private link<input id="jj2PilotA" readonly></label><label id="jj2PilotBLabel">Second private link<input id="jj2PilotB" readonly></label><div class="jj2-actions"><button type="button" class="button" id="jj2CopyA">Copy first</button><button type="button" class="button" id="jj2CopyB">Copy second</button></div><small>Invitation links grant access to private coaching. Nothing is sent automatically.</small></div>
-              </div>
+              </div><!-- Browse -->
+              <section id="episodeStudio" class="episode-studio" hidden aria-labelledby="episodeStudioTitle">
+                <header class="episode-studio-head">
+                  <div><button type="button" id="episodeBack" class="episode-quiet">← Back to library</button>
+                    <p class="eyebrow">ANTHOS 4.0 · THE JACK &amp; JILL METHOD</p>
+                    <h3 id="episodeStudioTitle">Objective &amp; Story Flow Studio</h3>
+                    <p id="episodeMeta" class="soft-text"></p>
+                  </div>
+                  <span id="episodeSavedState" class="episode-save-state">Editorial draft</span>
+                </header>
+                <div class="episode-actions">
+                  <button type="button" id="episodeGenerate" class="button primary">✦ AI · Complete all text boxes</button>
+                  <button type="button" id="episodeSave" class="button">Save editorial draft</button>
+                  <button type="button" id="episodeValidate" class="button">Review completeness</button>
+                </div>
+                <p id="episodeNotice" class="episode-notice" role="status">Select an episode to begin.</p>
+                <label class="episode-direction">Creative direction for the AI draft
+                  <textarea data-episode-field="creativeDirection" rows="2" maxlength="650" placeholder="Dry, situational humor. Avoid cheesy jokes; Jack and Jill must each have real motivations."></textarea>
+                </label>
+                <nav class="episode-tabs" aria-label="Episode editing sections">
+                  <button type="button" data-episode-tab="objectives" class="active">Objectives &amp; Skills</button>
+                  <button type="button" data-episode-tab="story">Story Setup</button>
+                  <button type="button" data-episode-tab="flow">Six-Phase Flow</button>
+                  <button type="button" data-episode-tab="humor">Humor &amp; Tone</button>
+                  <button type="button" data-episode-tab="review">Review &amp; Save</button>
+                </nav>
+                <section class="episode-page" data-episode-page="objectives">
+                  <h4>Relationship Objective Library</h4>
+                  <p>Pick one primary relationship skill and up to two supporting skills. These are editorial learning targets, not assessments of a couple.</p>
+                  <div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
+                  <div id="episodeSkillList" class="episode-skill-list"></div>
+                  <div class="episode-grid two">
+                    <label>Primary relationship skill<select id="episodePrimary"><option value="">Choose primary skill</option></select></label>
+                    <div><strong class="episode-field-title">Supporting skills (maximum 2)</strong>
+                      <div id="episodeSupports" class="episode-supports">Choose up to two from the list.</div>
+                    </div>
+                  </div>
+                  <label>Primary learning objective, in your words
+                    <textarea data-episode-field="learningObjective" maxlength="450" rows="3" placeholder="What should the experience help a participant notice or practice?"></textarea>
+                  </label>
+                  <label>Research connection and educational guardrails
+                    <textarea data-episode-field="researchNotes" maxlength="1000" rows="4" placeholder="How should Gottman, Schnarch or Aron inform the experience?"></textarea>
+                  </label>
+                </section>
+                <section class="episode-page" data-episode-page="story" hidden>
+                  <h4>Story Setup</h4>
+                  <p>Write an initial situation, not a fixed scene-by-scene script. Let AI improvise around the couple's responses.</p>
+                  <label>Episode title<input data-episode-field="title" maxlength="120"></label>
+                  <label>Story premise<textarea data-episode-field="premise" maxlength="1700" rows="5"></textarea></label>
+                  <div class="episode-grid two">
+                    <label>Jack's underlying need and motivation<textarea data-episode-field="jackMotivation" maxlength="650" rows="4"></textarea></label>
+                    <label>Jill's underlying need and motivation<textarea data-episode-field="jillMotivation" maxlength="650" rows="4"></textarea></label>
+                  </div>
+                  <label>Story boundaries &amp; continuity rules<textarea data-episode-field="boundaries" maxlength="1100" rows="3"></textarea></label>
+                </section>
+                <section class="episode-page" data-episode-page="flow" hidden>
+                  <h4>Six-Phase Dynamic Story Flow</h4>
+                  <p>Provide direction, not actual text messages or mandatory turns. The AI makes choices and consequences based on what Jack, Jill, and their separate coaches actually do.</p>
+                  <div id="episodePhases" class="episode-phase-list"></div>
+                  <label>Closure criteria: What makes this adventure feel finished?
+                    <textarea data-episode-field="closureCriteria" maxlength="900" rows="3"></textarea>
+                  </label>
+                  <label>Optional real-life reflection invitation
+                    <textarea data-episode-field="reflectionPrompt" maxlength="600" rows="3"></textarea>
+                  </label>
+                </section>
+                <section class="episode-page" data-episode-page="humor" hidden>
+                  <h4>Your Humor Library</h4>
+                  <p>You're the comedy writer. Write your own jokes, character quirks, and running callbacks. AI drafts are only suggestions, never required punchlines.</p>
+                  <label>Original humor ideas, jokes &amp; situational comedy
+                    <textarea data-episode-field="humorNotes" maxlength="1300" rows="7" placeholder="A funny situation you invented, an awkward habit, a line the character might naturally say..."></textarea>
+                  </label>
+                  <label>Running gags &amp; callbacks
+                    <textarea data-episode-field="runningGags" maxlength="1300" rows="5" placeholder="Example: Jack always blames navigation technology when the real issue is his refusal to ask for directions."></textarea>
+                  </label>
+                  <label>Character voices and comedic boundaries
+                    <textarea data-episode-field="tone" maxlength="650" rows="4"></textarea>
+                  </label>
+                  <p class="episode-hint">The AI should use these as optional material when it fits the action. Don't derail the story to land a joke or turn your original humor into repetitive spam.</p>
+                </section>
+                <section class="episode-page" data-episode-page="review" hidden>
+                  <h4>Episode Review &amp; Readiness</h4>
+                  <p>Validate the plan, check the original objective, and save an editable editorial draft. The 4.0 runtime is still being built, so this screen never starts a 3.x test.</p>
+                  <div id="episodeReadiness" class="episode-readiness" aria-live="polite"></div>
+                  <div class="episode-actions"><button type="button" id="episodeReviewSave" class="button primary">Save 4.0 editorial draft</button></div>
+                  <p class="episode-hint">Status: internal editorial work. No SMS sent, couples assigned, or published episodes changed.</p>
+                </section>
+              </section>
             </div>
           </section>
-          <div class="notice"><strong>Legacy curriculum preview — version 1.0.</strong> The fixed-chapter and mastery controls below are retained for reference only; they are not the guided Jack &amp; Jill 2.0 experience.</div>
-          <article class="panel">
-            <div class="panel-top"><div><span class="eyebrow">CHRISTMAS TUG-OF-WAR · VERSION 1.0</span><h3 class="mini-title">Four measurable learning objectives</h3></div><span class="state-label ready">8 story milestones</span></div>
-            <div id="objectiveCards" class="objective-cards"></div>
-          </article>
-          <div class="studio-two-col wide-left">
-            <article class="panel no-top"><span class="eyebrow">MILESTONE INSPECTOR</span><label for="chapterSelector">Select one of eight milestones</label><select id="chapterSelector"></select><div id="chapterInspector" class="chapter-inspector"></div><h3 class="mini-title">Chapter guardrails</h3><div id="diveGuardrails" class="quiet-list"></div></article>
-            <article class="panel no-top"><span class="eyebrow">FIXED-CHOICE MASTERY SIMULATOR</span><h3 class="mini-title">Review Chapter 7</h3><p class="soft-text">Select the fictional choice a participant might make. Threefold scores the fixed choice against the versioned rubric; Sophia may explain, but cannot override the result.</p><label for="masteryChoice">Participant's independent choice</label><select id="masteryChoice"></select><button type="button" class="button primary" id="scoreMastery">Preview rubric result ↗</button><div id="masteryOutcome" class="persona-reply" role="status">Select a choice to inspect the learning outcome.</div></article>
-          </div>
-          <article class="panel"><span class="eyebrow">WHAT THE ENGINE MUST RECORD</span><div id="diveTracking" class="tag-cloud"></div></article>
         </section>
 
         <section data-studio-page="customers" class="studio-page customer-page" hidden>
