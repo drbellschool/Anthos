@@ -391,7 +391,7 @@ test("Alissa chooses wait-and-see and the shared story uses Jack's separate comm
   const choices=h.events[0].after.arc.beats[0].actions;
   assert.equal(choices.length,2);
   assert.ok(choices.some(a=>a.character==="Jill"&&/chooses to wait/.test(a.action)));
-  assert.ok(choices.some(a=>a.character==="Jack"&&/texts Jill/.test(a.action)));
+  assert.ok(choices.some(a=>a.character==="Jack"&&/ask Jill/.test(a.action)));
   assert.equal(jill.messages.some(m=>m.author==="coach"&&/go make a plan/.test(m.body)),false,
     "Alissa does not receive Adam's private coaching transcript");
   assert.equal(jill.shared.length,1);
