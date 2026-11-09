@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -105,4 +105,22 @@ test("explicit conversational authorization triggers action without a second but
   assert.equal(explicitGoAhead(msg),true,msg);
  for(const msg of ["What are the choices?","That might work.","I think it could be fun.","Maybe a compromise?","I'm not sure yet.","Jill should try it if she wants.","Yes, I see your point."])
   assert.equal(explicitGoAhead(msg),false,msg);
+});
+
+test("November 9 natural text exchange advances when Jill says Sounds good",()=>{
+ const prior="Okay, here's the plan: I'll casually ask Jack about his backup if the wind storms out all stubborn.";
+ const now="Alright, I’m going to casually ask Jack about his backup plan.";
+ assert.equal(briefApproval("Sounds good."),true);
+ assert.match(ownCharacterIntent("jill",prior),/^Jill plans to ask Jack/);
+ assert.match(ownCharacterIntent("jill",now),/^Jill plans to ask Jack/);
+ assert.equal(asksForAction("What are you planning on doing then?"),true);
+ assert.match(ownCharacterIntent("jack","Man, I'm gonna ask Jill how she feels about postponing the hike or maybe doing a short stroll after the wind dies down."),/^Jack plans to ask Jill/);
+ assert.equal(briefApproval("Sounds like it."),true);
+ assert.equal(briefApproval("Maybe, but I'm uncertain."),false);
+ assert.equal(asksForAction("What time does the rain stop?"),false);
+});
+test("opening private characters directly text their named recipient",()=>{
+ const sample={title:"One of Us Loves Mountains"};
+ assert.match(seededIntroduction("jack",sample,"Adam"),/^Adam,/);
+ assert.match(seededIntroduction("jill",sample,"Alissa"),/^Alissa,/);
 });
