@@ -1,4 +1,4 @@
-import {status,join,advance,coach} from "./jj4-core.mjs";
+import {status,join,advance,coach,sophia} from "./jj4-core.mjs";
 const HEADERS={"Content-Type":"application/json; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(value,statusCode=200)=>new Response(JSON.stringify(value),{status:statusCode,headers:HEADERS});
 export default {async fetch(request){
@@ -18,6 +18,7 @@ export default {async fetch(request){
    case "join":return json(await join(token,body.name));
    case "advance":return json(await advance(token));
    case "coach":return json(await coach(token,body.message,body.requestKey));
+   case "closure":return json(await sophia(token));
    default:return json({error:"Unknown pilot action."},400);
   }
  }catch(e){return json({error:String(e?.message||"The private pilot is temporarily unavailable.").slice(0,220)},e?.status||500)}
