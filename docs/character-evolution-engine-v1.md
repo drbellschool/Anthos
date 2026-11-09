@@ -29,6 +29,20 @@ The six numerical signals (`connection`, `agency`, `trust`, `energy`, `friction`
 7. One SQL transaction publishes the shared consequence, advances the room, writes the new state, and appends an immutable evolution event.
 8. Each character's next private message receives the updated fictional context for **that character** and observable shared events; the initial personality remains only a baseline.
 
+## Shared guided adventure 3.3 — characters act, friends matter
+
+**Default for newly created shared 3.3 Deep Dives:** a five-beat episode with three meaningful real-human steering points and two autonomous interludes. The game-night 3.2 full-autoplay pilot showed the design failure: it continued from the second beat to the ending without the couple. That version remains preserved as a diagnostic, not as the future default.
+
+- **Beat 1, kickoff:** Jack texts his friend; Jill texts hers about different, concrete stakes. Each real participant sends one piece of advice, recorded privately. No automatic thank-you text, another approval button, or extra confirmation.
+- **Beat 2, consequence/interlude:** both characters act on the shared canon and evolve without another human intervention.
+- **Beat 3, genuine turning point:** the next scene presents a consequential new relational decision (not a trivial prop-cleanup chore). Both friends can influence the choices again, separately, exactly once. The story pauses; it must NOT race ahead while waiting.
+- **Beat 4, autonomous follow-through:** Jack and Jill independently carry out the consequences and encounter a real next situation.
+- **Beat 5, final human influence:** each friend helps with the final meaningful decision. The scene resolves and produces the shared Sophia closure without opening another conflict.
+
+These are decision checkpoints, not scripted chapters, approval quizzes or extra chat loops. Every prompt must lead to character-owned observable action, then the storyteller publishes a consequence automatically. A friend may explicitly choose nonintervention. No information from one private coaching conversation is exposed to the other.
+
+The SQL guidance mode `guided` and engine version `3.3.0` are pinned to the room. Service-only RPCs accept human advice ONLY at beats 1,3,5 and automatic character decisions ONLY at beats 2,4. Older rooms remain under their original rules, and a completed 3.2 episode is not quietly rewound or altered. The browser presents the composer only when that friend's advice can alter the plot; at interludes it automatically checks for the next scene.
+
 ## Shared autoplay — one steer, then lived consequences
 
 In shared 3.2 rooms created with `autoplay=true`, each real participant gives ONE private piece of advice during the opening scene. The engine extracts one observable character-owned action from each message and stores those actions without sending filler acknowledgement texts. It waits for the two separate private decisions, then publishes their combined fictional outcome.
