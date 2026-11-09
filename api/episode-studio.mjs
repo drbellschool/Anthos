@@ -49,13 +49,13 @@ const clean=(v,max)=>typeof v==="string"?v.trim().slice(0,max):"";
 export const defaultCheckpoints=()=>CHECKPOINT_AFTER.map(afterPhase=>({
  afterPhase,audience:"none",purpose:"",humorCue:"",waitForReply:false
 }));
-function normalizeCheckpoints(input,mode){
+function normalizeCheckpoints(input,mode,soloCoach="jack"){
  const entries=Array.isArray(input)?input:[];
  return CHECKPOINT_AFTER.map(afterPhase=>{
   const found=entries.find(p=>p&&p.afterPhase===afterPhase)||{};
   let audience=ALLOWED_AUDIENCES.has(found.audience)?found.audience:"none";
   // A solo Deep Dive has one coach; it cannot require two private replies.
-  if(mode==="individual"&&audience==="both")audience="none";
+  if(mode==="individual"&&audience!==soloCoach)audience="none";
   return {afterPhase,audience,purpose:clean(found.purpose,600),
     humorCue:clean(found.humorCue,700),
     waitForReply:audience!=="none"&&found.waitForReply===true};
@@ -63,7 +63,7 @@ function normalizeCheckpoints(input,mode){
 }
 export function defaultStudio(scenario){
  return {title:scenario.title||"",premise:scenario.opening_scene||"",
-  learningObjective:scenario.learning_objective||"",primarySkill:"",
+  learningObjective:scenario.learning_objective||"",primarySkill:"",soloCoach:"jack",
   supportingSkills:[],jackMotivation:"",jillMotivation:"",boundaries:"",
   tone:"Grounded, warm and playful; let character flaws create the comedy. Avoid cheesy AI jokes.",
   humorNotes:"",runningGags:"",researchNotes:"",closureCriteria:"",
@@ -76,10 +76,11 @@ export function normalizeStudio(input,scenario){
  const out={...defaults};
  for(const [field,max] of Object.entries(FIELDS))out[field]=clean(value[field]??defaults[field],max);
  out.primarySkill=ID_SET.has(value.primarySkill)?value.primarySkill:"";
+ out.soloCoach=value.soloCoach==="jill"?"jill":"jack";
  out.supportingSkills=Array.isArray(value.supportingSkills)?
   [...new Set(value.supportingSkills.filter(v=>ID_SET.has(v)&&v!==out.primarySkill))].slice(0,2):[];
  out.phases=Object.fromEntries(PHASES.map(p=>[p.id,clean(value.phases?.[p.id],850)]));
- out.checkpoints=normalizeCheckpoints(value.checkpoints,scenario.mode);
+ out.checkpoints=normalizeCheckpoints(value.checkpoints,scenario.mode,out.soloCoach);
  return out;
 }
 export async function readEpisodeStudio(id){
@@ -110,8 +111,9 @@ export async function saveEpisodeStudio(body){
      typeof p.humorCue!=="string"||p.humorCue.length>700||
      typeof p.waitForReply!=="boolean"))
     bad("Review all five optional intervention points.");
- if(scenario.mode==="individual"&&input.checkpoints.some(p=>p.audience==="both"))
-    bad("Individual episodes cannot request both coaches at one intervention.");
+ if(!["jack","jill"].includes(input.soloCoach))bad("Select one solo coach role.");
+ if(scenario.mode==="individual"&&input.checkpoints.some(p=>p.audience!=="none"&&p.audience!==input.soloCoach))
+    bad("Individual episodes can text only their assigned private coach.");
  if(input.primarySkill&&!ID_SET.has(input.primarySkill))bad("Choose a valid primary objective.");
  if(!Array.isArray(input.supportingSkills)||input.supportingSkills.length>2||
   input.supportingSkills.some(s=>!ID_SET.has(s)||s===input.primarySkill))bad("Choose at most two distinct supporting objectives.");
@@ -125,6 +127,7 @@ const schema={
  type:"object",additionalProperties:false,properties:{
   title:{type:"string"},premise:{type:"string"},learningObjective:{type:"string"},
   primarySkill:{type:"string",enum:SKILLS.map(s=>s.id)},
+  soloCoach:{type:"string",enum:["jack","jill"]},
   supportingSkills:{type:"array",items:{type:"string",enum:SKILLS.map(s=>s.id)}},
   jackMotivation:{type:"string"},jillMotivation:{type:"string"},
   boundaries:{type:"string"},tone:{type:"string"},humorNotes:{type:"string"},
@@ -139,7 +142,7 @@ const schema={
     audience:{type:"string",enum:CHECKPOINT_AUDIENCES},
     purpose:{type:"string"},humorCue:{type:"string"},waitForReply:{type:"boolean"}
    },required:["afterPhase","audience","purpose","humorCue","waitForReply"]}}
- },required:[...Object.keys(FIELDS),"primarySkill","supportingSkills","phases","checkpoints"]
+ },required:[...Object.keys(FIELDS),"primarySkill","supportingSkills","phases","checkpoints","soloCoach"]
 };
 export async function generateEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
@@ -153,7 +156,7 @@ export async function generateEpisodeStudio(body){
   "The five OPTIONAL checkpoint slots occur AFTER the first five phases, before the next phase. Return exactly five checkpoint objects in hook/conflict/discovery/reattempt/outcome order.",
   "For each checkpoint, choose audience none, jack (Jack privately texts the husband), jill (Jill privately texts the wife), or both (two separate private messages). Both never means a shared/group conversation.",
   "A checkpoint is a turning point where advice can meaningfully alter the next scene, not a mechanical phase announcement or a learning quiz.",
-  "Choose only about 2–3 real check-ins; set remaining audience to none. Vary recipients when justified (Jack-only, Both, Jill-only are possible). In individual mode, never choose both.",
+  "Choose only about 2–3 real check-ins; set remaining audience to none. Vary recipients when justified (Jack-only, Both, Jill-only are possible). In individual mode, choose a soloCoach and use only that recipient; never choose both or switch to the other coach.",
   "Set waitForReply true only if a character genuinely needs an active decision; false means the director can continue autonomously.",
   "Give every active check-in a brief concrete purpose. The humorCue is optional character-driven situational comedy that might naturally occur between phases, never a fixed SMS punchline.",
 
