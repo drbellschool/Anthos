@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -142,4 +142,15 @@ test("Jill's text to Alissa never assigns Jill's weekend emotions to Alissa",()=
  assert.match(prompt.instructions,/YOU \(speaker\) are Jill/);
  assert.match(prompt.instructions,/YOUR FRIEND \(recipient\) is Alissa/);
  assert.match(prompt.instructions,/NON-INTERVENTION IS A DECISION/);
+});
+
+test("Adam-style direct advice makes a concrete but tentative Jack plan actionable",()=>{
+ const advice="Honestly, your plans are gone. It's dwindling down to nothing. Just focus on making her happy this weekend.";
+ const reply="Yeah, feels like the mountain's off the table. Maybe I'll surprise her with breakfast in bed or something low-key she loves.";
+ assert.equal(directsCharacterToAct(advice),true);
+ assert.equal(consideredCharacterPlan("jack",reply),"Jack plans to surprise Jill with breakfast in bed.");
+ for(const text of ["What should I do?","Maybe focus on her needs?","Could he plan something?","Don't make a plan yet."]){
+  assert.equal(directsCharacterToAct(text),false,text);
+ }
+ assert.equal(consideredCharacterPlan("jill","I might feel tired tomorrow."),"");
 });
