@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/admin/customers.css">
 <link rel="stylesheet" href="/admin/jj2-manager.css">
 <link rel="stylesheet" href="/admin/episode-studio.css">
+<link rel="stylesheet" href="/pilot-v4/player.css">
 <script src="/content.js" defer></script>
 <script src="/admin/studio-blueprint.js" defer></script>
 <script src="/admin/admin.js" defer></script>
@@ -16,6 +17,7 @@
 <script src="/admin/couples.js" defer></script>
 <script src="/admin/progress.js" defer></script>
 <script src="/admin/jj2-manager.js" defer></script>
+<script src="/pilot-v4/player.js" defer></script>
 <script src="/admin/episode-studio.js" defer></script>
 </head>
 <body>
@@ -178,6 +180,7 @@
                     <button type="button" id="episodeGenerate" class="button">✦ AI fill episode</button>
                     <button type="button" id="episodeValidate" class="button">Review</button>
                     <button type="button" id="episodeSave" class="button primary">✓ Save episode</button>
+                    <button type="button" id="episodeLaunchPilot" class="button" title="Create two private browser invitations for this saved episode">▶ Pilot this episode</button>
                   </div>
                 </header>
                 <p id="episodeNotice" class="episode-notice" role="status">Choose a scenario to begin.</p>
@@ -268,6 +271,36 @@
                     </div>
                   </aside>
                 </div>
+                <section class="episode-pilot-lab" id="episodePilotBoard" hidden aria-label="Anthos 4.0 husband and wife pilot laboratory">
+                  <header class="episode-pilot-heading">
+                    <div><span class="eyebrow">VERSION 4.0 · BROWSER REHEARSAL</span>
+                      <h4>Test this episode with both coaches</h4>
+                      <p>Use the two conversations below or open the individual invitation links on separate devices. No real SMS is sent.</p>
+                    </div>
+                    <button type="button" id="episodePilotClose" class="button">Close test panels</button>
+                  </header>
+                  <p id="episodePilotStatus" class="episode-notice" role="status"></p>
+                  <details class="episode-pilot-plan">
+                    <summary>View the exact six-phase plan this pilot will follow</summary>
+                    <ol id="episodePilotPlan" class="episode-pilot-plan-list"></ol>
+                  </details>
+                  <div class="episode-pilot-links">
+                    <div class="episode-pilot-link">
+                      <strong>Husband · Jack's friend</strong>
+                      <a id="episodeHusbandLink" href="#" rel="noopener noreferrer" target="_blank">Open husband link</a>
+                      <button type="button" id="episodeCopyHusband" class="button">Copy link</button>
+                    </div>
+                    <div class="episode-pilot-link">
+                      <strong>Wife · Jill's friend</strong>
+                      <a id="episodeWifeLink" href="#" rel="noopener noreferrer" target="_blank">Open wife link</a>
+                      <button type="button" id="episodeCopyWife" class="button">Copy link</button>
+                    </div>
+                  </div>
+                  <div class="episode-pilot-players">
+                    <div id="episodeHusbandPlayer"></div>
+                    <div id="episodeWifePlayer"></div>
+                  </div>
+                </section>
               </section>
             </div>
           </section>
