@@ -80,10 +80,10 @@ test("characters sound human: flag instant moral-of-the-story responses for soft
 test("both Jack and Jill may propose an action from their own text without another command form",()=>{
  const jack="I don't know about the mountain anymore. I'll suggest the moderate hike ending at the lake like a gentle truce, and if she's not feeling it, I'll go alone.";
  assert.equal(actionFromCharacterWords("jack","Exactly, so just chill with her then.",jack),
-  "Jack will suggest the moderate hike ending at the lake like a gentle truce.");
+  "Jack plans to suggest the moderate hike ending at the lake like a gentle truce.");
  const jill="I hear you. I'll tell Jack I want time together, but I also need some peace and quiet.";
  assert.equal(actionFromCharacterWords("jill","Yeah, give that a try.",jill),
-  "Jill will tell Jack I want time together.");
+  "Jill plans to tell Jack I want time together.");
  assert.equal(actionFromCharacterWords("jill","What time is breakfast?",jill),"");
  assert.equal(actionFromCharacterWords("jack","No, Jill should agree to everything.",jack),"");
  assert.equal(actionFromCharacterWords("jack","Yes, go ahead.","I could maybe ask Jill one day."),"");
@@ -95,7 +95,7 @@ test("the actual November 8 pilot approvals advance both natural character propo
  const jillCoach="I think that will work and it’s worth the risk. Give it a try.";
  const jillReply="All right, I'll pitch the morning hike plus afternoon lakeside plan to Jack. Hopefully, he digs the compromise.";
  assert.equal(actionFromCharacterWords("jack",jackCoach,jackReply),"Jack plans to pitch a blend plan to Jill.");
- assert.equal(actionFromCharacterWords("jill",jillCoach,jillReply),"Jill will pitch the morning hike plus afternoon lakeside plan to Jack.");
+ assert.equal(actionFromCharacterWords("jill",jillCoach,jillReply),"Jill plans to pitch the morning hike plus afternoon lakeside plan to Jack.");
  assert.equal(actionFromCharacterWords("jack","What time is lunch?",jackReply),"");
  assert.equal(actionFromCharacterWords("jill","Jack should just go alone.",jillReply),"");
 });
