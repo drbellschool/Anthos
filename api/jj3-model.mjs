@@ -38,7 +38,7 @@ export function seededIntroduction(role,scenario,name=""){
  const title=(scenario?.title||"").toLowerCase();
  if(title.includes("mountain")){
   if(role==="jack")return (name?name+", ":"")+"Okay, buddy, I need a sanity check. I packed hiking boots for our romantic cabin weekend. Jill brought three novels and slippers. I promised we'd relax together, but when I look at that mountain ridge I feel like it personally challenged me to a duel. Here's the embarrassing part: I worry we've become so practical that I'm forgetting how to be adventurous with her. I don't want to bully her into a hike, but I also don't want to swallow what I want. What would you tell me to do?";
-  return "Can I confess something without being voted the world's least exciting wife? I really do love being with Jack. I just wanted one quiet weekend without somebody needing a plan from me. He's looking at those mountains like they sent him a personal invitation, and I'm afraid that if I say no he'll hear 'I don't want you.' I do. I just also want to read one chapter without needing hiking boots. What would you tell me?";
+  return (name?name+", ":"")+"Can I confess something without being voted the world's least exciting wife? I really do love being with Jack. I just wanted one quiet weekend without somebody needing a plan from me. He's looking at those mountains like they sent him a personal invitation, and I'm afraid that if I say no he'll hear 'I don't want you.' I do. I just also want to read one chapter without needing hiking boots. What would you tell me?";
  }
  const c=CHARACTER[role],intro=(scenario?.opening_scene||"Jack and Jill have different hopes for the same weekend").replace(/\s+/g," ").slice(0,210);
  return role==="jack"
