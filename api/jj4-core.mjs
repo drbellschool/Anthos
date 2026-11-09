@@ -115,29 +115,38 @@ async function directScene(room,phaseIndex){
  ]);
  const phase=PHASES4[phaseIndex];
  const storyDirection=room.episode.phases[phase];
+ if(!storyDirection||storyDirection.trim().length<30)
+  error("This phase has no saved Studio direction. Return to the Episode Studio before piloting.",409);
  const cp=checkpoint({...room,phase_index:phaseIndex});
  const cast=Object.fromEntries((people||[]).map(x=>[x.role,x.first_name||x.role]));
  const input={title:room.title,primaryObjective:room.episode.primarySkill,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
   premise:room.episode.premise,phase,phaseNumber:phaseIndex+1,
+  savedSixPhaseStoryboard:room.episode.phases,
   phaseStoryDirection:storyDirection,
   resolution:room.episode.closureCriteria,reflection:room.episode.reflectionPrompt,
   jackMotivation:room.episode.jackMotivation,jillMotivation:room.episode.jillMotivation,
   boundaries:room.episode.boundaries,voice:room.episode.tone,
+  lockedEditorialFields:room.episode.locks||[],
   personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
   checkpoint:cp,participants:cast,
   history:(history||[]).reverse().map(m=>({role:m.role,kind:m.kind,phase:PHASES4[m.phase_index],body:m.body}))};
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
-  "Produce exactly ONE fresh canonical scene, no scripts or staged dialogue lists. Describe concrete decisions and outcomes made by fictional Jack and Jill. Develop a vivid situation, 110-200 words, with witty grounded character-driven consequences.",
+  "The administrator-authored Six-Phase Story Flow is a FIXED episode plan. Each of the six phases has its own saved summary in savedSixPhaseStoryboard. DO NOT invent another premise, competing subplot, different problem, surprise twist, timeline reset, new objective or alternative outcome.",
+  "For this request, ONLY depict the particular saved phaseStoryDirection, building on the saved previous scenes and actual coaching. The exact phase summary is the next plot beat to enact, not a suggestion. Do not skip ahead to later phases, repeat earlier beats, or substitute an unrelated event.",
+  "Use established details and the planned phase to render exactly ONE canonical story progression, roughly 110-180 words. Characters may improvise dialogue and small realistic actions ONLY within the authored plot beat; show consequences that lead naturally toward the next saved phase.",
+  "Editor text marked lockedEditorialFields is canon and cannot be contradicted, overwritten, reframed, or replaced by model inventions. If coach advice clashes with established facts or the creator's boundaries, the character may consider that advice without rewriting the plan.",
+  "A new story complication is allowed only when it follows directly from the saved plot beat, established situation, or actual coach advice. It must not create a new central conflict. Keep the plot within the six planned phases.",
   "Keep absolute continuity with all prior scene history and the stored episode premise. Do not restart the story, change locations without explanation, or invent messages the real coaches never sent.",
   "Coaches are the husband counseling Jack privately and the wife counseling Jill privately. Privately supplied advice can change fictional actions, but never quote, attribute, expose, paraphrase verbatim, or disclose one coach's message to the other.",
   "Honor the educational objectives without repeatedly explaining psychological theory. The characters are believable people, not puppets and not therapists. Make every phase distinct; advance toward a complete consequence-based ending by phase six.",
-  "Honor the creator's authored humor, especially the relevant checkpoint humor cue. Avoid cheesy punchlines, compulsory jokes, and any pressure, coercion or humiliation around physical intimacy. Include mutual respect for individual boundaries.",
-  "The saved phase summary is authoritative direction, including creator-locked material. Do not override authored motivations, locked facts, or the research purpose.",
+  "Use only humor ideas the editor actually supplied, when appropriate to the saved phase or checkpoint. Do not invent an unrelated comic premise. Do not force a joke or turn awkward intimacy into pressure, coercion or humiliation; maintain mutual respect and boundaries.",
+  "At the end of this phase, follow exactly the checkpoint audience and purpose selected in the Studio. Do not ask for a reply if the checkpoint is disabled. Do not invent a third intervention or a different intended recipient.",
+  "The authored six-phase storyboard and its locked passages outrank creativity. Each saved stage is mandatory in exact order: Hook, Conflict, Discovery, Reattempt, Outcome, Reflection.",
   "If the current phase is Reflection, conclude the fictional episode with earned closure and a concise practical, optional real-life reflection. No new conflict or request for coaching.",
   "Return JSON: scene, jackPrompt, jillPrompt. Each prompt must be a short, natural, personal text from that character asking their private friend about ONE consequential decision at this checkpoint.",
-  "If checkpoint audience is none, or the story is complete, return empty strings for both prompts. If jack-only, Jill's prompt is empty, and vice versa. If both, create two distinctly personal private prompts, never a group message.",
+  "Checkpoint prompts must serve the exact saved checkpoint.purpose and should use checkpoint.humorCue only if it suits the moment. Do not invent a different lesson or decision. If checkpoint audience is none or current phase is Reflection, both prompts must be empty. If jack-only, Jill's prompt is empty, and vice versa. If both, create two distinctly personal private prompts, never a group message.",
   "If waitForReply is false, prompts may be scene observations and the story will continue without requiring an answer.",
   "Do not describe the coach's private messages in the canonical shared scene or the other private prompt.",
  ].join(" ");
