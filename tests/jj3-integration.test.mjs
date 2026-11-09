@@ -34,7 +34,7 @@ function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false
   if(u.hostname==="api.openai.com"){
    assert.equal(body.model,"gpt-6-luna","Deep Dive calls use GPT-6 Luna, not OPENAI_MODEL");
    assert.equal(body.reasoning?.effort,
-     ["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(body.text?.format?.name)?"high":"medium");
+     ["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(body.text?.format?.name)&&!(body.text?.format?.name==="jj_evolution_outcome"&&JSON.parse(body.input).autoplay)?"high":"medium");
    assert.equal(body.text?.format?.type,"json_schema");
    aiCalls++;
    const input=JSON.parse(body.input);
@@ -495,7 +495,9 @@ test("3.2 autoplay requires only one private answer each, then plays five conseq
   assert.equal(first.step,1,"Must wait for both humans only at the beginning");
   assert.equal(h.messages.filter(m=>m.kind==="reply").length,0,"Characters do not text back acknowledging the coaching");
   const second=await talk(tokens.jill,"I'd make your point and let the duck crash.",randomUUID());
-  assert.equal(second.step,2,"Both friends' first advice produces the next shared scene");
+  assert.equal(second.step,1,"Two private advice turns commit without blocking on a slow story call");
+  const firstScene=await progress(tokens.jack);
+  assert.equal(firstScene.step,2,"The first independently generated scene appears after both friends spoke");
   assert.equal(h.events.length,1);
   assert.equal(h.messages.filter(m=>m.kind==="coach").length,2,"One text from each human");
   assert.equal(h.messages.filter(m=>m.kind==="reply").length,0,"No extra private character chatter");
@@ -507,10 +509,14 @@ test("3.2 autoplay requires only one private answer each, then plays five conseq
   assert.equal(jackStart.messages.some(m=>/duck crash/.test(m.body)),false,
    "Jack's private screen does not contain Alissa's advice");
   for(let nextStep=3;nextStep<=5;nextStep++){
+   const decisions=await progress(tokens.jack);
+   assert.equal(decisions.step,nextStep-1,"Autonomous decisions are committed in a separate short request");
    const result=await progress(tokens.jack);
    assert.equal(result.step,nextStep,"Auto director must not stall at moment "+(nextStep-1));
    assert.equal(result.autoRetrying,false);
   }
+  const closingDecisions=await progress(tokens.jill);
+  assert.equal(closingDecisions.step,5);
   const final=await progress(tokens.jill);
   assert.equal(final.status,"complete");
   assert.equal(final.shared.length,5);
