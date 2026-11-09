@@ -1,6 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {deepDiveRequest} from "./jj-model-config.mjs";
+import {guidedRoom,guidedCheckpoint,guidedNeedsInput,autonomousInterlude} from "./jj-guided.mjs";
 import {COACH_MOVE_SCHEMA,AUTOPLAY_MOVES_SCHEMA,validMove,validPair,coachMovePrompt,autoplayMovesPrompt} from "./jj-autoplay.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,usesEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
 import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,actionableCoachAdvice,concreteCharacterMove,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
@@ -51,7 +52,7 @@ export async function createRoom(origin,scenarioId,soloRole="jack"){
   facts:[],tension:scenario.learning_objective,research:scenario.research_lenses||[],title:scenario.title};
  const created=await db(tables.rooms,{},{
   title:scenario.title,scenario_id:scenario.id,petal_slug:scenario.petal_slug,
-  mode:scenario.mode,scene:canon,engine_version:ENGINE_VERSION,autoplay:scenario.mode==="shared",
+  mode:scenario.mode,scene:canon,engine_version:ENGINE_VERSION,autoplay:scenario.mode==="shared",guidance_mode:scenario.mode==="shared"?"guided":"legacy",
   evolution_state:initialEvolution(scenario)
  },"POST");
  const room=created?.[0];if(!room?.id)problem("Could not create a fresh room.",502);
@@ -81,9 +82,10 @@ export async function status(token){
  const partnerSubmitted=r.mode==="individual"||others?.[0]?.submitted_step===r.step;
  return {ok:true,version:r.engine_version||VERSION,title:r.title,role:p.role,character:CHARACTER[p.role].firstName,
   mode:r.mode,step:r.step,totalSteps:5,status:r.status,scene:r.scene,consent,name:p.name||"",autoplay:!!r.autoplay,
+  guidanceMode:r.guidance_mode||"legacy",needsInput:guidedNeedsInput(r,p),
   messages:privateLog,shared,submitted:mine,otherSubmitted:!!partnerSubmitted,
   processing:!!r.processing_token,action:mine?"":p.pending_step===r.step?p.pending_action||"":"",
-  reflectionComplete:!!p.reflection,hasIntro:(!!r.autoplay&&r.step>1)||privateLog.some(m=>m.kind==="intro"&&m.step===r.step),
+  reflectionComplete:!!p.reflection,hasIntro:(!!r.autoplay&&r.step>1&&!guidedRoom(r))||privateLog.some(m=>m.kind==="intro"&&m.step===r.step),
   identity:CHARACTER[p.role].identity,
   learningHint:FOCUS[r.step-1]||[],info:"Browser-only private pilot. No SMS is sent."};
 }
@@ -168,9 +170,9 @@ export async function talk(token,text,requestKey){
  if(history.some(x=>x.request_key===requestKey))return status(token);
  // Autoplay's contract: ONE actual friend response to the opening, no
  // character acknowledgement, no follow-up requests for advice.
- if(r.autoplay&&r.engine_version==="3.2.0"&&r.mode==="shared"){
-  if(r.step!==1)return status(token);
-  const intro=[...history].reverse().find(x=>x.kind==="intro"&&x.step===1&&x.author==="character");
+ if(r.autoplay&&(r.engine_version==="3.2.0"||guidedRoom(r))&&r.mode==="shared"){
+  if(r.engine_version==="3.2.0"?r.step!==1:!guidedCheckpoint(r))return status(token);
+  const intro=[...history].reverse().find(x=>x.kind==="intro"&&x.step===r.step&&x.author==="character");
   const prompt=coachMovePrompt({role:p.role,coachMessage:clean,
    characterIntro:intro?.body||"",scene:r.scene});
   let action="";
@@ -435,7 +437,7 @@ export async function submit(token){
 async function autoplayRoom(room){
  const current=(await db(tables.rooms,{id:"eq."+room.id,select:"*"}))?.[0];
  if(!current||current.status!=="active")return;
- if(!current.autoplay||current.engine_version!=="3.2.0"||current.mode!=="shared"){
+ if(!current.autoplay||!(current.engine_version==="3.2.0"||guidedRoom(current))||current.mode!=="shared"){
   await resolveRoom(current);return;
  }
  const members=await db(tables.people,{room_id:"eq."+current.id,
@@ -444,9 +446,9 @@ async function autoplayRoom(room){
  if(members.every(m=>m.submitted_step===current.step&&m.submitted_action)){
   await resolveRoom(current);return;
  }
- // Step one belongs to the real friends; later steps belong to the
- // evolving fictional characters. Never expose anyone's private chat here.
- if(current.step===1||current.processing_token)return;
+ // Guided rooms wait at 1,3,5 for meaningful human steering;
+ // autonomous interludes are 2 and 4. Legacy 3.2 runs remain unchanged.
+ if(current.step===1||current.processing_token||guidedCheckpoint(current))return;
  if(members.some(m=>m.submitted_step===current.step))return;
  if(!validEvolution(current.evolution_state))throw new Error("Fictional story needs repair");
  const scenario=await scenarioFor(current);
