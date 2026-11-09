@@ -97,16 +97,11 @@
     window.AnthosCord?.mount(host,{colors:ropeColors,checkpoints,compact});
   }
   function createMonthUI(){
-    const labels=$("cordMonths"),rail=$("cordMonthRail");
-    if(!labels||!rail||labels.children.length)return;
+    // The circular month markers live in the same SVG as the restored original braid.
+    // The separate rail below remains interactive.
+    const rail=$("cordMonthRail");
+    if(!rail||rail.children.length)return;
     months.forEach((month,i)=>{
-      const degrees=(-90+i*30)*Math.PI/180;
-      const label=document.createElement("button");label.type="button";
-      label.className="yearly-month-dot";label.dataset.cordMonth=String(i);
-      label.style.left=(50+43.1*Math.cos(degrees))+"%";
-      label.style.top=(50+43.1*Math.sin(degrees))+"%";
-      label.textContent=month;label.setAttribute("aria-label","Preview through "+month);
-      labels.appendChild(label);
       const button=document.createElement("button");button.type="button";
       button.className="yearly-month-pill";button.dataset.cordMonth=String(i);
       button.innerHTML="<strong>"+month+"</strong><small>○</small>";
