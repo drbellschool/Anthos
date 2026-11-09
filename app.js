@@ -68,7 +68,8 @@
     return "M "+sx+" "+sy+" A "+radius+" "+radius+" 0 0 1 "+ex+" "+ey;
   }
 
-  // Browser-only colors until per-spouse login and shared progress are implemented.
+
+  // Restore the approved textured, continuous threefold rope. This is still a demo.
   const ROPE_KEY="anthos_rope_colors_v1";
   const defaultColors=["#b47b69","#648575","#c4a065"];
   const colorOK=x=>typeof x==="string"&&/^#[0-9a-f]{6}$/i.test(x);
@@ -76,59 +77,39 @@
     try{const v=JSON.parse(localStorage.getItem(ROPE_KEY)||"null");if(Array.isArray(v)&&v.length===3&&v.every(colorOK))return v;}catch{}
     return defaultColors.slice();
   })();
-  function ropePath(a,b,k){
-    let d="";
-    for(let z=0;z<=8;z++){
-      const angle=(a+(b-a)*z/8)*Math.PI/180;
-      const r=173+7.8*Math.sin((angle+Math.PI/2)*18+k*Math.PI*2/3);
-      d+=(z?"L":"M")+(210+r*Math.cos(angle)).toFixed(2)+" "+(210+r*Math.sin(angle)).toFixed(2)+" ";
-    }
-    return d;
-  }
-  function flowerSvg(){
-    const p=progress();
-    const petalTypes=[...state.whispers.map(()=>"whisper"),...state.datesCompleted.map(()=>"date")].slice(0,12);
-    let svg='<defs><filter id="cord-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#6c5c43" flood-opacity=".18"/></filter></defs>';
-    svg+='<circle cx="210" cy="210" r="191" stroke="#e8dfd2" fill="none"/>';
-    svg+='<circle cx="210" cy="210" r="150" stroke="#e4dbcf" fill="none" stroke-dasharray="1 8"/>';
-    for(let i=0;i<12;i++){
-      const active=petalTypes[i],fill=active?(active==="whisper"?"#b99266":"#b7807c"):"#e9e2d7";
-      svg+='<g transform="rotate('+(i*30)+' 210 210)"><path d="M210 145 C190 132 191 107 210 85 C229 107 230 132 210 145Z" fill="'+fill+'" stroke="#fffaf3" stroke-width="1.7"/><path d="M210 136 Q210 109 210 99" fill="none" stroke="#fff8ee" opacity=".8"/></g>';
-    }
-    const pieces=72,completed=Math.round(p.crossings/8*pieces);
-    for(let i=0;i<pieces;i++){
-      const a=-90+i*5-.4,b=a+5.8,active=i<completed;
-      const order=[i%3,(i+1)%3,(i+2)%3];
-      for(const k of order){
-        const d=ropePath(a,b,k);
-        const atTip=active&&i>=completed-3;
-        const tipScale=atTip?.45+.55*(completed-i)/3:1;
-        const width=(active?10.8*tipScale:10.2).toFixed(2);
-        svg+='<path d="'+d+'" fill="none" stroke="#fffcf7" stroke-width="'+(Number(width)+3.4)+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?1:.55)+'"/>';
-        svg+='<path d="'+d+'" fill="none" stroke="'+ropeColors[k]+'" stroke-width="'+width+'" stroke-linecap="round" stroke-linejoin="round" opacity="'+(active?(atTip?.7:1):.50)+'" filter="url(#cord-shadow)"/>';
-        svg+='<path d="'+d+'" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="'+(active?.25:.14)+'"/>';
-      }
-    }
-    svg+='<circle cx="210" cy="210" r="60" fill="#fffcf6" stroke="#e7d8c7" stroke-width="1.6"/>';
-    svg+='<circle cx="210" cy="210" r="54" fill="none" stroke="#e2d6c7" stroke-dasharray="1 5"/>';
-    svg+='<text x="210" y="207" text-anchor="middle" font-family="Georgia,serif" fill="#344d3e" font-size="29" letter-spacing="-1.4">anthos</text>';
-    svg+='<text x="210" y="228" text-anchor="middle" font-family="Arial,sans-serif" fill="#9b7d55" font-size="7.4" letter-spacing="1.6">OUR THREEFOLD STORY</text>';
-    svg+='<text x="210" y="245" text-anchor="middle" font-family="Arial,sans-serif" fill="#858a7d" font-size="9">'+p.crossings+' OF 8 CROSSINGS</text>';
-    return '<svg viewBox="0 0 420 420" role="img" aria-label="Interwoven threefold cord, '+p.crossings+' of eight crossings completed, '+p.petals+' petals opened" xmlns="http://www.w3.org/2000/svg">'+svg+'</svg>';
-  }
   function progress(){return {petals:Math.min(12,state.whispers.length+state.datesCompleted.length),crossings:state.diveCompleted};}
+  function pushCordFrame(frame){
+    try{frame.contentWindow?.postMessage({type:"anthos-cord-update",colors:ropeColors,checkpoints:state.diveCompleted},location.origin);}catch{}
+  }
+  function mountCord(host){
+    if(!host)return;
+    let frame=host.querySelector("iframe.authentic-cord");
+    if(!frame){
+      frame=document.createElement("iframe");frame.className="authentic-cord";
+      frame.src="/experience/cord-visual.html";
+      frame.title="Original circular three-strand interwoven rope";
+      frame.setAttribute("loading","eager");
+      frame.addEventListener("load",()=>pushCordFrame(frame));
+      host.replaceChildren(frame);
+    }
+    pushCordFrame(frame);
+  }
+  window.addEventListener("message",event=>{
+    if(event.origin!==location.origin||event.data?.type!=="anthos-cord-ready")return;
+    document.querySelectorAll("iframe.authentic-cord").forEach(frame=>{
+      if(frame.contentWindow===event.source)pushCordFrame(frame);
+    });
+  });
   function refreshCounters(){renderHome();renderJourney();}
   function renderHome(){
-    const p=progress();
-    $("homeArt").innerHTML=flowerSvg();
+    const p=progress();mountCord($("homeArt"));
     $("homePetalCount").textContent=p.petals+" / 12";
-    $("homeBraidCount").textContent=p.crossings+" / 8";
+    $("homeBraidCount").textContent=p.crossings+" / 96";
   }
   function renderJourney(){
-    const p=progress();
-    $("journeyArt").innerHTML=flowerSvg();
+    const p=progress();mountCord($("journeyArt"));
     $("journeyPetals").textContent=p.petals+" / 12";
-    $("journeyBraid").textContent=p.crossings+" / 8";
+    $("journeyBraid").textContent=p.crossings+" / 96";
     $("journeyWhispers").textContent=state.whispers.length;
     $("journeyDates").textContent=state.datesCompleted.length;
   }

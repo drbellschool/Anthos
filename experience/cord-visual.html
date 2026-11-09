@@ -1,0 +1,72 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anthos — Threefold Cord</title>
+<style>html,body{width:100%;height:100%;margin:0;background:transparent;overflow:hidden}body{display:grid;place-items:center}svg{display:block;width:min(100%,510px);max-height:100%;height:100%}</style></head><body>
+<svg id="cord" viewBox="0 0 560 560" role="img" aria-labelledby="cordTitle cordDesc" xmlns="http://www.w3.org/2000/svg">
+<title id="cordTitle">Original three-strand textured interwoven circular rope</title>
+<desc id="cordDesc">Authentic over-under braided strands form a continuous circle. The advancing tip feathers softly.</desc>
+<defs>
+<mask id="reveal"><circle id="revealCircle" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1206.372"/><g id="featheredTip"></g></mask>
+<linearGradient id="centerGold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d2ad70"/><stop offset=".5" stop-color="#9e7948"/><stop offset="1" stop-color="#d9bb84"/></linearGradient>
+</defs>
+<circle cx="280" cy="280" r="192" fill="none" stroke="#a58e76" stroke-width="42" opacity=".095"/>
+<g id="ropeBase" opacity=".47"><image id="ropeFaded" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet"/></g>
+<g id="ropeColored" mask="url(#reveal)"><image id="ropePhoto" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet"/></g>
+<g pointer-events="none">
+<text x="280" y="246" text-anchor="middle" fill="#987854" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="3">THE YEARLY CORD</text>
+<text id="percentText" x="280" y="313" text-anchor="middle" fill="#672932" font-family="Georgia,serif" font-size="70">0%</text>
+<text id="countText" x="280" y="347" text-anchor="middle" fill="#8c7268" font-family="system-ui,sans-serif" font-size="13">0 OF 96 CHECKPOINTS</text>
+<path d="M 243 366 H 317" fill="none" stroke="url(#centerGold)" stroke-width="1.2"/><path d="M 274 366 q 6 -10 12 0 q -6 10 -12 0" fill="none" stroke="#b38b55" stroke-width="1.4"/>
+<text id="yearText" x="280" y="394" text-anchor="middle" fill="#886b5f" font-family="Georgia,serif" font-style="italic" font-size="15">YEAR ONE</text>
+</g></svg>
+<script>
+(()=>{'use strict';
+const SVG="http://www.w3.org/2000/svg",R=192,L=2*Math.PI*R,$=id=>document.getElementById(id);
+let colors=["#b47b69","#648575","#c4a065"],checkpoints=0,pixels=null,w=0,h=0;
+const out=document.createElement("canvas"),rgb=v=>[1,3,5].map(i=>parseInt(v.slice(i,i+2),16));
+function recolor(neutral){
+if(!pixels)return;
+const ctx=out.getContext("2d",{willReadFrequently:true}),img=ctx.createImageData(w,h),dst=img.data;
+const palettes=(neutral?["#b5a28c","#b5a28c","#b5a28c"]:colors).map(rgb),baselines=[225,195,183];
+for(let i=0;i<dst.length;i+=4){
+const alpha=pixels[i+3];if(alpha<1){dst[i+3]=0;continue;}
+const v=pixels[i],k=v<113?0:v<188?1:2,light=Math.max(.35,Math.min(1.43,pixels[i+1]/baselines[k])),glint=Math.max(0,(145-pixels[i+2])/145)*.13;
+for(let c=0;c<3;c++)dst[i+c]=Math.max(0,Math.min(255,Math.round(palettes[k][c]*light*(1-glint)+255*glint)));
+dst[i+3]=alpha;
+}
+ctx.putImageData(img,0,0);
+$(neutral?"ropeFaded":"ropePhoto").setAttribute("href",out.toDataURL("image/png"));
+}
+function progress(v){
+checkpoints=Math.min(96,Math.max(0,Math.round(Number(v)||0)));
+const length=L*checkpoints/96,tail=checkpoints>=96?0:Math.min(18,length),solid=Math.max(0,length-tail);
+$("revealCircle").setAttribute("stroke-dasharray",solid.toFixed(3)+" "+(L+1).toFixed(3));
+const tip=$("featheredTip");tip.replaceChildren();
+if(tail>0)for(let j=0;j<10;j++){
+const el=document.createElementNS(SVG,"circle");el.setAttribute("cx","280");el.setAttribute("cy","280");el.setAttribute("r",String(R));
+el.setAttribute("fill","none");el.setAttribute("stroke","white");el.setAttribute("stroke-width","76");el.setAttribute("transform","rotate(-90 280 280)");
+el.setAttribute("stroke-dasharray",(tail/10+.25).toFixed(3)+" "+(L+1).toFixed(3));el.setAttribute("stroke-dashoffset",(-solid-j*tail/10).toFixed(3));
+el.setAttribute("opacity",(1-Math.pow((j+1)/10,1.65)).toFixed(3));tip.appendChild(el);
+}
+$("percentText").textContent=Math.round(checkpoints/96*100)+"%";
+$("countText").textContent=checkpoints+" OF 96 CHECKPOINTS";
+}
+window.addEventListener("message",e=>{
+if(e.origin!==location.origin||e.data?.type!=="anthos-cord-update")return;
+if(Array.isArray(e.data.colors)&&e.data.colors.length===3&&e.data.colors.every(c=>/^#[0-9a-f]{6}$/i.test(c))){
+const changed=colors.some((v,i)=>v.toLowerCase()!==e.data.colors[i].toLowerCase());colors=e.data.colors.slice();
+if(changed)recolor(false);
+}
+progress(e.data.checkpoints);
+});
+const img=new Image();
+img.onload=()=>{
+w=img.naturalWidth;h=img.naturalHeight;
+const take=document.createElement("canvas");take.width=w;take.height=h;
+const ctx=take.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0);pixels=ctx.getImageData(0,0,w,h).data;
+out.width=w;out.height=h;recolor(true);recolor(false);progress(checkpoints);
+window.parent.postMessage({type:"anthos-cord-ready"},location.origin);
+};
+img.src="./rope-texture.png";
+progress(0);window.parent.postMessage({type:"anthos-cord-ready"},location.origin);
+})();
+</script></body></html>
