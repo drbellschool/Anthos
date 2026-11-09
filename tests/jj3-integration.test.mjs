@@ -374,3 +374,40 @@ test("3.1 Jill texting Alissa can say Sounds good after Jill's own proposed plan
   assert.equal(h.room.step,1,"The shared story waits for Jack's independent action");
  }finally{h.restore()}
 });
+
+test("Alissa chooses wait-and-see and the shared story uses Jack's separate committed plan",async()=>{
+ const h=harness("shared",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  const jack=await talk(tokens.jack,"So go make a plan and see if it works out.",randomUUID());
+  assert.equal(jack.submitted,true,"Jack carries out Adam's explicit advice");
+  assert.equal(h.room.step,1,"The storyteller waits for Jill's separate decision");
+  const before=h.aiCalls;
+  const jill=await talk(tokens.jill,"Wait and see how it turns out.",randomUUID());
+  assert.equal(h.aiCalls,before+1,"One story AI call, not a new round of Jill second-guessing Alissa");
+  assert.equal(h.room.step,2,"Alissa's watchful nonintervention lets the shared event happen");
+  assert.equal(h.events.length,1);
+  const choices=h.events[0].after.arc.beats[0].actions;
+  assert.equal(choices.length,2);
+  assert.ok(choices.some(a=>a.character==="Jill"&&/chooses to wait/.test(a.action)));
+  assert.ok(choices.some(a=>a.character==="Jack"&&/texts Jill/.test(a.action)));
+  assert.equal(jill.messages.some(m=>m.author==="coach"&&/go make a plan/.test(m.body)),false,
+    "Alissa does not receive Adam's private coaching transcript");
+  assert.equal(jill.shared.length,1);
+  assert.equal(h.messages.filter(m=>m.kind==="outcome").length,1);
+ }finally{h.restore()}
+});
+test("a nonintervention choice can arrive before the other character acts",async()=>{
+ const h=harness("shared",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  await begin(tokens.jack);await begin(tokens.jill);
+  const first=await talk(tokens.jill,"Wait and see how it turns out.",randomUUID());
+  assert.equal(first.submitted,true);
+  assert.equal(h.room.step,1);
+  const second=await talk(tokens.jack,"Go ahead and make the plan.",randomUUID());
+  assert.equal(second.step,2);
+  assert.equal(h.events.length,1);
+ }finally{h.restore()}
+});
