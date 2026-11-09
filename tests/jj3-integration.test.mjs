@@ -74,6 +74,7 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
       impacts:{jack:effect("jack"),jill:effect("jill")}};
    };
    const authorized=/go make a plan|give it a try/i.test(input.latest||"");
+   const uncertainWeather=(input.latest||"").includes("What do you think about the wind?");
    const characterName=input.character||"Jack";
    const authorizedReply=characterName==="Jack"
     ?"Okay, I'm gonna ask Jill what kind of weekend she wants, then suggest a hike that works for both of us."
@@ -82,7 +83,9 @@ function harness(mode="shared",{invalidFirst=false,evolving=false}={}){
       {outcome:"Jack starts toward his mountain, and Jill heads for the reading terrace. Both have chosen independently, so their morning becomes funny and complicated. A ranger announces the ridge has closed while a festival starts on the lakeshore, setting up an unexpected reunion later in the day.",
        nextScene:"The ridge is closed by fog. The once-quiet reading terrace is now filled with festival musicians and someone dressed as an inflatable moose. Jack and Jill each need a fresh plan before lunchtime.",
        location:"Lakeside pavilion",tension:"Both original plans are disrupted",facts:["The ridge closed","The lake festival began"],researchNote:"Different needs can coexist."}
-    :{characterReply:authorized?authorizedReply:type==="jj3_intro"?"Buddy, that happened so fast. I'm worried Jill thinks I only care about hiking. I have a ridiculous plan, but I'm not sure I should say it out loud. Can you help me think through it?":
+    :{characterReply:uncertainWeather?
+       "I think I'll ask Jack what his backup plan is if the windstorm gets worse. I want to stay flexible, not just sit here worrying about it.":
+       authorized?authorizedReply:type==="jj3_intro"?"Buddy, that happened so fast. I'm worried Jill thinks I only care about hiking. I have a ridiculous plan, but I'm not sure I should say it out loud. Can you help me think through it?":
        /^(?:yes|yep|sure|go ahead|do that)/i.test(input.latest||"")?
        "Okay, I'm going to text Jill and ask whether she'd like a quiet evening together. I'm nervous I'll sound like I've been replaced by a suspiciously considerate stranger.":
        "Oh, that's a real suggestion in round "+aiCalls+". I want to try that, but I'm nervous I'll come off as selfish. Part of me wants adventure and part of me wants Jill to feel heard. I might even apologize to the inflatable moose if this gets any stranger.",
@@ -352,5 +355,22 @@ test("3.1 both conversational go-aheads advance a shared outcome with zero advan
   assert.equal(h.events.length,1,"Exactly one evolving story event is published");
   assert.equal(b.shared.length,1);
   assert.equal(h.people.every(p=>p.submitted_step===1),true);
+ }finally{h.restore()}
+});
+
+test("3.1 Jill texting Alissa can say Sounds good after Jill's own proposed plan; no stall",async()=>{
+ const h=harness("shared",{evolving:true});
+ try{
+  await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
+  const opening=await begin(tokens.jill);
+  assert.equal(opening.name,"Alissa");
+  assert.equal(opening.messages[0].role,"jill");
+  const first=await talk(tokens.jill,"What do you think about the wind?",randomUUID());
+  assert.equal(first.submitted,false,"Open-ended weather discussion must not commit a choice");
+  assert.equal(first.messages.at(-1).author,"character");
+  const accepted=await talk(tokens.jill,"Sounds good.",randomUUID());
+  assert.equal(accepted.submitted,true,"A friend approving Jill's concrete previous plan is sufficient");
+  assert.match(h.people.find(p=>p.role==="jill").submitted_action,/Jill plans to ask Jack/);
+  assert.equal(h.room.step,1,"The shared story waits for Jack's independent action");
  }finally{h.restore()}
 });
