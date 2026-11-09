@@ -69,7 +69,7 @@ begin
  phase_name := (array['hook','conflict','discovery','reattempt','outcome'])[p_phase+1];
  cp:=null;
  if p_phase<5 then
-  select element into cp from jsonb_array_elements(coalesce(r.episode->'checkpoints','[]'::jsonb)) element
+  select value into cp from jsonb_array_elements(coalesce(r.episode->'checkpoints','[]'::jsonb)) as e(value)
     where element->>'afterPhase'=phase_name limit 1;
  end if;
  aud:=coalesce(cp->>'audience','none');
@@ -97,7 +97,7 @@ begin
  select * into who from public.anthos_jj4_participants where id=p_participant and room_id=p_room for update;
  if not found or who.joined_at is null then return false; end if;
  phase_name:=(array['hook','conflict','discovery','reattempt','outcome'])[p_phase+1];
- select element into cp from jsonb_array_elements(coalesce(r.episode->'checkpoints','[]'::jsonb)) element
+ select value into cp from jsonb_array_elements(coalesce(r.episode->'checkpoints','[]'::jsonb)) as e(value)
  where element->>'afterPhase'=phase_name limit 1;
  aud:=coalesce(cp->>'audience','none');
  if (who.role='jack' and aud not in ('jack','both')) or
