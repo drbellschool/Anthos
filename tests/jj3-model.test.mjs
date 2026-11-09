@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -153,4 +153,17 @@ test("Adam-style direct advice makes a concrete but tentative Jack plan actionab
   assert.equal(directsCharacterToAct(text),false,text);
  }
  assert.equal(consideredCharacterPlan("jill","I might feel tired tomorrow."),"");
+});
+
+test("natural follow-through from the actual moment-four texts is a real choice",()=>{
+ const jack="Yeah, honestly, I am. The storm and washed-out road have taken the grand mountain plan off the board, but breakfast with Jill was lovely, and now we’re poking around for something fun we can do safely here. I’m less grumpy about the change than I expected.";
+ const jill="We started with cards, and I got just smug enough about winning to make the cabin feel lively again. Jack was laughing by the second round, so we’re going to make lunch together next and see how the afternoon feels.";
+ assert.equal(storyHandoff("I am glad to hear it man. Sounds like you're having a great weekend.",jack),true);
+ assert.equal(storyHandoff("Let me know how it turns out.",jill),true);
+ assert.equal(storyHandoff("Keep me posted.",jill),true);
+ assert.equal(storyHandoff("I am glad to hear it.", "I might make a plan someday, but I'm not sure."),false);
+ assert.equal(storyHandoff("I have a question about lunch.",jill),false);
+ assert.equal(storyHandoff("Don't let me know yet.",jill),false);
+ assert.equal(followThroughAction("jill",jill),"Jill follows through on the plan to make lunch together next and see how the afternoon feels.");
+ assert.match(followThroughAction("jack",jack),/Jack chooses to stay present/);
 });
