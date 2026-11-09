@@ -67,6 +67,12 @@ function render(s){
    const p=document.createElement("p");p.className="historyitem";p.textContent="Moment "+event.step+": "+event.body;history.append(p);
   }
  }
+ const closing=s.scene?.closure;
+ $("endingSection").hidden=!completed||!closing;
+ if(completed&&closing){
+  for(const id of ["jackChange","jillChange","relationshipTruth","sophiaInsight","takeawayInvitation"])
+   $(id).textContent=closing[id]||"";
+ }
  const log=$("chatLog");
  const wasNearBottom=log.scrollTop+log.clientHeight>=log.scrollHeight-100;
  log.replaceChildren();
@@ -82,6 +88,7 @@ function render(s){
   $("waitingText").textContent=s.otherSubmitted?"Both moves are in. The shared story is being written.":"Your friend has made their move. We're waiting for the other private coach; nobody sees your messages.";
  }
  $("reflectionPanel").hidden=!completed;
+ if(completed)$("moment").textContent="Adventure complete · The end";
  $("reflection").hidden=!!s.reflectionComplete;
  $("saveReflection").hidden=!!s.reflectionComplete;
  $("reflectionDone").hidden=!s.reflectionComplete;
