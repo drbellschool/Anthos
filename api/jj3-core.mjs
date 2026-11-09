@@ -1,8 +1,8 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {deepDiveRequest} from "./jj-model-config.mjs";
-import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {ENGINE_VERSION,initialEvolution,validEvolution,usesEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,EVOLUTION_FINAL_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,actionableCoachAdvice,concreteCharacterMove,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -103,7 +103,7 @@ async function model(instructions,input,schema,name="anthos_jj3"){
    const res=await fetch("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
     body:JSON.stringify(deepDiveRequest({instructions,input,schema,name,attempt})),
-    signal:AbortSignal.timeout(name==="jj_evolution_outcome"||name==="jj3_story_outcome"?(attempt?75000:65000):(attempt?55000:45000))
+    signal:AbortSignal.timeout(["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(name)?(attempt?75000:65000):(attempt?55000:45000))
    });
    if(!res.ok){last="provider";if(res.status===400||res.status===401||res.status===403||res.status===429)break;continue}
    const json=await res.json();
@@ -129,7 +129,7 @@ export async function begin(token){
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
    memory:p.private_memory,latest:r.step===5?"This is the FINAL decision of this Deep Dive. React as "+CHARACTER[p.role].firstName+" to the concrete current scene. Name one realistic action YOU could take now to resolve the immediate problem safely, and ask your friend for their honest view. Don\'t start a new subplot or repeat the opening fight. Once your choice plays out, the story ends.":"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
-   evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
+   evolution:usesEvolution(r.engine_version)?characterEvolutionContext(r.evolution_state,p.role):null});
   try{
    const result=await model(g.instructions+(r.step===5?" This is the FINAL moment. Do not leave your friend guessing what to do. Describe the specific immediate situation and an action you are seriously considering; end with one grounded question.":" This is a NEW CHARACTER INTRO; the coach has not spoken.")+" Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
    if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
@@ -210,7 +210,7 @@ export async function talk(token,text,requestKey){
  const oldAction=p.pending_step===r.step?p.pending_action||"":"";
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history,
    memory:p.private_memory,latest:clean,pending:oldAction,
-   evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
+   evolution:usesEvolution(r.engine_version)?characterEvolutionContext(r.evolution_state,p.role):null});
  let response=await model(guide.instructions,guide.input,RESPONSE_SCHEMA,"jj3_character_reply");
  if(!checkCharacterReply(response,history)||soundsTooPolished(response.characterReply)||confusesFriendWithCharacter(response.characterReply,p.role)){
   // Soft retry: a formulaic "you've convinced me" is just as immersion-breaking
@@ -241,18 +241,23 @@ export async function talk(token,text,requestKey){
  // plan the character just proposed, even if the new reply paraphrases it.
  const acceptedPrevious=briefApproval(clean)&&previousIntent;
  const directed=directsCharacterToAct(clean);
- const considered=directed?consideredCharacterPlan(p.role,response.characterReply):"";
+ const autonomous=r.engine_version==="3.2.0";
+ const clearlyAdvised=autonomous&&actionableCoachAdvice(clean);
+ const committedByCharacter=clearlyAdvised?concreteCharacterMove(p.role,response.characterReply):"";
+ const considered=(directed||clearlyAdvised)?consideredCharacterPlan(p.role,response.characterReply):"";
  const next=acceptedPrevious
    ||actionFromCoach(p.role,clean,response.action,response.evidence)
    ||actionFromCharacterAgreement(p.role,clean,response.characterReply,
      response.characterProposal,response.proposalEvidence)
    ||actionFromCharacterWords(p.role,clean,response.characterReply)
+   ||committedByCharacter
    ||considered
    ||oldAction;
  const shouldAct=!!next&&(
    (!!previousIntent&&briefApproval(clean))
    ||(!!currentIntent&&(explicitGoAhead(clean)||asksForAction(clean)||directed))
-   ||(!!considered&&directed)
+   ||(!!considered&&(directed||clearlyAdvised))
+   ||(autonomous&&!!committedByCharacter&&clearlyAdvised)
  );
  const milestones=Array.isArray(response.learningMilestones)?response.learningMilestones.filter(x=>MILESTONES.includes(x)).slice(0,3):[];
  const learning=p.learning_log&&typeof p.learning_log==="object"&&!Array.isArray(p.learning_log)?{...p.learning_log}:{};
@@ -304,7 +309,7 @@ async function resolveRoom(room){
  try{
   const scenario=await scenarioFor(current);
   const actions=members.map(p=>({character:p.role==="jack"?"Jack":"Jill",action:p.submitted_action}));
-  const evolving=current.engine_version===ENGINE_VERSION;
+  const evolving=usesEvolution(current.engine_version);
   if(evolving&&!validEvolution(current.evolution_state))
    problem("The story state needs repair before it can advance. No choices were lost.",502);
   const prompt=evolving
@@ -408,7 +413,7 @@ export async function reflect(token,reflection){
  const scenario=await scenarioFor(r);
  const guide=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:5,
   history:(await privateMessages(r,p.role)).slice(-8),memory:p.private_memory,latest:clean,pending:null,
-   evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
+   evolution:usesEvolution(r.engine_version)?characterEvolutionContext(r.evolution_state,p.role):null});
  let closing="";
  try{
   const response=await model(guide.instructions+" The adventure has FINISHED. No new move is possible; leave action, evidence, characterProposal and proposalEvidence empty. The coach is reflecting on a real-life relationship skill. Respond warmly as "+CHARACTER[p.role].firstName+" with a short personal farewell and one funny callback; no new fictional decision.",guide.input,RESPONSE_SCHEMA,"jj3_final_reflection");
