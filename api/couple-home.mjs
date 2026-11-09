@@ -1,6 +1,6 @@
 // Private Anthos home: verified Supabase email sessions and server-authorized customer data.
 // Signup records are NEVER linked by unverified email. No service-role key reaches the browser.
-const URL='https://kstluxwgrrgdbjyloscb.supabase.co';
+const SUPABASE_URL='https://kstluxwgrrgdbjyloscb.supabase.co';
 const PUB=process.env.SUPABASE_PUBLISHABLE_KEY||'sb_publishable_RXf72sppgteSeY-RYAU3dA_N4y69gNy';
 const SECRET=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
 const REDIRECT=process.env.ANTHOS_AUTH_REDIRECT_URL||'https://anthos.love/dashboard/';
@@ -11,7 +11,7 @@ function headers(res){res.setHeader('Cache-Control','private, no-store, max-age=
 function cookies(req){return Object.fromEntries(String(req.headers.cookie||'').split(';').map(v=>v.trim().split(/=(.*)/s).slice(0,2)));}
 function sessionCookies(res,data){const opt='Path=/; Secure; HttpOnly; SameSite=Lax';res.setHeader('Set-Cookie',[ACCESS+'='+encodeURIComponent(data.access_token)+'; '+opt+'; Max-Age='+Math.min(3600,Number(data.expires_in)||3600),REFRESH+'='+encodeURIComponent(data.refresh_token)+'; '+opt+'; Max-Age=2592000']);}
 function clear(res){res.setHeader('Set-Cookie',[ACCESS+'=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0',REFRESH+'=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0']);}
-async function auth(path,opts={}){const r=await fetch(URL+'/auth/v1/'+path,{...opts,headers:{apikey:PUB,'Content-Type':'application/json',...(opts.headers||{})},cache:'no-store',signal:AbortSignal.timeout(9000)});return {ok:r.ok,status:r.status,data:await r.json().catch(()=>({}))};}
+async function auth(path,opts={}){const r=await fetch(SUPABASE_URL+'/auth/v1/'+path,{...opts,headers:{apikey:PUB,'Content-Type':'application/json',...(opts.headers||{})},cache:'no-store',signal:AbortSignal.timeout(9000)});return {ok:r.ok,status:r.status,data:await r.json().catch(()=>({}))};}
 async function userFromCookie(req,res){
  const c=cookies(req),token=c[ACCESS]?decodeURIComponent(c[ACCESS]):'';
  if(token){const x=await auth('user',{headers:{Authorization:'Bearer '+token}});if(x.ok&&UUID.test(x.data.id||''))return x.data;}
@@ -21,7 +21,7 @@ async function userFromCookie(req,res){
 }
 async function select(table,columns,filters){
  if(!SECRET)return null;
- const u=new URL(URL+'/rest/v1/'+table);u.searchParams.set('select',columns);
+ const u=new URL(SUPABASE_URL+'/rest/v1/'+table);u.searchParams.set('select',columns);
  Object.entries(filters).forEach(([k,v])=>u.searchParams.set(k,v));
  const h={apikey:SECRET,Accept:'application/json'};
  if(!SECRET.startsWith('sb_secret_'))h.Authorization='Bearer '+SECRET;
