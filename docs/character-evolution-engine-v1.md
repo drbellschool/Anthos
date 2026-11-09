@@ -53,6 +53,20 @@ Passing deterministic and mocked API tests confirms structure, privacy boundarie
 
 Editorial approval of each of the 120 scenarios still belongs in the 12-Petal Manager. A theme is not automatically customer-ready merely because the engine works.
 
+
+## GPT-6 Luna Deep Dive inference configuration
+
+Both Jack's and Jill's private conversations, their step introductions, and the shared Character Evolution story director use **GPT-6 Luna** through the OpenAI Responses API with strict structured outputs. The model identifier is \`gpt-6-luna\`.
+
+- The Deep Dive-specific Vercel variable is \`ANTHOS_JJ_MODEL=gpt-6-luna\` in production and preview.
+- \`ANTHOS_JJ_MODEL\` takes precedence over the hardcoded Luna default; the legacy global \`OPENAI_MODEL\` no longer controls Jack & Jill. This prevents unrelated Anthos features from being changed incidentally.
+- Private character replies use \`reasoning.effort=none\` to prioritize responsive natural conversation; shared story/causal evolution outcomes use \`low\` to allow additional planning.
+- First-attempt structured output budgets are 2,100 tokens for individual replies and 3,900 for story outcomes; retries get 3,000 and 5,000 respectively. These are budgets, not fixed usage.
+- Preserve \`store:false\` and schema-constrained JSON outputs. The API key stays in a server-only environment variable.
+- Automated request-interception tests verify model identifier, reasoning effort, schema and token budgets. A green build does not prove live story quality or provider-side permissions; validate with the normal private pilot before customer launch.
+
+Official documentation: https://developers.openai.com/api/docs/models/gpt-6-luna
+
 ## Developer files
 
 - `api/jj-evolution.mjs`: pure versioned evolution engine and schema
