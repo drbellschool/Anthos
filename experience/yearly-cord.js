@@ -6,9 +6,6 @@
   "use strict";
   const NS = "http://www.w3.org/2000/svg";
   const R = 192;
-  // The mask must cover all braided fibers, including the outer edge at March–April.
-  // Keep the feathered progress tip aligned with this same full-width band.
-  const REVEAL_WIDTH = 132;
   const CIRCUMFERENCE = 2 * Math.PI * R;
   const DEFAULT = ["#df4051","#2c91d4","#21a66a"];
   const valid = v => typeof v === "string" && /^#[a-f0-9]{6}$/i.test(v);
@@ -33,62 +30,12 @@
         } catch (error) { reject(error); }
       };
       image.onerror = () => reject(new Error("Approved braid texture is unavailable"));
-      image.src = "/experience/rope-texture.png";
+      image.src = "/experience/rope-original-960.png";
     });
     return sourcePromise;
   }
   const rgb = hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
 
-  // The approved source image includes an unnaturally smooth outer alpha silhouette:
-  // the last few pixels of several braided strands were flattened in the asset itself.
-  // Stretch the actual fiber pixels along each radial spoke to restore an irregular
-  // edge instead of drawing fake vector braid segments or widening the progress mask.
-  function restoreStrandSilhouette(original) {
-    const w=original.width,h=original.height;
-    const padding=Math.max(20,Math.round(Math.min(w,h)*.043));
-    const restored=document.createElement("canvas");
-    restored.width=w+2*padding;restored.height=h+2*padding;
-    const context=restored.getContext("2d",{willReadFrequently:true});
-    if(!context)throw new Error("Canvas 2D unavailable");
-    context.drawImage(original,padding,padding);
-    const destImage=context.getImageData(0,0,restored.width,restored.height);
-    const source=original.getContext("2d",{willReadFrequently:true}).getImageData(0,0,w,h).data;
-    const dest=destImage.data,cx=w/2,cy=h/2;
-    const maxRadius=Math.floor(Math.min(w,h)*.5)-2;
-    const minRadius=Math.floor(Math.min(w,h)*.30);
-    // One or more samples per source pixel along the circumference avoids seams.
-    const steps=Math.ceil(2*Math.PI*maxRadius*1.8);
-    const innerBand=Math.max(12,Math.round(Math.min(w,h)*.034));
-    const amplitude=Math.max(7,Math.round(Math.min(w,h)*.022));
-    for(let k=0;k<steps;k++){
-      const angle=k*2*Math.PI/steps,c=Math.cos(angle),sn=Math.sin(angle);
-      let outer=-1;
-      for(let radius=maxRadius;radius>=minRadius;radius--){
-        const x=Math.round(cx+radius*c),y=Math.round(cy+radius*sn);
-        if(x<0||y<0||x>=w||y>=h)continue;
-        if(source[(y*w+x)*4+3]>175){outer=radius;break;}
-      }
-      if(outer<0)continue;
-      // The three smoothly phase-shifted oscillations recreate the tiny natural
-      // bulges at successive over-under strand crossings, rather than a hard arc.
-      const wave=.52+.29*Math.sin(angle*30+.8)+.19*Math.sin(angle*55-1.1);
-      const extension=Math.max(2,Math.min(amplitude,Math.round(amplitude*wave)));
-      const from=outer-innerBand;
-      for(let d=-innerBand;d<=extension;d+=.70){
-        const srcRadius=from+(d+innerBand)*innerBand/(innerBand+extension);
-        const sx=Math.round(cx+srcRadius*c),sy=Math.round(cy+srcRadius*sn);
-        const tx=Math.round(padding+cx+(outer+d)*c),ty=Math.round(padding+cy+(outer+d)*sn);
-        if(sx<0||sy<0||sx>=w||sy>=h||tx<0||ty<0||tx>=restored.width||ty>=restored.height)continue;
-        const a=(sy*w+sx)*4,b=(ty*restored.width+tx)*4;
-        const alpha=source[a+3];
-        if(alpha<10)continue;
-        dest[b]=source[a];dest[b+1]=source[a+1];dest[b+2]=source[a+2];
-        dest[b+3]=alpha;
-      }
-    }
-    context.putImageData(destImage,0,0);
-    return {canvas:restored,overscan:450*padding/w};
-  }
   async function tinted(colors) {
     const key = colors.join("|").toLowerCase();
     if (tintCache.has(key)) return tintCache.get(key);
@@ -112,9 +59,9 @@
           data[i+3]=alpha;
         }
         context.putImageData(image,0,0);
-        return restoreStrandSilhouette(canvas).canvas.toDataURL("image/png");
+        return canvas.toDataURL("image/png");
       }
-      return {faded:paint(neutral),colored:paint(palette),overscan:450*Math.max(20,Math.round(Math.min(width,height)*.043))/width};
+      return {faded:paint(neutral),colored:paint(palette)};
     })();
     tintCache.set(key,task);
     if(tintCache.size>7) tintCache.delete(tintCache.keys().next().value);
@@ -133,27 +80,35 @@
       '</g>'
     ].join("");
     return '<svg class="anthos-cord-svg" viewBox="0 0 560 560" role="img" aria-label="A genuine three strand braided rope growing around a yearly circle" xmlns="' + NS + '">'+
-      '<defs><mask id="' + uid + '" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="0" y="0" width="560" height="560"><circle data-cord-id="reveal" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="' + REVEAL_WIDTH + '" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1207"/><g data-cord-id="tip"></g></mask></defs>'+
+      '<defs><mask id="' + uid + '"><circle data-cord-id="reveal" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1207"/></mask></defs>'+
       '<circle cx="280" cy="280" r="192" fill="none" stroke="#8e735b" stroke-width="43" opacity=".07"/>'+
-      '<image data-cord-id="faded" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet" opacity=".43"/>'+
+      '<image data-cord-id="faded" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet" opacity=".27"/>'+
       '<g mask="url(#' + uid + ')"><image data-cord-id="colored" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet"/></g>'+
+      (compact ? '' : '<g data-cord-id="markers"></g>')+
       mainText+'</svg>';
   }
   function showProgress(host, value) {
     const total=clamp(value), length=CIRCUMFERENCE*total/96;
-    const tail=total===96?0:Math.min(18,length),solid=Math.max(0,length-tail);
-    const reveal=byId(host,"reveal"),tip=byId(host,"tip");
-    if(!reveal||!tip)return;
-    reveal.setAttribute("stroke-dasharray",solid.toFixed(3)+" "+(CIRCUMFERENCE+1).toFixed(3));
-    tip.replaceChildren();
-    if(tail>0) for(let j=0;j<10;j++){
-      const circle=document.createElementNS(NS,"circle");
-      const attributes={cx:"280",cy:"280",r:String(R),fill:"none",stroke:"white",
-        "stroke-width":String(REVEAL_WIDTH),transform:"rotate(-90 280 280)",
-        "stroke-dasharray":(tail/10+.25).toFixed(3)+" "+(CIRCUMFERENCE+1).toFixed(3),
-        "stroke-dashoffset":(-solid-j*tail/10).toFixed(3),
-        opacity:(1-Math.pow((j+1)/10,1.65)).toFixed(3)};
-      Object.entries(attributes).forEach(([k,v])=>circle.setAttribute(k,v));tip.append(circle);
+    const reveal=byId(host,"reveal");
+    if(!reveal)return;
+    reveal.setAttribute("stroke-dasharray",length.toFixed(3)+" "+(CIRCUMFERENCE+1).toFixed(3));
+    // Keep the original prototype's precise SVG month positions, not CSS percentages.
+    const markers=byId(host,"markers");
+    if(markers){
+      markers.replaceChildren();
+      const labels=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+      for(let m=0;m<12;m++){
+        const angle=(-90+m*30)*Math.PI/180, c=Math.cos(angle),sin=Math.sin(angle);
+        const x=280+236*c,y=280+236*sin,done=total>=(m+1)*8;
+        const line=document.createElementNS(NS,"line");
+        for(const [key,value] of Object.entries({x1:280+212*c,y1:280+212*sin,x2:280+218*c,y2:280+218*sin,stroke:"#bb9b78","stroke-width":"1.2"}))line.setAttribute(key,String(value));
+        const circle=document.createElementNS(NS,"circle");
+        for(const [key,value] of Object.entries({cx:x,cy:y,r:16,fill:done?"#713c48":"#fff3dd",stroke:done?"#d0a66b":"#d9b99b","stroke-width":"1.4"}))circle.setAttribute(key,String(value));
+        const text=document.createElementNS(NS,"text");
+        for(const [key,value] of Object.entries({x,y:y+3.5,"text-anchor":"middle",fill:done?"#fff8e9":"#99765d","font-size":"9.5","font-weight":"700","font-family":"system-ui,sans-serif"}))text.setAttribute(key,String(value));
+        text.textContent=labels[m];
+        markers.append(line,circle,text);
+      }
     }
     const pct=byId(host,"percent"),count=byId(host,"count");
     if(pct)pct.textContent=Math.round(total/96*100)+"%";
@@ -177,16 +132,8 @@
     if(item.colors.join("|")===key)return;
     item.colors=colors;
     const revision=++item.revision;
-    tinted(colors).then(({faded,colored,overscan})=>{
+    tinted(colors).then(({faded,colored})=>{
       if(revision!==item.revision||!host.isConnected)return;
-      for(const id of ["faded","colored"]){
-        const image=byId(host,id);
-        if(!image)continue;
-        image.setAttribute("x",String(55-overscan));
-        image.setAttribute("y",String(55-overscan));
-        image.setAttribute("width",String(450+2*overscan));
-        image.setAttribute("height",String(450+2*overscan));
-      }
       byId(host,"faded")?.setAttribute("href",faded);
       byId(host,"colored")?.setAttribute("href",colored);
       host.classList.add("cord-loaded");
