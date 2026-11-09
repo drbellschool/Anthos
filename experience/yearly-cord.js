@@ -45,7 +45,7 @@
   // edge instead of drawing fake vector braid segments or widening the progress mask.
   function restoreStrandSilhouette(original) {
     const w=original.width,h=original.height;
-    const padding=Math.max(20,Math.round(Math.min(w,h)*.033));
+    const padding=Math.max(20,Math.round(Math.min(w,h)*.043));
     const restored=document.createElement("canvas");
     restored.width=w+2*padding;restored.height=h+2*padding;
     const context=restored.getContext("2d",{willReadFrequently:true});
@@ -58,8 +58,8 @@
     const minRadius=Math.floor(Math.min(w,h)*.30);
     // One or more samples per source pixel along the circumference avoids seams.
     const steps=Math.ceil(2*Math.PI*maxRadius*1.8);
-    const innerBand=Math.max(12,Math.round(Math.min(w,h)*.021));
-    const amplitude=Math.max(7,Math.round(Math.min(w,h)*.014));
+    const innerBand=Math.max(12,Math.round(Math.min(w,h)*.034));
+    const amplitude=Math.max(7,Math.round(Math.min(w,h)*.022));
     for(let k=0;k<steps;k++){
       const angle=k*2*Math.PI/steps,c=Math.cos(angle),sn=Math.sin(angle);
       let outer=-1;
@@ -114,7 +114,7 @@
         context.putImageData(image,0,0);
         return restoreStrandSilhouette(canvas).canvas.toDataURL("image/png");
       }
-      return {faded:paint(neutral),colored:paint(palette),overscan:450*Math.max(20,Math.round(Math.min(width,height)*.033))/width};
+      return {faded:paint(neutral),colored:paint(palette),overscan:450*Math.max(20,Math.round(Math.min(width,height)*.043))/width};
     })();
     tintCache.set(key,task);
     if(tintCache.size>7) tintCache.delete(tintCache.keys().next().value);
