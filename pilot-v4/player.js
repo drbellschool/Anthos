@@ -68,11 +68,23 @@ function mount(root,invite,options={}){
   area.replaceChildren();
   if(!entries.length)area.append(el("div","jj4-empty","The episode begins once both coaches join."));
   for(const item of entries){
-   const isScene=item.kind==="scene";
-   const row=el("article","jj4-entry "+(isScene?"scene":item.kind==="coach"?"coach":"prompt"));
-   row.append(el("span","jj4-entry-label",isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
+   const isScene=item.kind==="scene",isSophia=item.kind==="sophia";
+   const row=el("article","jj4-entry "+(isScene?"scene":isSophia?"sophia":item.kind==="coach"?"coach":"prompt"));
+   row.append(el("span","jj4-entry-label",isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
+    isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
     (state.character||"Character").toUpperCase()+" · PRIVATE"));
-   row.append(el("p","",item.body));area.append(row);
+   row.append(el("p","",item.body));
+   if(isSophia&&Array.isArray(state.researchSources)){
+    const sourceList=el("div","jj4-sources");
+    for(const source of state.researchSources){
+     if(!/^https:\/\//.test(source.url||""))continue;
+     const anchor=el("a","jj4-source",source.label);
+     anchor.href=source.url;anchor.target="_blank";anchor.rel="noopener noreferrer";
+     sourceList.append(anchor);
+    }
+    row.append(sourceList);
+   }
+   area.append(row);
   }
   if(entries.length)area.scrollTop=area.scrollHeight;
  }
@@ -88,14 +100,29 @@ function mount(root,invite,options={}){
    state.role,state.joined,state.bothJoined,state.phaseIndex,state.stage,
    state.needsReply,state.submitted,state.finished,state.canContinue,
    // Another coach submitting is not a reason to steal this coach's focus.
-   state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,autoFailed
+   state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,
+   state.hasSophia,state.closing,autoFailed
   ].join("|");
   if(nextKey===controlsKey)return;
   controlsKey=nextKey;
   controls.replaceChildren();
   if(!state.joined){message("Private browser rehearsal. Your advice stays on your side.");joinPanel();return}
   if(!state.bothJoined){message("Waiting for the other coach to join…");oneAction("Refresh",refresh);return}
-  if(state.finished){draftAdvice="";message("Episode complete · six-phase story finished.");return}
+  if(state.finished){
+   draftAdvice="";
+   if(!state.hasSophia){
+    message(state.closing?"Sophia is preparing your research-based closing reflection…":
+     "The six scenes are finished. Sophia's separate closing reflection is next.");
+    oneAction("Hear Sophia's closing reflection",async()=>act("closure"),true);
+    if(!state.closing&&!autoTimer)autoTimer=setTimeout(()=>{
+     autoTimer=null;
+     if(!destroyed&&!inFlight&&current?.finished&&!current?.hasSophia)act("closure");
+    },1200);
+    return;
+   }
+   message("Episode complete · Sophia's research-based reflection is below.");
+   return;
+  }
   if(state.stage==="generating"){message("Jack and Jill are moving the story forward…");return}
   if(state.needsReply){
    message((state.character||"Your character")+" needs your advice before the next phase.");
@@ -149,7 +176,9 @@ function mount(root,invite,options={}){
   inFlight=true;
   const buttons=controls.querySelectorAll("button");
   buttons.forEach(x=>x.disabled=true);
-  message(action==="advance"?"Writing the next scene…":action==="coach"?"Saving your advice…":"Joining…");
+  message(action==="advance"?"Writing the next scene…":
+   action==="coach"?"Saving your advice…":
+   action==="closure"?"Sophia is connecting the story to relationship research…":"Joining…");
   try{
    const result=await api(action,details);
    autoFailed=false;
@@ -165,8 +194,9 @@ function mount(root,invite,options={}){
  }
  refresh();
  const timer=setInterval(()=>{
-  if(destroyed||inFlight||!current?.joined||current.finished)return;
-  if(current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined)refresh();
+  if(destroyed||inFlight||!current?.joined||(current.finished&&current.hasSophia))return;
+  if(current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined||
+     (current.finished&&!current.hasSophia))refresh();
  },5000);
  return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);root.replaceChildren()},refresh};
 }
