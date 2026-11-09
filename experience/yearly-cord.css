@@ -124,3 +124,12 @@ main:has(.yearly-dashboard:not([hidden]))>.notice{display:none}
  .yearly-petal-count{margin-left:0}
 }
 @media(prefers-reduced-motion:reduce){.yearly-dashboard *{transition:none!important}}
+
+
+/* Place title above the overline, as in the approved visual reference. */
+.yearly-heading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:82px}
+.yearly-heading h1{order:0}
+.yearly-heading .yearly-kicker{order:1;position:static;top:auto;margin-top:6px}
+.yearly-heading p{display:none}
+.yearly-preview-pill{order:2}
+@media(max-width:1050px){.yearly-heading{min-height:0}.yearly-preview-pill{position:static}}
