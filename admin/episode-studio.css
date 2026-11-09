@@ -10,6 +10,7 @@
 .studio-editing #jj2Controls{margin:0}
 .episode-studio{background:transparent;color:#183d31;display:block;min-width:0}
 .episode-studio *{box-sizing:border-box}
+.episode-studio [hidden]{display:none!important}
 .episode-studio-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 2px 12px}
 .episode-heading{min-width:0}
 .episode-heading .eyebrow{margin:1px 0 2px;font-size:9px;color:#48695a}
