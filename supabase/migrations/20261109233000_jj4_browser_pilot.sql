@@ -70,7 +70,7 @@ begin
  cp:=null;
  if p_phase<5 then
   select value into cp from jsonb_array_elements(coalesce(r.episode->'checkpoints','[]'::jsonb)) as e(value)
-    where element->>'afterPhase'=phase_name limit 1;
+    where value->>'afterPhase'=phase_name limit 1;
  end if;
  aud:=coalesce(cp->>'audience','none');
  wait_flag:=coalesce((cp->>'waitForReply')::boolean,false);
@@ -98,7 +98,7 @@ begin
  if not found or who.joined_at is null then return false; end if;
  phase_name:=(array['hook','conflict','discovery','reattempt','outcome'])[p_phase+1];
  select value into cp from jsonb_array_elements(coalesce(r.episode->'checkpoints','[]'::jsonb)) as e(value)
- where element->>'afterPhase'=phase_name limit 1;
+ where value->>'afterPhase'=phase_name limit 1;
  aud:=coalesce(cp->>'audience','none');
  if (who.role='jack' and aud not in ('jack','both')) or
     (who.role='jill' and aud not in ('jill','both')) or
