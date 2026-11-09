@@ -70,13 +70,12 @@
   function svgMarkup(uid, compact) {
     const mainText = compact ? "" : [
       '<g pointer-events="none">',
-      '<text x="280" y="226" text-anchor="middle" fill="#743e47" font-family="Georgia,serif" font-size="19" font-weight="700" letter-spacing="1.1">THE YEARLY CORD</text>',
-      '<path d="M236 244 H324" fill="none" stroke="#c4a36c" stroke-width="1.3"/>',
-      '<text data-cord-id="percent" x="280" y="322" text-anchor="middle" fill="#692e3c" font-family="Georgia,serif" font-size="79">75%</text>',
-      '<text x="280" y="346" text-anchor="middle" fill="#692e3c" font-family="system-ui,sans-serif" font-size="13" letter-spacing="3" font-weight="800">COMPLETE</text>',
-      '<text data-cord-id="count" x="280" y="377" text-anchor="middle" fill="#725c57" font-family="system-ui,sans-serif" font-size="14" font-weight="600">72 OF 96 CHECKPOINTS</text>',
-      '<path d="M273 400 q7 -10 14 0 q-7 10 -14 0" fill="none" stroke="#b38b55" stroke-width="2"/>',
-      '<text x="280" y="429" text-anchor="middle" fill="#8c6659" font-family="Georgia,serif" font-style="italic" font-size="18">YEAR ONE</text>',
+      '<text x="280" y="246" text-anchor="middle" fill="#987854" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="3">THE YEARLY CORD</text>',
+      '<text data-cord-id="percent" x="280" y="313" text-anchor="middle" fill="#672932" font-family="Georgia,serif" font-size="70">75%</text>',
+      '<text data-cord-id="count" x="280" y="347" text-anchor="middle" fill="#8c7268" font-family="system-ui,sans-serif" font-size="13">72 OF 96 CHECKPOINTS</text>',
+      '<path d="M243 366 H317" fill="none" stroke="#b38b55" stroke-width="1.2"/>',
+      '<path d="M274 366 q6 -10 12 0 q-6 10 -12 0" fill="none" stroke="#b38b55" stroke-width="1.4"/>',
+      '<text x="280" y="394" text-anchor="middle" fill="#886b5f" font-family="Georgia,serif" font-style="italic" font-size="15">YEAR ONE</text>',
       '</g>'
     ].join("");
     return '<svg class="anthos-cord-svg" viewBox="0 0 560 560" role="img" aria-label="A genuine three strand braided rope growing around a yearly circle" xmlns="' + NS + '">'+
