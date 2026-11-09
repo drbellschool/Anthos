@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import {status,join,begin,talk,choose,submit,progress,reflect,createRoom} from "../api/jj3-core.mjs";
-import {ENGINE_VERSION,initialEvolution,validEvolution} from "../api/jj-evolution.mjs";
+import {ENGINE_VERSION,usesEvolution,initialEvolution,validEvolution} from "../api/jj-evolution.mjs";
 
 const rid="11111111-1111-4111-8111-111111111111";
 const sid="a718d5e5-31bd-4bfa-9aa6-1712505015d1";
@@ -173,7 +173,7 @@ function harness(mode="shared",{invalidFirst=false,evolving=false,autoplay=false
   }
   if(path.endsWith("/rpc/anthos_jj3_publish_evolution")){
    if(room.step!==body.p_step||room.processing_token!==body.p_token||
-      room.engine_version!==ENGINE_VERSION||!validEvolution(body.p_evolution)||
+      !usesEvolution(room.engine_version)||!validEvolution(body.p_evolution)||
       evolutionEvents.some(e=>e.step===body.p_step))return out(false);
    evolutionEvents.push({step:body.p_step,before:room.evolution_state,after:body.p_evolution,
      effects:body.p_effects});
@@ -337,7 +337,7 @@ test("3.1 evolving story accumulates five causal consequences and preserves both
  const h=harness("shared",{evolving:true});
  try{
   await join(tokens.jack,"Adam");await join(tokens.jill,"Alissa");
-  assert.equal((await status(tokens.jack)).version,ENGINE_VERSION);
+  assert.equal((await status(tokens.jack)).version,"3.2.0");
   await begin(tokens.jack);await begin(tokens.jill);
   for(let step=1;step<=5;step++){
    if(step>1){await begin(tokens.jack);await begin(tokens.jill)}
