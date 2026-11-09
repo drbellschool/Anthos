@@ -7,6 +7,7 @@ import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 import {listScenarios,saveScenario} from "./jj2-library.mjs";
+import {readEpisodeStudio,saveEpisodeStudio,generateEpisodeStudio} from "./episode-studio.mjs";
 
 const COOKIE = "threefold_admin_session";
 const TEST_SMS_TEXT = "Threefold test: The adventure awaits! This is a single administrator-requested connectivity check, not an ongoing subscription. Reply STOP to opt out.";
@@ -75,9 +76,9 @@ function validOrigin(request) {
 async function bodyJSON(request) {
   if (!(request.headers.get("content-type")||"").toLowerCase().startsWith("application/json")) throw new Error("JSON only");
   const size = Number(request.headers.get("content-length") || "0");
-  if (size > 4096) throw new Error("Request too large");
+  if (size > 16000) throw new Error("Request too large");
   const text = await request.text();
-  if (text.length > 4096) throw new Error("Request too large");
+  if (text.length > 16000) throw new Error("Request too large");
   const data = JSON.parse(text);
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid data");
   return data;
@@ -224,6 +225,11 @@ export default {
       try{const params=new URL(request.url).searchParams;return json(await listCoupleRegistrations({search:params.get("search"),page:Number(params.get("page")||0)}));}
       catch(e){return json({error:e.message||"Couple registrations unavailable."},e.status||502);}
     }
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="episode-studio"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      try{return json(await readEpisodeStudio(new URL(request.url).searchParams.get("id")))}
+      catch(e){return json({error:e.message||"Episode editor unavailable."},e.status||502)}
+    }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="jj2-library"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
       try{return json(await listScenarios())}
@@ -273,6 +279,14 @@ export default {
     if(action==="customer-invite"){
       try{return json(await createSignupLink(body));}
       catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
+    }
+    if(action==="episode-studio-generate"){
+      try{return json(await generateEpisodeStudio(body))}
+      catch(e){return json({error:e.message||"AI drafting failed."},e.status||502)}
+    }
+    if(action==="episode-studio-save"){
+      try{return json(await saveEpisodeStudio(body))}
+      catch(e){return json({error:e.message||"Episode draft could not be saved."},e.status||502)}
     }
     if(action==="jj2-scenario-save"){
       try{return json(await saveScenario(body))}
