@@ -1,0 +1,26 @@
+/* Private browser-only Jack & Jill 4.0 tester; no SMS, no shared private coach messages. */
+.jj4-player{display:flex;flex-direction:column;min-width:0;height:100%;min-height:360px;background:#f7faf8;border:1px solid #bcd2c7;border-radius:12px;overflow:hidden;color:#173f31;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.jj4-top{padding:10px 12px;display:flex;gap:8px;justify-content:space-between;align-items:center;background:#0d4433;color:#fff}
+.jj4-player-title{font-size:13px}
+.jj4-phase{font-size:10px;color:#d6eadc;white-space:nowrap}
+.jj4-state{padding:8px 12px;border-bottom:1px solid #e1e9e3;background:#ecf5ef;color:#295c43;font-size:11px;line-height:1.4}
+.jj4-state.error{background:#fff0ed;color:#9b3931}
+.jj4-scroll{overflow-y:auto;flex:1;min-height:190px;padding:10px;display:grid;align-content:start;gap:8px;background:#fff;scrollbar-width:thin}
+.jj4-entry{border:1px solid #dbe8df;padding:9px 10px;border-radius:10px;background:#f7fbf8}
+.jj4-entry.scene{border-color:#dfd2b8;background:#fffaf0}
+.jj4-entry.prompt{border-color:#a3cdb7;background:#edf8f0}
+.jj4-entry.coach{border-color:#bbd0e2;background:#f1f6fd;margin-left:12px}
+.jj4-entry-label{font-size:9px;font-weight:800;letter-spacing:.1em;color:#53725a}
+.jj4-entry p{font-size:12px;line-height:1.5;margin:5px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.jj4-empty{font-size:12px;color:#778679;text-align:center;padding:42px 12px}
+.jj4-controls{padding:10px 12px;display:grid;gap:8px;background:#f3f8f4;border-top:1px solid #dde9df}
+.jj4-label{display:grid;gap:4px;font-size:11px;font-weight:750;color:#335e4b}
+.jj4-name,.jj4-advice{width:100%;font:12px/1.4 system-ui;border:1px solid #b7cfc1;border-radius:7px;box-sizing:border-box;padding:8px;background:white;resize:vertical}
+.jj4-button{border:1px solid #c4d9c7;border-radius:8px;background:#fff;color:#154932;padding:9px 12px;font-size:12px;font-weight:750;cursor:pointer}
+.jj4-button.primary{color:white;background:#0f573b;border-color:#0f573b}
+.jj4-button:disabled{opacity:.5;cursor:wait}
+.jj4-standalone{max-width:530px;min-height:100vh;box-sizing:border-box;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.jj4-standalone h1{font:400 29px Georgia,serif;margin:3px 0;color:#153f30}
+.jj4-standalone .jj4-player{flex:1;min-height:560px}
+.jj4-notice{font:12px/1.4 system-ui;color:#617b6d;margin:0}
+@media(max-width:670px){.jj4-standalone{padding:8px}.jj4-standalone .jj4-player{min-height:calc(100vh - 100px)}}
