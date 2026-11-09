@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,storyHandoff,followThroughAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,storyHandoff,followThroughAction,actionableCoachAdvice,concreteCharacterMove,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -166,4 +166,19 @@ test("natural follow-through from the actual moment-four texts is a real choice"
  assert.equal(storyHandoff("Don't let me know yet.",jill),false);
  assert.equal(followThroughAction("jill",jill),"Jill follows through on the plan to make lunch together next and see how the afternoon feels.");
  assert.match(followThroughAction("jack",jack),/Jack chooses to stay present/);
+});
+
+test("3.2 finishes natural instructions from both mountain friends without another message",()=>{
+ const adam="Well buddy, looks like your mountain adventure turned into a survival adventure! 😂 First, check how much water and food you have, then call the host or ranger to find out when things might be restored. Talk it over with Jill and make the safest decision together.";
+ const jack="Yeah, the mountains have been downgraded to bottled-water accounting. I’ll count what we have, then call the host and ranger for an outage estimate.";
+ const alissa="Girl, call the host or ranger and find out how long you're going to be without water and power. Have Jack count the supplies with you so you can decide together whether it's safe to stay or if you need help.";
+ const jill="I’m calling the host now, and I’ll ask Jack to count the bottled water and no-cook food with me while I do.";
+ assert.equal(actionableCoachAdvice(adam),true);
+ assert.equal(actionableCoachAdvice(alissa),true);
+ assert.match(concreteCharacterMove("jack",jack),/^Jack plans to count/);
+ assert.match(concreteCharacterMove("jill",jill),/^Jill plans to call/);
+ for(const msg of ["What did she say?","I agree with the idea.","Maybe a different approach?","How do you feel?","Should you call the host?"])
+  assert.equal(actionableCoachAdvice(msg),false,msg);
+ assert.equal(concreteCharacterMove("jack","I might consider doing that someday."),"");
+ assert.equal(concreteCharacterMove("jill","Jack should just call the host."),"");
 });
