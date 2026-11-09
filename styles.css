@@ -295,3 +295,13 @@ main{max-width:1320px;padding:15px 24px 70px}
 @media(max-width:1060px){.sidebar{gap:15px;padding:15px 22px}.nav-link{padding:8px;font-size:11px}.anthos-couple-grid{grid-template-columns:1fr 1fr}.anthos-weave{padding:20px}.anthos-chapter{padding:25px}}
 @media(max-width:840px){.sidebar{position:relative;inset:auto;width:auto;height:auto;min-height:0;transform:none;box-shadow:none;flex-wrap:wrap}.sidebar.open{transform:none}.side-nav{display:flex;overflow-x:auto;flex-wrap:nowrap;width:100%;scrollbar-width:thin}.nav-link{white-space:nowrap}.mobile-menu{display:none}.topbar{height:42px;padding:0 24px}main{padding:15px 24px 60px}.anthos-couple-grid{grid-template-columns:1fr}.anthos-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:570px){.sidebar{padding:13px 15px}.topbar{padding:0 15px}.breadcrumb{display:none}.notice{font-size:10px}.anthos-welcome{margin-top:5px}.anthos-welcome h1{font-size:50px}.anthos-welcome p{font-size:13px}.year-mark{display:none}main{padding:14px 15px 50px}.weave-heading{padding:0 7px}.weave-heading h2{font-size:24px}.weave-label{display:none}.rope-stage{min-height:295px}.rope-stage svg{width:min(100%,340px)}.rope-choice{gap:12px;justify-content:space-around}.rope-choice-intro{flex-basis:100%;text-align:center}.weave-progress>div{flex-direction:column;align-items:center;gap:0}.anthos-chapter{padding:25px}.anthos-actions-heading h2{font-size:24px}.anthos-tiles{gap:9px}.anthos-tiles button{padding:14px;min-height:125px}.anthos-tiles strong{font-size:16px}.anthos-tiles small{font-size:10px}}
+
+/* The original approved, continuous photo-textured threefold cord. */
+.rope-stage{display:grid;place-items:center;height:440px;min-height:0;max-height:none;margin:0 auto}
+.rope-stage iframe.authentic-cord{width:min(100%,500px);height:100%;border:0;display:block;background:transparent}
+.blossom-wrap.large iframe.authentic-cord{width:min(100%,540px);height:455px;border:0;display:block}
+@media(max-width:570px){
+.rope-stage{height:340px;min-height:0;max-height:none}
+.rope-stage iframe.authentic-cord{width:min(100%,370px);height:100%}
+.blossom-wrap.large iframe.authentic-cord{height:355px}
+}
