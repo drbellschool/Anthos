@@ -4,6 +4,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
 import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
+import { createRoom as createV4PilotRoom } from "./jj4-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 import {listScenarios,saveScenario} from "./jj2-library.mjs";
@@ -279,6 +280,10 @@ export default {
     if(action==="customer-invite"){
       try{return json(await createSignupLink(body));}
       catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
+    }
+    if(action==="episode-studio-pilot-v4"){
+      try{return json(await createV4PilotRoom(new URL(request.url).origin,body.scenarioId))}
+      catch(e){return json({error:e.message||"Could not create 4.0 pilot.",},e.status||502)}
     }
     if(action==="episode-studio-generate"){
       try{return json(await generateEpisodeStudio(body))}
