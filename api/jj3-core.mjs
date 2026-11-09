@@ -128,17 +128,19 @@ export async function begin(token){
  if(r.step===1&&/mountain/i.test(scenario.title))intro=seededIntroduction(p.role,scenario,p.name);
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
-   memory:p.private_memory,latest:"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
+   memory:p.private_memory,latest:r.step===5?"This is the FINAL decision of this Deep Dive. React as "+CHARACTER[p.role].firstName+" to the concrete current scene. Name one realistic action YOU could take now to resolve the immediate problem safely, and ask your friend for their honest view. Don\'t start a new subplot or repeat the opening fight. Once your choice plays out, the story ends.":"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
    evolution:r.engine_version===ENGINE_VERSION?characterEvolutionContext(r.evolution_state,p.role):null});
   try{
-   const result=await model(g.instructions+" This is a NEW CHARACTER INTRO; the coach has not spoken. Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
+   const result=await model(g.instructions+(r.step===5?" This is the FINAL moment. Do not leave your friend guessing what to do. Describe the specific immediate situation and an action you are seriously considering; end with one grounded question.":" This is a NEW CHARACTER INTRO; the coach has not spoken.")+" Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
    if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
   }catch{/* Safe, explicit fallback below; no invented canonical event. */}
   if(!intro){
    if(r.step===1)intro=seededIntroduction(p.role,scenario,p.name);
    else {
    const name=CHARACTER[p.role].firstName;
-   intro=name==="Jack"
+   intro=r.step===5
+    ?(p.name?p.name+", ":"")+"This is the last situation we've got to deal with. "+safe(r.scene?.scene,290)+" I need to make a real choice here instead of just talking about it. What would you do?"
+    :name==="Jack"
     ?"Okay, buddy, new development. "+safe(r.scene?.scene,280)+" I have opinions, a questionable plan, and a growing suspicion that I'm about to embarrass myself. I want to handle this without flattening what Jill cares about. What would you tell me?"
     :"Oh, this has become a situation. "+safe(r.scene?.scene,280)+" I have a pretty good idea what I want, but I'm afraid it will sound selfish if I say it out loud. Can I tell you my plan before I make things worse?";
   }
