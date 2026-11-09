@@ -123,6 +123,7 @@ async function model(instructions,input,schema,name="anthos_jj3"){
 export async function begin(token){
  const {person:p,room:r}=await participant(token);
  if(!p.consented_at)problem("Accept the pilot invitation before beginning.",403);
+ if(guidedRoom(r)&&!guidedCheckpoint(r))return status(token);
  if(r.status!=="active"||p.submitted_step===r.step)return status(token);
  const recent=await privateMessages(r,p.role);
  if(recent.some(m=>m.kind==="intro"&&m.step===r.step))return status(token);
@@ -131,10 +132,13 @@ export async function begin(token){
  if(r.step===1&&/(?:mountain|the challenge without a winner)/i.test(scenario.title))intro=seededIntroduction(p.role,scenario,p.name);
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
-   memory:p.private_memory,latest:r.step===5?"This is the FINAL decision of this Deep Dive. React as "+CHARACTER[p.role].firstName+" to the concrete current scene. Name one realistic action YOU could take now to resolve the immediate problem safely, and ask your friend for their honest view. Don\'t start a new subplot or repeat the opening fight. Once your choice plays out, the story ends.":"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
+   memory:p.private_memory,latest:r.step===5?"This is the FINAL decision of this Deep Dive. React as "+CHARACTER[p.role].firstName+" to the concrete current scene. Name one realistic action YOU could take now to resolve the immediate problem safely, and ask your friend for their honest view. Don't start a new subplot or repeat the opening fight. Once your choice plays out, the story ends."
+   :guidedCheckpoint(r)?"This is a NEW MAJOR TURNING POINT in the shared fictional story. You are "+CHARACTER[p.role].firstName+" texting your OWN friend "+p.name+". Describe the CONCRETE NEW problem created by what actually happened and explain why you need their advice NOW. Ask one specific question about a decision that could change what happens. Don't mention learning milestones, don't thank them for a previous text, and do not ask for general guidance."
+   :"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
    evolution:usesEvolution(r.engine_version)?characterEvolutionContext(r.evolution_state,p.role):null});
   try{
-   const result=await model(g.instructions+(r.step===5?" This is the FINAL moment. Do not leave your friend guessing what to do. Describe the specific immediate situation and an action you are seriously considering; end with one grounded question.":" This is a NEW CHARACTER INTRO; the coach has not spoken.")+" Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
+   const result=await model(g.instructions+(r.step===5?" This is the FINAL moment. Tell your friend the precise remaining problem and one meaningful choice that will finish it. No new subplot."
+    :guidedCheckpoint(r)?" A turning point has arrived. You must share one concrete problem and ask your friend about ONE real action you could now take. This is their next consequential contribution, not a recap.":" This is a NEW CHARACTER INTRO; the coach has not spoken.")+" Return empty action, evidence, characterProposal, proposalEvidence, and sophiaAside.",g.input,RESPONSE_SCHEMA,"jj3_intro");
    if(checkCharacterReply(result,recent))intro=safe(plainCharacterLanguage(result.characterReply),1600);
   }catch{/* Safe, explicit fallback below; no invented canonical event. */}
   if(!intro){
@@ -144,8 +148,8 @@ export async function begin(token){
    intro=r.step===5
     ?(p.name?p.name+", ":"")+"This is the last situation we've got to deal with. "+safe(r.scene?.scene,290)+" I need to make a real choice here instead of just talking about it. What would you do?"
     :name==="Jack"
-    ?"Okay, buddy, new development. "+safe(r.scene?.scene,280)+" I have opinions, a questionable plan, and a growing suspicion that I'm about to embarrass myself. I want to handle this without flattening what Jill cares about. What would you tell me?"
-    :"Oh, this has become a situation. "+safe(r.scene?.scene,280)+" I have a pretty good idea what I want, but I'm afraid it will sound selfish if I say it out loud. Can I tell you my plan before I make things worse?";
+    ?(p.name?p.name+", ":"")+"Something just happened: "+safe(r.scene?.scene,420)+" I need to choose my next move. Should I take initiative here or ask Jill to lead?"
+    :(p.name?p.name+", ":"")+"Here's the new problem: "+safe(r.scene?.scene,420)+" I don't want to be silent or steamroll Jack. Should I speak up now or try a different approach?";
   }
   }
  }
