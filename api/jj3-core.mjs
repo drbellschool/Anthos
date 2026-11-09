@@ -103,7 +103,7 @@ async function model(instructions,input,schema,name="anthos_jj3"){
    const res=await fetch("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
     body:JSON.stringify(deepDiveRequest({instructions,input,schema,name,attempt})),
-    signal:AbortSignal.timeout(attempt?30000:25000)
+    signal:AbortSignal.timeout(name==="jj_evolution_outcome"||name==="jj3_story_outcome"?(attempt?75000:65000):(attempt?55000:45000))
    });
    if(!res.ok){last="provider";if(res.status===400||res.status===401||res.status===403||res.status===429)break;continue}
    const json=await res.json();
