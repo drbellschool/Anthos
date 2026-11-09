@@ -29,6 +29,16 @@ The six numerical signals (`connection`, `agency`, `trust`, `energy`, `friction`
 7. One SQL transaction publishes the shared consequence, advances the room, writes the new state, and appends an immutable evolution event.
 8. Each character's next private message receives the updated fictional context for **that character** and observable shared events; the initial personality remains only a baseline.
 
+## Fifth-beat closure contract
+
+The fifth story consequence **ends the episode** instead of generating a sixth problem. Jack and Jill's final confirmed actions resolve the immediate practical situation, including safety concerns. The fiction may still contain ordinary unresolved feelings, but no new cliffhanger, crisis, task or request for another character decision.
+
+The version 3.1 Character Evolution Engine uses a separate strict JSON schema (`EVOLUTION_FINAL_SCHEMA`) at the final step. It requires observable character development for both Jack and Jill, a grounded relationship truth, one short non-judgmental Sophia insight connected to research-informed relationship skills, and a voluntary invitation for the actual couple to consider. It requires `newDilemma=""` at step five and rejects new open conflicts.
+
+Closure is saved atomically in `scene.closure` and in the versioned fictional event ledger, alongside the final canonical outcome. Both private screens display the same shared ending without revealing either human coach's private messages. The conversation ends clearly. Each coach may optionally send one last private reflection to Jack or Jill, but neither needs to complete a questionnaire or another exercise.
+
+The fifth beat is still the **last character decision** (the room is currently designed for five decisions). The final scene should clearly invite a concrete, meaningful choice that resolves its immediate issue. Future experiences could move to an automatic four-choice epilogue only after changing and testing the state and SQL contracts; do not silently fabricate a client's final action.
+
 ## Locked progression rules
 
 - **No reset:** after a consequential choice, the next dilemma must differ meaningfully from the last dilemma. The opening disagreement should transform, not recur unchanged.
