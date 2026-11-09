@@ -133,3 +133,8 @@ main:has(.yearly-dashboard:not([hidden]))>.notice{display:none}
 .yearly-heading p{display:none}
 .yearly-preview-pill{order:2}
 @media(max-width:1050px){.yearly-heading{min-height:0}.yearly-preview-pill{position:static}}
+
+/* Allow direct visual comparison with the restored, untouched classic prototype. */
+.yearly-center-links{flex-wrap:wrap}
+.yearly-center-links .yearly-original-link{display:inline-flex;align-items:center;border:1px solid #ccab88;background:#fff2daa8;color:#713c44;border-radius:14px;padding:6px 10px;font:700 10px system-ui,sans-serif;text-decoration:none}
+.yearly-center-links .yearly-original-link:focus-visible{outline:3px solid #306c9a;outline-offset:2px}
