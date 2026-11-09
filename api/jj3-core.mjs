@@ -1,7 +1,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
-import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
+import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const secret=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
@@ -186,11 +186,22 @@ export async function talk(token,text,requestKey){
  response.sophiaAside=plainCharacterLanguage(response.sophiaAside);
  // The coach may authorize a fictional action in normal speech. The story
  // resolves without another button once both coaches independently do so.
- const next=actionFromCoach(p.role,clean,response.action,response.evidence)
+ const previousReply=[...history].reverse().find(m=>m.step===r.step&&m.author==="character");
+ const previousIntent=ownCharacterIntent(p.role,previousReply?.body);
+ const currentIntent=ownCharacterIntent(p.role,response.characterReply);
+ // Real people can decide to act: an affirmative "sounds good" accepts the
+ // plan the character just proposed, even if the new reply paraphrases it.
+ const acceptedPrevious=briefApproval(clean)&&previousIntent;
+ const next=acceptedPrevious
+   ||actionFromCoach(p.role,clean,response.action,response.evidence)
    ||actionFromCharacterAgreement(p.role,clean,response.characterReply,
      response.characterProposal,response.proposalEvidence)
    ||actionFromCharacterWords(p.role,clean,response.characterReply)
    ||oldAction;
+ const shouldAct=!!next&&(
+   (!!previousIntent&&briefApproval(clean))
+   ||(!!currentIntent&&(explicitGoAhead(clean)||asksForAction(clean)))
+ );
  const milestones=Array.isArray(response.learningMilestones)?response.learningMilestones.filter(x=>MILESTONES.includes(x)).slice(0,3):[];
  const learning=p.learning_log&&typeof p.learning_log==="object"&&!Array.isArray(p.learning_log)?{...p.learning_log}:{};
  for(const m of milestones)learning[m]={status:"explored",step:r.step};
@@ -212,7 +223,7 @@ export async function talk(token,text,requestKey){
  // A clear go-ahead is the confirmation. Vague brainstorming remains private chat.
  // The two-step SQL commit is idempotent, and resolveRoom atomically waits for
  // both participants (or one in an individual Deep Dive).
- if(next && explicitGoAhead(clean)){
+ if(shouldAct){
   const committed=await db("rpc/anthos_jj3_submit",{},{
    p_room:r.id,p_participant:p.id,p_step:r.step
   },"POST");
