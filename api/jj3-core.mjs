@@ -125,7 +125,7 @@ export async function begin(token){
  if(recent.some(m=>m.kind==="intro"&&m.step===r.step))return status(token);
  const scenario=await scenarioFor(r);
  let intro="";
- if(r.step===1&&/mountain/i.test(scenario.title))intro=seededIntroduction(p.role,scenario,p.name);
+ if(r.step===1&&/(?:mountain|the challenge without a winner)/i.test(scenario.title))intro=seededIntroduction(p.role,scenario,p.name);
  else {
   const g=privatePrompt({role:p.role,name:p.name,scenario,scene:r.scene,step:r.step,history:recent,
    memory:p.private_memory,latest:r.step===5?"This is the FINAL decision of this Deep Dive. React as "+CHARACTER[p.role].firstName+" to the concrete current scene. Name one realistic action YOU could take now to resolve the immediate problem safely, and ask your friend for their honest view. Don\'t start a new subplot or repeat the opening fight. Once your choice plays out, the story ends.":"The shared fictional scene just advanced because of actual choices. Respond to what changed, your NEW wants and any gains or costs, not the original disagreement.",pending:null,
