@@ -165,7 +165,7 @@ async function directScene(room,phaseIndex){
  }catch(e){if(e.status)throw e;error("The character AI could not finish this scene. Please retry.",502)}
  if(brief(result.scene,2500).length<80)error("The AI didn't produce a complete scene; retry.",502);
  const audience=cp?.audience||"none";
- const fallback=(role)=>{const name=role==="jack"?"Jack":"Jill";return name+" needs a second opinion about what to do next. What would you suggest?"};
+ const fallback=(role)=>{const name=role==="jack"?"Jack":"Jill";return name+": "+brief(cp?.purpose||"I need your advice about the situation already unfolding.",420)+" What would you suggest?";};
  return {scene:brief(result.scene,2500),
   jackPrompt:["jack","both"].includes(audience)?brief(result.jackPrompt,1200)||fallback("jack"):"",
   jillPrompt:["jill","both"].includes(audience)?brief(result.jillPrompt,1200)||fallback("jill"):""};
