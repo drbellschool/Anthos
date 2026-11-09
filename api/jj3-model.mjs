@@ -230,7 +230,7 @@ export function followThroughAction(role,previousCharacterReply){
  const prior=typeof previousCharacterReply==="string"?previousCharacterReply:"";
  const m=prior.match(/\b(?:we(?:'re| are|’re)\s+going\s+to|we(?:'ll| will|’ll)|I(?:'ll| will|’ll)\s+)\s*(make|cook|play|start|finish|visit|go|meet|call|ask|plan|take|try|read|spend|watch|walk|explore|share|eat|have)\s+([^.!?\n]{4,115})/i);
  if(m){
-  const detail=m[3].split(/\s+(?:but|though|unless|because|even if|if she|if he)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
+  const detail=m[2].split(/\s+(?:but|though|unless|because|even if|if she|if he)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
   if(detail.length>=5)return name+" follows through on the plan to "+m[1].toLowerCase()+" "+detail+".";
  }
  return name+" chooses to stay present for the shared experience already underway and respond to what actually happens next.";
