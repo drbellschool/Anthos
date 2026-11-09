@@ -136,7 +136,19 @@ async function directScene(room,phaseIndex){
  if(!storyDirection||storyDirection.trim().length<30)
   error("This phase has no saved Studio direction. Return to the Episode Studio before piloting.",409);
  const cp=checkpoint({...room,phase_index:phaseIndex});
- const cast=Object.fromEntries((people||[]).map(x=>[x.role,x.first_name||x.role]));
+ // Coach names belong to the private participants, never the fictional cast.
+ const fictionalNames={jack:"Jack",jill:"Jill"};
+ const scrub=value=>{
+  let out=String(value||"");
+  for(const person of people||[]){
+   const name=person.first_name?.trim();
+   if(!name||name.length<2||["jack","jill"].includes(name.toLowerCase()))continue;
+   for(const candidate of new Set([name,name.toLowerCase(),name.toUpperCase()])){
+    out=out.split(candidate).join(fictionalNames[person.role]||"the coach");
+   }
+  }
+  return out;
+ };
  const input={title:room.title,primaryObjective:room.episode.primarySkill,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
   premise:room.episode.premise,phase,phaseNumber:phaseIndex+1,
@@ -147,8 +159,9 @@ async function directScene(room,phaseIndex){
   boundaries:room.episode.boundaries,voice:room.episode.tone,
   lockedEditorialFields:room.episode.locks||[],
   personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
-  checkpoint:cp,participants:cast,
-  history:(history||[]).reverse().map(m=>({role:m.role,kind:m.kind,phase:PHASES4[m.phase_index],body:m.body}))};
+  checkpoint:cp,fictionalCharacters:fictionalNames,
+  history:(history||[]).reverse().map(m=>({role:m.role,kind:m.kind,
+   phase:PHASES4[m.phase_index],body:scrub(m.body)}))};
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan. Each of the six phases has its own saved summary in savedSixPhaseStoryboard. DO NOT invent another premise, competing subplot, different problem, surprise twist, timeline reset, new objective or alternative outcome.",
@@ -157,6 +170,7 @@ async function directScene(room,phaseIndex){
   "Editor text marked lockedEditorialFields is canon and cannot be contradicted, overwritten, reframed, or replaced by model inventions. If coach advice clashes with established facts or the creator's boundaries, the character may consider that advice without rewriting the plan.",
   "A new story complication is allowed only when it follows directly from the saved plot beat, established situation, or actual coach advice. It must not create a new central conflict. Keep the plot within the six planned phases.",
   "Keep absolute continuity with all prior scene history and the stored episode premise. Do not restart the story, change locations without explanation, or invent messages the real coaches never sent.",
+  "The fictional characters must ALWAYS be named Jack and Jill. The real husband and wife are separate PRIVATE coaches, never story characters. Do not use or guess the coaches' names in the fictional scenes.",
   "Coaches are the husband counseling Jack privately and the wife counseling Jill privately. Privately supplied advice can change fictional actions, but never quote, attribute, expose, paraphrase verbatim, or disclose one coach's message to the other.",
   "Honor the educational objectives without repeatedly explaining psychological theory. The characters are believable people, not puppets and not therapists. Make every phase distinct; advance toward a complete consequence-based ending by phase six.",
   "Use only humor ideas the editor actually supplied, when appropriate to the saved phase or checkpoint. Do not invent an unrelated comic premise. Do not force a joke or turn awkward intimacy into pressure, coercion or humiliation; maintain mutual respect and boundaries.",
