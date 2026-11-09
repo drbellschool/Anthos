@@ -204,6 +204,38 @@ export function consideredCharacterPlan(role,reply){
  detail=detail.replace(/^her\b/i,other).replace(/^him\b/i,other);
  return name+" plans to "+m[1].toLowerCase()+" "+detail+".";
 }
+/** A friend can end a conversational exchange and let an already-running
+ * fictional event unfold. This is not a request for another menu or question.
+ * The supportive phrase only qualifies when the character actually described
+ * a shared activity taking place (not a speculation about doing something).
+ */
+export function storyHandoff(message,previousCharacterReply){
+ if(typeof message!=="string")return false;
+ const t=message.trim().replace(/[.!?]+$/,"").trim();
+ if(t.length<4||t.length>220||/\b(?:don't|do not|never|not yet|wait until|hold on|actually stop|cancel)\b/i.test(t))return false;
+ const explicit=/^(?:let me know (?:how|what|when)\b.{0,100}|keep me posted(?:\s+on\b.{0,85})?|tell me (?:how|what|when)\b.{0,100}|(?:i(?:'d| would) love to )?hear how it (?:goes|turns out)|(?:let me|i(?:'d| would) like to) (?:hear|know) (?:how|what)\b.{0,100}|see how (?:the|this|it) (?:goes|turns out)|see what happens(?:\s+next)?)$/i.test(t);
+ if(explicit)return true;
+ const supportive=/^(?:i(?:'m| am)?\s+(?:so\s+)?glad(?:\s+to\s+hear\s+(?:it|that))?.{0,90}|(?:that(?:'s| is)|sounds like|it sounds like)\s+(?:you(?:'re| are)\s+)?(?:having|going|a |some ).{0,90}|good to hear.{0,80}|happy to hear.{0,80})$/i.test(t);
+ if(!supportive)return false;
+ const prior=typeof previousCharacterReply==="string"?previousCharacterReply:"";
+ // No action is inferred from a greeting or an unresolved hypothetical.
+ return /\b(?:we(?:'re| are|’re|’ll| will|’ve| have)|we\s+(?:started|played|made|enjoyed)|(?:now|already)\s+we|(?:breakfast|lunch|dinner|the game|the trip)\s+(?:was|is|has been))\b/i.test(prior)
+   && /\b(?:started|played|made|enjoyed|having|going|doing|poking|cooking|making|laughing|lovely|wonderful|fun|together|next|already|now)\b/i.test(prior);
+}
+/** Prefer an actual character-owned next action already mentioned in their
+ * latest text. Otherwise choose non-interference, not an invented activity.
+ */
+export function followThroughAction(role,previousCharacterReply){
+ const name=role==="jack"?"Jack":"Jill";
+ const prior=typeof previousCharacterReply==="string"?previousCharacterReply:"";
+ const m=prior.match(/\b(?:we(?:'re| are|’re)\s+going\s+to|we(?:'ll| will|’ll)|I(?:'ll| will|’ll)\s+)\s*(make|cook|play|start|finish|visit|go|meet|call|ask|plan|take|try|read|spend|watch|walk|explore|share|eat|have)\s+([^.!?\n]{4,115})/i);
+ if(m){
+  const detail=m[3].split(/\s+(?:but|though|unless|because|even if|if she|if he)\b/i)[0].trim().replace(/[,;:\s]+$/,"");
+  if(detail.length>=5)return name+" follows through on the plan to "+m[1].toLowerCase()+" "+detail+".";
+ }
+ return name+" chooses to stay present for the shared experience already underway and respond to what actually happens next.";
+}
+
 export function observeAndWait(message){
  if(typeof message!=="string")return false;
  const t=message.trim().replace(/[.!?]+$/,"").trim();
