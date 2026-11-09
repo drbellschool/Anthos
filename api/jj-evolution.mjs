@@ -202,7 +202,7 @@ export function characterEvolutionContext(state,role){
   })),
   relationship:{...state.relationship}};
 }
-export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution}){
+export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution,autoplay=false}){
  if(!validEvolution(evolution))throw new Error("Missing valid evolving story state");
  const before=evolution.arc.beats.at(-1);
  return {
@@ -218,6 +218,7 @@ export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution
    "No mind reading. The shared fictional world contains only observable actions; you do not have the human coaches' private messages. Never reveal or infer real spouse disclosures.",
    "For EACH character portray at least one specific consequence: an immediate gain, a cost or strain, OR both. Do NOT force a tidy gain-and-loss formula every beat. Sometimes a choice simply hurts; sometimes it works beautifully, with a delayed cost surfacing later. Both characters may move in different directions.",
    "The two characters can evolve gradually. Do NOT re-open the original debate as the next dilemma. The first four beats must create a DIFFERENT concrete external problem with new stakes. Introduce one funny character-driven consequence, not random slapstick.",
+   autoplay?"This is AUTONOMOUS FICTION: after the initial advice, Jack and Jill make their OWN decisions at every later beat. Never ask Adam, Alissa, or any other human friend for permission, advice, a choice, or a reply. Their private conversation has ended for this episode. Every nextScene must pose a concrete playable situation for the CHARACTERS to address without new outside coaching.":"",
    "For example, agreeing to an exhausting adventure can genuinely create delight and connection BUT cost Jill rest and the chance to speak up. Treat that as a real experience, not a wrong answer. Jack may notice or fail to notice.",
    "Use existing cost, gain, changed wants, unclosed consequences and prior choices to shape the NEW event. Answer every confirmed action through observable results in outcome, and then provide an actionable nextScene.",
    "impacts must have ONE bounded integer delta between -4 and 4 for every axis. These are internal narrative signals, NEVER clinical truth or actual measurements of the human couple. At least one axis per character must change.",
@@ -231,7 +232,7 @@ export function evolutionStoryPrompt({mode,scenario,scene,step,actions,evolution
   ].join(" "),
   input:{scenario:{title:scenario.title,learningObjective:scenario.learning_objective,
     researchLenses:scenario.research_lenses,initialScene:scenario.opening_scene},
-   mode,step,scene,confirmedActions:actions,
+   mode,step,scene,autoplay,confirmedActions:actions,
    fictionalState:evolution,
    lastConsequence:before||null}
  };
