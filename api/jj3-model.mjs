@@ -161,7 +161,7 @@ export function actionFromCharacterAgreement(role,coachMessage,reply,proposal,ev
 export function ownCharacterIntent(role,characterReply){
  const reply=typeof characterReply==="string"?characterReply.trim():"";
  const name=role==="jack"?"Jack":"Jill";
- const match=reply.match(/\b(?:I['’]ll|I will|I am going to|I['’]m going to|I['’]m gonna|I['’]m planning to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(ask|tell|text|call|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|arrange|book|try)\b\s+([^.!?\n]{3,150})/i);
+ const match=reply.match(/\b(?:I['’]ll|I will|I am going to|I['’]m going to|I['’]m gonna|I['’]m planning to|I think I['’]ll|I guess I['’]ll)\s+(?:(try to|try)\s+)?(?:(?:just|casually|quietly|gently|finally|actually|simply|quickly|honestly)\s+)?(ask|tell|text|call|invite|offer|suggest|propose|pitch|pitching|apologize|explain|say|plan|drive|walk|meet|take|stay|sit|listen|bring|share|send|arrange|book|try)\b\s+([^.!?\n]{3,150})/i);
  if(!match)return "";
  let verb=match[2].toLowerCase()==="pitching"?"pitch":match[2].toLowerCase();
  let rest=match[3].trim();
@@ -188,7 +188,7 @@ export function actionFromCharacterWords(role,coachMessage,characterReply){
  if(coach.length<3)return "";
  const other=role==="jack"?"Jill":"Jack";
  if(new RegExp("^(?:no[,!.]?\\s+)?"+other+"\\s+(?:should|needs|must|will|can|could|has to)\\b","i").test(coach))return "";
- if(!briefApproval(coach)&&!explicitGoAhead(coach)&&!asksForAction(coach)&&
+ if(!/^(?:exactly|yeah|right)\b/i.test(coach)&&!briefApproval(coach)&&!explicitGoAhead(coach)&&!asksForAction(coach)&&
    !/\b(?:maybe|should|could you|would you|try|have you|what if|how about|ask|tell|invite|offer|text|call|suggest|plan)\b/i.test(coach))return "";
  return ownCharacterIntent(role,characterReply);
 }
