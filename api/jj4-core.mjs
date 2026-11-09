@@ -4,6 +4,7 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
+import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -45,12 +46,18 @@ function targetRoles(room){
  const audience=checkpoint(room)?.audience;
  return audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[];
 }
-export async function createRoom(origin,scenarioId){
+export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!UUID.test(scenarioId||""))error("Choose a saved 4.0 episode first.");
  const scenario=await getScenario(scenarioId);
  if(scenario.mode!=="shared")error("The 4.0 dual-coach pilot currently supports shared episodes only.");
  if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
  const draft=normalizeStudio(scenario.episode_studio,scenario);
+ if(previousRoomId!==null){
+  if(!UUID.test(previousRoomId))error("Invalid previous test room identifier.");
+  const previous=(await db(R,{id:"eq."+previousRoomId,select:"id,scenario_id,stage"}))?.[0];
+  if(!previous||previous.scenario_id!==scenario.id)
+   error("Previous test does not belong to this saved episode.",409);
+ }
  if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
  const created=(await db(R,{},{
@@ -68,8 +75,16 @@ export async function createRoom(origin,scenarioId){
   await db(R,{id:"eq."+created.id},undefined,"DELETE").catch(()=>{});
   throw err;
  }
+ let previousRetired=null;
+ if(previousRoomId){
+  try{
+   const affected=await db(R,{id:"eq."+previousRoomId,scenario_id:"eq."+scenario.id},
+    {stage:"retired",processing_token:null,processing_at:null,updated_at:new Date().toISOString()},"PATCH");
+   previousRetired=Array.isArray(affected)&&affected.length===1;
+  }catch{previousRetired=false}
+ }
  return {ok:true,engine:"4.0.0",title:draft.title,roomId:created.id,
-  invitations,expiresAt:created.expires_at,
+  invitations,expiresAt:created.expires_at,previousRetired,
   note:"Private browser pilot. No actual text messages will be sent."};
 }
 async function messages(room,role){
@@ -86,6 +101,7 @@ export async function status(token){
  const {scenes,mine,people}=joined?await messages(room,person.role):{scenes:[],mine:[],people:[]};
  const targets=targetRoles(room),needsReply=room.stage==="awaiting"&&targets.includes(person.role)&&person.submitted_phase!==room.phase_index;
  const bothJoined=people.filter(x=>x.joined_at).length===2;
+ const hasSophia=scenes.some(x=>x.kind==="sophia");
  return {ok:true,version:"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
@@ -93,6 +109,8 @@ export async function status(token){
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&["needs_scene","flow"].includes(room.stage),
   scenes,messages:mine,finished:room.stage==="complete",
+  hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
+  researchSources:hasSophia?RESEARCH_SOURCES:[],
   info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
 }
 export async function join(token,name){
