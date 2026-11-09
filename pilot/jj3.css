@@ -15,3 +15,18 @@
 .compose .alternate-action:hover{color:#295c7b}
 .conversation .decision{border-radius:12px;margin:12px 0 8px}
 .conversation .decision #commit{font-weight:750}
+
+/* Fifth-beat resolution: readable ending, never another decision gate. */
+.ending{border-color:#b8d3c5;background:linear-gradient(180deg,#f9fcf7,#fff)}
+.ending h2{font-size:24px;margin:3px 0 16px}
+.ending h3{font:700 16px ui-sans-serif,system-ui,sans-serif;margin:12px 0 4px;color:#254a41}
+.ending p{margin:5px 0 12px;line-height:1.6}
+.ending-people{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ending-people article{border:1px solid #d9e7dd;border-radius:12px;padding:12px 14px;background:#fff}
+.ending-people h3{margin-top:0}
+.sophia-ending{border-left:3px solid #8badab;padding:10px 13px;background:#eef6f4;border-radius:0 10px 10px 0;margin:13px 0}
+.sophia-ending strong{font-size:13px;color:#305c56}
+.sophia-ending p{margin:4px 0}
+.home-link{display:inline-block;font-size:13px;color:#295f78;text-decoration:underline;margin-top:14px}
+.reflection h2 small{font:500 12px ui-sans-serif,system-ui,sans-serif;color:#69828e;white-space:nowrap}
+@media(max-width:550px){.ending-people{grid-template-columns:1fr}.ending h2{font-size:22px}}
