@@ -1,5 +1,6 @@
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
+import {deepDiveRequest} from "./jj-model-config.mjs";
 import {ENGINE_VERSION,initialEvolution,validEvolution,characterEvolutionContext,evolutionStoryPrompt,EVOLUTION_STORY_SCHEMA,validateEvolutionStory,evolveState} from "./jj-evolution.mjs";
 import {VERSION,FOCUS,MILESTONES,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,directsCharacterToAct,consideredCharacterPlan,confusesFriendWithCharacter,explicitGoAhead,checkCharacterReply,soundsTooPolished,plainCharacterLanguage,RESPONSE_SCHEMA,STORY_SCHEMA,validStory} from "./jj3-model.mjs";
 
@@ -101,10 +102,7 @@ async function model(instructions,input,schema,name="anthos_jj3"){
   try{
    const res=await fetch("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
-    body:JSON.stringify({model:process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",
-     store:false,instructions,input:JSON.stringify(input),
-     max_output_tokens:attempt?2300:1500,
-     text:{format:{type:"json_schema",name,strict:true,schema}}}),
+    body:JSON.stringify(deepDiveRequest({instructions,input,schema,name,attempt})),
     signal:AbortSignal.timeout(attempt?30000:25000)
    });
    if(!res.ok){last="provider";if(res.status===400||res.status===401||res.status===403||res.status===429)break;continue}
