@@ -182,3 +182,24 @@ test("3.2 finishes natural instructions from both mountain friends without anoth
  assert.equal(concreteCharacterMove("jack","I might consider doing that someday."),"");
  assert.equal(concreteCharacterMove("jill","Jack should just call the host."),"");
 });
+
+test("a game-night opening must give Jack and Jill separate playable decisions",()=>{
+ const scenario={title:"The Challenge Without a Winner",opening_scene:"The host sets a six-minute duck challenge",learning_objective:"Cooperate under pressure"};
+ const jack=seededIntroduction("jack",scenario,"Adam");
+ const jill=seededIntroduction("jill",scenario,"Alissa");
+ assert.match(jack,/^Adam,/);
+ assert.match(jill,/^Alissa,/);
+ for(const text of [jack,jill]){
+  assert.match(text,/rubber duck/i);
+  assert.match(text,/tape/i);
+  assert.match(text,/six minutes|six-minute/i);
+  assert.match(text,/\?/);
+  assert.ok(text.length>200,"Enough context to advise a specific action");
+  assert.doesNotMatch(text,/curious what happens when there.s no winner/i);
+ }
+ assert.match(jack,/I talked over her/i);
+ assert.match(jill,/swap roles halfway/i);
+ assert.match(jack,/Do I stop building/i);
+ assert.match(jill,/Should I speak up/i);
+ assert.notEqual(jack,jill);
+});
