@@ -104,7 +104,7 @@ async function model(instructions,input,schema,name="anthos_jj3"){
    const res=await fetch("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
     body:JSON.stringify(deepDiveRequest({instructions,input,schema,name,attempt})),
-    signal:AbortSignal.timeout(["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(name)?(attempt?75000:65000):(attempt?55000:45000))
+    signal:AbortSignal.timeout(input?.autoplay&&name==="jj_evolution_outcome"?(attempt?45000:38000):["jj_evolution_outcome","jj_evolution_finale","jj3_story_outcome"].includes(name)?(attempt?70000:55000):(attempt?45000:30000))
    });
    if(!res.ok){last="provider";if(res.status===400||res.status===401||res.status===403||res.status===429)break;continue}
    const json=await res.json();
@@ -191,9 +191,9 @@ export async function talk(token,text,requestKey){
    if(now.submitted||now.step>r.step)return now;
    problem("The room changed while your message was sent. Refresh to continue.",409);
   }
-  // When the other friend has already acted this returns the next SHARED
-  // scene. The entire sequel unfolds via self-driven progress checks.
-  try{await resolveRoom(r)}catch{/* Saved choices can retry in progress. */}
+  // Commit now, generate the shared scene in the next independent progress
+  // request. Never combine a private-model call with a long shared director
+  // call in the same server invocation (which caused orphaned room locks).
   return status(token);
  }
  // A friend saying "let me know how it turns out" is a natural handoff, not
@@ -348,7 +348,7 @@ async function resolveRoom(room){
      actions,evolution:current.evolution_state,autoplay:!!current.autoplay})
    :storyPrompt({mode:current.mode,scenario,scene:current.scene,step:current.step,actions});
   let story=null,validationProblems=[];
-  for(let attempt=0;attempt<2;attempt++){
+  for(let attempt=0;attempt<(current.autoplay?1:2);attempt++){
    try{
     const retry=attempt
      ?" Your prior outcome was not usable: "+validationProblems.slice(0,5).join(", ")+
@@ -446,9 +446,9 @@ async function autoplayRoom(room){
  const prompt=autoplayMovesPrompt({scenario,scene:current.scene,
   evolution:current.evolution_state,step:current.step});
  let pair=null;
- for(let attempt=0;attempt<2;attempt++){
+ for(let attempt=0;attempt<1;attempt++){
   try{
-   const candidate=await model(prompt.instructions+(attempt?" The previous character actions were not usable; both must be concrete and clearly different.":""),prompt.input,
+   const candidate=await model(prompt.instructions,prompt.input,
     AUTOPLAY_MOVES_SCHEMA,"jj3_autoplay_moves");
    if(validPair(candidate)){pair=candidate;break}
   }catch(e){if(attempt===1)throw e}
@@ -459,7 +459,9 @@ async function autoplayRoom(room){
  },"POST");
  // A simultaneous progress request may have won the atomic claim. Both
  // paths converge on the same immutable outcome, never duplicate a step.
- if(accepted===true)await resolveRoom(current);
+ // Let the next poll handle the fictional event in a separate bounded
+ // request; this keeps runtime failures from stranding the whole episode.
+ if(accepted===true)return;
 }
 export async function progress(token){
  const {person:p,room:r}=await participant(token);
