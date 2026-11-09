@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
+import {VERSION,ADULT_LEARNING,PHASES,MILESTONES,FOCUS,CHARACTER,seededIntroduction,privatePrompt,storyPrompt,actionFromCoach,actionFromCharacterAgreement,actionFromCharacterWords,ownCharacterIntent,briefApproval,asksForAction,observeAndWait,observeAction,confusesFriendWithCharacter,explicitGoAhead,soundsTooPolished,plainCharacterLanguage,checkCharacterReply,validStory} from "../api/jj3-model.mjs";
 test("Jack and Jill have different believable private conflicts and distinctive introductions",()=>{
  assert.equal(VERSION,"3.0.0");
  assert.equal(ADULT_LEARNING.length,7);
@@ -123,4 +123,23 @@ test("opening private characters directly text their named recipient",()=>{
  const sample={title:"One of Us Loves Mountains"};
  assert.match(seededIntroduction("jack",sample,"Adam"),/^Adam,/);
  assert.match(seededIntroduction("jill",sample,"Alissa"),/^Alissa,/);
+});
+
+test("a friend can choose to wait and see without forcing another explicit action",()=>{
+ for(const choice of ["Wait and see how it turns out.","Let's wait and see.","See what happens.","Let it play out.","Let Jack take the lead."]){
+  assert.equal(observeAndWait(choice),true,choice);
+ }
+ for(const ambiguous of ["I guess we might wait.","Don't wait and see.","Do you want to wait and see?","Wait and see, but ask him first.","What will he do?","Wait until morning to decide."]){
+  assert.equal(observeAndWait(ambiguous),false,ambiguous);
+ }
+ assert.match(observeAction("jill"),/^Jill chooses to wait/);
+ assert.match(observeAction("jack"),/^Jack chooses to wait/);
+});
+test("Jill's text to Alissa never assigns Jill's weekend emotions to Alissa",()=>{
+ assert.equal(confusesFriendWithCharacter("Alissa, knowing you, that could end with you silently stewing while Jack's out hiking","jill"),true);
+ assert.equal(confusesFriendWithCharacter("Alissa, I might end up silently stewing while Jack goes hiking.","jill"),false);
+ const prompt=privatePrompt({role:"jill",name:"Alissa",scenario:{title:"Mountains"},scene:{scene:"The cabin"},step:3,history:[],memory:{},latest:"Wait and see how it turns out.",pending:null});
+ assert.match(prompt.instructions,/YOU \(speaker\) are Jill/);
+ assert.match(prompt.instructions,/YOUR FRIEND \(recipient\) is Alissa/);
+ assert.match(prompt.instructions,/NON-INTERVENTION IS A DECISION/);
 });
