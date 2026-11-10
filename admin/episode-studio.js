@@ -507,6 +507,11 @@ function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
 }
 function setup(){
  if(!$("episodeStudio"))return;
+ // Keep the long-form metadata and character motivations available without pushing the six phases below the fold.
+ const basics=document.querySelector(".episode-basics"),scene=document.querySelector(".episode-scene-grid");
+ const metaFold=document.createElement("details");metaFold.className="episode-more episode-metadata-fold";
+ const metaHeading=document.createElement("summary");metaHeading.textContent="Episode metadata, premise & character motivations";
+ metaFold.append(metaHeading);basics.parentNode.removeChild(basics);metaFold.append(basics);scene.after(metaFold);
  // Keep every existing creative/research/readiness field but place it in the wider story column.
  const creative=document.querySelector(".episode-humor");
  const destination=document.createElement("details");destination.className="episode-more episode-creative-fold";
