@@ -510,6 +510,40 @@ async function draftOnly(targets,direction){
   markDirty();note("AI draft applied only to the requested unlocked fields. Review and save when ready.");
  }catch(e){note(e.message,true)}finally{setBusy(false)}
 }
+async function draftPhasesOnly(){
+ if(!current||busy)return;
+ const before=collect();
+ if(!before.primarySkill||before.premise.trim().length<75){
+  note("Choose the primary relationship skill and establish the episode premise before drafting its six phases.",true);return;
+ }
+ setBusy(true);
+ note("Drafting unlocked six-phase directions and optional private check-ins around your locked editorial choices…");
+ try{
+  const result=await request("episode-studio-generate",{
+   id:current.id,mode:current.mode,
+   direction:"Draft cohesive six-phase story directions with meaningful, optional private coaching interventions. Do not change the skills, premise, characters or approved creative details.",
+   studio:before
+  });
+  const next={...before,phases:{...before.phases},checkpoints:before.checkpoints.map(x=>({...x}))};
+  for(const id of PHASE_IDS){
+   if(!before.locks.includes("phases."+id))next.phases[id]=result.studio.phases[id]||before.phases[id];
+  }
+  for(const [i,old] of before.checkpoints.entries()){
+   const fresh=result.studio.checkpoints[i]||old;
+   const key="checkpoints."+old.afterPhase;
+   const existingRecipient=old.audience!=="none";
+   next.checkpoints[i]={
+    ...old,
+    audience:existingRecipient?old.audience:fresh.audience,
+    waitForReply:existingRecipient?old.waitForReply:fresh.waitForReply,
+    purpose:before.locks.includes(key+".purpose")?old.purpose:fresh.purpose,
+    humorCue:before.locks.includes(key+".humorCue")?old.humorCue:fresh.humorCue
+   };
+  }
+  current.studio=next;renderStoryboard();populate();markDirty();
+  note("Only unlocked story directions and intervention content were drafted. Review the six phases and save when ready.");
+ }catch(error){note(error.message,true)}finally{setBusy(false)}
+}
 function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
  if(!current)return;
  const locks=new Set(collect().locks),all=fields.every(k=>locks.has(k));
@@ -774,7 +808,7 @@ function setup(){
  $("episodeFoundationLock").addEventListener("click",()=>toggleEditorialLock(FOUNDATION_FIELDS,$("episodeFoundationLock"),"🔓 Unlock foundation","✓ Approve & lock foundation"));
  $("episodeSceneLock").addEventListener("click",()=>toggleEditorialLock(SCENE_FIELDS,$("episodeSceneLock"),"🔓 Unlock scene and tone","✓ Approve & lock scene and tone"));
  $("episodeSceneDraft").addEventListener("click",()=>draftOnly(["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"],"Fill all UNLOCKED scene and episode-detail fields with grounded specific circumstances, objects, time, place, pressure and a triggering event. Keep locked canon. Make Jack and Jill flawed and believable; choose humor only when tone supports it. Write plain human language, not research jargon. Preserve title and relationship problem."));
- $("episodeFlowDraft").addEventListener("click",()=>{if(!current)return;const s=collect();if(!FOUNDATION_FIELDS.every(k=>s.locks.includes(k))||!SCENE_FIELDS.every(k=>s.locks.includes(k))){note("Approve and lock the foundation and scene before generating the story flow.",true);return;}generate();});
+ $("episodeFlowDraft").addEventListener("click",draftPhasesOnly);
  $("episodeToneApproach").addEventListener("change",markDirty);$("episodeIntensity").addEventListener("input",()=>{$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";markDirty();});
   $("episodeExpandAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=true));
   $("episodeCollapseAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=false));
