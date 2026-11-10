@@ -49,7 +49,7 @@ test("The AI has an explicit character-to-coach voice contract plus server valid
  assert.match(core,/validatePrivateCheckin\(draft,role\)/);
  assert.match(core,/generateStructured\(\{[\s\S]*name:"anthos_jj4_private_voice"/);
  assert.match(core,/fallbackPrivateCheckin\(role,cp\)/);
- assert.match(core,/const jackPrompt=\["jack","both"\]\.includes\(audience\)/);
+ assert.match(core,/const \[jackPrompt,jillPrompt\]=await Promise\.all\(/);
 });
 test("Both private panels identify the actual sender and coach role clearly",()=>{
  assert.match(player,/Husband · coaching Jack/);
