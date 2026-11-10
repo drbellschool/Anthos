@@ -206,8 +206,8 @@ function labeledTextarea(labelText,datasetKey,value,max,placeholder){
 function renderStoryboard(){
  const root=$("episodePhases");root.replaceChildren();
  for(const [index,p] of current.phases.entries()){
-  const row=node("article","episode-phase-row");
-  const title=node("div","episode-phase-head");
+  const row=node("article","episode-phase-row");const fold=node("details","episode-phase-fold");if(index===0)fold.open=true;
+  const title=node("summary","episode-phase-head");
   title.append(node("span","episode-phase-number",index+1),node("strong","",p.title));
   const body=node("div");
   body.append(node("small","",p.hint));
@@ -216,7 +216,7 @@ function renderStoryboard(){
   summary.placeholder="AI-drafted story objective and consequence; no scripted texts.";
   summary.setAttribute("aria-label",p.title+" story summary");
   summary.addEventListener("input",markDirty);
-  body.append(summary);row.append(title,body);root.append(row);
+  body.append(summary);fold.append(title,body);row.append(fold);root.append(row);
   if(index===current.phases.length-1)continue;
   const next=current.phases[index+1];
   const card=node("section","episode-intervention");
@@ -262,7 +262,7 @@ function renderStoryboard(){
    markDirty();
   });
   input.addEventListener("change",markDirty);
-  card.append(header,top,detail,empty);root.append(card);
+  card.append(header,top,detail,empty);fold.append(card);
  }
  wireLocks();
 }
@@ -498,6 +498,8 @@ function setup(){
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
  $("episodeGenerate").addEventListener("click",generate);
+  $("episodeExpandAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=true));
+  $("episodeCollapseAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=false));
   $("episodeProblemGenerate").addEventListener("click",generateProblem);
  $("episodeSave").addEventListener("click",save);
  $("episodeValidate").addEventListener("click",()=>{
