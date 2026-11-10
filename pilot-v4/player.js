@@ -72,7 +72,8 @@ function mount(root,invite,options={}){
    const row=el("article","jj4-entry "+(isScene?"scene":isSophia?"sophia":item.kind==="coach"?"coach":"prompt"));
    row.append(el("span","jj4-entry-label",isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
     isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
-    (state.character||"Character").toUpperCase()+" · PRIVATE"));
+    (state.character||"Character").toUpperCase()+" → "+
+    (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));
    row.append(el("p","",item.body));
    if(isSophia&&Array.isArray(state.researchSources)){
     const sourceList=el("div","jj4-sources");
@@ -90,7 +91,7 @@ function mount(root,invite,options={}){
  }
  function render(state){
   current=state;
-  title.textContent=(state.role==="jack"?"Husband · Jack":"Wife · Jill");
+  title.textContent=(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
   phase.textContent=state.phase+" · "+(state.phaseIndex+1)+"/6";
   transcript(state);
   // A background status poll can return every five seconds while a participant
@@ -127,7 +128,8 @@ function mount(root,invite,options={}){
   if(state.needsReply){
    message((state.character||"Your character")+" needs your advice before the next phase.");
    const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;
-   field.placeholder="What should your character consider doing next?";
+   field.placeholder="Reply privately to "+(state.character||"your character")+
+    ". Your advice can change what happens next.";
    field.setAttribute("aria-label","Private coaching advice");
    if(draftPhase!==state.phaseIndex){draftPhase=state.phaseIndex;draftAdvice=""}
    field.value=draftAdvice;
