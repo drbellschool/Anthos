@@ -316,6 +316,7 @@ function populate(){
  if(primary)researcher=primary.researcher;
  paintResearchers();paintSkills();paintSupports();
  opening=false;renderReadiness();
+ document.dispatchEvent(new CustomEvent("anthos-episode-populated"));
 }
 function validation(){
  const s=collect();if(!s)return [];
@@ -598,6 +599,7 @@ function setup(){
  const sceneTitle=node("strong","","Client Mode");
  sceneTop.append(mode,settingStatus);panels.scene.append(sceneTop);
  sceneFields.open=true;toneFields.open=true;
+ sceneDraft.textContent="✦ AI Draft Scene";
  const work=node("div","episode-scene-workspace");
  const sceneCard=node("div","episode-scene-fields");
  sceneCard.append(sceneFields);
@@ -637,6 +639,25 @@ function setup(){
 
  // 1-4 — the tone editor belongs here, not in the scene panel.
  panels.voice.append(toneFields);
+ // Large direct-choice tone buttons, while the existing select remains the saved source.
+ const toneBar=node("div","episode-tone-choices");
+ const toneSelect=$("episodeToneApproach");
+ const toneButtons=[];
+ for(const [value,label,description,symbol] of [
+  ["humor","Humor-led","Light, playful moments","☺"],
+  ["balanced","Balanced","Humor and real vulnerability","⚖"],
+  ["serious","Serious-led","Deeper and reflective","♡"]
+ ]){
+  const button=node("button","episode-tone-choice");button.type="button";button.dataset.tone=value;
+  button.append(node("span","episode-tone-icon",symbol),node("strong","",label),node("small","",description));
+  button.addEventListener("click",()=>{if(!current)return;toneSelect.value=value;toneSelect.dispatchEvent(new Event("change",{bubbles:true}));updateToneButtons()});
+  toneBar.append(button);toneButtons.push(button);
+ }
+ const updateToneButtons=()=>{for(const button of toneButtons){const active=button.dataset.tone===toneSelect.value;button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active))}};
+ toneSelect.addEventListener("change",updateToneButtons);
+ document.addEventListener("anthos-episode-populated",updateToneButtons);
+ toneFields.querySelector(".episode-more-fields").prepend(toneBar);
+ updateToneButtons();
  for(const child of Array.from(creative.children)){
   if(child.classList.contains("episode-pane-header")||child.classList.contains("episode-right-section"))continue;
   panels.voice.append(child);
@@ -650,6 +671,32 @@ function setup(){
 
  // 2-1 — unchanged five private checkpoints stay attached to their phase accordions.
  panels.flow.append(intro,flowHeading,flowActions,phases,flowDraft);
+ const phaseOverview=node("div","episode-phase-overview");
+ const overviewCards=[];
+ const phaseTitles=current=>current?.phases||[];
+ for(const [index,id] of PHASE_IDS.entries()){
+  const button=node("button","episode-phase-overview-card");button.type="button";
+  button.append(node("span","episode-overview-number",index+1),node("strong","",id.charAt(0).toUpperCase()+id.slice(1)),node("small","","Select to edit the phase and its checkpoint"));
+  button.addEventListener("click",()=>{
+   const text=phaseField(id);
+   const fold=text?.closest(".episode-phase-fold");
+   if(fold){fold.open=true;fold.scrollIntoView({behavior:"smooth",block:"nearest"})}
+  });
+  overviewCards.push(button);phaseOverview.append(button);
+ }
+ flowHeading.before(phaseOverview);
+ const updateOverview=()=>{
+  if(!current)return;
+  for(const [index,button] of overviewCards.entries()){
+   const id=PHASE_IDS[index];
+   const title=current.phases?.[index]?.title||id.charAt(0).toUpperCase()+id.slice(1);
+   button.querySelector("strong").textContent=title;
+   const summary=phaseField(id)?.value.trim()||"Add a phase direction";
+   button.querySelector("small").textContent=summary.slice(0,135);
+  }
+ };
+ document.addEventListener("anthos-episode-populated",updateOverview);
+ phases.addEventListener("input",event=>{if(event.target?.dataset?.episodePhase)updateOverview()});
  flowDraft.classList.add("episode-panel-draft");
 
  // 3-1 — research and Sophia's ending alongside closure and reflection criteria.
