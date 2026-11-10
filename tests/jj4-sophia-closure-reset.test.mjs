@@ -57,7 +57,7 @@ test("Fictional characters are Jack and Jill, not the real coaches",()=>{
  assert.match(core,/fictionalNames=\{jack:"Jack",jill:"Jill"\}/);
  assert.match(core,/fictionalCharacters:fictionalNames/);
  assert.match(core,/body:scrub\(m.body\)/);
- assert.match(core,/scene:brief\(scrub\(result.scene\)/);
+ assert.match(core,/scene:brief\(scrub\(story\)/);
  assert.doesNotMatch(core,/participants:cast/);
 });
 test("Admin reset requires saved edits, creates a fresh snapshot and retires prior room",()=>{
