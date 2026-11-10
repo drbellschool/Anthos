@@ -246,7 +246,7 @@ async function directScene(room,phaseIndex){
   "VOICE CONTRACT: jackPrompt is a message JACK HIMSELF sends IN FIRST PERSON to the real husband who advises him. jillPrompt is a message JILL HERSELF sends IN FIRST PERSON to the real wife who advises her. The coaches are recipients, NOT Jack or Jill, and are not characters in the story.",
   "A private check-in must sound like an authentic text from that character about their own immediate situation: 'I just did X, now Y happened, and I'm not sure whether to Z. What would you do?' Vary wording naturally. Each text must contain an I/my/me reference and ask a concrete decision question.",
   "NEVER begin a private message 'Jack, ...' or 'Jill, ...', never say 'Jill, consider...', 'How could Jill...', 'Tell Jack what to do', or 'How do you feel about Jill'. Those are narrator instructions aimed at the character or coach, NOT a character texting a friend.",
-  "Do not insert names or private advice from the real husband or wife into the message. Speak ONLY as the fictional sender and don't ask the user to roleplay that sender."
+  "Do not insert names or private advice from the real husband or wife into the message. Speak ONLY as the fictional sender and don't ask the user to roleplay that sender.",
   "Jack and Jill are always the fictional characters; the real husband and wife are private coaches, never characters.",
   "The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
   "Return JSON only: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt.",
