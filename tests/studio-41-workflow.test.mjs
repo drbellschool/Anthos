@@ -32,3 +32,13 @@ test("Existing checkpoint editors remain in expandable phases",()=>{
  assert.match(editor,/episodeCollapseAll/);
  assert.match(editor,/waitForReply/);
 });
+
+test("Strict response schema includes required tone fields without unsupported numeric bounds",()=>{
+ const api=readFileSync(new URL("../api/episode-studio.mjs",import.meta.url),"utf8");
+ assert.match(api,/required:\[\.\.\.Object\.keys\(FIELDS\).*"toneApproach","toneIntensity"/);
+ assert.doesNotMatch(api,/toneIntensity:\{type:"integer",minimum:/);
+});
+test("Selecting another skill adds support rather than replacing the primary",()=>{
+ assert.match(editor,/else if\(!current\.studio\.primarySkill\)/);
+ assert.match(editor,/current\.studio\.supportingSkills\.push\(skill\.id\)/);
+});
