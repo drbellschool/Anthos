@@ -560,7 +560,8 @@ function setup(){
  const foundation=document.querySelector(".episode-objectives");
  panels.foundation.append(...Array.from(foundation.children).filter(x=>!x.classList.contains("episode-pane-header")));
  panels.scene.append(scene,document.querySelector(".episode-scene-approval"));
- panels.metadata.append(metaFold);
+ for(const section of scene.querySelectorAll("details"))section.open=true;
+ metaFold.open=true;panels.metadata.append(metaFold);
  const mode=document.querySelector(".episode-design-top");
  panels.metadata.insertBefore(mode,metaFold);
  const voiceFields=Array.from(creative.children).filter(x=>!x.classList.contains("episode-pane-header"));
