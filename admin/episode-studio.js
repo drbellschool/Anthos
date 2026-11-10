@@ -303,7 +303,8 @@ function populate(){
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
  " · Editorial version 4.0";
  $("episodePetal").textContent=current.petal;
- for(const badge of document.querySelectorAll("[data-mode-choice]"))badge.classList.toggle("active",badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack"));
+ const status=$("episodeStatusLabel");if(status)status.textContent=(current.status||"draft").replaceAll("_"," ");
+ for(const badge of document.querySelectorAll("[data-mode-choice]")){const selected=badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack");badge.classList.toggle("active",selected);badge.setAttribute("aria-pressed",String(selected))}
  $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia introduces both clients; Jack and Jill coach privately.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
  $("episodeToneApproach").value=s.toneApproach||"balanced";$("episodeIntensity").value=s.toneIntensity||3;$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";
  $("episodeFoundationLock").textContent=FOUNDATION_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock foundation":"✓ Approve & lock foundation";
@@ -336,6 +337,7 @@ function renderReadiness(){
  const checks=validation(),box=$("episodeReadiness");box.replaceChildren();
  const n=checks.filter(x=>x[1]).length;
  box.append(node("p","episode-summary",n+" of "+checks.length+" editorial checks complete"));
+ const headline=$("episodeReadinessHeadline");if(headline)headline.textContent=n+" / "+checks.length+" checks complete · "+(current.mode==="shared"?"Couple":"Individual")+" episode";
  for(const [label,passed] of checks){
   const row=node("div","episode-check"+(passed?" ok":""));
   row.append(node("span","",passed?"✓":"○"),node("span","",label));box.append(row);
