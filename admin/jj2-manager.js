@@ -16,6 +16,7 @@ async function load(){
   select.value=old;
   $("jj2Controls").hidden=false;
   draw();
+  document.dispatchEvent(new CustomEvent("anthos-episode-library",{detail:{scenarios:library.scenarios}}));
  }catch(error){notice(error.message)}
 }
 function filtered(){
@@ -55,7 +56,7 @@ function setup(){
  for(const id of ["jj2Petal","jj2Mode","jj2Status"])$(id).addEventListener("change",draw);
  $("jj2Search").addEventListener("input",draw);
  $("jj2Refresh").addEventListener("click",load);
- document.querySelectorAll('[data-studio-tab="deepdives"]').forEach(b=>b.addEventListener("click",()=>{if(!loaded&&!$("dashboard").hidden)load()}));
+ document.querySelectorAll('[data-studio-tab="deepdives"]').forEach(b=>b.addEventListener("click",()=>{if(!loaded)load()}));
  document.addEventListener("threefold-auth",e=>{if(e.detail?.authenticated&&!loaded)load()});
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup);else setup();
