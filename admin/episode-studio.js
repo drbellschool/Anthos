@@ -491,11 +491,11 @@ async function generateProblem(){
 }
 async function draftOnly(targets,direction){
  if(!current||busy)return;
- const before=collect();if(targets.some(t=>before.locks.includes(t))){note("Unlock the selected fields before drafting.",true);return;}
+ const before=collect();const editable=targets.filter(t=>!before.locks.includes(t));if(!editable.length){note("All requested fields are locked. Unlock a field to draft it.",true);return;}
  setBusy(true);
  try{
   const data=await request("episode-studio-generate",{id:current.id,direction,studio:before});
-  for(const key of targets){const value=data.studio[key];if(typeof value==="string")field(key).value=value;}
+  for(const key of editable){const value=data.studio[key];if(typeof value==="string")field(key).value=value;}
   markDirty();note("AI draft applied only to the requested unlocked fields. Review and save when ready.");
  }catch(e){note(e.message,true)}finally{setBusy(false)}
 }
