@@ -23,10 +23,14 @@ export async function getScenario(id){
  return out[0];
 }
 export async function listScenarios(){
- const [petals,scenarios]=await Promise.all([
+ const [petals,scenarios,saved]=await Promise.all([
    rest("anthos_petals",{select:"slug,sort_order,name,purpose,primary_lenses",order:"sort_order.asc"}),
-   rest("anthos_jj2_scenarios",{select:"id,petal_slug,mode,slot,title,opening_scene,learning_objective,research_lenses,status,content_version,updated_at",order:"petal_slug.asc,mode.asc,slot.asc",limit:"200"})
+   rest("anthos_jj2_scenarios",{select:"id,petal_slug,mode,slot,title,opening_scene,learning_objective,research_lenses,status,content_version,updated_at",order:"petal_slug.asc,mode.asc,slot.asc",limit:"200"}),
+   rest("anthos_jj2_scenarios",{select:"id",episode_studio:"not.is.null",limit:"200"})
  ]);
+ // Only expose saved status in the authenticated library, not the episode content.
+ const savedIds=new Set(saved.map(item=>item.id));
+ for(const item of scenarios)item.episode_saved=savedIds.has(item.id);
  const counts={total:scenarios.length,shared:scenarios.filter(x=>x.mode==="shared").length,
    individual:scenarios.filter(x=>x.mode==="individual").length,
    draft:scenarios.filter(x=>x.status==="draft").length,
