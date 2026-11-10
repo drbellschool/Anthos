@@ -23,10 +23,14 @@ export async function getScenario(id){
  return out[0];
 }
 export async function listScenarios(){
- const [petals,scenarios]=await Promise.all([
+ const [petals,scenarios,saved]=await Promise.all([
    rest("anthos_petals",{select:"slug,sort_order,name,purpose,primary_lenses",order:"sort_order.asc"}),
-   rest("anthos_jj2_scenarios",{select:"id,petal_slug,mode,slot,title,opening_scene,learning_objective,research_lenses,status,content_version,updated_at",order:"petal_slug.asc,mode.asc,slot.asc",limit:"200"})
+   rest("anthos_jj2_scenarios",{select:"id,petal_slug,mode,slot,title,opening_scene,learning_objective,research_lenses,status,content_version,updated_at",order:"petal_slug.asc,mode.asc,slot.asc",limit:"200"}),
+   rest("anthos_jj2_scenarios",{select:"id",episode_studio:"not.is.null",limit:"200"})
  ]);
+ // Only expose saved status in the authenticated library, not the episode content.
+ const savedIds=new Set(saved.map(item=>item.id));
+ for(const item of scenarios)item.episode_saved=savedIds.has(item.id);
  const counts={total:scenarios.length,shared:scenarios.filter(x=>x.mode==="shared").length,
    individual:scenarios.filter(x=>x.mode==="individual").length,
    draft:scenarios.filter(x=>x.status==="draft").length,
@@ -57,13 +61,13 @@ export async function saveScenario(data){
 }
 
 /** Admin-only Episode Studio draft persistence. Existing live room behavior is unchanged. */
-export async function persistEpisodeStudio(id,expected,studio){
+export async function persistEpisodeStudio(id,expected,studio,mode,status){
  if(typeof id!=="string"||!uuid.test(id))bad("Invalid scenario ID.");
  const row=await getScenario(id);
  if(row.content_version!==expected)bad("This episode was edited elsewhere. Reload before saving.",409);
  const rows=await rest("anthos_jj2_scenarios",
   {id:"eq."+id,content_version:"eq."+expected},
-  {episode_studio:studio,content_version:expected+1,updated_at:new Date().toISOString()},"PATCH");
+  {episode_studio:studio,mode:mode||row.mode,status:status||row.status,content_version:expected+1,updated_at:new Date().toISOString()},"PATCH");
  if(rows.length!==1)bad("Version conflict. Reload before saving.",409);
  return rows[0];
 }

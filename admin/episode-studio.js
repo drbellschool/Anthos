@@ -303,7 +303,10 @@ function populate(){
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
  " · Editorial version 4.0";
  $("episodePetal").textContent=current.petal;
- for(const badge of document.querySelectorAll("[data-mode-choice]"))badge.classList.toggle("active",badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack"));
+ const scenePetal=$("episodeScenePetalLabel");if(scenePetal)scenePetal.textContent=current.petal.replaceAll("-"," ");
+ const reviewSelect=$("episodeStatusSelect");if(reviewSelect)reviewSelect.value=current.status||"draft";
+ const status=$("episodeStatusLabel");if(status)status.textContent=(current.status||"draft").replaceAll("_"," ");
+ for(const badge of document.querySelectorAll("[data-mode-choice]")){const selected=badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack");badge.classList.toggle("active",selected);badge.setAttribute("aria-pressed",String(selected))}
  $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia introduces both clients; Jack and Jill coach privately.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
  $("episodeToneApproach").value=s.toneApproach||"balanced";$("episodeIntensity").value=s.toneIntensity||3;$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";
  $("episodeFoundationLock").textContent=FOUNDATION_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock foundation":"✓ Approve & lock foundation";
@@ -315,6 +318,7 @@ function populate(){
  if(primary)researcher=primary.researcher;
  paintResearchers();paintSkills();paintSupports();
  opening=false;renderReadiness();
+ document.dispatchEvent(new CustomEvent("anthos-episode-populated"));
 }
 function validation(){
  const s=collect();if(!s)return [];
@@ -336,6 +340,7 @@ function renderReadiness(){
  const checks=validation(),box=$("episodeReadiness");box.replaceChildren();
  const n=checks.filter(x=>x[1]).length;
  box.append(node("p","episode-summary",n+" of "+checks.length+" editorial checks complete"));
+ const headline=$("episodeReadinessHeadline");if(headline)headline.textContent=n+" / "+checks.length+" checks complete · "+(current.mode==="shared"?"Couple":"Individual")+" episode";
  for(const [label,passed] of checks){
   const row=node("div","episode-check"+(passed?" ok":""));
   row.append(node("span","",passed?"✓":"○"),node("span","",label));box.append(row);
@@ -410,6 +415,38 @@ async function copyPilot(which){
   $("episodePilotStatus").textContent=(which==="jack"?"Husband":"Wife")+" private invitation copied.";
  }catch{$("episodePilotStatus").textContent="Copy unavailable. Use the invitation link above."}
 }
+async function autoDraftMissingDetails(){
+ if(!current||busy||initiallyDrafted.has(current.id))return;
+ const draft=collect();
+ if(!draft.primarySkill||draft.premise.trim().length<75)return;
+ const fields=["sceneSetting","sceneStress","sceneTrigger","toneElement","jackExample","jillExample",
+  "sophiaIntro","jackMotivation","jillMotivation","boundaries","researchNotes","closureCriteria","reflectionPrompt"];
+ const missing=fields.filter(key=>!draft[key].trim()&&!draft.locks.includes(key));
+ if(!missing.length)return;
+ const episodeId=current.id,version=current.version,mode=current.mode;
+ initiallyDrafted.add(episodeId);
+ note("Preparing suggestions for missing scene and character details. Existing and locked text will remain unchanged.");
+ try{
+  const result=await request("episode-studio-generate",{
+   id:episodeId,mode,studio:draft,
+   direction:"Draft concrete, distinctive and vivid missing scene details, Jack/Jill experiences, Sophia introduction and research-based closure. Never rewrite locked or existing author-provided text."
+  });
+  // Response may arrive after someone switches episodes or saves a new version.
+  if(!current||current.id!==episodeId||current.version!==version||current.mode!==mode||current.dirty)return;
+  let applied=0;
+  for(const key of missing){
+   const box=field(key);
+   if(box&&!box.value.trim()&&!current.studio.locks.includes(key)){
+    const suggestion=result.studio?.[key];
+    if(typeof suggestion==="string"&&suggestion.trim()){box.value=suggestion;applied++}
+   }
+  }
+  if(applied){markDirty();document.dispatchEvent(new CustomEvent("anthos-episode-populated"));
+   note("AI proposed "+applied+" missing editorial details. Edit and lock what you like; nothing has been saved automatically.");}
+ }catch(error){
+  if(current?.id===episodeId)note("Saved episode loaded. Missing-field suggestions were unavailable: "+error.message,true);
+ }
+}
 async function openEditor(id,petal,mode){
  if(busy)return;
  if(current?.dirty&&!confirm("Discard unsaved changes and open another episode?"))return;
@@ -420,15 +457,19 @@ async function openEditor(id,petal,mode){
  $("episodeStudioTitle").textContent="Loading episode…";note("Loading objectives and story flow…");
  try{
   const data=await request(null,{id});
-  current={id,petal,mode,studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,
+  current={id,petal:data.scenario.petal_slug||petal,mode:data.scenario.mode||mode,status:data.scenario.status||"draft",studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,
    version:data.scenario.content_version,hasSaved:data.scenario.episode_saved,dirty:false};
   renderStoryboard();
   const select=$("episodePrimary");select.replaceChildren();
   const blank=node("option","","Choose a relationship objective");blank.value="";select.append(blank);
   for(const skill of current.skills){const o=node("option","",skill.researcher+" · "+skill.title);o.value=skill.id;select.append(o)}
   populate();
+  if($("episodeStudioPetal"))$("episodeStudioPetal").value=current.petal;
+  document.dispatchEvent(new CustomEvent("anthos-episode-selected",{detail:{id:current.id,petal:current.petal}}));
   if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
+  try{localStorage.setItem("anthos.studio.lastEpisodeId",String(id))}catch{}
   note(data.scenario.episode_saved?"Saved 4.0 draft loaded. Edit and save whenever you're ready.":"Episode seed loaded. Use ✦ AI fill episode, then revise the narrative and check-ins.");
+  void autoDraftMissingDetails();
   window.scrollTo({top:0,behavior:"smooth"});
  }catch(error){note(error.message,true);current=null}
 }
@@ -439,7 +480,7 @@ async function generate(){
  try{
   const before=collect();
   const data=await request("episode-studio-generate",{
-   id:current.id,direction:field("creativeDirection").value,studio:before
+   id:current.id,mode:current.mode,direction:field("creativeDirection").value,studio:before
   });
   current.studio=data.studio;current.dirty=true;renderStoryboard();populate();
   note("AI revised unlocked fields with "+(data.model||"OpenAI")+". "+
@@ -455,8 +496,9 @@ async function save(){
  }
  setBusy(true);note("Saving the editable Anthos 4.0 episode draft…");
  try{
-  const result=await request("episode-studio-save",{id:current.id,content_version:current.version,studio:s});
-  current.version=result.content_version;current.studio=result.studio;current.hasSaved=true;current.dirty=false;
+  const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,status:current.status,studio:s});
+  current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.status=result.status||current.status;current.hasSaved=true;current.dirty=false;
+   document.dispatchEvent(new CustomEvent("anthos-episode-saved",{detail:{id:current.id}}));
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
   $("episodeSavedState").classList.remove("modified");
@@ -484,7 +526,7 @@ async function generateProblem(){
  try{
   const skills=[before.primarySkill,...before.supportingSkills].map(id=>current.skills.find(s=>s.id===id)).filter(Boolean).map(s=>s.researcher+": "+s.title);
   const direction=[before.creativeDirection,"Write a concrete relationship PROBLEM STATEMENT, not a solution or practice instruction, in learningObjective. Preserve the episode title, premise, original storyline, characters and locked direction. Center the tension on: "+skills.join("; ")].filter(Boolean).join("\n");
-  const result=await request("episode-studio-generate",{id:current.id,direction,studio:before});
+  const result=await request("episode-studio-generate",{id:current.id,mode:current.mode,direction,studio:before});
   const candidate=result.studio?.learningObjective?.trim();
   if(!candidate||candidate.length<12)throw Error("AI did not return a usable problem statement.");
   input.value=candidate.slice(0,450);markDirty();
@@ -496,10 +538,44 @@ async function draftOnly(targets,direction){
  const before=collect();const editable=targets.filter(t=>!before.locks.includes(t));if(!editable.length){note("All requested fields are locked. Unlock a field to draft it.",true);return;}
  setBusy(true);
  try{
-  const data=await request("episode-studio-generate",{id:current.id,direction,studio:before});
+  const data=await request("episode-studio-generate",{id:current.id,mode:current.mode,direction,studio:before});
   for(const key of editable){const value=data.studio[key];if(typeof value==="string")field(key).value=value;}
   markDirty();note("AI draft applied only to the requested unlocked fields. Review and save when ready.");
  }catch(e){note(e.message,true)}finally{setBusy(false)}
+}
+async function draftPhasesOnly(){
+ if(!current||busy)return;
+ const before=collect();
+ if(!before.primarySkill||before.premise.trim().length<75){
+  note("Choose the primary relationship skill and establish the episode premise before drafting its six phases.",true);return;
+ }
+ setBusy(true);
+ note("Drafting unlocked six-phase directions and optional private check-ins around your locked editorial choices…");
+ try{
+  const result=await request("episode-studio-generate",{
+   id:current.id,mode:current.mode,
+   direction:"Draft cohesive six-phase story directions with meaningful, optional private coaching interventions. Do not change the skills, premise, characters or approved creative details.",
+   studio:before
+  });
+  const next={...before,phases:{...before.phases},checkpoints:before.checkpoints.map(x=>({...x}))};
+  for(const id of PHASE_IDS){
+   if(!before.locks.includes("phases."+id))next.phases[id]=result.studio.phases[id]||before.phases[id];
+  }
+  for(const [i,old] of before.checkpoints.entries()){
+   const fresh=result.studio.checkpoints[i]||old;
+   const key="checkpoints."+old.afterPhase;
+   const existingRecipient=old.audience!=="none";
+   next.checkpoints[i]={
+    ...old,
+    audience:existingRecipient?old.audience:fresh.audience,
+    waitForReply:existingRecipient?old.waitForReply:fresh.waitForReply,
+    purpose:before.locks.includes(key+".purpose")?old.purpose:fresh.purpose,
+    humorCue:before.locks.includes(key+".humorCue")?old.humorCue:fresh.humorCue
+   };
+  }
+  current.studio=next;renderStoryboard();populate();markDirty();
+  note("Only unlocked story directions and intervention content were drafted. Review the six phases and save when ready.");
+ }catch(error){note(error.message,true)}finally{setBusy(false)}
 }
 function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
  if(!current)return;
@@ -509,76 +585,235 @@ function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
 }
 function setup(){
  if(!$("episodeStudio"))return;
- // Keep the long-form metadata and character motivations available without pushing the six phases below the fold.
- const basics=document.querySelector(".episode-basics"),scene=document.querySelector(".episode-scene-grid");
- const intro=document.querySelector(".episode-intro"),flow=document.querySelector(".episode-flow-heading");
- flow.after(intro);
- const metaFold=document.createElement("details");metaFold.className="episode-more episode-metadata-fold";
- const metaHeading=document.createElement("summary");metaHeading.textContent="Episode metadata, premise & character motivations";
- metaFold.append(metaHeading);basics.parentNode.removeChild(basics);metaFold.append(basics);scene.after(metaFold);
- // Keep every existing creative/research/readiness field but place it in the wider story column.
- const creative=document.querySelector(".episode-humor");
- const destination=document.createElement("details");destination.className="episode-more episode-creative-fold";
- const heading=document.createElement("summary");heading.textContent="Creative voice, research & episode readiness";
- destination.append(heading);creative.parentNode.removeChild(creative);destination.append(creative);
- document.querySelector(".episode-story").append(destination);
- // Sideways panel navigation: move the existing controls rather than duplicating
- // them, preserving field bindings, editorial locks, and pilot handlers.
+ // Relocate actual input elements, never duplicate them. IDs, input listeners and locks
+ // stay attached to the same DOM nodes even when their presentation changes.
  const studio=$("episodeStudio"),layout=studio.querySelector(".episode-layout");
- const rail=studio.querySelector(".episode-workflow");
- const readiness=creative.querySelector("#episodeReadiness");
- const readinessHost=document.createElement("div");
- readinessHost.className="episode-readiness-rail";
- const readinessTitle=document.createElement("strong");readinessTitle.textContent="◎ Episode Goals & Readiness";
- readinessHost.append(readinessTitle,readiness);
- rail.before(readinessHost);
- const nav=document.createElement("nav");nav.className="episode-side-nav";nav.setAttribute("aria-label","Episode editorial panels");
+ const foundation=studio.querySelector(".episode-objectives");
+ const story=studio.querySelector(".episode-story");
+ const creative=studio.querySelector(".episode-humor");
+ const basics=story.querySelector(".episode-basics");
+ const mode=story.querySelector(".episode-design-top");
+ const sceneGrid=story.querySelector(".episode-scene-grid");
+ const sceneDetails=Array.from(sceneGrid.querySelectorAll(":scope > details"));
+ const sceneFields=sceneDetails[0],toneFields=sceneDetails[1];
+ const sceneActions=story.querySelector(".episode-scene-approval");
+ const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
+ const intro=story.querySelector(".episode-intro");
+ const flowHeading=story.querySelector(".episode-flow-heading");
+ const flowActions=story.querySelector(".episode-flow-actions"),phases=$("episodePhases");
+ const ending=story.querySelector(".episode-final-notes");
+ const researchLabel=field("researchNotes").closest("label");
+ const readiness=$("episodeReadiness");
+ const readinessSection=readiness.closest(".episode-right-section");
+
+ // Compact top rail: detailed checks available on demand, not nine rows by default.
+ const readinessHost=document.createElement("details");readinessHost.className="episode-readiness-rail";
+ const readinessSummary=document.createElement("summary");readinessSummary.className="episode-readiness-top";
+ const readinessTitle=node("strong","","◎ Episode Goals & Readiness");
+ const readinessHeadline=node("span","episode-readiness-headline","Choose an episode");
+ readinessHeadline.id="episodeReadinessHeadline";
+ readinessSummary.append(readinessTitle,readinessHeadline);readinessHost.append(readinessSummary,readiness);
+ studio.querySelector(".episode-workflow").before(readinessHost);
+ readinessSection.remove();
+
+ const nav=document.createElement("nav");nav.className="episode-side-nav";nav.setAttribute("aria-label","Episode editorial sections");
  const stage=document.createElement("div");stage.className="episode-panel-stage";
- const panelSpecs=[
-  ["1-1","Relationship Foundation","foundation"],
-  ["1-2","Scene, Setting & Situation","scene"],
-  ["1-3","Episode Metadata, Premise & Motivations","metadata"],
-  ["1-4","Creative Voice","voice"],
-  ["2-1","Six-Phase Story Flow","flow"],
-  ["3-1","Ending & Reflection Guardrails","ending"]
+ const specs=[
+  ["1-1","Relationship Foundation","foundation","♡","Skills, priorities and the couple's problem"],
+  ["1-2","Scene, Setting & Situation","scene","⌖","The place, pressure and opening conflict"],
+  ["1-3","Episode Metadata & Motivations","metadata","♙","Episode identity and character needs"],
+  ["1-4","Creative Voice","voice","✎","Humor, seriousness and character voice"],
+  ["2-1","Six-Phase Story Flow","flow","▤","Sophia, six phases and private check-ins"],
+  ["3-1","Ending & Reflection Guardrails","ending","⚑","Resolution, research and safety"]
  ];
  const panels={};
- for(const [number,title,key] of panelSpecs){
-  const button=document.createElement("button");button.type="button";button.className="episode-side-tab";button.dataset.panel=key;
-  button.innerHTML='<span class="episode-side-number">'+number+'</span><span class="episode-side-label"></span><span aria-hidden="true">›</span>';
-  button.querySelector(".episode-side-label").textContent=title;nav.append(button);
-  const panel=document.createElement("section");panel.className="episode-side-panel";panel.dataset.panel=key;
-  const heading=document.createElement("header");heading.className="episode-side-heading";
-  const headingText=document.createElement("h4");headingText.textContent=number+" · "+title;heading.append(headingText);
-  panel.append(heading);stage.append(panel);panels[key]=panel;
+ for(const [number,title,key,symbol,description] of specs){
+  const button=node("button","episode-side-tab");button.type="button";button.dataset.panel=key;
+  button.setAttribute("aria-controls","episode-panel-"+key);
+  const emblem=node("span","episode-side-icon",symbol);
+  const words=node("span","episode-side-words");
+  words.append(node("strong","",number+" · "+title),node("small","",description));
+  button.append(emblem,words,node("span","episode-side-chevron","›"));nav.append(button);
+  const panel=node("section","episode-side-panel");panel.dataset.panel=key;panel.id="episode-panel-"+key;
+  const heading=node("header","episode-side-heading");
+  heading.append(node("span","episode-panel-icon",symbol));
+  const headingCopy=node("div","episode-side-heading-copy");
+  headingCopy.append(node("h4","",number+" · "+title),node("p","",description));
+  heading.append(headingCopy);panel.append(heading);stage.append(panel);panels[key]=panel;
   button.addEventListener("click",()=>{
-   for(const item of nav.querySelectorAll("button")){const selected=item===button;item.classList.toggle("active",selected);item.setAttribute("aria-current",selected?"step":"false");}
+   for(const tab of nav.querySelectorAll("button")){
+    const selected=tab===button;tab.classList.toggle("active",selected);
+    if(selected)tab.setAttribute("aria-current","step");else tab.removeAttribute("aria-current");
+   }
    for(const item of stage.children)item.hidden=item!==panel;
    stage.scrollTop=0;
   });
  }
+ // Keep the CSS grid parent: previous releases removed it, stacking all six panels.
  layout.append(nav,stage);
- const foundation=document.querySelector(".episode-objectives");
- panels.foundation.append(...Array.from(foundation.children).filter(x=>!x.classList.contains("episode-pane-header")));
- panels.scene.append(scene,document.querySelector(".episode-scene-approval"));
- for(const section of scene.querySelectorAll("details"))section.open=true;
- metaFold.open=true;panels.metadata.append(metaFold);
- const mode=document.querySelector(".episode-design-top");
- panels.metadata.insertBefore(mode,metaFold);
- const voiceFields=Array.from(creative.children).filter(x=>!x.classList.contains("episode-pane-header"));
- panels.voice.append(...voiceFields);
- const flowHeading=document.querySelector(".episode-flow-heading"),flowActions=document.querySelector(".episode-flow-actions"),phases=$("episodePhases");
- panels.flow.append(intro,flowHeading,flowActions,phases);
- const ending=document.querySelector(".episode-final-notes");ending.open=true;
+
+ // 1-1 — visible skills and problem side-by-side, with editable Jack/Jill examples.
+ const foundationGrid=node("div","episode-foundation-workspace");
+ const skillColumn=node("div","episode-foundation-skills");
+ const selected=foundation.querySelector(".episode-selected");
+ const library=foundation.querySelector(".episode-library-fold");
+ skillColumn.append(selected,library);
+ const objectiveColumn=node("div","episode-foundation-objective");
+ objectiveColumn.append(foundation.querySelector(".episode-assigned"));
+ foundationGrid.append(skillColumn,objectiveColumn);panels.foundation.append(foundationGrid);
+
+ // 1-2 — compact mode and scene editor, quick drafting and live narrative preview.
+ const sceneTop=node("div","episode-scene-toolbar");
+ const settings=node("section","episode-scene-settings");
+ settings.append(node("strong","","Episode Settings"));
+ const settingsRow=node("div","episode-settings-row");
+ const petalInfo=node("div","episode-setting-petal");
+ petalInfo.append(node("small","","Petal / Theme"));
+ const scenePetal=node("span","","Select an episode");scenePetal.id="episodeScenePetalLabel";petalInfo.append(scenePetal);
+ const reviewLabel=node("label","","Status");
+ const statusSelect=node("select","episode-status-select");statusSelect.id="episodeStatusSelect";
+ for(const [value,label] of [["draft","Draft"],["in_review","In Review"],["beta_ready","Beta Ready"],["retired","Retired"]]){
+  const option=new Option(label,value);statusSelect.append(option);
+ }
+ statusSelect.addEventListener("change",()=>{if(!current)return;current.status=statusSelect.value;markDirty()});
+ reviewLabel.append(statusSelect);
+ settingsRow.append(petalInfo,reviewLabel);settings.append(settingsRow);
+ sceneTop.append(mode,settings);panels.scene.append(sceneTop);
+ sceneFields.open=true;toneFields.open=true;
+ sceneDraft.textContent="✦ AI Draft Scene";
+ const work=node("div","episode-scene-workspace");
+ const sceneCard=node("div","episode-scene-fields");
+ sceneCard.append(sceneFields);
+ const quick=node("aside","episode-scene-quick");
+ quick.append(node("h5","","✦ Quick Actions"),sceneDraft);
+ const expand=node("button","episode-action-secondary","+ Expand details");expand.type="button";
+ expand.addEventListener("click",()=>{
+  sceneCard.classList.toggle("expanded");
+  expand.textContent=sceneCard.classList.contains("expanded")?"− Compact details":"+ Expand details";
+ });
+ const tips=node("div","episode-scene-tips");
+ tips.append(node("strong","","Scene Tips"),node("p","","Use specific objects, an everyday irritation, and an awkward moment that causes a real reaction. Keep it believable."));
+ quick.append(expand,sceneLock,tips);work.append(sceneCard,quick);
+ panels.scene.append(work);
+ const preview=node("section","episode-scene-preview");
+ preview.append(node("h5","","▣ Scene Preview · how it fits together"));
+ const previewBody=node("p","","Choose an episode to preview its scene.");
+ preview.append(previewBody);panels.scene.append(preview);
+ const updatePreview=()=>{
+  const values=["sceneSetting","sceneStress","sceneTrigger"].map(key=>field(key)?.value.trim()||"");
+  previewBody.textContent=values.filter(Boolean).join(" ")||"Fill the setting, stress and triggering situation to see the opening scene together.";
+ };
+ for(const key of ["sceneSetting","sceneStress","sceneTrigger"])field(key)?.addEventListener("input",updatePreview);
+ document.addEventListener("anthos-episode-populated",updatePreview);
+ updatePreview();
+
+ // 1-3 — all existing metadata/motivation inputs together, draftable without touching locks.
+ const metaFold=node("div","episode-metadata-editor");
+ metaFold.append(basics);panels.metadata.append(metaFold);
+ const motivation=basics.querySelector("details");if(motivation)motivation.open=true;
+ const metaDraft=node("button","episode-panel-draft","✦ AI Draft Episode Details");metaDraft.type="button";
+ metaDraft.addEventListener("click",()=>draftOnly(
+  ["premise","jackMotivation","jillMotivation","boundaries","creativeDirection"],
+  "Describe a vivid, specific situation and two distinct character motivations, using everyday language. Preserve the established relationship objective, all existing locked fields, and the episode title."
+ ));
+ panels.metadata.append(metaDraft);
+
+ // 1-4 — the tone editor belongs here, not in the scene panel.
+ panels.voice.append(toneFields);
+ // Large direct-choice tone buttons, while the existing select remains the saved source.
+ const toneBar=node("div","episode-tone-choices");
+ const toneSelect=$("episodeToneApproach");
+ const toneButtons=[];
+ for(const [value,label,description,symbol] of [
+  ["humor","Humor-led","Light, playful moments","☺"],
+  ["balanced","Balanced","Humor and real vulnerability","⚖"],
+  ["serious","Serious-led","Deeper and reflective","♡"]
+ ]){
+  const button=node("button","episode-tone-choice");button.type="button";button.dataset.tone=value;
+  button.append(node("span","episode-tone-icon",symbol),node("strong","",label),node("small","",description));
+  button.addEventListener("click",()=>{if(!current)return;toneSelect.value=value;toneSelect.dispatchEvent(new Event("change",{bubbles:true}));updateToneButtons()});
+  toneBar.append(button);toneButtons.push(button);
+ }
+ const updateToneButtons=()=>{for(const button of toneButtons){const active=button.dataset.tone===toneSelect.value;button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active))}};
+ toneSelect.addEventListener("change",updateToneButtons);
+ document.addEventListener("anthos-episode-populated",updateToneButtons);
+ toneFields.querySelector(".episode-more-fields").prepend(toneBar);
+ updateToneButtons();
+ for(const child of Array.from(creative.children)){
+  if(child.classList.contains("episode-pane-header")||child.classList.contains("episode-right-section"))continue;
+  panels.voice.append(child);
+ }
+ const voiceDraft=node("button","episode-panel-draft","✦ AI Draft Creative Voice");voiceDraft.type="button";
+ voiceDraft.addEventListener("click",()=>draftOnly(
+  ["tone","toneElement","humorNotes","runningGags"],
+  "Draft a concise natural character-voice guide and an optional situational complication that fits the chosen humor/seriousness setting. Avoid canned jokes or therapy speech."
+ ));
+ panels.voice.append(voiceDraft);
+
+ // 2-1 — unchanged five private checkpoints stay attached to their phase accordions.
+ panels.flow.append(intro,flowHeading,flowActions,phases,flowDraft);
+ const phaseOverview=node("div","episode-phase-overview");
+ const overviewCards=[];
+ for(const [index,id] of PHASE_IDS.entries()){
+  const button=node("button","episode-phase-overview-card");button.type="button";
+  button.append(node("span","episode-overview-number",index+1),node("strong","",id.charAt(0).toUpperCase()+id.slice(1)),node("small","","Select to edit the phase and its checkpoint"));
+  button.addEventListener("click",()=>{
+   const text=phaseField(id);
+   const fold=text?.closest(".episode-phase-fold");
+   if(fold){fold.open=true;fold.scrollIntoView({behavior:"smooth",block:"nearest"})}
+  });
+  overviewCards.push(button);phaseOverview.append(button);
+ }
+ flowHeading.before(phaseOverview);
+ const updateOverview=()=>{
+  if(!current)return;
+  for(const [index,button] of overviewCards.entries()){
+   const id=PHASE_IDS[index];
+   const title=current.phases?.[index]?.title||id.charAt(0).toUpperCase()+id.slice(1);
+   button.querySelector("strong").textContent=title;
+   const summary=phaseField(id)?.value.trim()||"Add a phase direction";
+   button.querySelector("small").textContent=summary.slice(0,135);
+  }
+ };
+ document.addEventListener("anthos-episode-populated",updateOverview);
+ phases.addEventListener("input",event=>{if(event.target?.dataset?.episodePhase)updateOverview()});
+ flowDraft.classList.add("episode-panel-draft");
+
+ // 3-1 — research and Sophia's ending alongside closure and reflection criteria.
+ ending.open=true;
  panels.ending.append(ending);
- // Move the scene/flow draft actions to their corresponding panels.
- const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
- panels.scene.append(sceneDraft,sceneLock);panels.flow.append(flowDraft);
- // Retain all legacy fields in their new panels; no cloneNode.
+ const researchBlock=node("div","episode-ending-research");
+ researchBlock.append(node("h5","","Research connection for Sophia"),researchLabel);
+ panels.ending.append(researchBlock);
+ const endDraft=node("button","episode-panel-draft","✦ AI Draft Ending Guardrails");endDraft.type="button";
+ endDraft.addEventListener("click",()=>draftOnly(
+  ["closureCriteria","reflectionPrompt","researchNotes"],
+  "Provide an earned ending condition, specific real-world reflection question and plain-language research takeaway without grading or shaming the relationship. Preserve locked fields."
+ ));
+ panels.ending.append(endDraft);
+
+ // Remove the now-empty original columns only after all live controls are relocated.
  for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
  nav.querySelector("button").click();
-
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
+ // Mode controls update the saved episode mode only after Save; existing pilot rooms remain snapshots.
+ document.querySelectorAll("[data-mode-choice]").forEach(button=>button.addEventListener("click",()=>{
+  if(!current){note("Select an episode first.",true);return;}
+  const selected=button.dataset.modeChoice;
+  const mode=selected==="shared"?"shared":"individual";
+  const solo=selected==="jill"?"jill":"jack";
+  if(current.mode===mode&&(mode==="shared"||current.studio.soloCoach===solo))return;
+  const draft=collect();
+  if(current.mode==="shared"&&mode==="individual")current._sharedCheckpoints=draft.checkpoints.map(p=>({...p}));
+  if(mode==="individual"){
+   draft.checkpoints=draft.checkpoints.map(p=>p.audience==="none"||p.audience===solo?p:{...p,audience:"none",waitForReply:false});
+  }else if(current._sharedCheckpoints){
+   draft.checkpoints=current._sharedCheckpoints.map(p=>({...p}));
+  }
+  draft.soloCoach=solo;current.studio=draft;current.mode=mode;
+  renderStoryboard();populate();markDirty();
+  note((mode==="shared"?"Couple episode":selected==="jack"?"Husband-only episode":"Wife-only episode")+" selected. Review check-in recipients and Save to apply it to future pilots.");
+ }));
  $("episodeSoloRole").addEventListener("change",()=>{
   if(!current||current.mode!=="individual")return;
   const copy=collect();copy.soloCoach=$("episodeSoloRole").value;
@@ -604,7 +839,7 @@ function setup(){
  $("episodeFoundationLock").addEventListener("click",()=>toggleEditorialLock(FOUNDATION_FIELDS,$("episodeFoundationLock"),"🔓 Unlock foundation","✓ Approve & lock foundation"));
  $("episodeSceneLock").addEventListener("click",()=>toggleEditorialLock(SCENE_FIELDS,$("episodeSceneLock"),"🔓 Unlock scene and tone","✓ Approve & lock scene and tone"));
  $("episodeSceneDraft").addEventListener("click",()=>draftOnly(["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"],"Fill all UNLOCKED scene and episode-detail fields with grounded specific circumstances, objects, time, place, pressure and a triggering event. Keep locked canon. Make Jack and Jill flawed and believable; choose humor only when tone supports it. Write plain human language, not research jargon. Preserve title and relationship problem."));
- $("episodeFlowDraft").addEventListener("click",()=>{if(!current)return;const s=collect();if(!FOUNDATION_FIELDS.every(k=>s.locks.includes(k))||!SCENE_FIELDS.every(k=>s.locks.includes(k))){note("Approve and lock the foundation and scene before generating the story flow.",true);return;}generate();});
+ $("episodeFlowDraft").addEventListener("click",draftPhasesOnly);
  $("episodeToneApproach").addEventListener("change",markDirty);$("episodeIntensity").addEventListener("input",()=>{$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";markDirty();});
   $("episodeExpandAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=true));
   $("episodeCollapseAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=false));
@@ -615,22 +850,46 @@ function setup(){
  });
  $("episodeBack").addEventListener("click",back);
  const picker=$("episodeStudioPicker"),petalPicker=$("episodeStudioPetal");
- let catalog=[];
+ let catalog=[],restoringEpisode=false;
  const refreshEpisodeOptions=()=>{
-  const previous=picker.value;picker.replaceChildren(new Option("Select an episode…",""));
+  const previous=picker.value;
   const matching=catalog.filter(item=>!petalPicker.value||item.petal_slug===petalPicker.value);
-  for(const item of matching){const opt=new Option(item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt)}
+  picker.replaceChildren(new Option("Select an episode…",""));
+  // Saved episodes first, then the remaining seeds, preserving the petal filter.
+  matching.sort((a,b)=>Number(!!b.episode_saved)-Number(!!a.episode_saved)||a.title.localeCompare(b.title));
+  for(const item of matching){
+   const opt=new Option((item.episode_saved?"✓ ":"")+item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);
+   opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt);
+  }
   if(matching.some(item=>String(item.id)===previous))picker.value=previous;
   else if(current&&matching.some(item=>String(item.id)===String(current.id)))picker.value=String(current.id);
  };
+ const restoreLastEpisode=async()=>{
+  if(current||restoringEpisode||!catalog.length||studio.hidden)return;
+  let previous="";
+  try{previous=localStorage.getItem("anthos.studio.lastEpisodeId")||""}catch{}
+  const ordered=[...catalog].filter(item=>item.episode_saved).sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at));
+  const item=catalog.find(x=>String(x.id)===previous)||ordered[0];
+  if(!item){note("Select a petal and episode above to start a new draft.");return;}
+  restoringEpisode=true;
+  petalPicker.value=item.petal_slug;
+  refreshEpisodeOptions();picker.value=String(item.id);
+  try{await openEditor(item.id,item.petal_slug,item.mode)}finally{restoringEpisode=false}
+ };
  document.addEventListener("anthos-episode-library",event=>{
   catalog=event.detail?.scenarios||[];
-  const previousPetal=petalPicker.value;petalPicker.replaceChildren(new Option("All petals",""));
+  const previousPetal=petalPicker.value;
+  petalPicker.replaceChildren(new Option("All petals",""));
   for(const petal of event.detail?.petals||[]){const opt=new Option(petal.name,petal.slug);petalPicker.append(opt)}
   petalPicker.value=previousPetal;
   refreshEpisodeOptions();
+  restoreLastEpisode();
  });
- petalPicker.addEventListener("change",refreshEpisodeOptions);
+ petalPicker.addEventListener("change",()=>{
+  refreshEpisodeOptions();
+  if(current&&petalPicker.value&&petalPicker.value!==current.petal)
+   note("Showing episodes in this petal. Select an episode to switch; the current draft remains open until then.");
+ });
  picker.addEventListener("change",()=>{
   const opt=picker.selectedOptions[0];if(!picker.value)return;
   openEditor(picker.value,opt.dataset.petal,opt.dataset.mode);
@@ -638,9 +897,9 @@ function setup(){
  document.querySelectorAll('[data-studio-tab="deepdives"]').forEach(button=>button.addEventListener("click",()=>{
   studio.hidden=false;$("jj2Browse").hidden=true;
   document.querySelector('[data-studio-page="deepdives"]').classList.add("studio-editing");
-  if(!current){$("episodeStudioTitle").textContent="Deep Dive Episode Studio";note("Choose an episode above to begin editing.");}
+  if(!current){$("episodeStudioTitle").textContent="Deep Dive Episode Studio";note("Loading your most recent saved episode…");}
+  restoreLastEpisode();
  }));
-
  $("episodeAddHumor").addEventListener("click",()=>{
   const area=field("humorNotes");area.value=area.value.trimEnd()+(area.value.trim()?"\n":"");
   markDirty();area.focus();area.setSelectionRange(area.value.length,area.value.length);
