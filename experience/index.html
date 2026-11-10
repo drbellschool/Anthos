@@ -8,7 +8,9 @@
   <title>Our Story — Anthos</title>
   <meta name="description" content="Preview the first Anthos experience: Love Whispers, adventures, a Deep Dive, and a story that grows with you.">
   <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="/experience/yearly-cord.css">
   <script src="../content.js" defer></script>
+  <script src="/experience/yearly-cord.js" defer></script>
   <script src="../app.js" defer></script>
   <script src="/welcome-gate.js" defer></script>
 </head>
@@ -42,40 +44,120 @@
         <div class="notice" role="note"><strong>Preview experience</strong><span>This is a local interactive preview. Progress and strand colors remain only in this browser; nothing is sent to your partner. No spouse account or database is connected.</span></div>
 
 
-        <section class="view new-home" data-page="home">
-          <div class="anthos-welcome">
-            <div><div class="overline">OUR SHARED JOURNEY</div><h1>Still becoming<br><em>more us.</em></h1><p>Not another task to finish. A beautiful way to remember the little things that make a marriage grow.</p></div>
-            <div class="year-mark"><span>THE YEAR AHEAD</span><strong>12</strong><small>CHAPTERS OF US</small></div>
-          </div>
-          <div class="anthos-couple-grid">
-            <article class="anthos-weave">
-              <div class="weave-heading"><div><div class="overline">THREE STRANDS · ONE STORY</div><h2>The life you're weaving.</h2></div><span class="weave-label">YOUR THREEFOLD CORD</span></div>
-              <div class="blossom-wrap rope-stage" id="homeArt" aria-label="Circular braided progress of your threefold story"></div>
-              <p class="weave-description">Each meaningful moment opens another petal. Each story crossing brings a little more color to your cord.</p>
-              <div class="rope-choice"><div class="rope-choice-intro"><strong>Make it yours.</strong><span>Pick your three strand colors.</span></div>
-                <label><input type="color" class="rope-color" data-strand="0" value="#b47b69" aria-label="Your strand color"><small>Your strand</small></label>
-                <label><input type="color" class="rope-color" data-strand="1" value="#648575" aria-label="Your partner's strand color"><small>Partner's strand</small></label>
-                <label><input type="color" class="rope-color" data-strand="2" value="#c4a065" aria-label="Third strand color"><small>Third strand</small></label>
-              </div>
-              <div class="weave-progress"><div><strong id="homeBraidCount">0 / 96</strong><span>Yearly checkpoints</span></div><div><strong id="homePetalCount">0 / 12</strong><span>Petals opened</span></div></div>
-            </article>
-            <div class="anthos-side-stack">
-              <article class="anthos-chapter"><div class="chapter-index">01 <span>/ 12</span></div><div class="overline">YOUR NEXT CHAPTER</div><h2>Make room<br>for <em>wonder.</em></h2><p>Grow a little closer through a surprising story, a thoughtful conversation, and one adventure worth remembering.</p>
-                <div class="anthos-chapter-steps">
-                  <button data-go="whispers" type="button"><span>01</span><div><strong>Notice each other</strong><small>Begin with a Love Whisper</small></div><b>↗</b></button>
-                  <button data-go="dive" type="button"><span>02</span><div><strong>Step into a story</strong><small>Explore a Deep Dive demo</small></div><b>↗</b></button>
-                  <button data-go="dates" type="button"><span>03</span><div><strong>Make a memory</strong><small>Plan your next adventure</small></div><b>↗</b></button>
+        <section class="view new-home yearly-dashboard" data-page="home">
+          <header class="yearly-heading">
+            <div class="yearly-kicker">A THREEFOLD JOURNEY &nbsp;•&nbsp; 12 DEEP DIVES &nbsp;•&nbsp; 96 CHECKPOINTS</div>
+            <h1>The Yearly Cord</h1>
+            <p>A journey woven one choice at a time</p>
+            <span class="yearly-preview-pill">INTERACTIVE DESIGN PREVIEW</span>
+          </header>
+          <div class="yearly-layout">
+            <aside class="yearly-aside yearly-left">
+              <article class="yearly-panel">
+                <h2>The Meaning</h2>
+                <div class="yearly-panel-body">
+                  <p>A visual journey of your shared commitment, one intentional learning experience at a time.</p>
+                  <p class="yearly-scripture">“A cord of three strands is not quickly broken.” — Ecclesiastes 4:12</p>
                 </div>
               </article>
-              <article class="anthos-verse"><span>✦</span><div><strong>Every story is worth tending.</strong><p>There is no perfect pace. Keep choosing each other, one little moment at a time.</p></div></article>
+              <article class="yearly-panel">
+                <h2>The Three Strands</h2>
+                <div class="yearly-panel-body">
+                  <div class="yearly-strand"><span class="yearly-strand-icon strand-heart">♥</span><div><strong>Gottman — Connection</strong><small>Turn toward, recognize bids, and learn repair.</small></div></div>
+                  <div class="yearly-strand"><span class="yearly-strand-icon strand-growth">△</span><div><strong>Schnarch — Growth</strong><small>Remain grounded in yourself while staying connected.</small></div></div>
+                  <div class="yearly-strand"><span class="yearly-strand-icon strand-discover">✦</span><div><strong>Aron — Discovery</strong><small>Stay curious through fresh, shared experiences.</small></div></div>
+                </div>
+              </article>
+              <article class="yearly-panel">
+                <h2>Customize Your Cord</h2>
+                <div class="yearly-panel-body">
+                  <div class="yearly-color-row">
+                    <label>Strand 1<input type="color" class="rope-color" data-strand="0" value="#df4051" aria-label="Choose first cord color"></label>
+                    <label>Strand 2<input type="color" class="rope-color" data-strand="1" value="#2c91d4" aria-label="Choose second cord color"></label>
+                    <label>Strand 3<input type="color" class="rope-color" data-strand="2" value="#21a66a" aria-label="Choose third cord color"></label>
+                  </div>
+                  <div class="yearly-palettes" aria-label="Cord color presets">
+                    <button type="button" data-cord-palette="original">🌈 Original</button>
+                    <button type="button" data-cord-palette="heirloom">🪨 Heirloom</button>
+                    <button type="button" data-cord-palette="evergreen">🌿 Evergreen</button>
+                    <button type="button" data-cord-palette="coastal">🌊 Coastal</button>
+                    <button type="button" data-cord-palette="evening">🌙 Evening</button>
+                  </div>
+                </div>
+              </article>
+              <article class="yearly-panel">
+                <h2>Progress Controls</h2>
+                <div class="yearly-panel-body">
+                  <div class="yearly-progress-adjust">
+                    <button type="button" id="cordMinus" aria-label="Remove one preview checkpoint">−</button>
+                    <strong id="cordProgressNumber" aria-live="polite">72 / 96</strong>
+                    <button type="button" id="cordPlus" aria-label="Add one preview checkpoint">+</button>
+                  </div>
+                  <label class="yearly-slider-label" for="cordSlider">Preview checkpoints</label>
+                  <input type="range" id="cordSlider" min="0" max="96" step="1" value="72" aria-label="Set preview checkpoint progress">
+                  <div class="yearly-actions">
+                    <button type="button" id="cordCompleteDive">Complete Deep Dive</button>
+                    <button type="button" id="cordReset">Reset progress</button>
+                  </div>
+                </div>
+              </article>
+            </aside>
+            <div class="yearly-center">
+              <div class="yearly-ring-caption">A JOURNEY WOVEN ONE CHOICE AT A TIME</div>
+              <div class="yearly-ring-stage">
+                <div id="homeArt" class="yearly-ring" aria-label="Interwoven three-strand yearly progress cord"></div>
+                <div id="cordMonths" class="yearly-months" aria-label="Months around the yearly circle"></div>
+              </div>
+              <div class="yearly-status"><span id="yearlyDiveText">9 DEEP DIVES COMPLETE</span> · <span id="yearlyNextText">0 CHECKPOINTS INTO THE NEXT</span></div>
+              <p class="yearly-local-disclaimer">Illustrative progress only · No live couple data is shown</p>
+              <div class="yearly-center-links"><button type="button" data-go="dive">Experience a Deep Dive ↗</button><button type="button" data-go="journey">View our story ↗</button><a class="yearly-original-link" href="/experience/yearly-cord-original.html" target="_blank" rel="noopener">Open the original prototype ↗</a></div>
             </div>
+            <aside class="yearly-aside yearly-right">
+              <article class="yearly-panel">
+                <h2>The Mathematics</h2>
+                <div class="yearly-panel-body yearly-math">
+                  <div><span>✧</span>Deep Dives per Year<strong>12</strong></div>
+                  <div><span>◎</span>Checkpoints per Deep Dive<strong>8</strong></div>
+                  <div><span>∞</span>Braid Units (12 × 8)<strong>96</strong></div>
+                  <div><span>◕</span>Each Deep Dive<strong>8.33%</strong></div>
+                  <div><span>✣</span>Each Checkpoint<strong>3.75°</strong></div>
+                  <div><span>◯</span>Circle Completion<strong>360°</strong></div>
+                  <div><span>✓</span>Current Progress<strong id="homeBraidCount">72 / 96</strong></div>
+                </div>
+              </article>
+              <article class="yearly-panel">
+                <h2>Progress at a Glance</h2>
+                <div class="yearly-panel-body">
+                  <div class="yearly-mini-gallery">
+                    <div><div class="yearly-mini-ring" data-cord-mini="24"></div><strong>25%</strong><small>24 braid units</small></div>
+                    <div><div class="yearly-mini-ring" data-cord-mini="48"></div><strong>50%</strong><small>48 braid units</small></div>
+                    <div><div class="yearly-mini-ring" data-cord-mini="96"></div><strong>100%</strong><small>96 braid units</small></div>
+                  </div>
+                  <p class="yearly-mini-caption">Examples of how the yearly braid grows</p>
+                </div>
+              </article>
+              <article class="yearly-panel">
+                <h2>Key Milestones</h2>
+                <div class="yearly-panel-body yearly-milestones">
+                  <div data-cord-milestone="0"><span>✓</span>Discovery survey</div>
+                  <div data-cord-milestone="8"><span>✓</span>First Deep Dive</div>
+                  <div data-cord-milestone="24"><span>✓</span>Three Deep Dives</div>
+                  <div data-cord-milestone="48"><span>✓</span>Six Deep Dives</div>
+                  <div data-cord-milestone="72"><span>✓</span>Nine Deep Dives</div>
+                  <div data-cord-milestone="96"><span>✓</span>Yearly Cord complete</div>
+                  <p class="yearly-milestone-note">Preview milestones are illustrative, not verification of completed activities.</p>
+                </div>
+              </article>
+            </aside>
           </div>
-          <div class="anthos-actions-heading"><div class="overline">THE LITTLE THINGS ADD UP</div><h2>Where will your story take you?</h2></div>
-          <div class="anthos-tiles">
-            <button type="button" data-go="whispers"><span>✧</span><strong>Love Whispers</strong><small>Words worth sharing</small><b>↗</b></button>
-            <button type="button" data-go="dive"><span>≋</span><strong>Deep Dives</strong><small>Learn inside a story</small><b>↗</b></button>
-            <button type="button" data-go="dates"><span>☼</span><strong>Date Adventures</strong><small>Make a new memory</small><b>↗</b></button>
-            <button type="button" data-go="journey"><span>❀</span><strong>Our Story</strong><small>See what you've woven</small><b>↗</b></button>
+          <div class="yearly-month-rail"><strong>▦ &nbsp; Deep Dive Progress</strong><div id="cordMonthRail" aria-label="Interactive monthly progress checkpoints"></div></div>
+          <div class="yearly-story-links">
+            <span>Continue your adventure:</span>
+            <button type="button" data-go="whispers">Love Whispers</button>
+            <button type="button" data-go="dates">Date Adventures</button>
+            <button type="button" data-go="dive">Deep Dives</button>
+            <button type="button" data-go="journey">Our Story</button>
+            <span class="yearly-petal-count">Petals opened: <strong id="homePetalCount">0 / 12</strong></span>
           </div>
         </section>
 

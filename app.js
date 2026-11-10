@@ -69,45 +69,99 @@
   }
 
 
-  // Restore the approved textured, continuous threefold rope. This is still a demo.
+  // The Yearly Cord is a browser-only design preview, deliberately separate from pilot/account data.
   const ROPE_KEY="anthos_rope_colors_v1";
-  const defaultColors=["#b47b69","#648575","#c4a065"];
+  const PREVIEW_KEY="anthos_yearly_cord_preview_v1";
+  const defaultColors=["#df4051","#2c91d4","#21a66a"];
   const colorOK=x=>typeof x==="string"&&/^#[0-9a-f]{6}$/i.test(x);
+  const palettes={
+    original:["#df4051","#2c91d4","#21a66a"],
+    heirloom:["#aa6670","#c0a176","#577e77"],
+    evergreen:["#2e8059","#a9a966","#c46c70"],
+    coastal:["#208eae","#d1ac80","#6f9b8a"],
+    evening:["#705395","#d1a778","#886b87"]
+  };
   let ropeColors=(()=>{
-    try{const v=JSON.parse(localStorage.getItem(ROPE_KEY)||"null");if(Array.isArray(v)&&v.length===3&&v.every(colorOK))return v;}catch{}
+    try{const v=JSON.parse(localStorage.getItem(ROPE_KEY)||"null");
+      if(Array.isArray(v)&&v.length===3&&v.every(colorOK))return v;}catch{}
     return defaultColors.slice();
   })();
+  let previewCheckpoints=(()=>{
+    try{const v=localStorage.getItem(PREVIEW_KEY);
+      if(v!==null&&Number.isInteger(Number(v))&&Number(v)>=0&&Number(v)<=96)return Number(v);}catch{}
+    return 72;
+  })();
+  const months=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   function progress(){return {petals:Math.min(12,state.whispers.length+state.datesCompleted.length),crossings:state.diveCompleted};}
-  function pushCordFrame(frame){
-    try{frame.contentWindow?.postMessage({type:"anthos-cord-update",colors:ropeColors,checkpoints:state.diveCompleted},location.origin);}catch{}
+  function mountCord(host,checkpoints,compact=false){
+    window.AnthosCord?.mount(host,{colors:ropeColors,checkpoints,compact});
   }
-  function mountCord(host){
-    if(!host)return;
-    let frame=host.querySelector("iframe.authentic-cord");
-    if(!frame){
-      frame=document.createElement("iframe");frame.className="authentic-cord";
-      frame.src="/experience/cord-visual.html";
-      frame.title="Original circular three-strand interwoven rope";
-      frame.setAttribute("loading","eager");
-      frame.addEventListener("load",()=>pushCordFrame(frame));
-      host.replaceChildren(frame);
-    }
-    pushCordFrame(frame);
-  }
-  window.addEventListener("message",event=>{
-    if(event.origin!==location.origin||event.data?.type!=="anthos-cord-ready")return;
-    document.querySelectorAll("iframe.authentic-cord").forEach(frame=>{
-      if(frame.contentWindow===event.source)pushCordFrame(frame);
+  function createMonthUI(){
+    // The circular month markers live in the same SVG as the restored original braid.
+    // The separate rail below remains interactive.
+    const rail=$("cordMonthRail");
+    if(!rail||rail.children.length)return;
+    months.forEach((month,i)=>{
+      const button=document.createElement("button");button.type="button";
+      button.className="yearly-month-pill";button.dataset.cordMonth=String(i);
+      button.innerHTML="<strong>"+month+"</strong><small>○</small>";
+      button.setAttribute("aria-label","Show preview through "+month+" (checkpoint "+((i+1)*8)+")");
+      rail.appendChild(button);
     });
-  });
+  }
+  function setPreviewCheckpoints(value){
+    previewCheckpoints=Math.min(96,Math.max(0,Math.round(Number(value)||0)));
+    try{localStorage.setItem(PREVIEW_KEY,String(previewCheckpoints));}catch{}
+    renderHome();
+  }
+  function saveColors(){
+    try{localStorage.setItem(ROPE_KEY,JSON.stringify(ropeColors));}catch{}
+    document.querySelectorAll(".rope-color").forEach(input=>{
+      const k=Number(input.dataset.strand);if(k>=0&&k<3)input.value=ropeColors[k];
+    });
+    renderHome();renderJourney();
+  }
+  function updateYearlyUI(){
+    const v=previewCheckpoints,completed=Math.floor(v/8),intoNext=v%8;
+    const x=$("cordProgressNumber"),slider=$("cordSlider");
+    if(x)x.textContent=v+" / 96";
+    if(slider)slider.value=String(v);
+    if($("yearlyDiveText"))$("yearlyDiveText").textContent=completed+" DEEP DIVE"+(completed===1?"":"S")+" COMPLETE";
+    if($("yearlyNextText"))$("yearlyNextText").textContent=v===96?"YEAR ONE FINISHED":intoNext+" CHECKPOINT"+(intoNext===1?"":"S")+" INTO THE NEXT";
+    document.querySelectorAll("[data-cord-month]").forEach(el=>{
+      const i=Number(el.dataset.cordMonth),done=v>=(i+1)*8,active=v>i*8&&!done;
+      el.classList.toggle("complete",done);
+      el.classList.toggle("current",active);
+      el.setAttribute("aria-pressed",String(done));
+      const icon=el.querySelector("small");
+      if(icon)icon.textContent=done?"✓":active?"◐":"○";
+    });
+    document.querySelectorAll("[data-cord-milestone]").forEach(el=>{
+      const threshold=Number(el.dataset.cordMilestone),done=v>=(threshold||1);
+      el.classList.toggle("complete",done);
+      el.querySelector("span").textContent=done?"✓":"○";
+    });
+    document.querySelectorAll("[data-cord-palette]").forEach(el=>{
+      const c=palettes[el.dataset.cordPalette];
+      const chosen=c&&c.every((value,i)=>value.toLowerCase()===ropeColors[i].toLowerCase());
+      el.classList.toggle("selected",Boolean(chosen));
+      el.setAttribute("aria-pressed",String(Boolean(chosen)));
+    });
+  }
   function refreshCounters(){renderHome();renderJourney();}
   function renderHome(){
-    const p=progress();mountCord($("homeArt"));
-    $("homePetalCount").textContent=p.petals+" / 12";
-    $("homeBraidCount").textContent=p.crossings+" / 96";
+    const p=progress();
+    mountCord($("homeArt"),previewCheckpoints);
+    document.querySelectorAll("[data-cord-mini]").forEach(host=>{
+      mountCord(host,Number(host.dataset.cordMini),true);
+    });
+    if($("homePetalCount"))$("homePetalCount").textContent=p.petals+" / 12";
+    if($("homeBraidCount"))$("homeBraidCount").textContent=previewCheckpoints+" / 96";
+    updateYearlyUI();
   }
   function renderJourney(){
-    const p=progress();mountCord($("journeyArt"));
+    const p=progress();
+    mountCord($("journeyArt"),p.crossings);
     $("journeyPetals").textContent=p.petals+" / 12";
     $("journeyBraid").textContent=p.crossings+" / 96";
     $("journeyWhispers").textContent=state.whispers.length;
@@ -400,15 +454,25 @@
       if(ev.key==="Escape"&&!$("shareOverlay").hidden)closeShare();
     });
 
+    createMonthUI();
     document.querySelectorAll(".rope-color").forEach(input=>{
       const k=Number(input.dataset.strand);input.value=ropeColors[k];
       input.addEventListener("input",()=>{
         if(!colorOK(input.value))return;
-        ropeColors[k]=input.value;
-        try{localStorage.setItem(ROPE_KEY,JSON.stringify(ropeColors));}catch{}
-        renderHome();renderJourney();
+        ropeColors[k]=input.value;saveColors();
       });
     });
+    document.querySelectorAll("[data-cord-palette]").forEach(button=>{
+      button.addEventListener("click",()=>{ropeColors=palettes[button.dataset.cordPalette].slice();saveColors();});
+    });
+    document.querySelectorAll("[data-cord-month]").forEach(button=>{
+      button.addEventListener("click",()=>setPreviewCheckpoints((Number(button.dataset.cordMonth)+1)*8));
+    });
+    $("cordMinus")?.addEventListener("click",()=>setPreviewCheckpoints(previewCheckpoints-1));
+    $("cordPlus")?.addEventListener("click",()=>setPreviewCheckpoints(previewCheckpoints+1));
+    $("cordSlider")?.addEventListener("input",event=>setPreviewCheckpoints(event.target.value));
+    $("cordCompleteDive")?.addEventListener("click",()=>setPreviewCheckpoints(Math.min(96,Math.ceil((previewCheckpoints+1)/8)*8)));
+    $("cordReset")?.addEventListener("click",()=>setPreviewCheckpoints(0));
     if(!state.datePlan)state.datePlan=emptyState().datePlan;
     renderHome();renderWhispers();renderDate();renderDive();renderJourney();
     goto("home");

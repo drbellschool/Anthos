@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Anthos | The Yearly Cord — Interwoven Prototype v3</title>
+<style>
+:root{--ink:#39262a;--wine:#68272e;--wine2:#8c4448;--gold:#b99259;--paper:#f7f1e7;--bg:#efe5d9;--muted:#786b68;--line:#ded1c0;--red:#c8434d;--blue:#3b83c8;--green:#47a276}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0%,#fff9ee 0%,#f2e7d8 44%,#e9dbcd 100%);color:var(--ink);font-family:Georgia,'Times New Roman',serif;min-height:100vh}
+.page{max-width:1160px;margin:auto;padding:28px 26px 60px}.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d7c7b4;padding-bottom:20px;gap:20px}.brand{font-size:32px;letter-spacing:-1.5px;color:#59252e}.brand small{display:block;font:10px/1.7 system-ui,sans-serif;letter-spacing:2.2px;font-weight:700;color:#88655a}.eyebrow{font:600 10px/1.4 system-ui,sans-serif;letter-spacing:2.4px;text-transform:uppercase;color:#9b745c}.topaside{font:12px/1.5 system-ui,sans-serif;text-align:right;color:#88766b}.lead{text-align:center;margin:30px auto 6px}.lead h1{font-size:clamp(38px,5vw,65px);font-weight:500;letter-spacing:-2px;color:#58252e;margin:7px 0 8px}.lead p{font-size:16px;color:#806b62;margin:0}.workbench{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.85fr);gap:26px;align-items:start;margin-top:18px}.showcase{border:1px solid #e3d3bd;border-radius:24px;background:radial-gradient(circle at 50% 30%,rgba(255,253,241,.88),rgba(249,237,218,.82) 65%,rgba(230,210,181,.68));box-shadow:0 24px 70px #71513b19, inset 0 1px 0 #fff8;overflow:hidden;position:relative;padding:8px 14px 20px}.showcase:before,.showcase:after{content:"";position:absolute;left:13%;right:13%;height:1px;background:linear-gradient(90deg,transparent,#cfb99e,transparent)}.showcase:before{top:50px}.showcase:after{bottom:63px}.cordsvg{display:block;width:100%;max-width:580px;aspect-ratio:1/1;margin:auto;overflow:visible}.bottomline{text-align:center;font:600 10px system-ui,sans-serif;letter-spacing:2px;color:#ab8661;text-transform:uppercase;margin:-14px 0 8px}.bottomsub{text-align:center;font-size:13px;color:#89756a}.panel{background:#fffaf3c9;border:1px solid #e4d5c5;border-radius:20px;padding:23px 24px;box-shadow:0 14px 35px #78563d10;margin-bottom:15px}.panel h2{font-size:22px;font-weight:500;margin:0 0 5px;color:#642c33}.panel p{font:12px/1.6 system-ui,sans-serif;color:#8e7d71;margin:0 0 19px}.fieldlabel{display:flex;align-items:center;justify-content:space-between;font:600 12px system-ui,sans-serif;color:#615450;margin-bottom:8px}.fieldlabel output{font-size:12px;font-variant-numeric:tabular-nums;color:#742f38}input[type=range]{width:100%;accent-color:#823d43;cursor:pointer}.sliderhint{display:flex;justify-content:space-between;font:10px system-ui,sans-serif;color:#a09587;margin:7px 0 20px}.actions{display:flex;flex-wrap:wrap;gap:8px}.btn{background:#6e2b34;color:#fff9eb;border:1px solid #6e2b34;border-radius:10px;padding:11px 14px;cursor:pointer;font:600 12px system-ui,sans-serif;transition:transform .15s,background .15s}.btn:hover{background:#88424a;transform:translateY(-1px)}.btn.secondary{background:#fffbf4;color:#724a44;border-color:#d9c8b5}.btn:focus-visible,input:focus-visible{outline:3px solid #e4bd78;outline-offset:3px}.palettes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.swatch{min-width:0}.swatch label{font:11px/1.5 system-ui,sans-serif;display:block;margin-bottom:5px;color:#7a6c63}.swatch input{display:block;width:100%;height:39px;padding:2px;border-radius:9px;border:1px solid #decfbc;background:#fff;cursor:pointer}.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.preset{background:#f9f1e6;border:1px solid #dfceba;border-radius:30px;padding:6px 9px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#7b665b;font:11px system-ui,sans-serif}.dots{display:flex;margin-right:2px}.dot{width:11px;height:11px;border:1px solid #ffffff99;border-radius:50%;margin-left:-3px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.stat{background:#f5eadc;border-radius:11px;text-align:center;padding:12px 5px}.stat strong{font:500 24px Georgia,serif;color:#642b33;display:block}.stat span{font:10px/1.4 system-ui,sans-serif;color:#967e6d}.divider{height:1px;background:#e8d9c8;margin:20px 0}.note{font:11px/1.6 system-ui,sans-serif;color:#907e71}.key{display:flex;gap:15px;flex-wrap:wrap;font:11px system-ui,sans-serif;color:#8c7a6b;margin-top:15px}.legend{display:flex;align-items:center;gap:5px}.legend i{width:10px;height:10px;border-radius:50%;background:var(--wine)}.foot{text-align:center;margin-top:22px;font:12px/1.65 system-ui,sans-serif;color:#988579}.tinycap{font:700 10px system-ui,sans-serif;letter-spacing:1.5px;color:#a47a5e;text-transform:uppercase;margin-bottom:12px}.monthly{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}.monthcell{border-radius:7px;background:#f1e5d5;color:#9b8578;padding:8px 3px;text-align:center;font:10px system-ui,sans-serif}.monthcell.done{background:#752e39;color:#fff6ed}.monthcell.partial{background:linear-gradient(90deg,#752e39 var(--fraction),#f1e5d5 var(--fraction));color:#a27b66}.sr-only{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden;white-space:nowrap}
+@media(max-width:840px){.workbench{grid-template-columns:1fr}.showcase{max-width:660px;width:100%;margin:auto}.panels{max-width:660px;width:100%;margin:auto}.page{padding:18px 14px 34px}.lead{margin-top:20px}.topaside{display:none}}@media(max-width:450px){.brand{font-size:26px}.lead h1{font-size:39px}.panel{padding:19px}.showcase{padding:0 4px 19px}.palettes{gap:7px}.monthly{grid-template-columns:repeat(4,1fr)}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="top"><div class="brand">✦ Anthos <small>MARRIAGE ADVENTURES</small></div><div class="topaside">THE YEARLY CORD<br><span>A threefold journey · 12 months · 96 checkpoints</span></div></header>
+<section class="lead"><div class="eyebrow">Ecclesiastes 4:12 · A cord of three strands</div><h1>The Yearly Cord</h1><p>Every intentional step weaves another part of your story.</p></section>
+<div class="workbench">
+<section class="showcase" aria-label="Interactive circular rope visualization">
+<svg id="cord" class="cordsvg" viewBox="0 0 560 560" role="img" aria-labelledby="cordTitle cordDesc">
+<title id="cordTitle">Three-strand photorealistic interwoven circular rope</title><desc id="cordDesc">Three continuous strands weave over and under each other around a perfect circle. Colors can be chosen, and progress is revealed through 96 learning checkpoints.</desc>
+<defs>
+ <filter id="braidShadow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.4" /></filter>
+ <filter id="texture" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="2" seed="7" result="noise"/><feColorMatrix in="noise" type="saturate" values="0" result="gray"/><feComponentTransfer in="gray" result="grain"><feFuncA type="linear" slope="0.10"/></feComponentTransfer><feBlend in="SourceGraphic" in2="grain" mode="multiply"/></filter>
+ <linearGradient id="featherStartGradient" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="white" stop-opacity="0"/><stop offset="1" stop-color="white" stop-opacity="1"/></linearGradient>
+ <linearGradient id="featherEndGradient" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+ <mask id="reveal">
+  <circle id="revealCircle" cx="280" cy="280" r="192" fill="none" stroke="white" stroke-width="76" transform="rotate(-90 280 280)" stroke-linecap="butt" stroke-dasharray="0 1206.372"/>
+  <path id="featherStart" fill="none" stroke="url(#featherStartGradient)" stroke-width="76" stroke-linecap="butt"/>
+  <path id="featherEnd" fill="none" stroke="url(#featherEndGradient)" stroke-width="76" stroke-linecap="butt"/>
+ </mask>
+ <linearGradient id="centerGold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d2ad70"/><stop offset=".5" stop-color="#9e7948"/><stop offset="1" stop-color="#d9bb84"/></linearGradient>
+</defs>
+<circle cx="280" cy="280" r="192" fill="none" stroke="#a58e76" stroke-width="42" opacity=".095" />
+<g id="ropeBase" opacity=".27"><image id="ropeFaded" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet"/></g>
+<g id="ropeColored" mask="url(#reveal)"><image id="ropePhoto" x="55" y="55" width="450" height="450" preserveAspectRatio="xMidYMid meet" /></g>
+<g id="markers"></g>
+<g pointer-events="none">
+<text x="280" y="246" text-anchor="middle" fill="#987854" font-family="system-ui,sans-serif" font-size="11" font-weight="700" letter-spacing="3">THE YEARLY CORD</text>
+<text id="percentText" x="280" y="313" text-anchor="middle" fill="#672932" font-family="Georgia,serif" font-size="70">0%</text>
+<text id="countText" x="280" y="347" text-anchor="middle" fill="#8c7268" font-family="system-ui,sans-serif" font-size="13">0 OF 96 CHECKPOINTS</text>
+<path d="M 243 366 H 317" fill="none" stroke="url(#centerGold)" stroke-width="1.2"/><path d="M 274 366 q 6 -10 12 0 q -6 10 -12 0" fill="none" stroke="#b38b55" stroke-width="1.4"/>
+<text id="yearText" x="280" y="394" text-anchor="middle" fill="#886b5f" font-family="Georgia,serif" font-style="italic" font-size="15">YEAR ONE</text>
+</g>
+</svg>
+<div class="bottomline">A journey woven one choice at a time</div><div class="bottomsub" id="status">Your annual story begins here.</div>
+</section>
+<div class="panels">
+<section class="panel"><h2>Explore your progress</h2><p>This demonstration uses 12 Deep Dives × 8 checkpoints. Adjust progress to watch three continuous strands weave around a perfect circle.</p>
+<div class="fieldlabel"><label for="progress">Learning checkpoints completed</label><output id="progressOutput" for="progress">0 / 96</output></div>
+<input id="progress" type="range" min="0" max="96" value="0" step="1" aria-label="Completed learning checkpoints"/>
+<div class="sliderhint"><span>Beginning</span><span>Halfway</span><span>Full circle</span></div>
+<div class="actions"><button class="btn" id="addOne" type="button">+ Complete checkpoint</button><button class="btn secondary" id="addMonth" type="button">+ Complete Deep Dive</button><button class="btn secondary" id="reset" type="button">Reset demo</button></div>
+<div class="stats"><div class="stat"><strong id="numCheckpoints">0</strong><span>Braid units</span></div><div class="stat"><strong id="numAngle">0°</strong><span>Arc completed</span></div><div class="stat"><strong id="numMonths">0 / 12</strong><span>Deep Dives</span></div></div>
+<div class="tinycap">Monthly milestones</div><div id="monthly" class="monthly" aria-label="Month progress"></div></section>
+<section class="panel"><h2>Make the cord yours</h2><p>Choose three strand colors, or try a curated palette. Your selection is saved in this browser.</p>
+<div class="palettes"><div class="swatch"><label for="color1">Strand 1</label><input type="color" id="color1" value="#c8434d"/></div><div class="swatch"><label for="color2">Strand 2</label><input type="color" id="color2" value="#3b83c8"/></div><div class="swatch"><label for="color3">Strand 3</label><input type="color" id="color3" value="#47a276"/></div></div>
+<div class="presets" id="presets"></div><div class="divider"></div><div class="note">Each photoreal strand follows the authentic over-under braid you approved. Choose its color, then move the checkpoint slider to reveal more of the ring. The 12 monthly markers and progress reveal remain precise SVG elements.</div></section>
+</div></div>
+<footer class="foot">Anthos · Visual interaction prototype · Learning progress represents completed activities, not a judgment of a marriage.</footer>
+</main>
+<script>
+const ROPE_TEXTURE_DATA="/experience/rope-original-960.png";
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const UNITS=96, R=192, CIRCUMFERENCE=2*Math.PI*R;
+const presets=[
+ {name:'Original',colors:['#df3b4c','#288ddd','#21a861']},
+ {name:'Heirloom',colors:['#bb8252','#d5b894','#849083']},
+ {name:'Evergreen',colors:['#397b60','#d4ad6d','#a94c5a']},
+ {name:'Coastal',colors:['#327997','#7fbab4','#c6a271']},
+ {name:'Evening',colors:['#6d437b','#c58d87','#d7ad5d']}
+];
+let colors=presets[0].colors.slice(),current=0,target=0,frame=null;
+try{
+ const saved=JSON.parse(localStorage.getItem('anthos-cord-preview-v1'));
+ if(saved&&Array.isArray(saved.colors)&&saved.colors.length===3&&saved.colors.every(s=>/^#[a-f\d]{6}$/i.test(s)))colors=saved.colors;
+ if(saved&&Number.isInteger(saved.progress))current=target=Math.max(0,Math.min(96,saved.progress));
+}catch{}
+const SVG='http://www.w3.org/2000/svg';
+const node=(tag,a={})=>{let el=document.createElementNS(SVG,tag);Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));return el;};
+function persist(){try{localStorage.setItem('anthos-cord-preview-v1',JSON.stringify({colors,progress:target}));}catch{}}
+const monthNames=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function markers(){
+ const g=$('markers');g.replaceChildren();
+ for(let m=0;m<12;m++){
+  const a=(-90+m*30)*Math.PI/180,x=280+236*Math.cos(a),y=280+236*Math.sin(a);
+  const done=current>=8*(m+1)-.005;
+  g.appendChild(node('line',{x1:280+212*Math.cos(a),y1:280+212*Math.sin(a),x2:280+218*Math.cos(a),y2:280+218*Math.sin(a),stroke:'#bb9b78','stroke-width':'1.2'}));
+  g.appendChild(node('circle',{cx:x,cy:y,r:16,fill:done?'#713c48':'#fff3dd',stroke:done?'#d0a66b':'#d9b99b','stroke-width':1.4}));
+  let text=node('text',{x,y:y+3.5,'text-anchor':'middle',fill:done?'#fff8e9':'#99765d','font-size':9.5,'font-weight':700,'font-family':'system-ui,sans-serif'});
+  text.textContent=monthNames[m];g.appendChild(text);
+ }
+}
+// Subtle smooth opacity fade. No changes to the original rope pixels or coordinates.
+function featherProgress(length){
+ const ring=$('revealCircle'),start=$('featherStart'),end=$('featherEnd');
+ if(length<=0||length>=CIRCUMFERENCE-.0001){
+  ring.setAttribute('stroke-dasharray',(length<=0?0:CIRCUMFERENCE).toFixed(4)+' '+(CIRCUMFERENCE+1).toFixed(4));
+  ring.setAttribute('stroke-dashoffset','0');
+  start.removeAttribute('d');end.removeAttribute('d');
+  return;
+ }
+ const first=Math.min(12,length*.5),last=Math.min(28,length-first);
+ const solid=Math.max(0,length-first-last);
+ ring.setAttribute('stroke-dasharray',solid.toFixed(4)+' '+(CIRCUMFERENCE+1).toFixed(4));
+ ring.setAttribute('stroke-dashoffset',(-first).toFixed(4));
+ const point=v=>{const theta=-Math.PI/2+v/R;return [280+R*Math.cos(theta),280+R*Math.sin(theta)]};
+ const draw=(path,grad,a,b)=>{
+  if(b<=a+.001){path.removeAttribute('d');return}
+  const u=point(a),v=point(b);
+  path.setAttribute('d','M '+u[0].toFixed(4)+' '+u[1].toFixed(4)+' A 192 192 0 0 1 '+v[0].toFixed(4)+' '+v[1].toFixed(4));
+  grad.setAttribute('x1',u[0]);grad.setAttribute('y1',u[1]);grad.setAttribute('x2',v[0]);grad.setAttribute('y2',v[1]);
+ };
+ draw(start,$('featherStartGradient'),0,first);
+ draw(end,$('featherEndGradient'),first+solid,length);
+}
+function paint(p){
+ current=p;
+ const length=Math.max(0,CIRCUMFERENCE*p/UNITS);
+ featherProgress(length);
+ $('percentText').textContent=Math.round(p/96*100)+'%';
+ $('countText').textContent=Math.round(p)+' OF 96 CHECKPOINTS';
+ $('progressOutput').textContent=target+' / 96';
+ $('numCheckpoints').textContent=Math.round(p);
+ $('numAngle').textContent=(360*p/96).toFixed(p%8===0?0:1)+'°';
+ $('numMonths').textContent=Math.floor(p/8)+' / 12';
+ $('progress').value=target;
+ const monthly=$('monthly');monthly.replaceChildren();
+ for(let m=0;m<12;m++){
+  const fraction=Math.max(0,Math.min(1,(p-m*8)/8));
+  const cell=document.createElement('div');cell.className='monthcell'+(fraction>=1?' done':fraction>0?' partial':'');
+  cell.style.setProperty('--fraction',(fraction*100)+'%');cell.textContent=monthNames[m];monthly.appendChild(cell);
+ }
+ markers();
+ $('status').textContent=p===0?'Your annual story begins here.':p>=96?'A full year of intentional growth, woven together.':`${Math.floor(p/8)} Deep Dives complete · ${Math.round(p)%8} checkpoints into the next.`;
+}
+function update(num,animate=true){
+ target=Math.max(0,Math.min(96,Math.round(num)));persist();
+ if(frame!==null)cancelAnimationFrame(frame);
+ if(!animate||matchMedia('(prefers-reduced-motion: reduce)').matches){paint(target);return;}
+ const start=current,end=target,t0=performance.now();
+ const tick=t=>{const f=Math.min(1,(t-t0)/600),ease=1-Math.pow(1-f,3);paint(start+(end-start)*ease);
+  if(f<1)frame=requestAnimationFrame(tick);else{frame=null;paint(end);}};
+ frame=requestAnimationFrame(tick);
+}
+function hexRgb(c){return [1,3,5].map(i=>parseInt(c.slice(i,i+2),16));}
+let texturePixels=null,textureWidth=0,textureHeight=0,renderQueued=false;
+const outputCanvas=document.createElement('canvas');
+function paintPhoto(neutral=false){
+ if(!texturePixels)return;
+ const ctx=outputCanvas.getContext('2d',{willReadFrequently:true});
+ let img=ctx.createImageData(textureWidth,textureHeight),dst=img.data;
+ const colorsRgb=(neutral?['#b5a28c','#b5a28c','#b5a28c']:colors).map(hexRgb);
+ const baselines=[225,195,183];
+ for(let i=0;i<dst.length;i+=4){
+  const alpha=texturePixels[i+3];if(alpha<1){dst[i+3]=0;continue;}
+  const sourceLabel=texturePixels[i];const strand=sourceLabel<113?0:sourceLabel<188?1:2;
+  const highlight=texturePixels[i+1]/baselines[strand];
+  const brightness=Math.max(.35,Math.min(1.43,highlight));
+  const lowSaturationGlint=Math.max(0,(145-texturePixels[i+2])/145)*.13;
+  const rgb=colorsRgb[strand];
+  for(let c=0;c<3;c++){
+    const value=rgb[c]*brightness;
+    dst[i+c]=Math.max(0,Math.min(255,Math.round(value*(1-lowSaturationGlint)+255*lowSaturationGlint)));
+  }
+  dst[i+3]=alpha;
+ }
+ ctx.putImageData(img,0,0);
+ const dataUrl=outputCanvas.toDataURL('image/png');
+ if(neutral)$('ropeFaded').setAttribute('href',dataUrl);
+ else $('ropePhoto').setAttribute('href',dataUrl);
+}
+function scheduleColorize(){if(renderQueued)return;renderQueued=true;requestAnimationFrame(()=>{renderQueued=false;paintPhoto(false);});}
+function setColors(){colors=[1,2,3].map(i=>$('color'+i).value);scheduleColorize();persist();}
+for(let i=1;i<=3;i++){$('color'+i).value=colors[i-1];$('color'+i).addEventListener('input',setColors);}
+$('progress').addEventListener('input',e=>update(+e.target.value,false));
+$('addOne').addEventListener('click',()=>update(target+1));
+$('addMonth').addEventListener('click',()=>update((Math.floor(target/8)+1)*8));
+$('reset').addEventListener('click',()=>update(0));
+const presetBox=$('presets');
+for(let preset of presets){
+ const b=document.createElement('button');b.type='button';b.className='preset';
+ const ds=document.createElement('span');ds.className='dots';
+ for(let color of preset.colors){const s=document.createElement('span');s.className='dot';s.style.background=color;ds.appendChild(s);}
+ b.append(ds,document.createTextNode(preset.name));
+ b.addEventListener('click',()=>{preset.colors.forEach((c,i)=>$('color'+(i+1)).value=c);setColors();});
+ presetBox.appendChild(b);
+}
+const textureImage=new Image();
+textureImage.onload=()=>{
+ textureWidth=textureImage.naturalWidth;textureHeight=textureImage.naturalHeight;
+ const capture=document.createElement('canvas');capture.width=textureWidth;capture.height=textureHeight;
+ const context=capture.getContext('2d',{willReadFrequently:true});context.drawImage(textureImage,0,0);
+ texturePixels=context.getImageData(0,0,textureWidth,textureHeight).data;
+ outputCanvas.width=textureWidth;outputCanvas.height=textureHeight;
+ paintPhoto(true);paintPhoto(false);
+ document.documentElement.dataset.braidReady='true';
+};
+textureImage.onerror=()=>{$('status').textContent='The rope texture could not be loaded.';};
+textureImage.src=ROPE_TEXTURE_DATA;
+paint(current);
+})();
+
+</script>
+</body></html>
