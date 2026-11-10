@@ -460,8 +460,9 @@ async function save(){
  }
  setBusy(true);note("Saving the editable Anthos 4.0 episode draft…");
  try{
-  const result=await request("episode-studio-save",{id:current.id,content_version:current.version,studio:s});
-  current.version=result.content_version;current.studio=result.studio;current.hasSaved=true;current.dirty=false;
+  const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,studio:s});
+  current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.hasSaved=true;current.dirty=false;
+   document.dispatchEvent(new CustomEvent("anthos-episode-saved",{detail:{id:current.id}}));
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
   $("episodeSavedState").classList.remove("modified");
@@ -584,6 +585,24 @@ function setup(){
  nav.querySelector("button").click();
 
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
+ // Mode controls update the saved episode mode only after Save; existing pilot rooms remain snapshots.
+ document.querySelectorAll("[data-mode-choice]").forEach(button=>button.addEventListener("click",()=>{
+  if(!current){note("Select an episode first.",true);return;}
+  const selected=button.dataset.modeChoice;
+  const mode=selected==="shared"?"shared":"individual";
+  const solo=selected==="jill"?"jill":"jack";
+  if(current.mode===mode&&(mode==="shared"||current.studio.soloCoach===solo))return;
+  const draft=collect();
+  if(current.mode==="shared"&&mode==="individual")current._sharedCheckpoints=draft.checkpoints.map(p=>({...p}));
+  if(mode==="individual"){
+   draft.checkpoints=draft.checkpoints.map(p=>p.audience==="none"||p.audience===solo?p:{...p,audience:"none",waitForReply:false});
+  }else if(current._sharedCheckpoints){
+   draft.checkpoints=current._sharedCheckpoints.map(p=>({...p}));
+  }
+  draft.soloCoach=solo;current.studio=draft;current.mode=mode;
+  renderStoryboard();populate();markDirty();
+  note((mode==="shared"?"Couple episode":selected==="jack"?"Husband-only episode":"Wife-only episode")+" selected. Review check-in recipients and Save to apply it to future pilots.");
+ }));
  $("episodeSoloRole").addEventListener("change",()=>{
   if(!current||current.mode!=="individual")return;
   const copy=collect();copy.soloCoach=$("episodeSoloRole").value;
