@@ -68,9 +68,9 @@ function mount(root,invite,options={}){
   area.replaceChildren();
   if(!entries.length)area.append(el("div","jj4-empty","The episode begins once both coaches join."));
   for(const item of entries){
-   const isScene=item.kind==="scene",isSophia=item.kind==="sophia";
-   const row=el("article","jj4-entry "+(isScene?"scene":isSophia?"sophia":item.kind==="coach"?"coach":"prompt"));
-   row.append(el("span","jj4-entry-label",isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
+   const isScene=item.kind==="scene",isSophia=item.kind==="sophia",isIntro=item.kind==="introduction";
+   const row=el("article","jj4-entry "+(isScene?"scene":isSophia||isIntro?"sophia":item.kind==="coach"?"coach":"prompt"));
+   row.append(el("span","jj4-entry-label",isIntro?"SOPHIA · YOUR EPISODE OBJECTIVE":isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
     isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
     (state.character||"Character").toUpperCase()+" → "+
     (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));

@@ -6,6 +6,8 @@ const $=id=>document.getElementById(id);
 const node=(tag,cls="",value)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(value!==undefined)n.textContent=String(value);return n};
 const PHASE_IDS=["hook","conflict","discovery","reattempt","outcome","reflection"];
 const CHECKPOINT_IDS=PHASE_IDS.slice(0,-1);
+const FOUNDATION_FIELDS=["learningObjective","jackExample","jillExample"];
+const SCENE_FIELDS=["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","sophiaIntro"];
 let current=null,researcher="Gottman",busy=false,opening=false;
 let pilot=null,pilotPlayers=[];
 const skillSymbols={"g-bids":"♡","g-toward":"☏","g-start":"▤","g-patterns":"⚠","g-repair":"↻","g-influence":"◎","g-appreciation":"♧","g-world":"◉","g-meaning":"⌂"};
@@ -82,6 +84,7 @@ function collect(){
  for(const p of PHASE_IDS)s.phases[p]=phaseField(p).value;
  s.primarySkill=$("episodePrimary").value;
  s.soloCoach=$("episodeSoloRole").value;
+ s.toneApproach=$("episodeToneApproach").value;s.toneIntensity=Number($("episodeIntensity").value);
  s.locks=[...new Set(current.studio.locks||[])];
  s.supportingSkills=[...current.studio.supportingSkills].filter(x=>x!==s.primarySkill).slice(0,2);
  s.checkpoints=CHECKPOINT_IDS.map(afterPhase=>({
@@ -112,7 +115,8 @@ function paintSelectedSkills(){
  for(const item of selected){
   const skill=current.skills.find(s=>s.id===item.id);
   const card=node("div","episode-selected-card "+(skill?.researcher?.toLowerCase()||"empty")+(item.label==="Primary skill"?" primary":""));
-  card.append(node("small","",item.label+(skill?" · "+skill.researcher:"")),node("strong","",skill?.title||(item.label==="Primary skill"?"Choose a primary skill":"+ Optional skill")));
+  card.draggable=!!skill;card.dataset.skillId=skill?.id||"";card.append(node("small","",item.label+(skill?" · "+skill.researcher:"")),node("strong","",skill?.title||(item.label==="Primary skill"?"Choose a primary skill":"+ Optional skill")));
+  if(skill){card.addEventListener("dragstart",e=>{e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",skill.id)});card.addEventListener("dragover",e=>e.preventDefault());card.addEventListener("drop",e=>{e.preventDefault();const from=e.dataTransfer.getData("text/plain");const order=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);const start=order.indexOf(from),target=order.indexOf(skill.id);if(start<0||target<0||start===target)return;order.splice(start,1);order.splice(target,0,from);current.studio.primarySkill=order[0];current.studio.supportingSkills=order.slice(1);$("episodePrimary").value=order[0];markDirty();paintSkills();paintSupports();});}
   if(skill){const remove=node("button","episode-selected-remove","×");remove.type="button";remove.title="Remove "+skill.title;remove.setAttribute("aria-label","Remove "+skill.title);
    remove.addEventListener("click",()=>{if(item.label==="Primary skill"){current.studio.primarySkill="";$("episodePrimary").value="";}else current.studio.supportingSkills=current.studio.supportingSkills.filter(id=>id!==skill.id);markDirty();paintSkills();paintSupports();});card.append(remove);}
   box.append(card);
@@ -206,8 +210,8 @@ function labeledTextarea(labelText,datasetKey,value,max,placeholder){
 function renderStoryboard(){
  const root=$("episodePhases");root.replaceChildren();
  for(const [index,p] of current.phases.entries()){
-  const row=node("article","episode-phase-row");
-  const title=node("div","episode-phase-head");
+  const row=node("article","episode-phase-row");const fold=node("details","episode-phase-fold");if(index===0)fold.open=true;
+  const title=node("summary","episode-phase-head");
   title.append(node("span","episode-phase-number",index+1),node("strong","",p.title));
   const body=node("div");
   body.append(node("small","",p.hint));
@@ -216,7 +220,7 @@ function renderStoryboard(){
   summary.placeholder="AI-drafted story objective and consequence; no scripted texts.";
   summary.setAttribute("aria-label",p.title+" story summary");
   summary.addEventListener("input",markDirty);
-  body.append(summary);row.append(title,body);root.append(row);
+  body.append(summary);fold.append(title,body);row.append(fold);root.append(row);
   if(index===current.phases.length-1)continue;
   const next=current.phases[index+1];
   const card=node("section","episode-intervention");
@@ -262,7 +266,7 @@ function renderStoryboard(){
    markDirty();
   });
   input.addEventListener("change",markDirty);
-  card.append(header,top,detail,empty);root.append(card);
+  card.append(header,top,detail,empty);fold.append(card);
  }
  wireLocks();
 }
@@ -295,6 +299,10 @@ function populate(){
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
  " · Editorial version 4.0";
  $("episodePetal").textContent=current.petal;
+ $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia introduces both clients; Jack and Jill coach privately.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
+ $("episodeToneApproach").value=s.toneApproach||"balanced";$("episodeIntensity").value=s.toneIntensity||3;$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";
+ $("episodeFoundationLock").textContent=FOUNDATION_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock foundation":"✓ Approve & lock foundation";
+ $("episodeSceneLock").textContent=SCENE_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock scene and tone":"✓ Approve & lock scene and tone";
  $("episodeSavedState").textContent=current.dirty?"Unsaved edits":current.hasSaved?"Saved draft":"New draft";
  $("episodeSavedState").classList.toggle("modified",current.dirty);
  wireLocks();
@@ -338,7 +346,6 @@ function closePilot(clearRoom=false){
 }
 async function pilotEpisode(reset=false){
  if(!current||busy)return;
- if(current.mode!=="shared"){note("The two-coach 4.0 browser pilot currently supports shared episodes.",true);return}
  if(current.dirty||!current.hasSaved){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
   return;
@@ -372,17 +379,20 @@ async function pilotEpisode(reset=false){
    plan.append(row);
   }
   const jack=$("episodeHusbandLink"),jill=$("episodeWifeLink");
-  jack.href=room.invitations.jack;jill.href=room.invitations.jill;
+  const isSolo=room.mode==="individual";
+  jack.parentElement.hidden=!room.invitations.jack;jill.parentElement.hidden=!room.invitations.jill;
+  if(room.invitations.jack)jack.href=room.invitations.jack;
+  if(room.invitations.jill)jill.href=room.invitations.jill;
+  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
-   "Fresh "+room.engine+" private test uses your latest SAVED six-phase plan. "+
+   "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
    "Each private coach starts at Hook; no SMS is sent. Invitations expire "+new Date(room.expiresAt).toLocaleDateString()+".";
-  const jToken=new URL(room.invitations.jack).searchParams.get("invite");
-  const wToken=new URL(room.invitations.jill).searchParams.get("invite");
-  pilotPlayers=[
-   window.Anthos4Player.mount($("episodeHusbandPlayer"),jToken),
-   window.Anthos4Player.mount($("episodeWifePlayer"),wToken)
-  ];
+  const husbandPanel=$("episodeHusbandPlayer"),wifePanel=$("episodeWifePlayer");
+  husbandPanel.hidden=!room.invitations.jack;wifePanel.hidden=!room.invitations.jill;
+  pilotPlayers=[];
+  if(room.invitations.jack)pilotPlayers.push(window.Anthos4Player.mount(husbandPanel,new URL(room.invitations.jack).searchParams.get("invite")));
+  if(room.invitations.jill)pilotPlayers.push(window.Anthos4Player.mount(wifePanel,new URL(room.invitations.jill).searchParams.get("invite")));
   board.scrollIntoView({behavior:"smooth",block:"start"});
   note("Version 4.0 test room created. Both private coach panels are ready below.");
  }catch(e){note(e.message,true)}
@@ -461,8 +471,8 @@ function back(){
 async function generateProblem(){
  if(!current||busy)return;
  const input=field("learningObjective");
- if(current.studio.locks?.includes("learningObjective")){note("Unlock the problem statement before AI drafting.",true);return;}
- if(!current.studio.primarySkill){note("Choose a primary skill first.",true);return;}
+ if(collect().locks.includes("learningObjective")){note("Unlock the problem statement before AI drafting.",true);return;}
+ if(!collect().primarySkill){note("Choose a primary skill first.",true);return;}
  const before=collect();setBusy(true);$("episodeProblemGenerate").disabled=true;
  note("Drafting the episode problem statement from the selected skills and existing storyline…");
  try{
@@ -475,8 +485,30 @@ async function generateProblem(){
   note("Problem statement drafted; all other fields remain unchanged. Review and save when ready.");
  }catch(error){note(error.message,true)}finally{setBusy(false);$("episodeProblemGenerate").disabled=false;}
 }
+async function draftOnly(targets,direction){
+ if(!current||busy)return;
+ const before=collect();if(targets.some(t=>before.locks.includes(t))){note("Unlock the selected fields before drafting.",true);return;}
+ setBusy(true);
+ try{
+  const data=await request("episode-studio-generate",{id:current.id,direction,studio:before});
+  for(const key of targets){const value=data.studio[key];if(typeof value==="string")field(key).value=value;}
+  markDirty();note("AI draft applied only to the requested unlocked fields. Review and save when ready.");
+ }catch(e){note(e.message,true)}finally{setBusy(false)}
+}
+function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
+ if(!current)return;
+ const locks=new Set(collect().locks),all=fields.every(k=>locks.has(k));
+ for(const k of fields)all?locks.delete(k):locks.add(k);
+ current.studio.locks=[...locks];paintLocks();markDirty();button.textContent=all?unlockedLabel:lockedLabel;
+}
 function setup(){
  if(!$("episodeStudio"))return;
+ // Keep every existing creative/research/readiness field but place it in the wider story column.
+ const creative=document.querySelector(".episode-humor");
+ const destination=document.createElement("details");destination.className="episode-more episode-creative-fold";
+ const heading=document.createElement("summary");heading.textContent="Creative voice, research & episode readiness";
+ destination.append(heading);creative.parentNode.removeChild(creative);destination.append(creative);
+ document.querySelector(".episode-story").append(destination);
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
  $("episodeSoloRole").addEventListener("change",()=>{
   if(!current||current.mode!=="individual")return;
@@ -498,6 +530,14 @@ function setup(){
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
  $("episodeGenerate").addEventListener("click",generate);
+ $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Draft Sophia’s opening message BEFORE private coaching. Define selected relationship skills in everyday language, especially emotional bids, explain the concrete struggle and set the scene. Address both participants in shared mode and the one participant in individual mode. Never script Jack or Jill."));
+ $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Draft distinct concrete observable examples for Jack and Jill based on the selected skills and relationship problem; no scripted dialogue."));
+ $("episodeFoundationLock").addEventListener("click",()=>toggleEditorialLock(FOUNDATION_FIELDS,$("episodeFoundationLock"),"🔓 Unlock foundation","✓ Approve & lock foundation"));
+ $("episodeSceneLock").addEventListener("click",()=>toggleEditorialLock(SCENE_FIELDS,$("episodeSceneLock"),"🔓 Unlock scene and tone","✓ Approve & lock scene and tone"));
+ $("episodeFlowDraft").addEventListener("click",()=>{if(!current)return;const s=collect();if(!FOUNDATION_FIELDS.every(k=>s.locks.includes(k))||!SCENE_FIELDS.every(k=>s.locks.includes(k))){note("Approve and lock the foundation and scene before generating the story flow.",true);return;}generate();});
+ $("episodeToneApproach").addEventListener("change",markDirty);$("episodeIntensity").addEventListener("input",()=>{$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";markDirty();});
+  $("episodeExpandAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=true));
+  $("episodeCollapseAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=false));
   $("episodeProblemGenerate").addEventListener("click",generateProblem);
  $("episodeSave").addEventListener("click",save);
  $("episodeValidate").addEventListener("click",()=>{

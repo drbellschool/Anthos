@@ -43,7 +43,7 @@ const ALLOWED_AUDIENCES=new Set(CHECKPOINT_AUDIENCES);
 const ID_SET=new Set(SKILLS.map(s=>s.id));
 const FIELDS={title:120,premise:1700,learningObjective:450,jackMotivation:650,jillMotivation:650,
  boundaries:1100,tone:650,humorNotes:1300,runningGags:1300,researchNotes:1000,
- closureCriteria:900,reflectionPrompt:600,creativeDirection:650};
+ closureCriteria:900,reflectionPrompt:600,creativeDirection:650,jackExample:650,jillExample:650,sophiaIntro:1600,sceneSetting:650,sceneStress:650,sceneTrigger:650,toneElement:700};
 export const LOCKABLE_PATHS=Object.freeze([
  ...Object.keys(FIELDS),
  ...PHASES.map(p=>"phases."+p.id),
@@ -79,6 +79,7 @@ export function preserveLockedText(generated,source){
   if(typeof original==="string")setLockedValue(result,path,original);
  }
  result.locks=normalizeLocks(source.locks);
+ result.toneApproach=source.toneApproach;result.toneIntensity=source.toneIntensity;
  return result;
 }
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
@@ -104,7 +105,7 @@ export function defaultStudio(scenario){
   supportingSkills:[],jackMotivation:"",jillMotivation:"",boundaries:"",
   tone:"Grounded, warm and playful; let character flaws create the comedy. Avoid cheesy AI jokes.",
   humorNotes:"",runningGags:"",researchNotes:"",closureCriteria:"",
-  reflectionPrompt:"",creativeDirection:"",
+  reflectionPrompt:"",creativeDirection:"",jackExample:"",jillExample:"",sophiaIntro:"",sceneSetting:"",sceneStress:"",sceneTrigger:"",toneElement:"",toneApproach:"balanced",toneIntensity:3,
   phases:Object.fromEntries(PHASES.map(x=>[x.id,""])),
   checkpoints:defaultCheckpoints(),locks:[]};
 }
@@ -118,6 +119,8 @@ export function normalizeStudio(input,scenario){
   [...new Set(value.supportingSkills.filter(v=>ID_SET.has(v)&&v!==out.primarySkill))].slice(0,2):[];
  out.phases=Object.fromEntries(PHASES.map(p=>[p.id,clean(value.phases?.[p.id],850)]));
  out.checkpoints=normalizeCheckpoints(value.checkpoints,scenario.mode,out.soloCoach);
+ out.toneApproach=["balanced","humor","serious"].includes(value.toneApproach)?value.toneApproach:"balanced";
+ out.toneIntensity=Number.isInteger(value.toneIntensity)&&value.toneIntensity>=1&&value.toneIntensity<=5?value.toneIntensity:3;
  out.locks=normalizeLocks(value.locks);
  return out;
 }
@@ -158,6 +161,7 @@ export async function saveEpisodeStudio(body){
  if(input.primarySkill&&!ID_SET.has(input.primarySkill))bad("Choose a valid primary objective.");
  if(!Array.isArray(input.supportingSkills)||input.supportingSkills.length>2||
   input.supportingSkills.some(s=>!ID_SET.has(s)||s===input.primarySkill))bad("Choose at most two distinct supporting objectives.");
+ if(!["balanced","humor","serious"].includes(input.toneApproach)||!Number.isInteger(input.toneIntensity)||input.toneIntensity<1||input.toneIntensity>5)bad("Review episode tone settings.");
  const studio=normalizeStudio(input,scenario);
  if(studio.title.length<5||studio.premise.length<75||studio.learningObjective.length<12)
   bad("Add a title, a 75-character premise, and a clear relationship objective before saving.");
@@ -175,7 +179,7 @@ const schema={
   boundaries:{type:"string"},tone:{type:"string"},humorNotes:{type:"string"},
   runningGags:{type:"string"},researchNotes:{type:"string"},
   closureCriteria:{type:"string"},reflectionPrompt:{type:"string"},
-  creativeDirection:{type:"string"},
+  creativeDirection:{type:"string"},jackExample:{type:"string"},jillExample:{type:"string"},sophiaIntro:{type:"string"},sceneSetting:{type:"string"},sceneStress:{type:"string"},sceneTrigger:{type:"string"},toneElement:{type:"string"},toneApproach:{type:"string",enum:["balanced","humor","serious"]},toneIntensity:{type:"integer",minimum:1,maximum:5},
   phases:{type:"object",additionalProperties:false,properties:
    Object.fromEntries(PHASES.map(p=>[p.id,{type:"string"}])),
    required:PHASES.map(p=>p.id)},
@@ -197,7 +201,10 @@ export async function generateEpisodeStudio(body){
  if(!apiKey)bad("OpenAI is not configured for AI drafting.",503);
  const instructions=[
   "You are a meticulous curriculum editor designing one dynamic fictional marriage-enrichment adventure for Anthos.",
-  "Return an editable editor draft, NOT SMS messages or a fixed script.",
+  "Return an editable editor draft, NOT SMS messages or a fixed script; sophiaIntro is the only drafted participant-facing opening message.",
+   "Sophia must introduce the relationship challenge BEFORE Jack or Jill contacts the coaches. Explain selected skills in plain language, including what an emotional bid means, and describe the scene and objective without diagnosing the couple.",
+   "For individual episodes address the participating coach only; for shared episodes address both. Jack and Jill must speak in their own voices when they later privately ask for suggestions.",
+   "Generate concrete, editable and distinct jackExample and jillExample descriptions; sceneSetting, sceneStress and sceneTrigger; toneElement according to toneApproach and toneIntensity. Do not overwrite locked canon.",
   "CRITICAL: The current draft contains author-owned LOCKED TEXT. Read its exact words as immutable canon; never contradict, reframe or override any locked passage. Adapt all unlocked episode fields, phases, and interventions to make the whole episode coherent with the locked material.",
   "When a user locks original humor or a phase/check-in, treat it as deliberate creative direction. Weave other scenes and comedy around it rather than restating the text mechanically.",
   "Preserve the author's main narrative conflict and meaningful constraints. Only propose replacement text for unlocked content; the server will restore exact locked values regardless of your response.",
@@ -244,6 +251,8 @@ export async function generateEpisodeStudio(body){
     bad("AI returned incomplete intervention assignments. Retry.",502);
  const generated=normalizeStudio(draft,scenario);
  const studio=preserveLockedText(generated,source);
+ // Explicit episode skill selections are editorial constraints, not suggestions for AI to replace.
+ if(source.primarySkill){studio.primarySkill=source.primarySkill;studio.supportingSkills=[...source.supportingSkills];}
  // Author-selected solo coach is an editor setting, not AI-generated story text.
  if(scenario.mode==="individual"){
   studio.soloCoach=source.soloCoach;

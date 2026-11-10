@@ -44,23 +44,28 @@ function checkpoint(room){
  return room.phase_index<5?
  room.episode?.checkpoints?.find(c=>c.afterPhase===PHASES4[room.phase_index]):null;
 }
+function activeRoles(room){return room.episode?.pilotMode==="individual"?[room.episode.soloCoach==="jill"?"jill":"jack"]:ROLE;}
 function targetRoles(room){
  const audience=checkpoint(room)?.audience;
- return audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[];
+ const allowed=activeRoles(room);
+ return (audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[]).filter(role=>allowed.includes(role));
 }
 export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!UUID.test(scenarioId||""))error("Choose a saved 4.0 episode first.");
  const scenario=await getScenario(scenarioId);
- if(scenario.mode!=="shared")error("The 4.0 dual-coach pilot currently supports shared episodes only.");
+ if(!["shared","individual"].includes(scenario.mode))error("Unsupported episode mode.");
  if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
  const draft=normalizeStudio(scenario.episode_studio,scenario);
+ draft.pilotMode=scenario.mode;
+ const active=scenario.mode==="individual"?[draft.soloCoach]:ROLE;
  if(previousRoomId!==null){
   if(!UUID.test(previousRoomId))error("Invalid previous test room identifier.");
   const previous=(await db(R,{id:"eq."+previousRoomId,select:"id,scenario_id,stage"}))?.[0];
   if(!previous||previous.scenario_id!==scenario.id)
    error("Previous test does not belong to this saved episode.",409);
  }
- if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
+ if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
+  if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0
@@ -68,7 +73,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!created?.id)error("Could not create the pilot room.",502);
  const invitations={};
  try{
-  for(const role of ROLE){
+  for(const role of active){
    const secret=randomBytes(32).toString("base64url");
    await db(P,{},{room_id:created.id,role,token_hash:sha(secret)},"POST");
    invitations[role]=origin+"/pilot-v4/?invite="+secret;
@@ -86,7 +91,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
   }catch{previousRetired=false}
  }
  return {ok:true,engine:"4.0.0",title:draft.title,roomId:created.id,
-  invitations,expiresAt:created.expires_at,previousRetired,
+  invitations,mode:scenario.mode,soloCoach:draft.soloCoach,expiresAt:created.expires_at,previousRetired,
   note:"Private browser pilot. No actual text messages will be sent."};
 }
 async function messages(room,role){
@@ -102,8 +107,14 @@ export async function status(token){
  const joined=!!person.joined_at;
  const {scenes,mine,people}=joined?await messages(room,person.role):{scenes:[],mine:[],people:[]};
  const targets=targetRoles(room),needsReply=room.stage==="awaiting"&&targets.includes(person.role)&&person.submitted_phase!==room.phase_index;
- const bothJoined=people.filter(x=>x.joined_at).length===2;
+ const expected=activeRoles(room);
+ const bothJoined=expected.every(role=>people.some(p=>p.role===role&&p.joined_at));
  const hasSophia=scenes.some(x=>x.kind==="sophia");
+  // The opening is a read-only, room-snapshot editorial message. It is not the
+  // research-based closing and never needs an extra DB row or outbound SMS.
+  // A negative ID guarantees it precedes the first generated scene.
+  const opening=room.episode?.sophiaIntro?.trim();
+  if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",body:opening,phase_index:-1,created_at:room.created_at});
  return {ok:true,version:"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
@@ -199,6 +210,7 @@ async function directScene(room,phaseIndex){
   ].join(" ");
   const planInput={
    title:room.title,authoredPremise:room.episode.premise,
+   participantMode:room.episode.pilotMode||"shared",activeCoaches:activeRoles(room),
    previousPhase:influence.afterPhase,nextPhase:phase,
    nextPhaseObjective:storyDirection,
    checkInPurpose:influence.checkpointPurpose,
@@ -218,6 +230,10 @@ async function directScene(room,phaseIndex){
  // Advice is never simply pasted into a message or retold to the other coach.
  const input={
   title:room.title,primaryObjective:room.episode.primarySkill,
+   participantMode:room.episode.pilotMode||"shared",participatingCoaches:activeRoles(room),
+   sceneSetting:room.episode.sceneSetting,sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
+   jackExample:room.episode.jackExample,jillExample:room.episode.jillExample,
+   toneApproach:room.episode.toneApproach,toneIntensity:room.episode.toneIntensity,toneElement:room.episode.toneElement,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
   premise:room.episode.premise,phase,phaseNumber:phaseIndex+1,
   savedSixPhaseStoryboard:room.episode.phases,
@@ -299,8 +315,8 @@ export async function advance(token){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join the episode first.",403);
  if(!["needs_scene","flow"].includes(room.stage))return status(token);
- const people=await db(P,{room_id:"eq."+room.id,select:"joined_at"});
- if(!people||people.length!==2||people.some(x=>!x.joined_at))return status(token);
+ const people=await db(P,{room_id:"eq."+room.id,select:"role,joined_at"});
+ if(!people||!activeRoles(room).every(role=>people.some(p=>p.role===role&&p.joined_at)))return status(token);
  const claim=randomUUID();
  const phase=await db("rpc/anthos_jj4_claim_scene",{}, {p_room:room.id,p_claim:claim},"POST");
  if(typeof phase!=="number"||phase<0)return status(token);
