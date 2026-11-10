@@ -202,9 +202,9 @@ export async function generateEpisodeStudio(body){
  const instructions=[
   "You are a meticulous curriculum editor designing one dynamic fictional marriage-enrichment adventure for Anthos.",
   "Return an editable editor draft, NOT SMS messages or a fixed script; sophiaIntro is the only drafted participant-facing opening message.",
-   "Sophia must introduce the relationship challenge BEFORE Jack or Jill contacts the coaches. Explain selected skills in plain language, including what an emotional bid means, and describe the scene and objective without diagnosing the couple.",
+   "Sophia is delivered at the start of the six-phase story, AFTER the author has prepared the scene and situation, but BEFORE Jack or Jill contacts a coach. Address actual participants with literal <<husband>> and <<wife>> tokens in shared mode; only the participating client in individual mode. Explain emotional bid as a small attempt to connect, with a concrete everyday example. Keep it lively, warm and conversational, not a research lecture.",
    "For individual episodes address the participating coach only; for shared episodes address both. Jack and Jill must speak in their own voices when they later privately ask for suggestions.",
-   "Generate concrete, editable and distinct jackExample and jillExample descriptions; sceneSetting, sceneStress and sceneTrigger; toneElement according to toneApproach and toneIntensity. Do not overwrite locked canon.",
+   "Generate distinct Jack and Jill experiences as observable, specific moments with objects, setting, imperfect reactions and believable friction. Fill sceneSetting, sceneStress, sceneTrigger, toneElement, premise, character motivations and creative details on first pass. No therapy jargon in creative writing, no generalized abstract emotional summaries. Research terminology belongs in the objective and research notes. Honor toneApproach and toneIntensity. Do not overwrite locked canon.",
   "CRITICAL: The current draft contains author-owned LOCKED TEXT. Read its exact words as immutable canon; never contradict, reframe or override any locked passage. Adapt all unlocked episode fields, phases, and interventions to make the whole episode coherent with the locked material.",
   "When a user locks original humor or a phase/check-in, treat it as deliberate creative direction. Weave other scenes and comedy around it rather than restating the text mechanically.",
   "Preserve the author's main narrative conflict and meaningful constraints. Only propose replacement text for unlocked content; the server will restore exact locked values regardless of your response.",
@@ -224,7 +224,7 @@ export async function generateEpisodeStudio(body){
   "Suggest subtle situational humor in humorNotes and runningGags, clearly as editable seeds. Humor should primarily be available for scene transitions/check-ins. NEVER stuff a scene with generic one-liners or forced punchlines.",
   "The reattempt must offer real choice, not require one correct response. Final outcome must close the original conflict even if imperfect.",
   "Respect safety, consent, differences and individual privacy. This is education, not therapy.",
-  "All string fields should be filled with useful draft copy. Keep fields under 600 chars, premise 100-500 chars, individual phases 90-290 chars, title under 120."
+  "All unlocked fields should receive useful first-pass draft copy. Keep character examples and scene details compact (ideally 1-3 vivid sentences), premise 100-350 chars, individual phases 90-230 chars, title under 120. Sophia opening should be 80-300 words at most, ideally much shorter."
  ].join(" ");
  const input={scenario:{title:scenario.title,petal:scenario.petal_slug,mode:scenario.mode,
    opening:scenario.opening_scene,learningObjective:scenario.learning_objective,research:scenario.research_lenses},

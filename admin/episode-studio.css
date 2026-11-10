@@ -267,3 +267,31 @@
 .episode-creative-fold{margin-top:8px}
 @media(max-width:1050px){.episode-layout{grid-template-columns:1fr!important}.episode-design-top{grid-template-columns:1fr}.episode-pane{max-height:none;min-height:0}.episode-workflow{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.episode-mode-choices{grid-template-columns:1fr}.episode-workflow{grid-template-columns:repeat(2,1fr)}}
+
+/* Studio 4.2: compact scene-first editorial workflow */
+.episode-layout .episode-pane{padding:8px!important}
+.episode-objectives .episode-examples{gap:5px!important}
+.episode-objectives .episode-examples label{padding:5px 7px!important}
+.episode-objectives .episode-examples textarea{min-height:48px!important;max-height:94px;resize:vertical}
+.episode-objectives .episode-assigned{gap:4px!important}
+.episode-objectives .episode-assigned textarea{min-height:65px!important;max-height:110px}
+.episode-story .episode-intro{margin:5px 0!important;padding:8px!important}
+.episode-story .episode-intro textarea{min-height:64px!important;max-height:130px;resize:vertical}
+.episode-story .episode-intro label{font-size:11px}
+.episode-story .episode-scene-grid{margin:5px 0!important;gap:6px!important}
+.episode-story .episode-scene-grid .episode-more{padding:6px 8px!important}
+.episode-story .episode-scene-grid .episode-more-fields{gap:5px!important}
+.episode-story .episode-scene-grid textarea{min-height:42px!important;max-height:100px}
+.episode-story .episode-scene-grid label{font-size:11px}
+.episode-story .episode-metadata-fold{margin:5px 0!important}
+.episode-story .episode-metadata-fold .episode-basics{padding:7px!important}
+.episode-story .episode-metadata-fold textarea{min-height:48px!important;max-height:110px}
+.episode-story .episode-flow-heading{margin:6px 0 3px!important}
+.episode-story .episode-phase-fold>summary{padding:5px 8px!important}
+.episode-story .episode-phase-fold>div{padding:6px!important}
+.episode-story .episode-phase-list{gap:3px!important}
+.episode-story .episode-scene-approval{margin:4px 0!important}
+.episode-story .episode-mode-banner{display:none}
+.episode-story .episode-design-top{grid-template-columns:1fr!important}
+.episode-story .episode-client-modes{padding:6px!important;gap:4px!important}
+.episode-story .episode-mode-choices>span{min-height:36px!important;padding:4px!important}

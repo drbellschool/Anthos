@@ -98,7 +98,7 @@ async function messages(room,role){
  const [scenes,mine,people]=await Promise.all([
   db(M,{room_id:"eq."+room.id,role:"eq.shared",order:"id.asc",limit:"40",select:"id,kind,body,phase_index,created_at"}),
   db(M,{room_id:"eq."+room.id,role:"eq."+role,order:"id.asc",limit:"60",select:"id,kind,body,phase_index,created_at"}),
-  db(P,{room_id:"eq."+room.id,select:"role,joined_at,submitted_phase"})
+  db(P,{room_id:"eq."+room.id,select:"role,first_name,joined_at,submitted_phase"})
  ]);
  return {scenes:scenes||[],mine:mine||[],people:people||[]};
 }
