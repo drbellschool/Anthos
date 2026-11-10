@@ -303,6 +303,8 @@ function populate(){
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
  " · Editorial version 4.0";
  $("episodePetal").textContent=current.petal;
+ const scenePetal=$("episodeScenePetalLabel");if(scenePetal)scenePetal.textContent=current.petal.replaceAll("-"," ");
+ const reviewSelect=$("episodeStatusSelect");if(reviewSelect)reviewSelect.value=current.status||"draft";
  const status=$("episodeStatusLabel");if(status)status.textContent=(current.status||"draft").replaceAll("_"," ");
  for(const badge of document.querySelectorAll("[data-mode-choice]")){const selected=badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack");badge.classList.toggle("active",selected);badge.setAttribute("aria-pressed",String(selected))}
  $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia introduces both clients; Jack and Jill coach privately.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
@@ -461,8 +463,8 @@ async function save(){
  }
  setBusy(true);note("Saving the editable Anthos 4.0 episode draft…");
  try{
-  const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,studio:s});
-  current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.hasSaved=true;current.dirty=false;
+  const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,status:current.status,studio:s});
+  current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.status=result.status||current.status;current.hasSaved=true;current.dirty=false;
    document.dispatchEvent(new CustomEvent("anthos-episode-saved",{detail:{id:current.id}}));
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
@@ -596,8 +598,21 @@ function setup(){
  // 1-2 — compact mode and scene editor, quick drafting and live narrative preview.
  const settingStatus=node("span","episode-status-chip","Draft");settingStatus.id="episodeStatusLabel";
  const sceneTop=node("div","episode-scene-toolbar");
- const sceneTitle=node("strong","","Client Mode");
- sceneTop.append(mode,settingStatus);panels.scene.append(sceneTop);
+ const settings=node("section","episode-scene-settings");
+ settings.append(node("strong","","Episode Settings"));
+ const settingsRow=node("div","episode-settings-row");
+ const petalInfo=node("div","episode-setting-petal");
+ petalInfo.append(node("small","","Petal / Theme"));
+ const scenePetal=node("span","","Select an episode");scenePetal.id="episodeScenePetalLabel";petalInfo.append(scenePetal);
+ const reviewLabel=node("label","","Status");
+ const statusSelect=node("select","episode-status-select");statusSelect.id="episodeStatusSelect";
+ for(const [value,label] of [["draft","Draft"],["in_review","In Review"],["beta_ready","Beta Ready"],["retired","Retired"]]){
+  const option=new Option(label,value);statusSelect.append(option);
+ }
+ statusSelect.addEventListener("change",()=>{if(!current)return;current.status=statusSelect.value;markDirty()});
+ reviewLabel.append(statusSelect);
+ settingsRow.append(petalInfo,reviewLabel);settings.append(settingsRow);
+ sceneTop.append(mode,settings);panels.scene.append(sceneTop);
  sceneFields.open=true;toneFields.open=true;
  sceneDraft.textContent="✦ AI Draft Scene";
  const work=node("div","episode-scene-workspace");
