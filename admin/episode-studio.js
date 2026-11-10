@@ -145,12 +145,15 @@ function paintSkills(){
   const isSupporting=current.studio.supportingSkills.includes(skill.id);
   const card=node("article","episode-skill"+(isPrimary?" primary":"")+(isSupporting?" supporting":""));
   const pick=node("button","episode-skill-check",isPrimary?"✓":isSupporting?"＋":"");
-  pick.type="button";pick.setAttribute("aria-pressed",String(isPrimary));
-  pick.setAttribute("aria-label",(isPrimary?"Clear primary objective: ":"Choose primary objective: ")+skill.title);
-  pick.title=isPrimary?"Clear primary skill":"Make primary skill";
+  pick.type="button";pick.setAttribute("aria-pressed",String(isPrimary||isSupporting));
+  pick.setAttribute("aria-label",(isPrimary||isSupporting?"Remove selected skill: ":"Select skill: ")+skill.title);
+  pick.title=isPrimary||isSupporting?"Remove selected skill":"Select as primary or supporting skill";
   pick.addEventListener("click",()=>{
-   current.studio.primarySkill=isPrimary?"":skill.id;
-   current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==skill.id);
+   if(isPrimary){current.studio.primarySkill=current.studio.supportingSkills.shift()||"";}
+   else if(isSupporting){current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==skill.id);}
+   else if(!current.studio.primarySkill){current.studio.primarySkill=skill.id;}
+   else if(current.studio.supportingSkills.length<2){current.studio.supportingSkills.push(skill.id);}
+   else{note("Select up to three skills. Remove one before adding another.",true);return;}
    $("episodePrimary").value=current.studio.primarySkill;
    markDirty();paintSkills();paintSupports();
   });
