@@ -521,6 +521,60 @@ function setup(){
  const heading=document.createElement("summary");heading.textContent="Creative voice, research & episode readiness";
  destination.append(heading);creative.parentNode.removeChild(creative);destination.append(creative);
  document.querySelector(".episode-story").append(destination);
+ // Sideways panel navigation: move the existing controls rather than duplicating
+ // them, preserving field bindings, editorial locks, and pilot handlers.
+ const studio=$("episodeStudio"),layout=studio.querySelector(".episode-layout");
+ const rail=studio.querySelector(".episode-workflow");
+ const readiness=creative.querySelector("#episodeReadiness");
+ const readinessHost=document.createElement("div");
+ readinessHost.className="episode-readiness-rail";
+ const readinessTitle=document.createElement("strong");readinessTitle.textContent="◎ Episode Goals & Readiness";
+ readinessHost.append(readinessTitle,readiness);
+ rail.before(readinessHost);
+ const nav=document.createElement("nav");nav.className="episode-side-nav";nav.setAttribute("aria-label","Episode editorial panels");
+ const stage=document.createElement("div");stage.className="episode-panel-stage";
+ const panelSpecs=[
+  ["1-1","Relationship Foundation","foundation"],
+  ["1-2","Scene, Setting & Situation","scene"],
+  ["1-3","Episode Metadata, Premise & Motivations","metadata"],
+  ["1-4","Creative Voice","voice"],
+  ["2-1","Six-Phase Story Flow","flow"],
+  ["3-1","Ending & Reflection Guardrails","ending"]
+ ];
+ const panels={};
+ for(const [number,title,key] of panelSpecs){
+  const button=document.createElement("button");button.type="button";button.className="episode-side-tab";button.dataset.panel=key;
+  button.innerHTML='<span class="episode-side-number">'+number+'</span><span class="episode-side-label"></span><span aria-hidden="true">›</span>';
+  button.querySelector(".episode-side-label").textContent=title;nav.append(button);
+  const panel=document.createElement("section");panel.className="episode-side-panel";panel.dataset.panel=key;
+  const heading=document.createElement("header");heading.className="episode-side-heading";
+  const headingText=document.createElement("h4");headingText.textContent=number+" · "+title;heading.append(headingText);
+  panel.append(heading);stage.append(panel);panels[key]=panel;
+  button.addEventListener("click",()=>{
+   for(const item of nav.querySelectorAll("button")){const selected=item===button;item.classList.toggle("active",selected);item.setAttribute("aria-current",selected?"step":"false");}
+   for(const item of stage.children)item.hidden=item!==panel;
+   stage.scrollTop=0;
+  });
+ }
+ layout.replaceChildren(nav,stage);
+ const foundation=document.querySelector(".episode-objectives");
+ panels.foundation.append(...Array.from(foundation.children).filter(x=>!x.classList.contains("episode-pane-header")));
+ panels.scene.append(scene,document.querySelector(".episode-scene-approval"));
+ panels.metadata.append(metaFold);
+ const mode=document.querySelector(".episode-design-top");
+ panels.metadata.insertBefore(mode,metaFold);
+ const voiceFields=Array.from(creative.children).filter(x=>!x.classList.contains("episode-pane-header"));
+ panels.voice.append(...voiceFields);
+ const flowHeading=document.querySelector(".episode-flow-heading"),flowActions=document.querySelector(".episode-flow-actions"),phases=$("episodePhases");
+ panels.flow.append(intro,flowHeading,flowActions,phases);
+ const ending=document.querySelector(".episode-final-notes");ending.open=true;
+ panels.ending.append(ending);
+ // Move the scene/flow draft actions to their corresponding panels.
+ const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
+ panels.scene.append(sceneDraft,sceneLock);panels.flow.append(flowDraft);
+ // Retain all legacy fields in their new panels; no cloneNode.
+ nav.querySelector("button").click();
+
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
  $("episodeSoloRole").addEventListener("change",()=>{
   if(!current||current.mode!=="individual")return;
