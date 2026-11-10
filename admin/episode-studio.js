@@ -422,14 +422,17 @@ async function openEditor(id,petal,mode){
  $("episodeStudioTitle").textContent="Loading episode…";note("Loading objectives and story flow…");
  try{
   const data=await request(null,{id});
-  current={id,petal,mode,studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,
+  current={id,petal:data.scenario.petal_slug||petal,mode:data.scenario.mode||mode,status:data.scenario.status||"draft",studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,
    version:data.scenario.content_version,hasSaved:data.scenario.episode_saved,dirty:false};
   renderStoryboard();
   const select=$("episodePrimary");select.replaceChildren();
   const blank=node("option","","Choose a relationship objective");blank.value="";select.append(blank);
   for(const skill of current.skills){const o=node("option","",skill.researcher+" · "+skill.title);o.value=skill.id;select.append(o)}
   populate();
+  if($("episodeStudioPetal"))$("episodeStudioPetal").value=current.petal;
+  document.dispatchEvent(new CustomEvent("anthos-episode-selected",{detail:{id:current.id,petal:current.petal}}));
   if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
+  try{localStorage.setItem("anthos.studio.lastEpisodeId",String(id))}catch{}
   note(data.scenario.episode_saved?"Saved 4.0 draft loaded. Edit and save whenever you're ready.":"Episode seed loaded. Use ✦ AI fill episode, then revise the narrative and check-ins.");
   window.scrollTo({top:0,behavior:"smooth"});
  }catch(error){note(error.message,true);current=null}
