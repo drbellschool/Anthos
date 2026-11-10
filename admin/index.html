@@ -187,17 +187,17 @@
                 <div class="episode-layout">
                   <aside class="episode-pane episode-objectives" aria-label="Assign relationship objectives">
                     <div class="episode-pane-header">
-                      <span class="eyebrow">01 · OBJECTIVES</span>
-                      <h4>Relationship Objective Library</h4>
+                      <span class="eyebrow">01 · RELATIONSHIP FOUNDATION</span>
+                      <h4>Relationship Foundation</h4>
                       <p>Assign a primary skill and up to two supporting skills.</p>
                     </div>
-                    <div class="episode-selected"><strong class="episode-field-title">Selected skills</strong><div id="episodeSelectedSkills" class="episode-selected-grid"></div></div><div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
-                    <div id="episodeSkillList" class="episode-skill-list"></div>
+                    <div class="episode-selected"><strong class="episode-field-title">Selected skills</strong><div id="episodeSelectedSkills" class="episode-selected-grid"></div></div><details class="episode-library-fold"><summary>＋ Objective Library · add skills</summary><div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
+                    <div id="episodeSkillList" class="episode-skill-list"></div></details>
                     <div class="episode-assigned"><select id="episodePrimary" hidden aria-label="Primary skill"><option value="">Select an objective</option></select><div id="episodeSupports" hidden></div><div class="episode-problem-head"><strong class="episode-field-title">Episode Problem Statement</strong><button type="button" id="episodeProblemGenerate" class="episode-problem-generate">✦ AI draft</button></div><p class="episode-problem-hint">Describe the relationship tension, not its solution. AI drafts are never saved automatically.</p><label><textarea data-episode-field="learningObjective" maxlength="450" rows="4" placeholder="What relationship problem will Jack and Jill face?"></textarea></label></div>
                   </aside>
                   <section class="episode-pane episode-story" aria-label="Episode and six phase storyboard">
                     <div class="episode-pane-header">
-                      <span class="eyebrow">02 · EPISODE DESIGN</span>
+                      <span class="eyebrow">02 · EPISODE DESIGN &amp; SIX-PHASE FLOW</span>
                       <h4>Story &amp; Six-Phase Flow</h4>
                       <p>Story summaries only. Jack, Jill and Sophia improvise the actual conversation.</p>
                     </div>
@@ -223,7 +223,7 @@
                       </details>
                     </div>
                     <div class="episode-flow-heading"><strong>Six-Phase Story Flow</strong><span>5 optional private intervention slots between phases</span></div>
-                    <div id="episodePhases" class="episode-phase-list"></div>
+                    <div class="episode-flow-actions"><button type="button" id="episodeExpandAll">Expand all</button><button type="button" id="episodeCollapseAll">Collapse all</button></div><div id="episodePhases" class="episode-phase-list"></div>
                     <details class="episode-more episode-final-notes">
                       <summary>Ending &amp; reflection guardrails</summary>
                       <div class="episode-more-fields">
