@@ -188,7 +188,7 @@ const schema={
     audience:{type:"string",enum:CHECKPOINT_AUDIENCES},
     purpose:{type:"string"},humorCue:{type:"string"},waitForReply:{type:"boolean"}
    },required:["afterPhase","audience","purpose","humorCue","waitForReply"]}}
- },required:[...Object.keys(FIELDS),"primarySkill","supportingSkills","phases","checkpoints","soloCoach"]
+ },required:[...Object.keys(FIELDS),"primarySkill","supportingSkills","phases","checkpoints","soloCoach","toneApproach","toneIntensity"]
 };
 export async function generateEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
