@@ -427,6 +427,7 @@ async function openEditor(id,petal,mode){
   const blank=node("option","","Choose a relationship objective");blank.value="";select.append(blank);
   for(const skill of current.skills){const o=node("option","",skill.researcher+" · "+skill.title);o.value=skill.id;select.append(o)}
   populate();
+  if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
   note(data.scenario.episode_saved?"Saved 4.0 draft loaded. Edit and save whenever you're ready.":"Episode seed loaded. Use ✦ AI fill episode, then revise the narrative and check-ins.");
   window.scrollTo({top:0,behavior:"smooth"});
  }catch(error){note(error.message,true);current=null}
@@ -556,7 +557,7 @@ function setup(){
    stage.scrollTop=0;
   });
  }
- layout.replaceChildren(nav,stage);
+ layout.before(nav,stage);
  const foundation=document.querySelector(".episode-objectives");
  panels.foundation.append(...Array.from(foundation.children).filter(x=>!x.classList.contains("episode-pane-header")));
  panels.scene.append(scene,document.querySelector(".episode-scene-approval"));
@@ -574,6 +575,7 @@ function setup(){
  const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
  panels.scene.append(sceneDraft,sceneLock);panels.flow.append(flowDraft);
  // Retain all legacy fields in their new panels; no cloneNode.
+ layout.remove();
  nav.querySelector("button").click();
 
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
@@ -612,6 +614,24 @@ function setup(){
   if(!current)return;renderReadiness();note("Readiness reviewed in the right column. The five intervention slots remain optional.");
  });
  $("episodeBack").addEventListener("click",back);
+ const picker=$("episodeStudioPicker");
+ document.addEventListener("anthos-episode-library",event=>{
+  const scenarios=event.detail?.scenarios||[];
+  picker.replaceChildren();
+  const placeholder=new Option("Select an episode…","");picker.append(placeholder);
+  for(const item of scenarios){const opt=new Option(item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt)}
+  if(current)picker.value=String(current.id);
+ });
+ picker.addEventListener("change",()=>{
+  const opt=picker.selectedOptions[0];if(!picker.value)return;
+  openEditor(picker.value,opt.dataset.petal,opt.dataset.mode);
+ });
+ document.querySelectorAll('[data-studio-tab="deepdives"]').forEach(button=>button.addEventListener("click",()=>{
+  studio.hidden=false;$("jj2Browse").hidden=true;
+  document.querySelector('[data-studio-page="deepdives"]').classList.add("studio-editing");
+  if(!current){$("episodeStudioTitle").textContent="Deep Dive Episode Studio";note("Choose an episode above to begin editing.");}
+ }));
+
  $("episodeAddHumor").addEventListener("click",()=>{
   const area=field("humorNotes");area.value=area.value.trimEnd()+(area.value.trim()?"\n":"");
   markDirty();area.focus();area.setSelectionRange(area.value.length,area.value.length);
