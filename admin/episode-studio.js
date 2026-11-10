@@ -10,6 +10,7 @@ const FOUNDATION_FIELDS=["learningObjective","jackExample","jillExample"];
 const SCENE_FIELDS=["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"];
 let current=null,researcher="Gottman",busy=false,opening=false;
 let pilot=null,pilotPlayers=[];
+const initiallyDrafted=new Set();
 const skillSymbols={"g-bids":"♡","g-toward":"☏","g-start":"▤","g-patterns":"⚠","g-repair":"↻","g-influence":"◎","g-appreciation":"♧","g-world":"◉","g-meaning":"⌂"};
 function lockPath(input){
  if(input.dataset.episodeField)return input.dataset.episodeField;
