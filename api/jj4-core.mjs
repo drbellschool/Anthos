@@ -104,6 +104,11 @@ export async function status(token){
  const targets=targetRoles(room),needsReply=room.stage==="awaiting"&&targets.includes(person.role)&&person.submitted_phase!==room.phase_index;
  const bothJoined=people.filter(x=>x.joined_at).length===2;
  const hasSophia=scenes.some(x=>x.kind==="sophia");
+  // The opening is a read-only, room-snapshot editorial message. It is not the
+  // research-based closing and never needs an extra DB row or outbound SMS.
+  // A negative ID guarantees it precedes the first generated scene.
+  const opening=room.episode?.sophiaIntro?.trim();
+  if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",body:opening,phase_index:-1,created_at:room.created_at});
  return {ok:true,version:"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
