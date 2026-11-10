@@ -289,10 +289,10 @@ async function directScene(room,phaseIndex){
   }
   return validatePrivateCheckin(rewritten,role)?rewritten:fallbackPrivateCheckin(role,cp);
  };
- const jackPrompt=["jack","both"].includes(audience)?
-  await rewriteCheckin("jack",result.jackPrompt):"";
- const jillPrompt=["jill","both"].includes(audience)?
-  await rewriteCheckin("jill",result.jillPrompt):"";
+ const [jackPrompt,jillPrompt]=await Promise.all([
+  ["jack","both"].includes(audience)?rewriteCheckin("jack",result.jackPrompt):Promise.resolve(""),
+  ["jill","both"].includes(audience)?rewriteCheckin("jill",result.jillPrompt):Promise.resolve("")
+ ]);
  return {scene:brief(scrub(story),2500),jackPrompt,jillPrompt};
 }
 export async function advance(token){
