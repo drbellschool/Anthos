@@ -620,22 +620,46 @@ function setup(){
  });
  $("episodeBack").addEventListener("click",back);
  const picker=$("episodeStudioPicker"),petalPicker=$("episodeStudioPetal");
- let catalog=[];
+ let catalog=[],restoringEpisode=false;
  const refreshEpisodeOptions=()=>{
-  const previous=picker.value;picker.replaceChildren(new Option("Select an episode…",""));
+  const previous=picker.value;
   const matching=catalog.filter(item=>!petalPicker.value||item.petal_slug===petalPicker.value);
-  for(const item of matching){const opt=new Option(item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt)}
+  picker.replaceChildren(new Option("Select an episode…",""));
+  // Saved episodes first, then the remaining seeds, preserving the petal filter.
+  matching.sort((a,b)=>Number(!!b.episode_saved)-Number(!!a.episode_saved)||a.title.localeCompare(b.title));
+  for(const item of matching){
+   const opt=new Option((item.episode_saved?"✓ ":"")+item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);
+   opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt);
+  }
   if(matching.some(item=>String(item.id)===previous))picker.value=previous;
   else if(current&&matching.some(item=>String(item.id)===String(current.id)))picker.value=String(current.id);
  };
+ const restoreLastEpisode=async()=>{
+  if(current||restoringEpisode||!catalog.length||studio.hidden)return;
+  let previous="";
+  try{previous=localStorage.getItem("anthos.studio.lastEpisodeId")||""}catch{}
+  const ordered=[...catalog].filter(item=>item.episode_saved).sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at));
+  const item=catalog.find(x=>String(x.id)===previous)||ordered[0];
+  if(!item){note("Select a petal and episode above to start a new draft.");return;}
+  restoringEpisode=true;
+  petalPicker.value=item.petal_slug;
+  refreshEpisodeOptions();picker.value=String(item.id);
+  try{await openEditor(item.id,item.petal_slug,item.mode)}finally{restoringEpisode=false}
+ };
  document.addEventListener("anthos-episode-library",event=>{
   catalog=event.detail?.scenarios||[];
-  const previousPetal=petalPicker.value;petalPicker.replaceChildren(new Option("All petals",""));
+  const previousPetal=petalPicker.value;
+  petalPicker.replaceChildren(new Option("All petals",""));
   for(const petal of event.detail?.petals||[]){const opt=new Option(petal.name,petal.slug);petalPicker.append(opt)}
   petalPicker.value=previousPetal;
   refreshEpisodeOptions();
+  restoreLastEpisode();
  });
- petalPicker.addEventListener("change",refreshEpisodeOptions);
+ petalPicker.addEventListener("change",()=>{
+  refreshEpisodeOptions();
+  if(current&&petalPicker.value&&petalPicker.value!==current.petal)
+   note("Showing episodes in this petal. Select an episode to switch; the current draft remains open until then.");
+ });
  picker.addEventListener("change",()=>{
   const opt=picker.selectedOptions[0];if(!picker.value)return;
   openEditor(picker.value,opt.dataset.petal,opt.dataset.mode);
@@ -643,9 +667,9 @@ function setup(){
  document.querySelectorAll('[data-studio-tab="deepdives"]').forEach(button=>button.addEventListener("click",()=>{
   studio.hidden=false;$("jj2Browse").hidden=true;
   document.querySelector('[data-studio-page="deepdives"]').classList.add("studio-editing");
-  if(!current){$("episodeStudioTitle").textContent="Deep Dive Episode Studio";note("Choose an episode above to begin editing.");}
+  if(!current){$("episodeStudioTitle").textContent="Deep Dive Episode Studio";note("Loading your most recent saved episode…");}
+  restoreLastEpisode();
  }));
-
  $("episodeAddHumor").addEventListener("click",()=>{
   const area=field("humorNotes");area.value=area.value.trimEnd()+(area.value.trim()?"\n":"");
   markDirty();area.focus();area.setSelectionRange(area.value.length,area.value.length);
