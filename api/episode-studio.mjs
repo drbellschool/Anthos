@@ -196,8 +196,11 @@ const schema={
 };
 export async function generateEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
+ const requestedMode=body?.mode===undefined?scenario.mode:body.mode;
+ if(!["shared","individual"].includes(requestedMode))bad("Choose a valid participant mode.");
+ const effectiveScenario={...scenario,mode:requestedMode};
  const direction=clean(body?.direction,650);
- const source=normalizeStudio(body?.studio,scenario);
+ const source=normalizeStudio(body?.studio,effectiveScenario);
  if(body?.studio&&(!Array.isArray(body.studio.locks)||
      body.studio.locks.some(x=>!LOCKABLE_SET.has(x))))bad("Invalid locked fields.");
  const lockedText=Object.fromEntries(source.locks.map(path=>[path,getLockedValue(source,path)]));
@@ -230,7 +233,7 @@ export async function generateEpisodeStudio(body){
   "Respect safety, consent, differences and individual privacy. This is education, not therapy.",
   "All unlocked fields should receive useful first-pass draft copy. Keep character examples and scene details compact (ideally 1-3 vivid sentences), premise 100-350 chars, individual phases 90-230 chars, title under 120. Sophia opening should be 80-300 words at most, ideally much shorter."
  ].join(" ");
- const input={scenario:{title:scenario.title,petal:scenario.petal_slug,mode:scenario.mode,
+ const input={scenario:{title:scenario.title,petal:scenario.petal_slug,mode:requestedMode,
    opening:scenario.opening_scene,learningObjective:scenario.learning_objective,research:scenario.research_lenses},
   currentEditableEpisode:source,lockedText,
   optionalEditorialDirection:direction||source.creativeDirection,
@@ -253,7 +256,7 @@ export async function generateEpisodeStudio(body){
  if(!Array.isArray(draft.checkpoints)||draft.checkpoints.length!==5||
      CHECKPOINT_AFTER.some((p,i)=>draft.checkpoints[i]?.afterPhase!==p))
     bad("AI returned incomplete intervention assignments. Retry.",502);
- const generated=normalizeStudio(draft,scenario);
+ const generated=normalizeStudio(draft,effectiveScenario);
  const studio=preserveLockedText(generated,source);
  // Explicit episode skill selections are editorial constraints, not suggestions for AI to replace.
  if(source.primarySkill){studio.primarySkill=source.primarySkill;studio.supportingSkills=[...source.supportingSkills];}
