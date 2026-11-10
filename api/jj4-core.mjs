@@ -6,6 +6,7 @@ import {getScenario} from "./jj2-library.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene} from "./jj4-causality.mjs";
+import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -242,6 +243,10 @@ async function directScene(room,phaseIndex){
   "Use humor cues when earned and welcome, but avoid cheesy punchlines, repetitive couch reconciliations, idealized lectures or physical-intimacy pressure. Respect individual needs and boundaries.",
   "Keep HOOK, CONFLICT and DISCOVERY sufficiently unsettled for a genuine REATTEMPT. OUTCOME can be imperfect but should close the original dilemma. REFLECTION should be grounded, and Sophia provides the research debrief afterward.",
   "Follow EXACTLY the author-configured checkpoint audience, purpose, and wait setting. Ask only those coaches authorized by the checkpoint, privately. Never substitute a generic educational quiz for a consequential decision.",
+  "VOICE CONTRACT: jackPrompt is a message JACK HIMSELF sends IN FIRST PERSON to the real husband who advises him. jillPrompt is a message JILL HERSELF sends IN FIRST PERSON to the real wife who advises her. The coaches are recipients, NOT Jack or Jill, and are not characters in the story.",
+  "A private check-in must sound like an authentic text from that character about their own immediate situation: 'I just did X, now Y happened, and I'm not sure whether to Z. What would you do?' Vary wording naturally. Each text must contain an I/my/me reference and ask a concrete decision question.",
+  "NEVER begin a private message 'Jack, ...' or 'Jill, ...', never say 'Jill, consider...', 'How could Jill...', 'Tell Jack what to do', or 'How do you feel about Jill'. Those are narrator instructions aimed at the character or coach, NOT a character texting a friend.",
+  "Do not insert names or private advice from the real husband or wife into the message. Speak ONLY as the fictional sender and don't ask the user to roleplay that sender.",
   "Jack and Jill are always the fictional characters; the real husband and wife are private coaches, never characters.",
   "The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
   "Return JSON only: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt.",
@@ -253,10 +258,42 @@ async function directScene(room,phaseIndex){
  try{story=assembleDirectedScene(result,!!coachingImpact)}
  catch{error("The AI omitted the coaching consequence. Retry this scene.",502)}
  const audience=cp?.audience||"none";
- const fallback=(role)=>{const name=role==="jack"?"Jack":"Jill";return name+": "+brief(cp?.purpose||"I need help with what just happened.",420)+" What would you suggest?";};
- return {scene:brief(scrub(story),2500),
-  jackPrompt:["jack","both"].includes(audience)?brief(scrub(result.jackPrompt),1200)||fallback("jack"):"",
-  jillPrompt:["jill","both"].includes(audience)?brief(scrub(result.jillPrompt),1200)||fallback("jill"):""};
+ // Validate the speaker, not just the correct delivery audience. Some earlier
+ // pilot prompts incorrectly addressed "Jill" as if the wife coach *were* Jill.
+ // Rewrite only the affected private message; never generate a group text.
+ const rewriteCheckin=async(role,initial)=>{
+  const draft=brief(scrub(initial),1200);
+  if(validatePrivateCheckin(draft,role))return draft;
+  let rewritten="";
+  try{
+   const repaired=await generateStructured({
+    model,key,name:"anthos_jj4_private_voice",
+    schema:{type:"object",additionalProperties:false,
+     properties:{message:{type:"string"}},required:["message"]},
+    input:{contract:checkinContract(role),draft,scene:story,
+     assignedCheckpointPurpose:cp?.purpose||"",
+     optionalHumorCue:cp?.humorCue||""},
+    instructions:[
+     "You are rewriting ONE private text message from a fictional character to a REAL-LIFE coach. Keep the established story facts and the exact saved checkpoint purpose.",
+     "Write in the FIRST PERSON as the fictional sender, using 'I', 'my' or 'me', and ask one meaningful open-ended question about what the sender should actually do next.",
+     "Jack texts the husband, his trusted friend. Jill texts the wife, her trusted friend. The real coach is never Jack or Jill.",
+     "Never address Jack or Jill by name as the recipient, never say 'Jill, consider', 'Jack, reflect', or ask a narrator's relationship-study question. Speak AS the character, not ABOUT the character.",
+     "No generic therapy homework, no forced advice on sexual activity, no quoted advice from the other private coach.",
+     "Return JSON with exactly one field: message. Use 1-3 concise, natural sentences."
+    ].join(" "),
+    maxTokens:350,timeout:13000
+   });
+   rewritten=brief(scrub(repaired.message),1200);
+  }catch{
+   // Character voice is more important than provider retries succeeding.
+  }
+  return validatePrivateCheckin(rewritten,role)?rewritten:fallbackPrivateCheckin(role,cp);
+ };
+ const [jackPrompt,jillPrompt]=await Promise.all([
+  ["jack","both"].includes(audience)?rewriteCheckin("jack",result.jackPrompt):Promise.resolve(""),
+  ["jill","both"].includes(audience)?rewriteCheckin("jill",result.jillPrompt):Promise.resolve("")
+ ]);
+ return {scene:brief(scrub(story),2500),jackPrompt,jillPrompt};
 }
 export async function advance(token){
  const {person,room}=await participant(token);
