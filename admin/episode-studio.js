@@ -501,6 +501,12 @@ function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
 }
 function setup(){
  if(!$("episodeStudio"))return;
+ // Keep every existing creative/research/readiness field but place it in the wider story column.
+ const creative=document.querySelector(".episode-humor");
+ const destination=document.createElement("details");destination.className="episode-more episode-creative-fold";
+ const heading=document.createElement("summary");heading.textContent="Creative voice, research & episode readiness";
+ destination.append(heading);creative.parentNode.removeChild(creative);destination.append(creative);
+ document.querySelector(".episode-story").append(destination);
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
  $("episodeSoloRole").addEventListener("change",()=>{
   if(!current||current.mode!=="individual")return;
