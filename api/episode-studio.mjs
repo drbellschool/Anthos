@@ -179,7 +179,7 @@ const schema={
   boundaries:{type:"string"},tone:{type:"string"},humorNotes:{type:"string"},
   runningGags:{type:"string"},researchNotes:{type:"string"},
   closureCriteria:{type:"string"},reflectionPrompt:{type:"string"},
-  creativeDirection:{type:"string"},jackExample:{type:"string"},jillExample:{type:"string"},sophiaIntro:{type:"string"},sceneSetting:{type:"string"},sceneStress:{type:"string"},sceneTrigger:{type:"string"},toneElement:{type:"string"},toneApproach:{type:"string",enum:["balanced","humor","serious"]},toneIntensity:{type:"integer",minimum:1,maximum:5},
+  creativeDirection:{type:"string"},jackExample:{type:"string"},jillExample:{type:"string"},sophiaIntro:{type:"string"},sceneSetting:{type:"string"},sceneStress:{type:"string"},sceneTrigger:{type:"string"},toneElement:{type:"string"},toneApproach:{type:"string",enum:["balanced","humor","serious"]},toneIntensity:{type:"integer"},
   phases:{type:"object",additionalProperties:false,properties:
    Object.fromEntries(PHASES.map(p=>[p.id,{type:"string"}])),
    required:PHASES.map(p=>p.id)},
