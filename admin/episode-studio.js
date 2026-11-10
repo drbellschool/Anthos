@@ -515,75 +515,159 @@ function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
 }
 function setup(){
  if(!$("episodeStudio"))return;
- // Keep the long-form metadata and character motivations available without pushing the six phases below the fold.
- const basics=document.querySelector(".episode-basics"),scene=document.querySelector(".episode-scene-grid");
- const intro=document.querySelector(".episode-intro"),flow=document.querySelector(".episode-flow-heading");
- flow.after(intro);
- const metaFold=document.createElement("details");metaFold.className="episode-more episode-metadata-fold";
- const metaHeading=document.createElement("summary");metaHeading.textContent="Episode metadata, premise & character motivations";
- metaFold.append(metaHeading);basics.parentNode.removeChild(basics);metaFold.append(basics);scene.after(metaFold);
- // Keep every existing creative/research/readiness field but place it in the wider story column.
- const creative=document.querySelector(".episode-humor");
- const destination=document.createElement("details");destination.className="episode-more episode-creative-fold";
- const heading=document.createElement("summary");heading.textContent="Creative voice, research & episode readiness";
- destination.append(heading);creative.parentNode.removeChild(creative);destination.append(creative);
- document.querySelector(".episode-story").append(destination);
- // Sideways panel navigation: move the existing controls rather than duplicating
- // them, preserving field bindings, editorial locks, and pilot handlers.
+ // Relocate actual input elements, never duplicate them. IDs, input listeners and locks
+ // stay attached to the same DOM nodes even when their presentation changes.
  const studio=$("episodeStudio"),layout=studio.querySelector(".episode-layout");
- const rail=studio.querySelector(".episode-workflow");
- const readiness=creative.querySelector("#episodeReadiness");
- const readinessHost=document.createElement("div");
- readinessHost.className="episode-readiness-rail";
- const readinessTitle=document.createElement("strong");readinessTitle.textContent="◎ Episode Goals & Readiness";
- readinessHost.append(readinessTitle,readiness);
- rail.before(readinessHost);
- const nav=document.createElement("nav");nav.className="episode-side-nav";nav.setAttribute("aria-label","Episode editorial panels");
+ const foundation=studio.querySelector(".episode-objectives");
+ const story=studio.querySelector(".episode-story");
+ const creative=studio.querySelector(".episode-humor");
+ const basics=story.querySelector(".episode-basics");
+ const mode=story.querySelector(".episode-design-top");
+ const sceneGrid=story.querySelector(".episode-scene-grid");
+ const sceneDetails=Array.from(sceneGrid.querySelectorAll(":scope > details"));
+ const sceneFields=sceneDetails[0],toneFields=sceneDetails[1];
+ const sceneActions=story.querySelector(".episode-scene-approval");
+ const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
+ const intro=story.querySelector(".episode-intro");
+ const flowHeading=story.querySelector(".episode-flow-heading");
+ const flowActions=story.querySelector(".episode-flow-actions"),phases=$("episodePhases");
+ const ending=story.querySelector(".episode-final-notes");
+ const researchLabel=field("researchNotes").closest("label");
+ const readiness=$("episodeReadiness");
+ const readinessSection=readiness.closest(".episode-right-section");
+
+ // Compact top rail: detailed checks available on demand, not nine rows by default.
+ const readinessHost=document.createElement("details");readinessHost.className="episode-readiness-rail";
+ const readinessSummary=document.createElement("summary");readinessSummary.className="episode-readiness-top";
+ const readinessTitle=node("strong","","◎ Episode Goals & Readiness");
+ const readinessHeadline=node("span","episode-readiness-headline","Choose an episode");
+ readinessHeadline.id="episodeReadinessHeadline";
+ readinessSummary.append(readinessTitle,readinessHeadline);readinessHost.append(readinessSummary,readiness);
+ studio.querySelector(".episode-workflow").before(readinessHost);
+ readinessSection.remove();
+
+ const nav=document.createElement("nav");nav.className="episode-side-nav";nav.setAttribute("aria-label","Episode editorial sections");
  const stage=document.createElement("div");stage.className="episode-panel-stage";
- const panelSpecs=[
-  ["1-1","Relationship Foundation","foundation"],
-  ["1-2","Scene, Setting & Situation","scene"],
-  ["1-3","Episode Metadata, Premise & Motivations","metadata"],
-  ["1-4","Creative Voice","voice"],
-  ["2-1","Six-Phase Story Flow","flow"],
-  ["3-1","Ending & Reflection Guardrails","ending"]
+ const specs=[
+  ["1-1","Relationship Foundation","foundation","♡","Skills, priorities and the couple's problem"],
+  ["1-2","Scene, Setting & Situation","scene","⌖","The place, pressure and opening conflict"],
+  ["1-3","Episode Metadata & Motivations","metadata","♙","Episode identity and character needs"],
+  ["1-4","Creative Voice","voice","✎","Humor, seriousness and character voice"],
+  ["2-1","Six-Phase Story Flow","flow","▤","Sophia, six phases and private check-ins"],
+  ["3-1","Ending & Reflection Guardrails","ending","⚑","Resolution, research and safety"]
  ];
  const panels={};
- for(const [number,title,key] of panelSpecs){
-  const button=document.createElement("button");button.type="button";button.className="episode-side-tab";button.dataset.panel=key;
-  button.innerHTML='<span class="episode-side-number">'+number+'</span><span class="episode-side-label"></span><span aria-hidden="true">›</span>';
-  button.querySelector(".episode-side-label").textContent=title;nav.append(button);
-  const panel=document.createElement("section");panel.className="episode-side-panel";panel.dataset.panel=key;
-  const heading=document.createElement("header");heading.className="episode-side-heading";
-  const headingText=document.createElement("h4");headingText.textContent=number+" · "+title;heading.append(headingText);
-  panel.append(heading);stage.append(panel);panels[key]=panel;
+ for(const [number,title,key,symbol,description] of specs){
+  const button=node("button","episode-side-tab");button.type="button";button.dataset.panel=key;
+  button.setAttribute("aria-controls","episode-panel-"+key);
+  const emblem=node("span","episode-side-icon",symbol);
+  const words=node("span","episode-side-words");
+  words.append(node("strong","",number+" · "+title),node("small","",description));
+  button.append(emblem,words,node("span","episode-side-chevron","›"));nav.append(button);
+  const panel=node("section","episode-side-panel");panel.dataset.panel=key;panel.id="episode-panel-"+key;
+  const heading=node("header","episode-side-heading");
+  heading.append(node("span","episode-panel-icon",symbol));
+  const headingCopy=node("div","episode-side-heading-copy");
+  headingCopy.append(node("h4","",number+" · "+title),node("p","",description));
+  heading.append(headingCopy);panel.append(heading);stage.append(panel);panels[key]=panel;
   button.addEventListener("click",()=>{
-   for(const item of nav.querySelectorAll("button")){const selected=item===button;item.classList.toggle("active",selected);item.setAttribute("aria-current",selected?"step":"false");}
+   for(const tab of nav.querySelectorAll("button")){
+    const selected=tab===button;tab.classList.toggle("active",selected);
+    if(selected)tab.setAttribute("aria-current","step");else tab.removeAttribute("aria-current");
+   }
    for(const item of stage.children)item.hidden=item!==panel;
    stage.scrollTop=0;
   });
  }
+ // Keep the CSS grid parent: previous releases removed it, stacking all six panels.
  layout.append(nav,stage);
- const foundation=document.querySelector(".episode-objectives");
- panels.foundation.append(...Array.from(foundation.children).filter(x=>!x.classList.contains("episode-pane-header")));
- panels.scene.append(scene,document.querySelector(".episode-scene-approval"));
- for(const section of scene.querySelectorAll("details"))section.open=true;
- metaFold.open=true;panels.metadata.append(metaFold);
- const mode=document.querySelector(".episode-design-top");
- panels.metadata.insertBefore(mode,metaFold);
- const voiceFields=Array.from(creative.children).filter(x=>!x.classList.contains("episode-pane-header"));
- panels.voice.append(...voiceFields);
- const flowHeading=document.querySelector(".episode-flow-heading"),flowActions=document.querySelector(".episode-flow-actions"),phases=$("episodePhases");
- panels.flow.append(intro,flowHeading,flowActions,phases);
- const ending=document.querySelector(".episode-final-notes");ending.open=true;
+
+ // 1-1 — visible skills and problem side-by-side, with editable Jack/Jill examples.
+ const foundationGrid=node("div","episode-foundation-workspace");
+ const skillColumn=node("div","episode-foundation-skills");
+ const selected=foundation.querySelector(".episode-selected");
+ const library=foundation.querySelector(".episode-library-fold");
+ skillColumn.append(selected,library);
+ const objectiveColumn=node("div","episode-foundation-objective");
+ objectiveColumn.append(foundation.querySelector(".episode-assigned"));
+ foundationGrid.append(skillColumn,objectiveColumn);panels.foundation.append(foundationGrid);
+
+ // 1-2 — compact mode and scene editor, quick drafting and live narrative preview.
+ const settingStatus=node("span","episode-status-chip","Draft");settingStatus.id="episodeStatusLabel";
+ const sceneTop=node("div","episode-scene-toolbar");
+ const sceneTitle=node("strong","","Client Mode");
+ sceneTop.append(mode,settingStatus);panels.scene.append(sceneTop);
+ sceneFields.open=true;toneFields.open=true;
+ const work=node("div","episode-scene-workspace");
+ const sceneCard=node("div","episode-scene-fields");
+ sceneCard.append(sceneFields);
+ const quick=node("aside","episode-scene-quick");
+ quick.append(node("h5","","✦ Quick Actions"),sceneDraft);
+ const expand=node("button","episode-action-secondary","+ Expand details");expand.type="button";
+ expand.addEventListener("click",()=>{
+  sceneCard.classList.toggle("expanded");
+  expand.textContent=sceneCard.classList.contains("expanded")?"− Compact details":"+ Expand details";
+ });
+ const tips=node("div","episode-scene-tips");
+ tips.append(node("strong","","Scene Tips"),node("p","","Use specific objects, an everyday irritation, and an awkward moment that causes a real reaction. Keep it believable."));
+ quick.append(expand,sceneLock,tips);work.append(sceneCard,quick);
+ panels.scene.append(work);
+ const preview=node("section","episode-scene-preview");
+ preview.append(node("h5","","▣ Scene Preview · how it fits together"));
+ const previewBody=node("p","","Choose an episode to preview its scene.");
+ preview.append(previewBody);panels.scene.append(preview);
+ const updatePreview=()=>{
+  const values=["sceneSetting","sceneStress","sceneTrigger"].map(key=>field(key)?.value.trim()||"");
+  previewBody.textContent=values.filter(Boolean).join(" ")||"Fill the setting, stress and triggering situation to see the opening scene together.";
+ };
+ for(const key of ["sceneSetting","sceneStress","sceneTrigger"])field(key)?.addEventListener("input",updatePreview);
+ document.addEventListener("anthos-episode-populated",updatePreview);
+ updatePreview();
+
+ // 1-3 — all existing metadata/motivation inputs together, draftable without touching locks.
+ const metaFold=node("div","episode-metadata-editor");
+ metaFold.append(basics);panels.metadata.append(metaFold);
+ const motivation=basics.querySelector("details");if(motivation)motivation.open=true;
+ const metaDraft=node("button","episode-panel-draft","✦ AI Draft Episode Details");metaDraft.type="button";
+ metaDraft.addEventListener("click",()=>draftOnly(
+  ["premise","jackMotivation","jillMotivation","boundaries","creativeDirection"],
+  "Describe a vivid, specific situation and two distinct character motivations, using everyday language. Preserve the established relationship objective, all existing locked fields, and the episode title."
+ ));
+ panels.metadata.append(metaDraft);
+
+ // 1-4 — the tone editor belongs here, not in the scene panel.
+ panels.voice.append(toneFields);
+ for(const child of Array.from(creative.children)){
+  if(child.classList.contains("episode-pane-header")||child.classList.contains("episode-right-section"))continue;
+  panels.voice.append(child);
+ }
+ const voiceDraft=node("button","episode-panel-draft","✦ AI Draft Creative Voice");voiceDraft.type="button";
+ voiceDraft.addEventListener("click",()=>draftOnly(
+  ["tone","toneElement","humorNotes","runningGags"],
+  "Draft a concise natural character-voice guide and an optional situational complication that fits the chosen humor/seriousness setting. Avoid canned jokes or therapy speech."
+ ));
+ panels.voice.append(voiceDraft);
+
+ // 2-1 — unchanged five private checkpoints stay attached to their phase accordions.
+ panels.flow.append(intro,flowHeading,flowActions,phases,flowDraft);
+ flowDraft.classList.add("episode-panel-draft");
+
+ // 3-1 — research and Sophia's ending alongside closure and reflection criteria.
+ ending.open=true;
  panels.ending.append(ending);
- // Move the scene/flow draft actions to their corresponding panels.
- const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
- panels.scene.append(sceneDraft,sceneLock);panels.flow.append(flowDraft);
- // Retain all legacy fields in their new panels; no cloneNode.
+ const researchBlock=node("div","episode-ending-research");
+ researchBlock.append(node("h5","","Research connection for Sophia"),researchLabel);
+ panels.ending.append(researchBlock);
+ const endDraft=node("button","episode-panel-draft","✦ AI Draft Ending Guardrails");endDraft.type="button";
+ endDraft.addEventListener("click",()=>draftOnly(
+  ["closureCriteria","reflectionPrompt","researchNotes"],
+  "Provide an earned ending condition, specific real-world reflection question and plain-language research takeaway without grading or shaming the relationship. Preserve locked fields."
+ ));
+ panels.ending.append(endDraft);
+
+ // Remove the now-empty original columns only after all live controls are relocated.
  for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
  nav.querySelector("button").click();
-
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
  // Mode controls update the saved episode mode only after Save; existing pilot rooms remain snapshots.
  document.querySelectorAll("[data-mode-choice]").forEach(button=>button.addEventListener("click",()=>{
