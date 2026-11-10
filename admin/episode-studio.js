@@ -447,7 +447,7 @@ async function generate(){
  try{
   const before=collect();
   const data=await request("episode-studio-generate",{
-   id:current.id,direction:field("creativeDirection").value,studio:before
+   id:current.id,mode:current.mode,direction:field("creativeDirection").value,studio:before
   });
   current.studio=data.studio;current.dirty=true;renderStoryboard();populate();
   note("AI revised unlocked fields with "+(data.model||"OpenAI")+". "+
@@ -493,7 +493,7 @@ async function generateProblem(){
  try{
   const skills=[before.primarySkill,...before.supportingSkills].map(id=>current.skills.find(s=>s.id===id)).filter(Boolean).map(s=>s.researcher+": "+s.title);
   const direction=[before.creativeDirection,"Write a concrete relationship PROBLEM STATEMENT, not a solution or practice instruction, in learningObjective. Preserve the episode title, premise, original storyline, characters and locked direction. Center the tension on: "+skills.join("; ")].filter(Boolean).join("\n");
-  const result=await request("episode-studio-generate",{id:current.id,direction,studio:before});
+  const result=await request("episode-studio-generate",{id:current.id,mode:current.mode,direction,studio:before});
   const candidate=result.studio?.learningObjective?.trim();
   if(!candidate||candidate.length<12)throw Error("AI did not return a usable problem statement.");
   input.value=candidate.slice(0,450);markDirty();
@@ -505,7 +505,7 @@ async function draftOnly(targets,direction){
  const before=collect();const editable=targets.filter(t=>!before.locks.includes(t));if(!editable.length){note("All requested fields are locked. Unlock a field to draft it.",true);return;}
  setBusy(true);
  try{
-  const data=await request("episode-studio-generate",{id:current.id,direction,studio:before});
+  const data=await request("episode-studio-generate",{id:current.id,mode:current.mode,direction,studio:before});
   for(const key of editable){const value=data.studio[key];if(typeof value==="string")field(key).value=value;}
   markDirty();note("AI draft applied only to the requested unlocked fields. Review and save when ready.");
  }catch(e){note(e.message,true)}finally{setBusy(false)}
