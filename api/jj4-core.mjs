@@ -64,7 +64,8 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
   if(!previous||previous.scenario_id!==scenario.id)
    error("Previous test does not belong to this saved episode.",409);
  }
- if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
+ if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
+  if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0
