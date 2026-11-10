@@ -415,6 +415,38 @@ async function copyPilot(which){
   $("episodePilotStatus").textContent=(which==="jack"?"Husband":"Wife")+" private invitation copied.";
  }catch{$("episodePilotStatus").textContent="Copy unavailable. Use the invitation link above."}
 }
+async function autoDraftMissingDetails(){
+ if(!current||busy||initiallyDrafted.has(current.id))return;
+ const draft=collect();
+ if(!draft.primarySkill||draft.premise.trim().length<75)return;
+ const fields=["sceneSetting","sceneStress","sceneTrigger","toneElement","jackExample","jillExample",
+  "sophiaIntro","jackMotivation","jillMotivation","boundaries","researchNotes","closureCriteria","reflectionPrompt"];
+ const missing=fields.filter(key=>!draft[key].trim()&&!draft.locks.includes(key));
+ if(!missing.length)return;
+ const episodeId=current.id,version=current.version,mode=current.mode;
+ initiallyDrafted.add(episodeId);
+ note("Preparing suggestions for missing scene and character details. Existing and locked text will remain unchanged.");
+ try{
+  const result=await request("episode-studio-generate",{
+   id:episodeId,mode,studio:draft,
+   direction:"Draft concrete, distinctive and vivid missing scene details, Jack/Jill experiences, Sophia introduction and research-based closure. Never rewrite locked or existing author-provided text."
+  });
+  // Response may arrive after someone switches episodes or saves a new version.
+  if(!current||current.id!==episodeId||current.version!==version||current.mode!==mode)return;
+  let applied=0;
+  for(const key of missing){
+   const box=field(key);
+   if(box&&!box.value.trim()&&!current.studio.locks.includes(key)){
+    const suggestion=result.studio?.[key];
+    if(typeof suggestion==="string"&&suggestion.trim()){box.value=suggestion;applied++}
+   }
+  }
+  if(applied){markDirty();document.dispatchEvent(new CustomEvent("anthos-episode-populated"));
+   note("AI proposed "+applied+" missing editorial details. Edit and lock what you like; nothing has been saved automatically.");}
+ }catch(error){
+  if(current?.id===episodeId)note("Saved episode loaded. Missing-field suggestions were unavailable: "+error.message,true);
+ }
+}
 async function openEditor(id,petal,mode){
  if(busy)return;
  if(current?.dirty&&!confirm("Discard unsaved changes and open another episode?"))return;
@@ -437,6 +469,7 @@ async function openEditor(id,petal,mode){
   if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
   try{localStorage.setItem("anthos.studio.lastEpisodeId",String(id))}catch{}
   note(data.scenario.episode_saved?"Saved 4.0 draft loaded. Edit and save whenever you're ready.":"Episode seed loaded. Use ✦ AI fill episode, then revise the narrative and check-ins.");
+  void autoDraftMissingDetails();
   window.scrollTo({top:0,behavior:"smooth"});
  }catch(error){note(error.message,true);current=null}
 }
