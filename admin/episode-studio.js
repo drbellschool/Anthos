@@ -7,7 +7,7 @@ const node=(tag,cls="",value)=>{const n=document.createElement(tag);if(cls)n.cla
 const PHASE_IDS=["hook","conflict","discovery","reattempt","outcome","reflection"];
 const CHECKPOINT_IDS=PHASE_IDS.slice(0,-1);
 const FOUNDATION_FIELDS=["learningObjective","jackExample","jillExample"];
-const SCENE_FIELDS=["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","sophiaIntro"];
+const SCENE_FIELDS=["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"];
 let current=null,researcher="Gottman",busy=false,opening=false;
 let pilot=null,pilotPlayers=[];
 const skillSymbols={"g-bids":"♡","g-toward":"☏","g-start":"▤","g-patterns":"⚠","g-repair":"↻","g-influence":"◎","g-appreciation":"♧","g-world":"◉","g-meaning":"⌂"};
@@ -509,6 +509,8 @@ function setup(){
  if(!$("episodeStudio"))return;
  // Keep the long-form metadata and character motivations available without pushing the six phases below the fold.
  const basics=document.querySelector(".episode-basics"),scene=document.querySelector(".episode-scene-grid");
+ const intro=document.querySelector(".episode-intro"),flow=document.querySelector(".episode-flow-heading");
+ flow.after(intro);
  const metaFold=document.createElement("details");metaFold.className="episode-more episode-metadata-fold";
  const metaHeading=document.createElement("summary");metaHeading.textContent="Episode metadata, premise & character motivations";
  metaFold.append(metaHeading);basics.parentNode.removeChild(basics);metaFold.append(basics);scene.after(metaFold);
@@ -539,10 +541,11 @@ function setup(){
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
  $("episodeGenerate").addEventListener("click",generate);
- $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Draft Sophia’s opening message BEFORE private coaching. Define selected relationship skills in everyday language, especially emotional bids, explain the concrete struggle and set the scene. Address both participants in shared mode and the one participant in individual mode. Never script Jack or Jill."));
- $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Draft distinct concrete observable examples for Jack and Jill based on the selected skills and relationship problem; no scripted dialogue."));
+ $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Write a lively, SHORT Sophia message to the actual clients using literal <<husband>> and <<wife>> tokens in shared episodes (only the applicable token in solo episodes). This message is delivered after scene preparation but before Jack or Jill contacts their coach. Introduce Jack and Jill as characters, describe a vivid awkward moment, and define emotional bid plainly as a little attempt to connect, such as asking to sit together. Avoid academic jargon and bullet points."));
+ $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Write short, distinct, believable Jack and Jill examples as lived moments: physical action, specific household detail, an awkward misunderstanding and a consequential reaction. No therapy-speak, no skill names, no academic descriptions. Respect boundaries and original premise."));
  $("episodeFoundationLock").addEventListener("click",()=>toggleEditorialLock(FOUNDATION_FIELDS,$("episodeFoundationLock"),"🔓 Unlock foundation","✓ Approve & lock foundation"));
  $("episodeSceneLock").addEventListener("click",()=>toggleEditorialLock(SCENE_FIELDS,$("episodeSceneLock"),"🔓 Unlock scene and tone","✓ Approve & lock scene and tone"));
+ $("episodeSceneDraft").addEventListener("click",()=>draftOnly(["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"],"Fill all UNLOCKED scene and episode-detail fields with grounded specific circumstances, objects, time, place, pressure and a triggering event. Keep locked canon. Make Jack and Jill flawed and believable; choose humor only when tone supports it. Write plain human language, not research jargon. Preserve title and relationship problem."));
  $("episodeFlowDraft").addEventListener("click",()=>{if(!current)return;const s=collect();if(!FOUNDATION_FIELDS.every(k=>s.locks.includes(k))||!SCENE_FIELDS.every(k=>s.locks.includes(k))){note("Approve and lock the foundation and scene before generating the story flow.",true);return;}generate();});
  $("episodeToneApproach").addEventListener("change",markDirty);$("episodeIntensity").addEventListener("input",()=>{$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";markDirty();});
   $("episodeExpandAll").addEventListener("click",()=>document.querySelectorAll(".episode-phase-fold").forEach(x=>x.open=true));
