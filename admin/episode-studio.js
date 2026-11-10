@@ -106,7 +106,20 @@ function paintResearchers(){
   panel.append(button);
  }
 }
+function paintSelectedSkills(){
+ const box=$("episodeSelectedSkills");if(!box||!current)return;box.replaceChildren();
+ const selected=[{id:current.studio.primarySkill,label:"Primary skill"},...Array.from({length:2},(_,i)=>({id:current.studio.supportingSkills[i],label:"Supporting "+(i+1)}))];
+ for(const item of selected){
+  const skill=current.skills.find(s=>s.id===item.id);
+  const card=node("div","episode-selected-card "+(skill?.researcher?.toLowerCase()||"empty")+(item.label==="Primary skill"?" primary":""));
+  card.append(node("small","",item.label+(skill?" · "+skill.researcher:"")),node("strong","",skill?.title||(item.label==="Primary skill"?"Choose a primary skill":"+ Optional skill")));
+  if(skill){const remove=node("button","episode-selected-remove","×");remove.type="button";remove.title="Remove "+skill.title;remove.setAttribute("aria-label","Remove "+skill.title);
+   remove.addEventListener("click",()=>{if(item.label==="Primary skill"){current.studio.primarySkill="";$("episodePrimary").value="";}else current.studio.supportingSkills=current.studio.supportingSkills.filter(id=>id!==skill.id);markDirty();paintSkills();paintSupports();});card.append(remove);}
+  box.append(card);
+ }
+}
 function paintSupports(){
+ paintSelectedSkills();
  const box=$("episodeSupports");box.replaceChildren();
  if(!current.studio.supportingSkills.length){box.append(node("span","","Choose from the skill library."));return}
  for(const id of current.studio.supportingSkills){
@@ -445,6 +458,23 @@ function back(){
  $("jj2Notice").textContent="Choose an episode to open its Objective & Story Flow Studio.";
  window.scrollTo({top:0,behavior:"smooth"});
 }
+async function generateProblem(){
+ if(!current||busy)return;
+ const input=field("learningObjective");
+ if(current.studio.locks?.includes("learningObjective")){note("Unlock the problem statement before AI drafting.",true);return;}
+ if(!current.studio.primarySkill){note("Choose a primary skill first.",true);return;}
+ const before=collect();setBusy(true);$("episodeProblemGenerate").disabled=true;
+ note("Drafting the episode problem statement from the selected skills and existing storyline…");
+ try{
+  const skills=[before.primarySkill,...before.supportingSkills].map(id=>current.skills.find(s=>s.id===id)).filter(Boolean).map(s=>s.researcher+": "+s.title);
+  const direction=[before.creativeDirection,"Write a concrete relationship PROBLEM STATEMENT, not a solution or practice instruction, in learningObjective. Preserve the episode title, premise, original storyline, characters and locked direction. Center the tension on: "+skills.join("; ")].filter(Boolean).join("\n");
+  const result=await request("episode-studio-generate",{id:current.id,direction,studio:before});
+  const candidate=result.studio?.learningObjective?.trim();
+  if(!candidate||candidate.length<12)throw Error("AI did not return a usable problem statement.");
+  input.value=candidate.slice(0,450);markDirty();
+  note("Problem statement drafted; all other fields remain unchanged. Review and save when ready.");
+ }catch(error){note(error.message,true)}finally{setBusy(false);$("episodeProblemGenerate").disabled=false;}
+}
 function setup(){
  if(!$("episodeStudio"))return;
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
@@ -468,6 +498,7 @@ function setup(){
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
  $("episodeGenerate").addEventListener("click",generate);
+  $("episodeProblemGenerate").addEventListener("click",generateProblem);
  $("episodeSave").addEventListener("click",save);
  $("episodeValidate").addEventListener("click",()=>{
   if(!current)return;renderReadiness();note("Readiness reviewed in the right column. The five intervention slots remain optional.");
