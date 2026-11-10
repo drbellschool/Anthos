@@ -346,7 +346,6 @@ function closePilot(clearRoom=false){
 }
 async function pilotEpisode(reset=false){
  if(!current||busy)return;
- if(current.mode!=="shared"){note("The two-coach 4.0 browser pilot currently supports shared episodes.",true);return}
  if(current.dirty||!current.hasSaved){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
   return;
@@ -380,17 +379,20 @@ async function pilotEpisode(reset=false){
    plan.append(row);
   }
   const jack=$("episodeHusbandLink"),jill=$("episodeWifeLink");
-  jack.href=room.invitations.jack;jill.href=room.invitations.jill;
+  const isSolo=room.mode==="individual";
+  jack.parentElement.hidden=!room.invitations.jack;jill.parentElement.hidden=!room.invitations.jill;
+  if(room.invitations.jack)jack.href=room.invitations.jack;
+  if(room.invitations.jill)jill.href=room.invitations.jill;
+  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
-   "Fresh "+room.engine+" private test uses your latest SAVED six-phase plan. "+
+   "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
    "Each private coach starts at Hook; no SMS is sent. Invitations expire "+new Date(room.expiresAt).toLocaleDateString()+".";
-  const jToken=new URL(room.invitations.jack).searchParams.get("invite");
-  const wToken=new URL(room.invitations.jill).searchParams.get("invite");
-  pilotPlayers=[
-   window.Anthos4Player.mount($("episodeHusbandPlayer"),jToken),
-   window.Anthos4Player.mount($("episodeWifePlayer"),wToken)
-  ];
+  const husbandPanel=$("episodeHusbandPlayer"),wifePanel=$("episodeWifePlayer");
+  husbandPanel.hidden=!room.invitations.jack;wifePanel.hidden=!room.invitations.jill;
+  pilotPlayers=[];
+  if(room.invitations.jack)pilotPlayers.push(window.Anthos4Player.mount(husbandPanel,new URL(room.invitations.jack).searchParams.get("invite")));
+  if(room.invitations.jill)pilotPlayers.push(window.Anthos4Player.mount(wifePanel,new URL(room.invitations.jill).searchParams.get("invite")));
   board.scrollIntoView({behavior:"smooth",block:"start"});
   note("Version 4.0 test room created. Both private coach panels are ready below.");
  }catch(e){note(e.message,true)}
