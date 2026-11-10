@@ -191,18 +191,9 @@
                       <h4>Relationship Objective Library</h4>
                       <p>Assign a primary skill and up to two supporting skills.</p>
                     </div>
-                    <div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
+                    <div class="episode-selected"><strong class="episode-field-title">Selected skills</strong><div id="episodeSelectedSkills" class="episode-selected-grid"></div></div><div id="episodeResearchers" class="episode-researchers" role="group" aria-label="Researcher filter"></div>
                     <div id="episodeSkillList" class="episode-skill-list"></div>
-                    <div class="episode-assigned">
-                      <label>Primary skill
-                        <select id="episodePrimary"><option value="">Select an objective</option></select>
-                      </label>
-                      <strong class="episode-field-title">Supporting skills · max 2</strong>
-                      <div id="episodeSupports" class="episode-supports">Choose up to two from the library.</div>
-                      <label>What should the couple practice?
-                        <textarea data-episode-field="learningObjective" maxlength="450" rows="3" placeholder="Learning target in your own words."></textarea>
-                      </label>
-                    </div>
+                    <div class="episode-assigned"><select id="episodePrimary" hidden aria-label="Primary skill"><option value="">Select an objective</option></select><div id="episodeSupports" hidden></div><div class="episode-problem-head"><strong class="episode-field-title">Episode Problem Statement</strong><button type="button" id="episodeProblemGenerate" class="episode-problem-generate">✦ AI draft</button></div><p class="episode-problem-hint">Describe the relationship tension, not its solution. AI drafts are never saved automatically.</p><label><textarea data-episode-field="learningObjective" maxlength="450" rows="4" placeholder="What relationship problem will Jack and Jill face?"></textarea></label></div>
                   </aside>
                   <section class="episode-pane episode-story" aria-label="Episode and six phase storyboard">
                     <div class="episode-pane-header">
