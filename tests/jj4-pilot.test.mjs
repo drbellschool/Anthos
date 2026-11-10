@@ -41,9 +41,9 @@ test("4.0 snapshot uses exact author supplied six phases and intervention settin
  assert.match(core,/lockedEditorialFields:room\.episode\.locks/);
  assert.match(core,/checkpoint:cp/);
  assert.match(core,/FIXED episode plan/);
- assert.match(core,/DO NOT invent another premise/);
- assert.match(core,/Keep the plot within the six planned phases/);
- assert.match(core,/exact saved checkpoint\.purpose/);
+ assert.match(core,/Do not invent a new core conflict/);
+ assert.match(core,/For the current phase, ONLY dramatize the saved phaseStoryDirection/);
+ assert.match(core,/author-configured checkpoint audience/);
 });
 test("Pilot data is isolated and each coach reads only their own messages",()=>{
  for(const table of ["anthos_jj4_rooms","anthos_jj4_participants","anthos_jj4_messages"]){
