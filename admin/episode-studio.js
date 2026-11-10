@@ -432,7 +432,7 @@ async function autoDraftMissingDetails(){
    direction:"Draft concrete, distinctive and vivid missing scene details, Jack/Jill experiences, Sophia introduction and research-based closure. Never rewrite locked or existing author-provided text."
   });
   // Response may arrive after someone switches episodes or saves a new version.
-  if(!current||current.id!==episodeId||current.version!==version||current.mode!==mode)return;
+  if(!current||current.id!==episodeId||current.version!==version||current.mode!==mode||current.dirty)return;
   let applied=0;
   for(const key of missing){
    const box=field(key);
@@ -663,7 +663,6 @@ function setup(){
  foundationGrid.append(skillColumn,objectiveColumn);panels.foundation.append(foundationGrid);
 
  // 1-2 — compact mode and scene editor, quick drafting and live narrative preview.
- const settingStatus=node("span","episode-status-chip","Draft");settingStatus.id="episodeStatusLabel";
  const sceneTop=node("div","episode-scene-toolbar");
  const settings=node("section","episode-scene-settings");
  settings.append(node("strong","","Episode Settings"));
@@ -755,7 +754,6 @@ function setup(){
  panels.flow.append(intro,flowHeading,flowActions,phases,flowDraft);
  const phaseOverview=node("div","episode-phase-overview");
  const overviewCards=[];
- const phaseTitles=current=>current?.phases||[];
  for(const [index,id] of PHASE_IDS.entries()){
   const button=node("button","episode-phase-overview-card");button.type="button";
   button.append(node("span","episode-overview-number",index+1),node("strong","",id.charAt(0).toUpperCase()+id.slice(1)),node("small","","Select to edit the phase and its checkpoint"));
