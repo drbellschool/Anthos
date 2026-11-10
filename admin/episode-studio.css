@@ -333,3 +333,5 @@
 .episode-side-panel[data-panel="foundation"] .episode-selected-grid{max-width:760px}
 .episode-side-panel[data-panel="foundation"] .episode-assigned{max-width:900px}
 @media(max-width:800px){.episode-studio .episode-layout{grid-template-columns:1fr!important}.episode-side-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.episode-side-panel{max-height:none;min-height:350px}.episode-side-panel[data-panel="scene"] .episode-scene-grid,.episode-side-panel[data-panel="ending"] .episode-more-fields{grid-template-columns:1fr}.episode-studio .episode-readiness-rail{flex-wrap:wrap}}
+
+.episode-switcher{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:750;color:#164b35}.episode-switcher select{max-width:255px;min-width:170px;padding:8px;border:1px solid #a4c6b4;border-radius:9px;background:#fff;color:#164b35;font-size:12px}@media(max-width:900px){.episode-switcher select{min-width:125px;max-width:180px}}
