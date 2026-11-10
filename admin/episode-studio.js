@@ -115,7 +115,7 @@ function paintSelectedSkills(){
  for(const item of selected){
   const skill=current.skills.find(s=>s.id===item.id);
   const card=node("div","episode-selected-card "+(skill?.researcher?.toLowerCase()||"empty")+(item.label==="Primary skill"?" primary":""));
-  card.draggable=!!skill;card.dataset.skillId=skill?.id||"";card.append(node("small","",item.label+(skill?" · "+skill.researcher:"")),node("strong","",skill?.title||(item.label==="Primary skill"?"Choose a primary skill":"+ Optional skill")));
+  card.draggable=!!skill;card.dataset.skillId=skill?.id||"";card.append(node("span","episode-drag-handle",skill?"⠿":""),node("span","episode-skill-rank",skill?String(selected.indexOf(item)+1):"+"));const detail=node("span","episode-skill-detail");detail.append(node("small","",item.label+(skill?" · "+skill.researcher:"")),node("strong","",skill?.title||(item.label==="Primary skill"?"Choose a primary skill":"+ Optional skill")));if(skill?.description)detail.append(node("small","episode-selected-description",skill.description));card.append(detail);
   if(skill){card.addEventListener("dragstart",e=>{e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",skill.id)});card.addEventListener("dragover",e=>e.preventDefault());card.addEventListener("drop",e=>{e.preventDefault();const from=e.dataTransfer.getData("text/plain");const order=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);const start=order.indexOf(from),target=order.indexOf(skill.id);if(start<0||target<0||start===target)return;order.splice(start,1);order.splice(target,0,from);current.studio.primarySkill=order[0];current.studio.supportingSkills=order.slice(1);$("episodePrimary").value=order[0];markDirty();paintSkills();paintSupports();});}
   if(skill){const remove=node("button","episode-selected-remove","×");remove.type="button";remove.title="Remove "+skill.title;remove.setAttribute("aria-label","Remove "+skill.title);
    remove.addEventListener("click",()=>{if(item.label==="Primary skill"){current.studio.primarySkill="";$("episodePrimary").value="";}else current.studio.supportingSkills=current.studio.supportingSkills.filter(id=>id!==skill.id);markDirty();paintSkills();paintSupports();});card.append(remove);}
@@ -302,6 +302,7 @@ function populate(){
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
  " · Editorial version 4.0";
  $("episodePetal").textContent=current.petal;
+ for(const badge of document.querySelectorAll("[data-mode-choice]"))badge.classList.toggle("active",badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack"));
  $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia introduces both clients; Jack and Jill coach privately.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
  $("episodeToneApproach").value=s.toneApproach||"balanced";$("episodeIntensity").value=s.toneIntensity||3;$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";
  $("episodeFoundationLock").textContent=FOUNDATION_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock foundation":"✓ Approve & lock foundation";
@@ -506,6 +507,11 @@ function toggleEditorialLock(fields,button,lockedLabel,unlockedLabel){
 }
 function setup(){
  if(!$("episodeStudio"))return;
+ // Keep the long-form metadata and character motivations available without pushing the six phases below the fold.
+ const basics=document.querySelector(".episode-basics"),scene=document.querySelector(".episode-scene-grid");
+ const metaFold=document.createElement("details");metaFold.className="episode-more episode-metadata-fold";
+ const metaHeading=document.createElement("summary");metaHeading.textContent="Episode metadata, premise & character motivations";
+ metaFold.append(metaHeading);basics.parentNode.removeChild(basics);metaFold.append(basics);scene.after(metaFold);
  // Keep every existing creative/research/readiness field but place it in the wider story column.
  const creative=document.querySelector(".episode-humor");
  const destination=document.createElement("details");destination.className="episode-more episode-creative-fold";
