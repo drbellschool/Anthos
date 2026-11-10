@@ -139,6 +139,8 @@ export async function saveEpisodeStudio(body){
  if(!Number.isInteger(expected)||expected<1)bad("Reload this scenario before saving.");
  if(!body.studio||typeof body.studio!=="object"||Array.isArray(body.studio))bad("Invalid editor draft.");
  const input=body.studio;
+ const mode=body.mode===undefined?scenario.mode:body.mode;
+ if(!["shared","individual"].includes(mode))bad("Choose a valid episode participation mode.");
  if(!Array.isArray(input.locks)||input.locks.length>LOCKABLE_PATHS.length||
   input.locks.some(x=>typeof x!=="string"||!LOCKABLE_SET.has(x)))
     bad("Invalid text-field lock settings.");
@@ -156,17 +158,17 @@ export async function saveEpisodeStudio(body){
      typeof p.waitForReply!=="boolean"))
     bad("Review all five optional intervention points.");
  if(!["jack","jill"].includes(input.soloCoach))bad("Select one solo coach role.");
- if(scenario.mode==="individual"&&input.checkpoints.some(p=>p.audience!=="none"&&p.audience!==input.soloCoach))
+ if(mode==="individual"&&input.checkpoints.some(p=>p.audience!=="none"&&p.audience!==input.soloCoach))
     bad("Individual episodes can text only their assigned private coach.");
  if(input.primarySkill&&!ID_SET.has(input.primarySkill))bad("Choose a valid primary objective.");
  if(!Array.isArray(input.supportingSkills)||input.supportingSkills.length>2||
   input.supportingSkills.some(s=>!ID_SET.has(s)||s===input.primarySkill))bad("Choose at most two distinct supporting objectives.");
  if(!["balanced","humor","serious"].includes(input.toneApproach)||!Number.isInteger(input.toneIntensity)||input.toneIntensity<1||input.toneIntensity>5)bad("Review episode tone settings.");
- const studio=normalizeStudio(input,scenario);
+ const studio=normalizeStudio(input,{...scenario,mode});
  if(studio.title.length<5||studio.premise.length<75||studio.learningObjective.length<12)
   bad("Add a title, a 75-character premise, and a clear relationship objective before saving.");
- const saved=await persistEpisodeStudio(scenario.id,expected,studio);
- return {ok:true,content_version:saved.content_version,studio,
+ const saved=await persistEpisodeStudio(scenario.id,expected,studio,mode);
+ return {ok:true,mode:saved.mode,content_version:saved.content_version,studio,
   skillUsage:await listEpisodeSkillUsage()};
 }
 const schema={
