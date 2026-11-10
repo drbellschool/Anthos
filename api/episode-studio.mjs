@@ -141,6 +141,8 @@ export async function saveEpisodeStudio(body){
  const input=body.studio;
  const mode=body.mode===undefined?scenario.mode:body.mode;
  if(!["shared","individual"].includes(mode))bad("Choose a valid episode participation mode.");
+ const status=body.status===undefined?scenario.status:body.status;
+ if(!["draft","in_review","beta_ready","retired"].includes(status))bad("Choose a valid episode review status.");
  if(!Array.isArray(input.locks)||input.locks.length>LOCKABLE_PATHS.length||
   input.locks.some(x=>typeof x!=="string"||!LOCKABLE_SET.has(x)))
     bad("Invalid text-field lock settings.");
@@ -167,8 +169,8 @@ export async function saveEpisodeStudio(body){
  const studio=normalizeStudio(input,{...scenario,mode});
  if(studio.title.length<5||studio.premise.length<75||studio.learningObjective.length<12)
   bad("Add a title, a 75-character premise, and a clear relationship objective before saving.");
- const saved=await persistEpisodeStudio(scenario.id,expected,studio,mode);
- return {ok:true,mode:saved.mode,content_version:saved.content_version,studio,
+ const saved=await persistEpisodeStudio(scenario.id,expected,studio,mode,status);
+ return {ok:true,mode:saved.mode,status:saved.status,content_version:saved.content_version,studio,
   skillUsage:await listEpisodeSkillUsage()};
 }
 const schema={
