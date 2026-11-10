@@ -557,7 +557,7 @@ function setup(){
    stage.scrollTop=0;
   });
  }
- layout.before(nav,stage);
+ layout.append(nav,stage);
  const foundation=document.querySelector(".episode-objectives");
  panels.foundation.append(...Array.from(foundation.children).filter(x=>!x.classList.contains("episode-pane-header")));
  panels.scene.append(scene,document.querySelector(".episode-scene-approval"));
@@ -575,7 +575,7 @@ function setup(){
  const sceneDraft=$("episodeSceneDraft"),sceneLock=$("episodeSceneLock"),flowDraft=$("episodeFlowDraft");
  panels.scene.append(sceneDraft,sceneLock);panels.flow.append(flowDraft);
  // Retain all legacy fields in their new panels; no cloneNode.
- layout.remove();
+ for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
  nav.querySelector("button").click();
 
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
@@ -614,14 +614,23 @@ function setup(){
   if(!current)return;renderReadiness();note("Readiness reviewed in the right column. The five intervention slots remain optional.");
  });
  $("episodeBack").addEventListener("click",back);
- const picker=$("episodeStudioPicker");
+ const picker=$("episodeStudioPicker"),petalPicker=$("episodeStudioPetal");
+ let catalog=[];
+ const refreshEpisodeOptions=()=>{
+  const previous=picker.value;picker.replaceChildren(new Option("Select an episode…",""));
+  const matching=catalog.filter(item=>!petalPicker.value||item.petal_slug===petalPicker.value);
+  for(const item of matching){const opt=new Option(item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt)}
+  if(matching.some(item=>String(item.id)===previous))picker.value=previous;
+  else if(current&&matching.some(item=>String(item.id)===String(current.id)))picker.value=String(current.id);
+ };
  document.addEventListener("anthos-episode-library",event=>{
-  const scenarios=event.detail?.scenarios||[];
-  picker.replaceChildren();
-  const placeholder=new Option("Select an episode…","");picker.append(placeholder);
-  for(const item of scenarios){const opt=new Option(item.title+" · "+(item.mode==="shared"?"Couple":"Individual"),item.id);opt.dataset.petal=item.petal_slug;opt.dataset.mode=item.mode;picker.append(opt)}
-  if(current)picker.value=String(current.id);
+  catalog=event.detail?.scenarios||[];
+  const previousPetal=petalPicker.value;petalPicker.replaceChildren(new Option("All petals",""));
+  for(const petal of event.detail?.petals||[]){const opt=new Option(petal.name,petal.slug);petalPicker.append(opt)}
+  petalPicker.value=previousPetal;
+  refreshEpisodeOptions();
  });
+ petalPicker.addEventListener("change",refreshEpisodeOptions);
  picker.addEventListener("change",()=>{
   const opt=picker.selectedOptions[0];if(!picker.value)return;
   openEditor(picker.value,opt.dataset.petal,opt.dataset.mode);

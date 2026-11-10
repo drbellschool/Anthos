@@ -16,7 +16,7 @@ async function load(){
   select.value=old;
   $("jj2Controls").hidden=false;
   draw();
-  document.dispatchEvent(new CustomEvent("anthos-episode-library",{detail:{scenarios:library.scenarios}}));
+  document.dispatchEvent(new CustomEvent("anthos-episode-library",{detail:{scenarios:library.scenarios,petals:library.petals}}));
  }catch(error){notice(error.message)}
 }
 function filtered(){
