@@ -19,8 +19,10 @@ test("Episode Studio displays two independent private coaches and links inside t
  assert.match(html,/\/pilot-v4\/player\.js/);
  assert.match(html,/\/pilot-v4\/player\.css/);
  assert.match(editor,/episode-studio-pilot-v4/);
- assert.match(editor,/Anthos4Player\.mount\(\$\("episodeHusbandPlayer"\),jToken\)/);
- assert.match(editor,/Anthos4Player\.mount\(\$\("episodeWifePlayer"\),wToken\)/);
+ assert.match(editor,/if\(room\.invitations\.jack\)pilotPlayers\.push\(window\.Anthos4Player\.mount\(husbandPanel/);
+ assert.match(editor,/if\(room\.invitations\.jill\)pilotPlayers\.push\(window\.Anthos4Player\.mount\(wifePanel/);
+ assert.match(editor,/husbandPanel\.hidden=!room\.invitations\.jack/);
+ assert.match(editor,/wifePanel\.hidden=!room\.invitations\.jill/);
  assert.match(editor,/current\.dirty\|\|!current\.hasSaved/);
 });
 test("4.0 runs on distinct token route without sending SMS or accessing 3.3 live players",()=>{
