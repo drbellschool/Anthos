@@ -59,12 +59,14 @@ async function telnyx(){
   result.currency=typeof d.currency==="string"?d.currency:"USD";
  }else result.reason=balance.status===403?"Account balance permission denied":"Balance not available";
  // Reporting API is separate from the account balance API and may require more permissions.
- const url="https://api.telnyx.com/v2/usage_reports?product=messaging&dimensions=direction&metrics=cost,parts,count&date_range=this_month";
+ const start=new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),1)).toISOString().replace(/\.\d{3}Z$/,"Z");
+ const end=new Date().toISOString().replace(/\.\d{3}Z$/,"Z");
+ const url="https://api.telnyx.com/v2/usage_reports?product=messaging&dimensions[]=direction&metrics[]=cost&metrics[]=parts&metrics[]=count&start_date="+encodeURIComponent(start)+"&end_date="+encodeURIComponent(end)+"&page[size]=50";
  const usage=await fetchJson(url,k);
  if(usage.ok){
   const raw=usage.body?.data;
   const rows=Array.isArray(raw)?raw:(Array.isArray(raw?.data)?raw.data:null);
-  if(rows){
+  if(rows && !(Number(usage.body?.meta?.total_pages)>1)){
    let cost=0,parts=0,hasCost=false,hasParts=false;
    for(const row of rows){
     const metrics=row.metrics||row;
