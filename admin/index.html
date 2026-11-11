@@ -12,6 +12,7 @@
 <script src="/content.js" defer></script>
 <script src="/admin/studio-blueprint.js" defer></script>
 <script src="/admin/admin.js" defer></script>
+<script src="/admin/home-metrics.js" defer></script>
 <script src="/admin/studio.js" defer></script>
 <script src="/admin/customers.js" defer></script>
 <script src="/admin/couples.js" defer></script>
@@ -71,6 +72,21 @@
           <article class="stat"><span class="stat-caption">DATABASE</span><div class="stat-value muted" id="databaseStat">Checking…</div><small>Private pilot and customer directory</small></article>
           <article class="stat"><span class="stat-caption">CUSTOMERS</span><div class="stat-value muted">Directory</div><small>Contacts only; billing not yet integrated</small></article>
         </div>
+        <section class="ops-metrics" aria-labelledby="opsMetricsHeading">
+          <div class="ops-metrics-heading">
+            <div><div class="eyebrow">LIVE / BUSINESS PULSE</div><h2 id="opsMetricsHeading">Anthos at a glance.</h2><p class="ops-metrics-subtitle">Private account-level reporting · Current UTC month · Read-only</p></div>
+            <div class="ops-metrics-refresh"><span id="metricsCheckedAt" aria-live="polite">Sign in to load metrics</span><button class="button" type="button" id="refreshOpsMetrics">↻ Refresh figures</button></div>
+          </div>
+          <div class="stats-grid ops-grid">
+            <article class="stat ops-card ops-couples"><span class="stat-caption">COUPLES REGISTERED</span><div class="stat-value" id="metricCouples">—</div><small id="metricCouplesNote">Completed standard couple profiles</small></article>
+            <article class="stat ops-card"><span class="stat-caption">COUPLES PHONE VERIFIED</span><div class="stat-value" id="metricVerified">—</div><small>Both spouses confirmed their own numbers</small></article>
+            <article class="stat ops-card"><span class="stat-caption">TELNYX BALANCE</span><div class="stat-value" id="metricTelnyxBalance">—</div><small id="metricTelnyxBalanceNote">Prepaid account balance</small></article>
+            <article class="stat ops-card"><span class="stat-caption">TELNYX SMS SPEND</span><div class="stat-value" id="metricTelnyxSpend">—</div><small id="metricTelnyxUsage">Current month · message usage pending</small></article>
+            <article class="stat ops-card"><span class="stat-caption">OPENAI SPEND</span><div class="stat-value" id="metricOpenaiSpend">—</div><small id="metricOpenaiScope">Current month · organization costs</small></article>
+            <article class="stat ops-card"><span class="stat-caption">OPENAI TOKENS</span><div class="stat-value" id="metricOpenaiTokens">—</div><small id="metricOpenaiRequests">Input + output · requests</small></article>
+          </div>
+          <p class="ops-metrics-footnote" id="opsMetricsNotice" role="status">Loading live provider reports after administrator sign-in. Unavailable data is never treated as $0.</p>
+        </section>
         <div class="section-line"><div class="eyebrow">01 / THE CONNECTIONS</div><h2>Powering the experience</h2><p>Keys never appear in the browser. These controls ask the server to make safe, authenticated connection checks.</p></div>
         <div class="provider-grid">
           <article class="provider">
