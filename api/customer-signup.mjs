@@ -57,7 +57,7 @@ async function partnerReview(invite){
 }
 export async function createOpenSignupLink(){
  const token=randomBytes(12).toString("base64url"),expiresAt=new Date(Date.now()+72*3600000).toISOString();
- const rows=await db({}, "POST",{token_hash:SHA(token),expires_at:expiresAt,program:"pilot"},
+ const rows=await db({}, "POST",{token_hash:SHA(token),expires_at:expiresAt,program:"standard"},
    "anthos_signup_invitations");
  if(rows.length!==1)fail("Could not create the signup invitation.",502);
  return {ok:true,link:"https://anthos.love/signup/#t="+token,expiresAt,sent:false,
