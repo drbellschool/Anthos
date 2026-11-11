@@ -1,6 +1,7 @@
 // One-time signup tokens, web consent and transactional phone verification.
 import {randomBytes,createHash} from "node:crypto";
 import {beginPhoneVerification} from "./phone-verification.mjs";
+import {sendSpouseSignupInvitation} from "./spouse-invitation-sms.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const FIELDS="id,email,display_name,phone_e164,record_status,signup_token_expires_at,signup_token_consumed_at";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,TOKEN=/^(?:[a-zA-Z0-9_-]{16}|[0-9a-f]{64})$/;
@@ -203,7 +204,17 @@ export async function submitSignup(data){
      spousePhone:couple.inviterPhone
    }:data,fresh.hash,body,!!couple);
    const phoneVerification=await beginPhoneVerification(complete.customerId,body.phone_e164);
-   return {ok:true,questionnaireComplete:true,phoneVerification,partnerInviteLink:complete.partnerLink,spouseFirstName:complete.spouseName,
+   let spouseInvitationSMS={attempted:false,reason:"spouse_shares_link"};
+   // Only the primary inviter may send one automatically, and only after attesting
+   // that their spouse agreed to receive this specific transactional invitation.
+   if(!couple && complete.partnerLink && data.spouseInviteConsent===true){
+     spouseInvitationSMS=await sendSpouseSignupInvitation({
+       to:body.spouse_phone_e164 || phoneOf(String(data.spousePhone||"")),
+       link:complete.partnerLink,inviter:String(data.firstName||"Your spouse")
+     });
+   }
+   return {ok:true,questionnaireComplete:true,phoneVerification,spouseInvitationSMS,
+     partnerInviteLink:complete.partnerLink,spouseFirstName:complete.spouseName,
      smsConsent:sms?"recorded_unverified":"declined",
      message:"Your completed signup is saved. Sophia will not text until phone verification, carrier approval and activation are confirmed."};
  }
