@@ -6,6 +6,7 @@ import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as lis
 import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
 import { createRoom as createV4PilotRoom } from "./jj4-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
+import {getAdminHomeMetrics} from "./admin-home-metrics.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
 import {listScenarios,saveScenario} from "./jj2-library.mjs";
 import {readEpisodeStudio,saveEpisodeStudio,generateEpisodeStudio} from "./episode-studio.mjs";
@@ -220,6 +221,10 @@ export default {
         return json({error:"Invalid story."},400);
       try{return json(await reviewList(slug,version));}
       catch(err){return json({error:err.message||"Review queue unavailable."},err.code||502);}
+    }
+    if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="home-metrics"){
+      if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
+      return json(await getAdminHomeMetrics());
     }
     if(request.method==="GET" && new URL(request.url).searchParams.get("view")==="couples"){
       if(!isAdmin(request))return json({error:"Administrator sign-in required."},401);
