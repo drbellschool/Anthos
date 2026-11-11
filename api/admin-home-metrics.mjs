@@ -4,7 +4,7 @@ const nonNegative=n=>{const v=Number(n);return Number.isFinite(v)&&v>=0?v:null;}
 async function fetchJson(url,token,headers={}){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
  try{
-  const response=await fetch(url,{headers:{Authorization:"Bearer "+token,Accept:"application/json",...headers},cache:"no-store",signal:controller.signal});
+  const response=await fetch(url,{headers:{Accept:"application/json",...(!token.startsWith("sb_secret_")?{Authorization:"Bearer "+token}:{}),...headers},cache:"no-store",signal:controller.signal});
   if(!response.ok)return {ok:false,status:response.status};
   const body=await response.json().catch(()=>null);
   if(!body)return {ok:false,status:502};
