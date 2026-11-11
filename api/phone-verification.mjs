@@ -42,7 +42,7 @@ export async function beginPhoneVerification(customerId,phone){
   try{await sendRegistrationCode({to:phone,code});sent=true;}catch{/* No automatic retries: send outcome may be uncertain. */}
  }
  return {required:true,token,maskedPhone:masked(phone),sent,
-  available:registrationSmsConfigured(),expiresInMinutes:10,sessionExpiresInHours:24};
+  available:registrationSmsConfigured(),canResend:false,expiresInMinutes:10,sessionExpiresInHours:24};
 }
 export async function resendPhoneVerification(token){
  token=checkToken(token);
