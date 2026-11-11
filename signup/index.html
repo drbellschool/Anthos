@@ -113,7 +113,8 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   <div style="margin-top:9px">
    <label class="field">Spouse's mobile number<input name="spousePhone" id="spousePhone" type="tel" autocomplete="off" inputmode="tel" maxlength="20" placeholder="(903) 555-5678" required></label>
   </div>
-  <p class="note">Use a 10-digit U.S. mobile number—no +1 needed. After you join, you'll get a private link for your spouse. They'll complete their own details and consent; Anthos won't text them automatically.</p>
+  <p class="note">Use a 10-digit U.S. mobile number—no +1 needed. After you join, you can share your private invitation link or have Anthos send a single text if your spouse agreed to receive it.</p>
+  <label class="check"><input name="spouseInviteConsent" type="checkbox">My spouse agreed to receive one Anthos registration invitation text at the number above. This does not enroll them in recurring messages.</label>
  </div>
  <div class="section" id="consentSection">
   <h2 id="consentHeading">One last thing</h2>
@@ -234,7 +235,7 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
     phone:values.get("phone"),postalCode:values.get("postalCode"),spouseFirstName:values.get("spouseFirstName"),spouseLastName:values.get("spouseLastName"),spousePhone:values.get("spousePhone"),
     birthDate:values.get("birthDate"),weddingDate:values.get("weddingDate"),
     holidays:[...$("holidays").querySelectorAll("input:checked")].map(x=>x.value),specialDates:milestones,
-    confirmPhone:values.has("confirmPhone"),smsConsent:values.has("smsConsent"),
+    confirmPhone:values.has("confirmPhone"),smsConsent:values.has("smsConsent"),spouseInviteConsent:!isPartnerReview&&values.has("spouseInviteConsent"),
     adultAgreement:values.has("adultMarriageAgreement"),
     marriageAgreement:values.has("adultMarriageAgreement"),privacyAgreement:values.has("privacyAgreement")};
    spousePhone=isPartnerReview?"":String(body.spousePhone||"").replace(/[\s().-]/g,"");
