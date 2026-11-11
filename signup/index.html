@@ -33,6 +33,9 @@ button:disabled{opacity:.6;cursor:default}
 .actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
 .small-actions{display:flex;gap:8px;flex-wrap:wrap}
 a{color:#2e6647}
+.otp-code{font-size:25px!important;letter-spacing:.4em;text-align:center;max-width:270px;font-variant-numeric:tabular-nums}
+.otp-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+#verifyStatus{min-height:24px;font-size:12px}
 [hidden]{display:none!important}
 footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
 @media(max-width:570px){
@@ -46,8 +49,21 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
 </style></head><body><main>
 <header><div class="logo">✳ anthos</div><div class="kicker">The adventure awaits</div></header>
 <div id="status" role="status">Opening your private invitation…</div>
+<section id="verifyPanel" class="card" hidden>
+ <div class="kicker">Verify your phone</div><h1>One small step, then together.</h1>
+ <p id="verifyIntro">Enter the six-digit code we sent your mobile number.</p>
+ <label class="field" for="smsCode">Six-digit verification code
+  <input class="otp-code" name="smsCode" id="smsCode" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••">
+ </label>
+ <div class="otp-actions">
+  <button type="button" id="confirmCode">Verify my number</button>
+  <button type="button" class="ghost" id="resendCode">Send a new code</button>
+ </div>
+ <p id="verifyStatus" role="status" aria-live="polite"></p>
+ <p class="note">Codes expire after 10 minutes. This verification is only for your registration. Recurring adventure texts require separate consent, and your spouse verifies independently.</p>
+</section>
 <section id="complete" class="card" hidden>
- <div class="kicker">You're in</div><h1>Your story starts together.</h1>
+ <div class="kicker">Phone verified</div><h1>Your story starts together.</h1>
  <p id="successText">Your Anthos profile is saved.</p>
  <div id="partnerInvite" hidden>
   <h2>Invite your spouse</h2><p>Send this link yourself. Your spouse will complete their own details and consent before Anthos contacts them.</p>
@@ -101,11 +117,11 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
  </div>
  <div class="section" id="consentSection">
   <h2 id="consentHeading">One last thing</h2>
-  <label class="check"><input name="confirmPhone" type="checkbox" required>I confirm this is my own mobile number.</label>
+  <label class="check"><input name="confirmPhone" type="checkbox" required>I confirm this is my own number and agree to receive a one-time SMS verification code.</label>
   <label class="check"><input name="smsConsent" type="checkbox">Yes, Anthos may send me recurring texts about our marriage adventure, including Sophia's check-ins and Love Whispers. Frequency varies. Message/data rates may apply. Reply STOP to opt out or HELP for assistance. Optional; not a condition of purchase.</label>
   <label class="check"><input name="adultMarriageAgreement" type="checkbox" required>I am at least 18, and we are legally married.</label>
   <label class="check"><input name="privacyAgreement" type="checkbox" required>I agree to the <a href="/terms/" target="_blank" rel="noopener noreferrer">Terms</a> and have read the <a href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</label>
-  <p class="note">Checking the text box records your choice. Your number must still be independently verified before Anthos can text you.</p>
+  <p class="note">The verification text is required for signup; optional Sophia and adventure texts use the separate consent checkbox above.</p>
   <p id="submitStatus" role="status" aria-live="polite"></p>
   <button type="submit" id="save">Begin our adventure</button>
  </div>
@@ -114,7 +130,9 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
 </main><script>
 (()=>{
  const $=id=>document.getElementById(id);
- const token=new URLSearchParams(location.hash.slice(1)).get("t")||"";
+ const hashParams=new URLSearchParams(location.hash.slice(1));
+ const token=hashParams.get("t")||"";
+ let verificationToken=hashParams.get("v")||"";
  let partnerLink=null,spousePhone="",isPartnerReview=false;
  function validToken(x){return /^(?:[A-Za-z0-9_-]{16}|[0-9a-f]{64})$/.test(x);}
  async function api(body){
@@ -139,8 +157,34 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
   $("firstName").value=words.shift()||"";
   $("lastName").value=words.join(" ")||"";
  }
+ function showComplete(){
+   $("verifyPanel").hidden=true;$("signupForm").hidden=true;$("status").hidden=true;
+   $("complete").hidden=false;
+   $("successText").textContent="Your phone is verified and your registration is saved. Secure login and member access will be activated separately.";
+   if(partnerLink){$("partnerInvite").hidden=false;$("partnerLinkText").textContent=partnerLink;}
+   history.replaceState(null,"",location.pathname);
+ }
+ function showVerification(v,preserveHash=false){
+   verificationToken=v.token||verificationToken;
+   $("status").hidden=true;$("signupForm").hidden=true;$("complete").hidden=true;
+   $("verifyPanel").hidden=false;
+   $("verifyIntro").textContent="Enter the six-digit code for "+(v.maskedPhone||"your phone")+".";
+   $("verifyStatus").textContent=!v.available
+     ?"Your registration is saved. Verification texts are not enabled yet; keep this link to finish later."
+     :v.sent?"A code was requested. Check your messages.":"A code has not been confirmed as sent. You can request another after the cooldown.";
+   $("resendCode").disabled=!v.available||v.canResend===false;
+   if(!preserveHash)history.replaceState(null,"",location.pathname+"#v="+encodeURIComponent(verificationToken));
+   if(v.available&&v.canResend===false)setTimeout(()=>{$("resendCode").disabled=false;},61000);
+   if(v.available)$("smsCode").focus();
+ }
  async function init(){
   try{
+   if(verificationToken){
+     try{partnerLink=sessionStorage.getItem("anthos:partner:"+verificationToken)||null;}catch{}
+     const v=await api({action:"verification-status",verificationToken});
+     if(v.verified)showComplete();else showVerification(v,true);
+     return;
+   }
    if(!validToken(token))throw Error("Your invitation link is invalid. Please request a new link.");
    const r=await api({action:"preview",token});
    if(r.mode==="existing"){prefill(r.name);$("email").value=r.email||"";}
@@ -195,13 +239,34 @@ footer{text-align:center;color:#758378;margin:18px 0;font-size:10px}
     marriageAgreement:values.has("adultMarriageAgreement"),privacyAgreement:values.has("privacyAgreement")};
    spousePhone=isPartnerReview?"":String(body.spousePhone||"").replace(/[\s().-]/g,"");
    const r=await api(body);
-   $("signupForm").hidden=true;$("complete").hidden=false;
-   $("successText").textContent=isPartnerReview
-     ?"Thanks, "+String(body.firstName).trim()+". Your personal details and reviewed dates are saved. No second questionnaire needed."
-     :"Thanks, "+String(body.firstName).trim()+". Your details are saved. We'll guide you through the next step.";
-   if(r.partnerInviteLink){partnerLink=r.partnerInviteLink;$("partnerInvite").hidden=false;$("partnerLinkText").textContent=partnerLink;}
-   history.replaceState(null,"",location.pathname);
+   partnerLink=r.partnerInviteLink||null;
+   if(r.phoneVerification?.token){
+     try{if(partnerLink)sessionStorage.setItem("anthos:partner:"+r.phoneVerification.token,partnerLink);}catch{}
+     showVerification(r.phoneVerification);
+   }else{
+     $("signupForm").hidden=true;
+     status("Your details were saved, but verification could not start. Contact Anthos for help.",true);
+   }
   }catch(err){$("submitStatus").textContent=err.message;b.disabled=false;}
+ });
+ $("confirmCode").addEventListener("click",async()=>{
+  const code=$("smsCode").value.trim();
+  if(!/^[0-9]{6}$/.test(code)){$("verifyStatus").textContent="Enter a six-digit code.";return;}
+  $("confirmCode").disabled=true;$("verifyStatus").textContent="Checking your code…";
+  try{
+   const r=await api({action:"verify-phone",verificationToken,code});
+   if(r.verified)showComplete();
+  }catch(err){$("verifyStatus").textContent=err.message;}
+  finally{$("confirmCode").disabled=false;}
+ });
+ $("smsCode").addEventListener("keydown",e=>{if(e.key==="Enter")$("confirmCode").click();});
+ $("resendCode").addEventListener("click",async()=>{
+  $("resendCode").disabled=true;$("verifyStatus").textContent="Requesting another code…";
+  try{
+   await api({action:"resend-verification",verificationToken});
+   $("verifyStatus").textContent="Another code was requested. Check your texts.";
+   setTimeout(()=>{$("resendCode").disabled=false;},61000);
+  }catch(err){$("verifyStatus").textContent=err.message;$("resendCode").disabled=false;}
  });
  function spouseMessage(){return "I signed us up for Anthos.love ❤️. Can you add your details here? "+partnerLink;}
  $("copyPartner").addEventListener("click",async()=>{

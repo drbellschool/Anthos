@@ -1,5 +1,6 @@
-// One-time signup tokens and web consent. Does not send email or SMS.
+// One-time signup tokens, web consent and transactional phone verification.
 import {randomBytes,createHash} from "node:crypto";
+import {beginPhoneVerification} from "./phone-verification.mjs";
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const FIELDS="id,email,display_name,phone_e164,record_status,signup_token_expires_at,signup_token_consumed_at";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,TOKEN=/^(?:[a-zA-Z0-9_-]{16}|[0-9a-f]{64})$/;
@@ -56,7 +57,7 @@ async function partnerReview(invite){
 }
 export async function createOpenSignupLink(){
  const token=randomBytes(12).toString("base64url"),expiresAt=new Date(Date.now()+72*3600000).toISOString();
- const rows=await db({}, "POST",{token_hash:SHA(token),expires_at:expiresAt,program:"pilot"},
+ const rows=await db({}, "POST",{token_hash:SHA(token),expires_at:expiresAt,program:"standard"},
    "anthos_signup_invitations");
  if(rows.length!==1)fail("Could not create the signup invitation.",502);
  return {ok:true,link:"https://anthos.love/signup/#t="+token,expiresAt,sent:false,
@@ -201,7 +202,8 @@ export async function submitSignup(data){
      spouseLastName:couple.inviterLastName,
      spousePhone:couple.inviterPhone
    }:data,fresh.hash,body,!!couple);
-   return {ok:true,questionnaireComplete:true,partnerInviteLink:complete.partnerLink,spouseFirstName:complete.spouseName,
+   const phoneVerification=await beginPhoneVerification(complete.customerId,body.phone_e164);
+   return {ok:true,questionnaireComplete:true,phoneVerification,partnerInviteLink:complete.partnerLink,spouseFirstName:complete.spouseName,
      smsConsent:sms?"recorded_unverified":"declined",
      message:"Your completed signup is saved. Sophia will not text until phone verification, carrier approval and activation are confirmed."};
  }
@@ -218,6 +220,7 @@ export async function submitSignup(data){
  const rows=await db({id:"eq."+row.id,signup_token_hash:"eq."+hash,
    signup_token_consumed_at:"is.null",signup_token_expires_at:"gt."+now,select:"id"},"PATCH",body);
  if(rows.length!==1)fail("This link was already completed. Request another signup link.",409);
- return {ok:true,questionnaireComplete:true,smsConsent:sms?"recorded_unverified":"declined",
-   message:"Your answers were saved. Sophia will not text until consent, phone verification, carrier approval and activation are confirmed."};
+ const phoneVerification=await beginPhoneVerification(row.id,phone);
+ return {ok:true,questionnaireComplete:true,phoneVerification,smsConsent:sms?"recorded_unverified":"declined",
+   message:"Your answers were saved. A six-digit code is required to verify your mobile number. Pilot messaging remains off."};
 }
