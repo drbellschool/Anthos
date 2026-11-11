@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>Sign in · Anthos Marriage Adventures</title>
+<style>
+:root{color-scheme:light;--ink:#31473b;--purple:#5b315e;--cream:#faf7ef;--edge:#dfded0}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(ellipse at 75% 16%,#e6d5e6,transparent 48%),radial-gradient(ellipse at 20% 70%,#e7ebdf,transparent 55%),#f5f2ea;color:var(--ink);font:14px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}
+a{color:var(--purple)}main{width:min(440px,calc(100% - 32px));margin:48px auto}.brand{text-decoration:none;font:32px Georgia,serif;letter-spacing:-1.5px;color:var(--purple)}.brand span{font:700 9px system-ui,sans-serif;letter-spacing:2px;display:block;color:#847a7e;margin-top:4px}.card{padding:35px 30px;background:#fffcf6ed;border:1px solid var(--edge);border-radius:20px;box-shadow:0 22px 65px #4d38511b;margin:21px 0 16px}h1{font:normal 38px/1.07 Georgia,serif;letter-spacing:-1.4px;color:var(--purple);margin:0 0 15px}p{color:#677469;margin:0 0 20px}label{font-weight:700;display:block;font-size:12px}input{width:100%;margin-top:7px;padding:13px 14px;font-size:15px;border:1px solid #bfcdc0;border-radius:10px;background:white;color:var(--ink)}button{width:100%;background:var(--purple);border:0;border-radius:11px;color:white;font-weight:750;font-size:14px;padding:14px;cursor:pointer;margin-top:16px}button:disabled{opacity:.6;cursor:wait}#message{margin:15px 0 0;font-size:13px;min-height:20px}#message.error{color:#9a3a44}small{display:block;color:#7a8279;font-size:11px;line-height:1.6;margin-top:16px}footer{text-align:center;font-size:11px;color:#7a8079}
+</style></head><body><main><header><a class="brand" href="/">✳ anthos <span>LOVE IN BLOOM</span></a></header>
+<section class="card"><h1>Your story continues here.</h1><p>Sign in privately to see your Yearly Cord, customize its three strands, and follow your marriage adventures.</p>
+<form id="emailForm"><label for="email">Email address</label><input id="email" type="email" required autocomplete="email" placeholder="you@example.com" maxlength="254"><button id="submit" type="submit">Email me a sign-in link</button></form>
+<p id="message" aria-live="polite"></p><small>Each spouse signs in separately. Signing in does not grant SMS consent. Existing profiles must be linked to a verified account before personal progress can be shown.</small></section>
+<footer><a href="/">Back to Anthos</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></footer></main>
+<script>
+(()=>{'use strict';const form=document.getElementById('emailForm'),message=document.getElementById('message'),button=document.getElementById('submit');
+form.addEventListener('submit',async e=>{e.preventDefault();message.className='';message.textContent='Sending your sign-in link…';button.disabled=true;
+try{const response=await fetch('/api/couple-home',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'login',email:document.getElementById('email').value})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not send link');message.textContent=data.message||'Check your email for your private sign-in link.';form.reset();}
+catch(err){message.className='error';message.textContent=err.message||'Sign-in is currently unavailable.';}finally{button.disabled=false;}});
+fetch('/api/couple-home',{credentials:'same-origin',cache:'no-store'}).then(r=>{if(r.ok)location.replace('/dashboard/');}).catch(()=>{});
+})();
+</script></body></html>
