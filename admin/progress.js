@@ -4,8 +4,8 @@
 const tasks=[
 ["A","Repository and admin access","verified","Code and admin access confirmed.","Review session security.",4],
 ["A","Supabase data and privacy","audit","Schema, consent and permissions need verification.","Audit RLS and per-spouse access.",4],
-["A","Telnyx and messaging","audit","Real SMS integration requires end-to-end verification.","Confirm carrier status, webhooks and opt-outs.",4],
-["A","Cost telemetry","planned","Per-couple usage tracking for SMS, AI and images.","Specify cost events and admin charts.",4],
+["A","Telnyx and messaging","audit","Replacement campaign CQ5D1EI reached MNO_PROVISIONED on Nov 10; end-to-end delivery and consent handling are not yet verified.","Test number assignment, delivery, replies, STOP/HELP, and consent records.",4],
+["A","Cost telemetry","audit","Admin usage dashboard was deployed Nov 10, but OpenAI organization-level usage requires credential verification.","Verify secure admin credential and reconcile actual Telnyx/OpenAI usage.",4],
 ["B","Sophia and Paraclete","designed","Companion coaching and concierge handoff.","Implement shared context and privacy rules.",4],
 ["B","Monthly journey: survey → team dive → solo dive → adventure","designing","New local-only /journey/ prototype follows the monthly cadence. No live spouse accounts, SMS or concierge booking.","Test prototype, then connect individually authenticated couples and consent boundaries.",31],
 ["B","Live interactive eight-chapter Team Deep Dive beta","designing","Compact shared dialogue, Sophia responding across fresh exchanges, two-spouse readiness before AI story consequences, responsive branching scenes and private beta comments. Automated checks pass; real couple QA for conversation pacing and readiness is pending.","Pilot repeated Sophia replies and both-spouse ready/keep-talking flow; review whether dialogue feels natural and consent remains clear.",31],
@@ -17,11 +17,12 @@ const tasks=[
 ["D","A Day Through Our Eyes","designed","Photo prompts across the day with two labeled spouse timelines.","Set photo limits, secure intake and consent.",10],
 ["D","One collage per petal","designed","A beautiful keepsake with both partners, meaningful moments and marriage duration.","Design templates and partner approval.",10],
 ["D","Instagram sharing and referrals","designed","4:5 export, optional share and Anthos referral link.","Build approved export and share-sheet flow.",10],
-["E","First-couple launch","planned","Pricing, privacy and end-to-end acceptance testing.","Run full customer journey tests.",4]
+["E","First-couple launch","planned","Registration changes merged Nov 10 despite six failing automated tests; paid launch remains unverified.","Repair registration CI and complete two-spouse signup, billing and Deep Dive acceptance tests.",4]
 ];
 // Versioned, scope-weighted planning estimates. Add a new workstream or increase
 // an existing workstream's scope weight when a new approved feature expands the product.
 // Do not mark progress without implementation/test evidence.
+const progressHistory=[{date:"2026-10-31",label:"Baseline planning estimate",source:"GitHub admin/progress.js",score:null}];
 const workstreams=[
  {name:"Website and brand",weight:12,progress:85},
  {name:"Admin and development tracking",weight:10,progress:75},
@@ -36,12 +37,17 @@ function scoreReadiness(){
  const total=workstreams.reduce((sum,w)=>sum+w.weight,0);
  const earned=workstreams.reduce((sum,w)=>sum+w.weight*w.progress/100,0);
  const score=total?Math.round(earned/total*100):0;
+ progressHistory[0].score=score;
+ // Only evidence-reviewed changes to workstreams may change this score. GitHub issue
+ // closures and successful deployments do not automatically prove customer readiness.
  const product=document.getElementById("productCompletion");
  const scope=document.getElementById("readinessScope");
  if(product)product.textContent=score+"%";
- if(scope)scope.textContent=workstreams.length+" workstreams · "+total+" weighted scope points · Updated: 31 Oct 2026 · Scoped planning estimates, not live completion";
+ if(scope)scope.textContent=workstreams.length+" workstreams · "+total+" weighted scope points · Score baseline: 31 Oct 2026 · Evidence notes reviewed: 12 Nov 2026 · Percentages still require manual verification";
 }
 scoreReadiness();
+// Historical scores are deliberately versioned in source, never inferred from commits.
+// Future reviewed score changes should append a dated entry to progressHistory.
 const labels={verified:"VERIFIED",audit:"AUDIT NEEDED",planned:"PLANNED",designed:"DESIGNED",designing:"DESIGNING"};
 const list=document.getElementById("featureList"),summary=document.getElementById("featureSummary"),search=document.getElementById("featureSearch"),phase=document.getElementById("featurePhase"),status=document.getElementById("featureStatus");
 if(!list||!summary||!search||!phase||!status)return;
