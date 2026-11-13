@@ -103,6 +103,13 @@ async function messages(room,role){
  ]);
  return {scenes:scenes||[],mine:mine||[],people:people||[]};
 }
+// Resolve Sophia's private pilot introduction using the first names entered
+// when participants joined. The editorial template remains untouched.
+export function personalizeIntroduction(opening,participants=[]){
+ const husband=participants.find(x=>x.role==="jack"&&x.joined_at)?.first_name?.trim()||"husband";
+ const wife=participants.find(x=>x.role==="jill"&&x.joined_at)?.first_name?.trim()||"wife";
+ return String(opening||"").replace(/<<husband>>/gi,husband).replace(/<<wife>>/gi,wife);
+}
 export async function status(token){
  const {person,room}=await participant(token);
  const joined=!!person.joined_at;
@@ -115,7 +122,7 @@ export async function status(token){
   // research-based closing and never needs an extra DB row or outbound SMS.
   // A negative ID guarantees it precedes the first generated scene.
   const opening=room.episode?.sophiaIntro?.trim();
-  if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",body:opening,phase_index:-1,created_at:room.created_at});
+  if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",body:personalizeIntroduction(opening,people),phase_index:-1,created_at:room.created_at});
  return {ok:true,version:"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
@@ -275,37 +282,57 @@ async function directScene(room,phaseIndex){
  let result,story;
  const attempts=focusedPilot?2:1;
  let reviewFeedback="";
+ let lastUsable=null;
  for(let attempt=0;attempt<attempts;attempt++){
   const draftInput=reviewFeedback?{...input,requiredCorrectionsFromPriorAttempt:reviewFeedback}:input;
-  result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
-   schema:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
-   maxTokens:focusedPilot?1100:1600,timeout:35000});
+  try{
+   result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
+    schema:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
+    maxTokens:focusedPilot?1100:1600,timeout:35000});
+  }catch(err){
+   if(lastUsable){({result,story}=lastUsable);break}
+   throw err;
+  }
   try{story=assembleDirectedScene(result,!!coachingImpact)}
-  catch{story=null;reviewFeedback="The scene omitted concrete actions or consequences. Generate four complete narrative beats.";continue}
+  catch{
+   story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
+   continue;
+  }
+  lastUsable={result,story};
   if(!focusedPilot)break;
   const words=wordCount(story);
-  if(words<65||words>125){
-   story=null;reviewFeedback="The scene was "+words+" words. Rewrite as 75–110 words TOTAL, showing ONLY new action and its consequence; no recap.";continue;
+  if(attempt===0&&(words<60||words>145)){
+   reviewFeedback="This was "+words+" words. Target 75–110 words, only what happens NEXT. Avoid recapping previous scenes.";
+   continue;
   }
-  const review=await generateStructured({model,key,name:"anthos_jj4_scene_quality_gate",
-   schema:SCENE_REVIEW_SCHEMA,
-   input:{canonicalFacts:continuity.canonicalFacts,previouslyShownScenes:sharedHistory,
-    phaseIndex,scene:story,requiredNewDevelopment:continuity.nextSceneRule,
-    expectedObservableCoachEffect:coachingImpact},
-   instructions:[
-    "You are a strict continuity editor. Evaluate this candidate against every prior shared scene.",
-    "Reject if it repeats a completed action, promise, telephone call, apology, negotiation or arrival as though new.",
-    "Reject when Jill blames Jack for making the $400 purchase. Jill bought it; Jack delayed the old repair.",
-    "Reject when the scene lacks an observable NEW development or ignores the supplied coaching impact.",
-    "Approve only if all error fields are empty and distinctNewEvent names a concrete genuinely new event.",
-    "Return short corrective errors and no rewritten story."
-   ].join(" "),maxTokens:400,timeout:14000});
-  if(reviewPass(review))break;
-  story=null;
+  // The first (Hook) has no earlier scenes to contradict. Do not use an
+  // independent reviewer to block the introductory action.
+  if(phaseIndex===0)break;
+  let review;
+  try{
+   review=await generateStructured({model,key,name:"anthos_jj4_scene_quality_gate",
+    schema:SCENE_REVIEW_SCHEMA,
+    input:{canonicalFacts:continuity.canonicalFacts,previouslyShownScenes:sharedHistory,
+     phaseIndex,scene:story,requiredNewDevelopment:continuity.nextSceneRule,
+     expectedObservableCoachEffect:coachingImpact},
+    instructions:[
+     "Evaluate chronology and concrete events, not literary preferences. A callback to an established fact is allowed; replaying it as a new event is not.",
+     "A character acknowledging an existing promise is not a duplicated action if another new event occurs.",
+     "Jill made the $400 purchase. Jack postponed the old microwave repair.",
+     "Flag an actual contradiction or repeated completed event; avoid rejecting simply because the same physical object remains present.",
+     "Return short corrective notes only for factual defects. If there is a genuine new event, approve."
+    ].join(" "),maxTokens:400,timeout:14000});
+  }catch{
+   // Reviewer infrastructure failures must not make an otherwise usable pilot
+   // scene disappear. No raw private coaching is ever sent to the reviewer.
+   break;
+  }
+  if(reviewPass(review)||attempt===attempts-1)break;
   reviewFeedback=["continuityError","repetitionError","responsibilityError","coachingError"].map(k=>review[k]).filter(Boolean).join(" ")||
-   "Make a NEW action or consequence. Maintain purchaser and repair responsibilities. Do not recap.";
+   "Keep the character ledger stable and move the story forward with a specific new action.";
  }
- if(!story)error("The story repeated or contradicted an earlier scene. Nothing was published; retry.",502);
+ if(!story&&lastUsable)({result,story}=lastUsable);
+ if(!story)error("The scene could not be written completely. Retry this scene.",502);
  const audience=cp?.audience||"none";
  // Validate the speaker, not just the correct delivery audience. Some earlier
  // pilot prompts incorrectly addressed "Jill" as if the wife coach *were* Jill.
