@@ -7,6 +7,7 @@ import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
+import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCount} from "./jj4-continuity.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -228,6 +229,8 @@ async function directScene(room,phaseIndex){
  }
  // Second call: enact those decisions as real character action and fallout.
  // Advice is never simply pasted into a message or retold to the other coach.
+ const focusedPilot=isContinuityPilot(room);
+ const continuity=focusedPilot?continuityInput(phaseIndex,sharedHistory,coachingImpact):null;
  const input={
   title:room.title,primaryObjective:room.episode.primarySkill,
    participantMode:room.episode.pilotMode||"shared",participatingCoaches:activeRoles(room),
@@ -245,7 +248,8 @@ async function directScene(room,phaseIndex){
   personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
   checkpoint:cp,fictionalCharacters:fictionalNames,
   history:sharedHistory.map(m=>({role:"shared",kind:"scene",phase:m.phase,body:scrub(m.body)})),
-  coachingImpact
+  coachingImpact,
+  ...(focusedPilot?{continuity}:{})
  };
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
@@ -264,15 +268,44 @@ async function directScene(room,phaseIndex){
   "NEVER begin a private message 'Jack, ...' or 'Jill, ...', never say 'Jill, consider...', 'How could Jill...', 'Tell Jack what to do', or 'How do you feel about Jill'. Those are narrator instructions aimed at the character or coach, NOT a character texting a friend.",
   "Do not insert names or private advice from the real husband or wife into the message. Speak ONLY as the fictional sender and don't ask the user to roleplay that sender.",
   "Jack and Jill are always the fictional characters; the real husband and wife are private coaches, never characters.",
-  "The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
+  focusedPilot?"Write 75–110 words TOTAL across all four narrative beats. Start AFTER the previous scene. Do not retell past events, earlier apologies, earlier agreements, prior calls, or old discoveries. Include ONE genuinely NEW action or consequence; leave the past in the past. Use concise dialogue and no recaps.":"The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
   "Return JSON only: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt.",
   "If checkpoint audience is none or the phase is Reflection, return empty strings for both prompts. If Jack-only, Jill's prompt is empty; if Jill-only, Jack's is empty. If both, two different private prompts. Each must respond to what just happened, not repeat a canned question about the theoretical skill."
  ].join(" ");
- const result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
-  schema:DIRECTED_SCENE_SCHEMA,input,instructions,maxTokens:1600,timeout:35000});
- let story;
- try{story=assembleDirectedScene(result,!!coachingImpact)}
- catch{error("The AI omitted the coaching consequence. Retry this scene.",502)}
+ let result,story;
+ const attempts=focusedPilot?2:1;
+ let reviewFeedback="";
+ for(let attempt=0;attempt<attempts;attempt++){
+  const draftInput=reviewFeedback?{...input,requiredCorrectionsFromPriorAttempt:reviewFeedback}:input;
+  result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
+   schema:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
+   maxTokens:focusedPilot?1100:1600,timeout:35000});
+  try{story=assembleDirectedScene(result,!!coachingImpact)}
+  catch{story=null;reviewFeedback="The scene omitted concrete actions or consequences. Generate four complete narrative beats.";continue}
+  if(!focusedPilot)break;
+  const words=wordCount(story);
+  if(words<65||words>125){
+   story=null;reviewFeedback="The scene was "+words+" words. Rewrite as 75–110 words TOTAL, showing ONLY new action and its consequence; no recap.";continue;
+  }
+  const review=await generateStructured({model,key,name:"anthos_jj4_scene_quality_gate",
+   schema:SCENE_REVIEW_SCHEMA,
+   input:{canonicalFacts:continuity.canonicalFacts,previouslyShownScenes:sharedHistory,
+    phaseIndex,scene:story,requiredNewDevelopment:continuity.nextSceneRule,
+    expectedObservableCoachEffect:coachingImpact},
+   instructions:[
+    "You are a strict continuity editor. Evaluate this candidate against every prior shared scene.",
+    "Reject if it repeats a completed action, promise, telephone call, apology, negotiation or arrival as though new.",
+    "Reject when Jill blames Jack for making the $400 purchase. Jill bought it; Jack delayed the old repair.",
+    "Reject when the scene lacks an observable NEW development or ignores the supplied coaching impact.",
+    "Approve only if all error fields are empty and distinctNewEvent names a concrete genuinely new event.",
+    "Return short corrective errors and no rewritten story."
+   ].join(" "),maxTokens:400,timeout:14000});
+  if(reviewPass(review))break;
+  story=null;
+  reviewFeedback=["continuityError","repetitionError","responsibilityError","coachingError"].map(k=>review[k]).filter(Boolean).join(" ")||
+   "Make a NEW action or consequence. Maintain purchaser and repair responsibilities. Do not recap.";
+ }
+ if(!story)error("The story repeated or contradicted an earlier scene. Nothing was published; retry.",502);
  const audience=cp?.audience||"none";
  // Validate the speaker, not just the correct delivery audience. Some earlier
  // pilot prompts incorrectly addressed "Jill" as if the wife coach *were* Jill.
@@ -309,7 +342,7 @@ async function directScene(room,phaseIndex){
   ["jack","both"].includes(audience)?rewriteCheckin("jack",result.jackPrompt):Promise.resolve(""),
   ["jill","both"].includes(audience)?rewriteCheckin("jill",result.jillPrompt):Promise.resolve("")
  ]);
- return {scene:brief(scrub(story),2500),jackPrompt,jillPrompt};
+ return {scene:brief(scrub(story),focusedPilot?1300:2500),jackPrompt,jillPrompt};
 }
 export async function advance(token){
  const {person,room}=await participant(token);
