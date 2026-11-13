@@ -14,7 +14,10 @@ test("Only this pilot gets the strict length and continuity review",()=>{
  assert.match(core,/const words=wordCount\(story\)/);
  assert.match(core,/if\(words<65\|\|words>125\)/);
  assert.match(core,/anthos_jj4_scene_quality_gate/);
- assert.match(core,/if\(!story\)error\("The story repeated/);
+ assert.match(core,/if\(!story&&lastUsable\)/);
+ assert.match(core,/if\(phaseIndex===0\)break/);
+ assert.match(core,/if\(reviewPass\(review\)\|\|attempt===attempts-1\)break/);
+ assert.doesNotMatch(core,/The story repeated or contradicted an earlier scene/);
 });
 test("Continuity ledger retains who made the purchase and completed history",()=>{
  const history=[{phase:"hook",body:"Jill purchased the microwave."}];
