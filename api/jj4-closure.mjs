@@ -10,7 +10,29 @@ const clean=(value,max)=>typeof value==="string"?value.trim().slice(0,max):"";
 const EPILOGUE_SCHEMA={type:"object",additionalProperties:false,
  properties:{observation:{type:"string"},practice:{type:"string"}},
  required:["observation","practice"]};
+const targetedEpisode=episode=>episode?.title==="The Four-Hundred-Dollar Surprise";
+function completeSentence(text,max,fallback){
+ const source=String(text||"").trim();
+ if(!source)return fallback;
+ const clipped=source.slice(0,max);
+ if(source.length<=max&&/[.!?][”"']?$/.test(source))return source;
+ const matches=[...clipped.matchAll(/[.!?](?=\s|$)/g)];
+ const last=matches.at(-1);
+ return last&&last.index>30?clipped.slice(0,last.index+1):fallback;
+}
+function specificClosing(episode,generated){
+ const observation=completeSentence(generated.observation,430,
+  "Jack acknowledged his delayed repair, while Jill acknowledged buying the microwave without consulting him. They still need to follow through on the practical decision.");
+ const practice=completeSentence(generated.practice,250,
+  "Ask each other what action would rebuild trust after a difficult financial decision, then choose one specific next step.");
+ return "SOPHIA · A CLOSING THOUGHT\n\n"+
+  "What happened: "+observation+"\n\n"+
+  "The skill connection: Facing a hard decision means owning your part without controlling the other person. A gentle startup raises a concern without blame; accepting influence means considering a partner's actual reasons.\n\n"+
+  "One thing to try: "+practice+"\n\n"+
+  "The story is fictional and its ending is not a grade on your marriage.";
+}
 export function composeSophiaClosure(episode,generated={}){
+ if(targetedEpisode(episode))return specificClosing(episode,generated);
  const observation=clean(generated.observation,460)||
   "Jack and Jill's story showed how assumptions about affection can get in the way of understanding what each person needs now.";
  const practice=clean(generated.practice,320)||
@@ -45,7 +67,7 @@ export async function draftSophiaClosure(episode,sharedScenes){
   "Only Jack and Jill are story characters; never describe the real husband or wife as if they were characters.",
   "Offer one realistic, consent-respecting, low-pressure practice for two people to discuss in real life. Respect autonomy and the ability to say no. No quizzes or relationship scores.",
   "Do not write research claims or bibliographies; the application adds accurately attributed educational research context itself.",
-  "Return two short fields: observation (45–80 words grounded in the story) and practice (one concrete invitation, 20–45 words).",
+  targetedEpisode(episode)?"Return two complete concise fields: observation 30–55 words about the NEW consequences and the actual ending, and practice one practical invitation of 15–30 words. Do not recap all six scenes or promise a happy resolution.":"Return two short fields: observation (45–80 words grounded in the story) and practice (one concrete invitation, 20–45 words).",
   "Avoid empty praise, glib humor, cheesy metaphors, shaming, overpromises, and diagnosing a couple."
  ].join(" ");
  try{
