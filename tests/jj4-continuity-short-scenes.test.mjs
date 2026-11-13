@@ -12,7 +12,7 @@ test("Only this pilot gets the strict length and continuity review",()=>{
  assert.equal(isContinuityPilot({scenario_id:"a different scenario"}),false);
  assert.match(core,/const attempts=focusedPilot\?2:1/);
  assert.match(core,/const words=wordCount\(story\)/);
- assert.match(core,/if\(words<65\|\|words>125\)/);
+ assert.match(core,/words<60\|\|words>145/);
  assert.match(core,/anthos_jj4_scene_quality_gate/);
  assert.match(core,/if\(!story&&lastUsable\)/);
  assert.match(core,/if\(phaseIndex===0\)break/);
