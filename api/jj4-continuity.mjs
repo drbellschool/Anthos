@@ -38,4 +38,4 @@ export function reviewPass(review){
  if(!review||review.approved!==true||typeof review.distinctNewEvent!=="string"||review.distinctNewEvent.trim().length<10)return false;
  return ["continuityError","repetitionError","responsibilityError","coachingError"].every(k=>!review[k]?.trim());
 }
-export function wordCount(value){return String(value||"").trim().split(/\\s+/).filter(Boolean).length}
+export function wordCount(value){return String(value||"").trim().split(/\s+/).filter(Boolean).length}
