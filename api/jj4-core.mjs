@@ -521,6 +521,10 @@ export async function coach(token,body,requestKey){
  if(words.length<2)error("Write a short suggestion to your character.");
  const routing=classifyCoachTurn(words);
  if(routing.kind==="pause")return pause(token);
+ if(routing.kind==="safety"){
+  const state=await pause(token);
+  return {...state,safetyNotice:"Your episode is paused. Your safety comes before the story. If you are in immediate danger, contact local emergency services. In the U.S., call or text 988 for a mental-health crisis, or call 800-799-7233 / text START to 88788 for domestic-abuse support."};
+ }
  if(routing.kind==="question"||routing.kind==="correction")return ask(token,words,requestKey);
  if(person.paused_at)return status(token);
  if(!UUID.test(requestKey||""))error("Invalid message request.");
