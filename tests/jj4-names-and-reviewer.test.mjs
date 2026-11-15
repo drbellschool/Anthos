@@ -22,4 +22,8 @@ test("Strict QA rejects unverified scenes; regular pilots can salvage a validate
  assert.match(core,/lastUsable=\{result,story,simulationUpdate\}/);
  assert.match(core,/if\(phaseIndex===0\)break/);
  assert.match(core,/if\(reviewPass\(review\)\)break/);
- assert.match(core,/if\(!story&&lastUsable&&!qu¶»§q«^
+ assert.match(core,/if\(!story&&lastUsable&&!qualityGate\)/);
+ assert.doesNotMatch(core,/The story repeated or contradicted an earlier scene/);
+ assert.match(core,/if\(qualityGate\)\{/);
+ assert.match(core,/The independent quality review did not finish/);
+});

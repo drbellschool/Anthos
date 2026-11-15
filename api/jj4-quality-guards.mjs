@@ -18,4 +18,46 @@ export function unsupportedExternalPolicyClaims(scene,approvedFacts=[]){
  const rejected=[];
  for(const original of sentences){
   const sentence=normalize(original);
-  if(!POLICY_TOPIC.test(sentence)||C¶»§q«^
+  if(!POLICY_TOPIC.test(sentence)||CONDITIONAL.test(sentence))continue;
+  const timed=POLICY_TIME.test(sentence)&&(ASSERTIVE_TIME.test(sentence)||POLICY_RULE.test(sentence));
+  const rule=POLICY_RULE.test(sentence)&&/\b(?:store|policy|return|refund|receipt|warranty)\b/.test(sentence)&&
+   /\b(?:must|requires?|required|only|no refund|nonrefundable|restocking fee)\b/.test(sentence);
+  if(!timed&&!rule)continue;
+  const window=sentence.match(POLICY_TIME)?.[0]||"";
+  const concept=sentence.match(POLICY_TOPIC)?.[0]||"";
+  // The only permitted sources are immutable authored/seeded facts, never
+  // a hallucinated claim that happened to appear in an earlier generated scene.
+  const authorized=Boolean(window&&factText.includes(window)&&POLICY_TOPIC.test(factText))||
+   Boolean(!window&&concept&&factText.includes(concept)&&
+      /(policy|require|must|no refund|nonrefundable|fee)/.test(factText));
+  if(!authorized)rejected.push(original.trim());
+ }
+ return rejected;
+}
+
+export const COACH_TRACE_SCHEMA={
+ type:"object",additionalProperties:false,
+ properties:{jackEvidence:{type:"string"},jillEvidence:{type:"string"},falloutEvidence:{type:"string"}},
+ required:["jackEvidence","jillEvidence","falloutEvidence"]
+};
+export function checkCoachingTrace(story,trace,coachedRoles=[]){
+ if(!coachedRoles?.length)return {ok:true};
+ if(!trace||typeof trace!=="object")return {ok:false,reason:"No visible coaching evidence was supplied."};
+ for(const role of coachedRoles){
+  const field=role==="jack"?"jackEvidence":"jillEvidence";
+  const evidence=trace[field]||"";
+  if(!appears(story,evidence))return {ok:false,reason:"The coached "+role+" response is missing from the visible scene."};
+  const context=normalize(evidence);
+  if(!new RegExp("\\b"+role+"\\b").test(context)&&!/\\b(?:i|my|me)\\b/.test(context))
+   return {ok:false,reason:"The coached "+role+" behavior has no identifiable speaker."};
+ }
+ if(!appears(story,trace.falloutEvidence))return {ok:false,reason:"The next scene did not visibly show consequences of coaching."};
+ return {ok:true};
+}
+export function checkSceneLength(scene,min=70,max=125){
+ const count=normalize(scene).split(/\s+/).filter(Boolean).length;
+ return {ok:count>=min&&count<=max,words:count,range:[min,max]};
+}
+export function asksForHumor(text){
+ return /\b(?:joke|joking|funny|humou?r|laugh|laughing|museum|sarcastic|tease|teasing|quip|punchline|comedy|dryly)\b/i.test(String(text||""));
+}
