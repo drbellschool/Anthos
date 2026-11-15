@@ -19,7 +19,7 @@ test("The original editorial intro remains unchanged and missing joins have safe
  assert.equal(partial,"Adam and wife, welcome. Jack and Jill need your help.");
 });
 test("Scene reviewer may request a rewrite but cannot veto a usable scene forever",()=>{
- assert.match(core,/lastUsable=\{result,story\}/);
+ assert.match(core,/lastUsable=\{result,story,simulationUpdate\}/);
  assert.match(core,/if\(phaseIndex===0\)break/);
  assert.match(core,/if\(reviewPass\(review\)\|\|attempt===attempts-1\)break/);
  assert.match(core,/if\(!story&&lastUsable\)/);

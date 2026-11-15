@@ -9,6 +9,7 @@ import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,D
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
 import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCount} from "./jj4-continuity.mjs";
 import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
+import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulationTransition,simulationInstructions} from "./jj4-character-simulation.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
@@ -70,8 +71,13 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
   if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
+ // Simulation is pinned at room creation. Old pilots retain their v4 behavior.
+ const seed=scenario.episode_studio?.simulationSeed;
+ if(seed?.enabled===true)draft.simulationSeed=seed;
+ const simulate=isContinuityPilot({scenario_id:scenario.id})||seed?.enabled===true;
  const created=(await db(R,{},{
-  title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0
+  title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0,
+  ...(simulate?{simulation_state:initialSimulation(draft)}:{})
  },"POST"))?.[0];
  if(!created?.id)error("Could not create the pilot room.",502);
  const invitations={};
@@ -202,6 +208,8 @@ async function directScene(room,phaseIndex){
  }));
  const influence=adviceForNextScene(phaseIndex,room.episode,ordered);
  const focusedPilot=isContinuityPilot(room);
+ const simulate=simulationEnabled(room);
+ const simulationBefore=simulate?room.simulation_state:null;
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
  let eventLedger=emptyLedger();
  if(focusedPilot&&sharedHistory.length){
@@ -248,6 +256,7 @@ async function directScene(room,phaseIndex){
    authorBoundaries:room.episode.boundaries,
    establishedFiction:sharedHistory.slice(-5),
    responseKinds:influence.responseKinds||{},
+   ...(simulate?{charactersAndWorld:simulationBefore}:{}),
    ...(focusedPilot?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
   };
   const plan=await generateStructured({model,key,name:"anthos_jj4_consequence_plan",
@@ -277,12 +286,14 @@ async function directScene(room,phaseIndex){
   checkpoint:cp,fictionalCharacters:fictionalNames,
   history:sharedHistory.map(m=>({role:"shared",kind:"scene",phase:m.phase,body:scrub(m.body)})),
   coachingImpact,
-  ...(focusedPilot?{continuity,eventLedger:ledgerPrompt(eventLedger,phase)}:{})
+  ...(focusedPilot?{continuity,eventLedger:ledgerPrompt(eventLedger,phase)}:{}),
+  ...(simulate?{characterSimulation:simulationBefore}:{})
  };
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan: preserve its issue, phase purpose and order, character facts, locked text, and earned closure target. It is not six fixed speeches, an inevitable smooth journey, or an excuse to fabricate a happy ending when coaching has worsened the situation.",
   "The field coachingImpact is a MANDATORY causal plan from the private coaching. It is not a suggestion. Write a fresh scene in which Jack visibly does jack.action, Jill visibly does jill.action, and their actions produce coachingImpact.sharedFallout plus personal consequences.",
+  ...(simulate?[simulationInstructions]:[]),
   "Do not give the couple an effortless insight or polite resolution simply because the learning objective involves connection. Poor advice can worsen tension; rejecting poor advice also has a meaningful consequence.",
   "Show what each character actually DID rather than explaining to readers that a coach advised them. Never quote or attribute private messages, do not reveal either coach's text to the other, and do not include the real coaches in the fictional world.",
   "Return four contiguous narrative beats: opening, jackBeat, jillBeat, fallout. They should flow together as a natural scene with unobtrusive transitions, not as a worksheet or stage directions. Each character beat must portray actual behavior and its effect, not merely private thoughts, abstractions or generic encouragement.",
@@ -300,18 +311,18 @@ async function directScene(room,phaseIndex){
   "Return JSON only: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt.",
   "If checkpoint audience is none or the phase is Reflection, return empty strings for both prompts. If Jack-only, Jill's prompt is empty; if Jill-only, Jack's is empty. If both, two different private prompts. Each must respond to what just happened, not repeat a canned question about the theoretical skill."
  ].join(" ");
- let result,story;
- const attempts=focusedPilot?2:1;
+ let result,story,simulationUpdate;
+ const attempts=simulate?3:focusedPilot?2:1;
  let reviewFeedback="";
  let lastUsable=null;
  for(let attempt=0;attempt<attempts;attempt++){
   const draftInput=reviewFeedback?{...input,requiredCorrectionsFromPriorAttempt:reviewFeedback}:input;
   try{
    result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
-    schema:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
-    maxTokens:focusedPilot?1100:1600,timeout:35000});
+    schema:simulate?SIMULATION_SCENE_SCHEMA:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
+    maxTokens:simulate?1900:focusedPilot?1100:1600,timeout:35000});
   }catch(err){
-   if(lastUsable){({result,story}=lastUsable);break}
+   if(lastUsable){({result,story,simulationUpdate}=lastUsable);break}
    throw err;
   }
   try{story=assembleDirectedScene(result,!!coachingImpact)}
@@ -319,8 +330,24 @@ async function directScene(room,phaseIndex){
    story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
    continue;
   }
-  lastUsable={result,story};
-  if(!focusedPilot)break;
+  if(simulate){
+   // Never validate evidence against text that is later truncated for display.
+   if(story.length>1300){
+    story=null;
+    reviewFeedback="Shorten the complete visible scene to at most 1300 characters. No summaries or repeated events.";
+    continue;
+   }
+   const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex);
+   if(!verified.ok){
+    story=null;
+    reviewFeedback="The character simulation rejected this scene: "+verified.reason+
+     " Preserve each character's recorded position and physical object state. Quote exact story evidence for new decisions.";
+    continue;
+   }
+   simulationUpdate=verified;
+  }
+  lastUsable={result,story,simulationUpdate};
+  if(!focusedPilot)break; // General simulation is validated without the pilot-specific critic.
   const words=wordCount(story);
   if(attempt===0&&(words<60||words>145)){
    reviewFeedback="This was "+words+" words. Target 75–110 words, only what happens NEXT. Avoid recapping previous scenes.";
@@ -355,7 +382,7 @@ async function directScene(room,phaseIndex){
   reviewFeedback=["continuityError","repetitionError","responsibilityError","coachingError"].map(k=>review[k]).filter(Boolean).join(" ")||
    "Keep the character ledger stable and move the story forward with a specific new action.";
  }
- if(!story&&lastUsable)({result,story}=lastUsable);
+ if(!story&&lastUsable)({result,story,simulationUpdate}=lastUsable);
  if(!story)error("The scene could not be written completely. Retry this scene.",502);
  const audience=cp?.audience||"none";
  // Validate the speaker, not just the correct delivery audience. Some earlier
@@ -393,7 +420,8 @@ async function directScene(room,phaseIndex){
   ["jack","both"].includes(audience)?rewriteCheckin("jack",result.jackPrompt):Promise.resolve(""),
   ["jill","both"].includes(audience)?rewriteCheckin("jill",result.jillPrompt):Promise.resolve("")
  ]);
- return {scene:brief(scrub(story),focusedPilot?1300:2500),jackPrompt,jillPrompt};
+ return {scene:brief(scrub(story),focusedPilot?1300:2500),jackPrompt,jillPrompt,
+  ...(simulate?{simulationState:simulationUpdate?.state,simulationEvent:simulationUpdate?.event}:{})};
 }
 export async function advance(token){
  const {person,room}=await participant(token);
@@ -407,9 +435,14 @@ export async function advance(token){
  try{
   const latest=(await db(R,{id:"eq."+room.id,select:"*"}))?.[0];
   const rendered=await directScene(latest,phase);
-  const saved=await db("rpc/anthos_jj4_commit_scene",{},
+  const useSimulation=simulationEnabled(latest);
+  if(useSimulation&&(!rendered.simulationState||!rendered.simulationEvent))
+   error("The scene did not preserve the characters' decisions. Retry this scene.",502);
+  const saved=await db(useSimulation?"rpc/anthos_jj4_commit_simulated_scene":
+   "rpc/anthos_jj4_commit_scene",{},
    {p_room:room.id,p_claim:claim,p_phase:phase,p_story:rendered.scene,
-    p_jack:rendered.jackPrompt,p_jill:rendered.jillPrompt},"POST");
+    p_jack:rendered.jackPrompt,p_jill:rendered.jillPrompt,
+    ...(useSimulation?{p_state:rendered.simulationState,p_event:rendered.simulationEvent}:{})},"POST");
   if(saved!==true)error("This scene was already completed elsewhere.",409);
  }catch(e){
   await db(R,{id:"eq."+room.id,processing_token:"eq."+claim},

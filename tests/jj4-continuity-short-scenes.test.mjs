@@ -10,7 +10,7 @@ const named={title:"The Four-Hundred-Dollar Surprise"};
 test("Only this pilot gets the strict length and continuity review",()=>{
  assert.equal(isContinuityPilot({scenario_id:TARGET_SCENARIO_ID}),true);
  assert.equal(isContinuityPilot({scenario_id:"a different scenario"}),false);
- assert.match(core,/const attempts=focusedPilot\?2:1/);
+ assert.match(core,/const attempts=simulate\?3:focusedPilot\?2:1/);
  assert.match(core,/const words=wordCount\(story\)/);
  assert.match(core,/words<60\|\|words>145/);
  assert.match(core,/anthos_jj4_scene_quality_gate/);
