@@ -142,7 +142,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  const claimsUnopened=/\b(?:unopened|still sealed|sealed box|box remains closed)\b/i;
  if(priorBox&&afterBox){
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
-   return {ok:false,reason:"An opened object was described as unopened without being resealed."};
+   return {ok:false,reason:"An opened box was described as unopened without being resealed."};
   // An observable physical event outranks model-generated state labels.
   if(opened.test(story)&&afterBox.condition==="sealed"){
    afterBox.condition="opened";
