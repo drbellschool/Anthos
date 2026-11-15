@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "../api/jj4-quality-guards.mjs";
+import {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor,unearnedMicrowaveActivation} from "../api/jj4-quality-guards.mjs";
 
 test("refuses made-up 30-day retailer refund claim",()=>{
  const scene='Jack reads the fine print: "We have 30 days to return it but the receipt is required." Jill frowns.';
@@ -35,4 +35,17 @@ test("recognizes explicit humorous cue without inventing advice",()=>{
 test("scene lengths are objectively counted",()=>{
  assert.equal(checkSceneLength("Jack opened the door.",1,5).words,4);
  assert.equal(checkSceneLength("Jack opened the door.",5,7).ok,false);
+});
+
+test("blocks powered microwave before it is connected",()=>{
+ assert.equal(unearnedMicrowaveActivation("The new microwave hums on the counter.",[
+  {body:"Jill broke the packing tape, slid the microwave out of the box and placed it on the counter."}
+ ]),true);
+ assert.equal(unearnedMicrowaveActivation("The microwave beeps as Jill turns away.",[]),true);
+});
+test("accepts earned appliance power or an unpowered discussion",()=>{
+ assert.equal(unearnedMicrowaveActivation("The new microwave hums on the counter.",[
+  {body:"The electrician installed the microwave, connected it to power and verified the outlet."}
+ ]),false);
+ assert.equal(unearnedMicrowaveActivation("Jill asks when the new microwave can be installed.",[]),false);
 });
