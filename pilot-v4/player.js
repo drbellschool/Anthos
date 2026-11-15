@@ -164,7 +164,8 @@ function mount(root,invite,options={}){
   }
   if(state.pausedBy?.length&&!state.needsReply){
    message("The other coach has paused. The story will resume when they return.");
-   oneAction("Refresh",refresh);return;
+   oneAction("Refresh",refresh);
+   oneAction("Pause episode",async()=>act("pause"));return;
   }
   if(state.canContinue){
    message(autoFailed?"Story needs a retry. Click to continue.":
@@ -172,6 +173,7 @@ function mount(root,invite,options={}){
    oneAction(state.scenes.length?"Continue / retry scene":"Start episode",async()=>{
     autoFailed=false;await act("advance");
    },true);
+   oneAction("Pause episode",async()=>act("pause"));
    if(!autoFailed&&!autoTimer)autoTimer=setTimeout(()=>{
     autoTimer=null;if(!inFlight&&!destroyed&&current?.canContinue)act("advance");
    },1200);
