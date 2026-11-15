@@ -484,6 +484,10 @@ export async function ask(token,body,requestKey){
  if(!UUID.test(requestKey||""))error("Invalid message request.");
  const question=brief(body,900);
  if(question.length<2)error("Enter a question for your character.");
+ // Network retries with the same request key must not cause another AI bill.
+ const existing=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
+  kind:"eq.question",request_key:"eq."+requestKey,select:"id",limit:"1"});
+ if(existing.length)return status(token);
  const prior=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
   kind:"eq.question",phase_index:"eq."+room.phase_index,select:"id",limit:"2"});
  if(prior.length>=2)error("Two private questions are allowed per checkpoint. Send advice or pause to continue.",429);
