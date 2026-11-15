@@ -39,10 +39,9 @@ export function matchesEvidence(story,quote){
  return actual.length>=12&&text.includes(actual);
 }
 export function simulationEnabled(room){
- // A saved author-approved seed enables any scenario; other episodes retain
- // the established 4.0 engine until their editorial work is completed.
- return room?.episode?.simulationSeed?.enabled===true||
-  room?.scenario_id==="67588dbf-b108-460d-87aa-c3a10d326d35";
+ // Only rooms that BEGIN with a pinned v1 state use the simulator. Previously
+ // started V4 pilots must retain their historical engine and transcript.
+ return room?.simulation_state?.version===SIMULATION_VERSION;
 }
 export function initialSimulation(episode={}){
  const isMicrowave=/four.hundred.dollar surprise/i.test(episode.title||"");
