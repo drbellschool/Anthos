@@ -41,6 +41,20 @@ export function matchesEvidence(story,quote){
  const actual=normalize(quote),text=normalize(story);
  return actual.length>=12&&text.includes(actual);
 }
+// Models sometimes paraphrase the evidence field even when the SCENE itself is
+// grounded. Fall back to an actual displayed action sentence, never to an
+// invented or invisible event. Do not use this fallback for changed decisions.
+export function observedEventExcerpt(story,priorEvents=[]){
+ const sentences=String(story||"").replace(/\s+/g," ").match(/[^.!?]+[.!?]?/g)||[];
+ const actor=/\b(?:jack|jill)\b/i;
+ const verbs=/\b(?:said|says|asked|asks|called|calls|dialed|dials|moved|moves|opened|opens|picked|picks|placed|places|wrote|writes|put|sets|set|pointed|points|replied|replies|handed|hands|insists|refused|refuses|laughed|laughs|shook|pulls|pulled)\b/i;
+ const words=x=>new Set(normalize(x).split(/[^a-z0-9]+/).filter(w=>w.length>3));
+ const previous=(priorEvents||[]).map(x=>words(x.evidence||x.action||""));
+ const shared=(a,b)=>a.size&&b.size?[...a].filter(w=>b.has(w)).length/Math.max(a.size,b.size):0;
+ const candidates=sentences.map(x=>x.trim()).filter(x=>x.length>=24&&actor.test(x)&&verbs.test(x));
+ const fresh=candidates.find(x=>previous.every(old=>shared(words(x),old)<0.65));
+ return limit(fresh||candidates[0]||"",220);
+}
 export function simulationEnabled(room){
  // Only rooms that BEGIN with a pinned v1 state use the simulator. Previously
  // started V4 pilots must retain their historical engine and transcript.
@@ -81,8 +95,10 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   return {ok:false,reason:"The previous committed character-state version or phase is invalid."};
  if(!proposal?.jack||!proposal?.jill||!proposal?.newEvent)
   return {ok:false,reason:"The scene omitted the character decisions or its new event."};
- if(!matchesEvidence(story,proposal.newEvent.evidence))
-  return {ok:false,reason:"The alleged new event is not evidenced by the visible scene."};
+ const groundedEvent=matchesEvidence(story,proposal.newEvent.evidence)?
+  limit(proposal.newEvent.evidence,220):observedEventExcerpt(story,previous.events);
+ if(!groundedEvent)
+  return {ok:false,reason:"The story contains no observable character action to ground a new event."};
  const next=structuredClone(previous);
  for(const role of ["jack","jill"]){
   const before=previous.characters[role],after=proposal[role];
@@ -138,7 +154,9 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  next.lastPhase=phase;
  next.events=[...previous.events.slice(-17),
   {phase,actor:limit(proposal.newEvent.actor,50),
-   action:limit(proposal.newEvent.action,300),evidence:limit(proposal.newEvent.evidence,220)}];
+   action:matchesEvidence(story,proposal.newEvent.evidence)?
+    limit(proposal.newEvent.action,300):groundedEvent,
+   evidence:groundedEvent}];
  next.openThreads=(Array.isArray(proposal.openThreads)?proposal.openThreads:previous.openThreads)
   .slice(0,8).map(x=>limit(x,200));
  return {ok:true,state:next,event:next.events.at(-1)};
