@@ -99,12 +99,13 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   next.characters[role]={...before,position:after.position,emotion:limit(after.emotion,100)};
  }
  if(proposal.humor?.attempted){
-  if(!matchesEvidence(story,proposal.humor.actionEvidence)||
-     !matchesEvidence(story,proposal.humor.reactionEvidence))
-   return {ok:false,reason:"A claimed comedic beat must include a visible action AND character reaction."};
-  next.humorBeats=[...(previous.humorBeats||[]).slice(-7),{
-   phase,action:limit(proposal.humor.actionEvidence,200),
-   reaction:limit(proposal.humor.reactionEvidence,200)}];
+  // Humor is important, but missing metadata must never block an otherwise
+  // coherent story. Store only the beats evidenced by the visible scene.
+  if(matchesEvidence(story,proposal.humor.actionEvidence)&&
+     matchesEvidence(story,proposal.humor.reactionEvidence))
+   next.humorBeats=[...(previous.humorBeats||[]).slice(-7),{
+    phase,action:limit(proposal.humor.actionEvidence,200),
+    reaction:limit(proposal.humor.reactionEvidence,200)}];
  }
  const changes=Array.isArray(proposal.objectChanges)?proposal.objectChanges:[];
  if(changes.length>8)return {ok:false,reason:"Too many object changes in one scene."};
