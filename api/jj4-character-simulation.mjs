@@ -117,7 +117,10 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    phase,action:limit(proposal.humor.actionEvidence,200),
    reaction:limit(proposal.humor.reactionEvidence,200)}];
  // The 'box's return-policy pamphlet' is not the box itself being opened.
- const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)(?![’']s)|peel(?:ed|s)? (?:back|off) (?:the )?tape|broke (?:the )?seal|unboxed|pulled out the receipt from the box)\b/i;
+ // Peeling a label's tape corner to read it does not break the box's seal.
+ // Only clear, completed unsealing actions can transition it to "opened".
+ const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box)\b/i;
+ const explicitlySealed=/\b(?:without (?:breaking|removing) (?:the )?seal|without unsealing|without breaking the seal fully|box (?:stays|remains|is|was) (?:still |firmly |tightly )?sealed|box stayed sealed|sealed box)\b/i;
  const updates=Array.isArray(proposal.objectChanges)?proposal.objectChanges.slice(0,8):[];
  for(const update of updates){
   const old=next.objects.find(x=>x.id===update?.id);
@@ -156,6 +159,12 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   if(priorBox.condition==="opened"&&resealed.test(story)){
    afterBox.condition="resealed";
    adjustments.push("visible resealing reconciled into world state");
+  }
+  if(priorBox.condition==="sealed"&&!opened.test(story)&&explicitlySealed.test(story)){
+   // Explicit visible evidence that the box was NOT unsealed overrides
+   // a speculative AI objectChange, including a peeled label corner.
+   if(afterBox.condition!=="sealed")adjustments.push("restored sealed box: no actual unsealing occurred");
+   afterBox.condition="sealed";
   }
  }
  // An authored, structurally complete scene is itself the source of truth.
