@@ -1,6 +1,7 @@
 // Anthos JJ4 — causal coaching contract between the saved checkpoint and next scene.
 // The authored six-phase plan remains fixed; private advice may change how fictional
 // characters behave within that stage, even when the advice is poor or rejected.
+import {classifyCoachTurn} from "./jj4-response-router.mjs";
 export const ROLE_NAMES=Object.freeze({jack:"Jack",jill:"Jill"});
 const PHASES=Object.freeze(["hook","conflict","discovery","reattempt","outcome","reflection"]);
 const TARGET_ROLES=Object.freeze(["jack","jill"]);
@@ -16,17 +17,17 @@ export function adviceForNextScene(phaseIndex,episode,history){
   episode.checkpoints.find(x=>x?.afterPhase===afterPhase):null;
  if(!cp||!cp.waitForReply||cp.audience==="none")return null;
  const roles=cp.audience==="both"?TARGET_ROLES:TARGET_ROLES.filter(role=>role===cp.audience);
- const advice={};
+ const advice={},responseKinds={};
  for(const item of history||[]){
   if(item.kind!=="coach"||item.phase_index!==phaseIndex-1||!roles.includes(item.role))continue;
   const body=clean(item.body).slice(0,900);
-  if(body)advice[item.role]=body; // last recorded message for the role wins
+  if(body){advice[item.role]=body;responseKinds[item.role]=classifyCoachTurn(body)} // last recorded message for the role wins
  }
  if(!Object.keys(advice).length)return null;
  return {
   afterPhase,upcomingPhase:PHASES[phaseIndex],
   checkpointPurpose:clean(cp.purpose).slice(0,600),
-  activeRoles:roles,advice
+  activeRoles:roles,advice,responseKinds
  };
 }
 
