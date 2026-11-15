@@ -3,6 +3,7 @@
 // characters behave within that stage, even when the advice is poor or rejected.
 import {classifyCoachTurn} from "./jj4-response-router.mjs";
 import {COACH_TRACE_SCHEMA} from "./jj4-quality-guards.mjs";
+export {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-quality-guards.mjs";
 export const ROLE_NAMES=Object.freeze({jack:"Jack",jill:"Jill"});
 const PHASES=Object.freeze(["hook","conflict","discovery","reattempt","outcome","reflection"]);
 const TARGET_ROLES=Object.freeze(["jack","jill"]);
@@ -19,6 +20,4 @@ export function adviceForNextScene(phaseIndex,episode,history){
  if(!cp||!cp.waitForReply||cp.audience==="none")return null;
  const roles=cp.audience==="both"?TARGET_ROLES:TARGET_ROLES.filter(role=>role===cp.audience);
  const advice={},responseKinds={};
- for(const item of history||[]){
-  if(item.kind!=="coach"||item.phase_index!==phaseIndex-1||!roles.includes(item.role))continue;
-¶»§q«^
+ for(c¶»§q«^
