@@ -36,6 +36,15 @@ function structuralChecks(run){
   if(!hasEvidence(scenes[i]?.body,t.eventEvidence))
    failures.push("Transition event lacks literal scene evidence at "+i);
  }
+ if(Array.isArray(transitions)&&transitions.length===6){
+  const seenEvents=new Set();
+  for(const t of transitions){
+   const evidence=normalize(t.eventEvidence);
+   if(evidence.length<12)continue;
+   if(seenEvents.has(evidence))failures.push("Repeated completed event evidence at phase "+t.phase);
+   seenEvents.add(evidence);
+  }
+ }
  const coaching=Array.isArray(run.coaching)?run.coaching:[];
  if(!coaching.length)unverified.push("No coaching lineage entries");
  for(const c of coaching){
@@ -47,6 +56,9 @@ function structuralChecks(run){
    unverified.push("Unassessed coaching disposition for "+c.role+" after "+c.afterPhase);
   if(!hasEvidence(following,c.evidence))
    failures.push("No visible consequence for "+c.role+" advice after phase "+c.afterPhase);
+  const syntheticInput=normalize(c.syntheticInput);
+  if(syntheticInput.length>=25&&normalize(scenes.map(s=>s.body).join(" ")).includes(syntheticInput))
+   failures.push("Private coaching text leaked verbatim for "+c.role+" at "+c.afterPhase);
  }
  if(!run.closure?.body)unverified.push("Sophia closure not captured");
  if(run.humorBeats===0)flags.push({type:"humor",reason:"No structured humor beats recorded; absence is not proof of zero humor"});
@@ -55,8 +67,17 @@ function structuralChecks(run){
 export function evaluateRun(run){
  if(!run||typeof run!=="object")throw new TypeError("A run object is required");
  const structure=structuralChecks(run),gates={};
- for(const key of HARD_GATES)gates[key]=run.gates?.[key]===true?true:run.gates?.[key]===false?false:null;
- if(structure.failures.length){gates.state=false;if(structure.failures.some(x=>/coaching|visible consequence/.test(x)))gates.coaching=false;}
+ for(const key of HARD_GATES){
+  const evidence=run.gateEvidence?.[key];
+  const grounded=typeof evidence==="string"&&evidence.trim().length>=15;
+  gates[key]=run.gates?.[key]===false?false:
+   run.gates?.[key]===true&&grounded?true:null;
+ }
+ if(structure.failures.length){
+  if(structure.failures.some(x=>!/Private coaching text leaked/.test(x)))gates.state=false;
+  if(structure.failures.some(x=>/coaching|visible consequence/.test(x)))gates.coaching=false;
+  if(structure.failures.some(x=>/Private coaching text leaked/.test(x)))gates.privacy=false;
+ }
  if(structure.unverified.some(x=>x.includes("transition"))&&gates.state===true)gates.state=null;
  if(structure.unverified.some(x=>x.includes("coaching"))&&gates.coaching===true)gates.coaching=null;
  const scores={},missing=[];
