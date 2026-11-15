@@ -8,9 +8,29 @@ export const RESEARCH_SOURCES=Object.freeze([
 ]);
 const clean=(value,max)=>typeof value==="string"?value.trim().slice(0,max):"";
 const EPILOGUE_SCHEMA={type:"object",additionalProperties:false,
- properties:{observation:{type:"string"},practice:{type:"string"}},
- required:["observation","practice"]};
+ properties:{observation:{type:"string"},practice:{type:"string"},evidence:{type:"string"}},
+ required:["observation","practice","evidence"]};
 const targetedEpisode=episode=>episode?.title==="The Four-Hundred-Dollar Surprise";
+
+const norm=s=>String(s||"").normalize("NFKC").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/\s+/g," ").trim().toLowerCase();
+export function validateClosureEvidence(generated,sharedScenes=[]){
+ const evidence=norm(generated?.evidence);
+ if(evidence.length<18)return {ok:false,reason:"missing ending evidence"};
+ // Evidence from Outcome / Reflection is essential: an earlier proposed compromise
+ // may have been reversed and is not a valid description of the actual ending.
+ const finalScenes=sharedScenes.filter(s=>s.phase_index>=4).slice(-2);
+ if(!finalScenes.some(s=>norm(s.body).includes(evidence)))
+  return {ok:false,reason:"closing evidence not in actual ending"};
+ const ending=norm(finalScenes.map(s=>s.body).join(" "));
+ const claim=norm(generated?.observation);
+ if(!claim)return {ok:false,reason:"empty observation"};
+ if(/\b(?:unopened|still sealed|remains sealed|sealed box)\b/.test(claim)&&
+  /\b(?:opened the box|broke the seal|lifted the lid|snapped the tape|unboxed)\b/.test(ending)&&
+  !/\b(?:resealed|taped the box shut)\b/.test(ending))
+  return {ok:false,reason:"closure reverses the opened box state"};
+ return {ok:true};
+}
+
 function completeSentence(text,max,fallback){
  const source=String(text||"").trim();
  if(!source)return fallback;
@@ -22,7 +42,7 @@ function completeSentence(text,max,fallback){
 }
 function specificClosing(episode,generated){
  const observation=completeSentence(generated.observation,430,
-  "Jack acknowledged his delayed repair, while Jill acknowledged buying the microwave without consulting him. They still need to follow through on the practical decision.");
+  "Jill bought a $400 microwave from shared savings after Jack repeatedly delayed a repair. Their choices exposed a disagreement about urgency and shared decisions; any resolution must come from what they actually did.");
  const practice=completeSentence(generated.practice,250,
   "Ask each other what action would rebuild trust after a difficult financial decision, then choose one specific next step.");
  return "SOPHIA · A CLOSING THOUGHT\n\n"+
@@ -64,6 +84,7 @@ export async function draftSophiaClosure(episode,sharedScenes){
   "You write Sophia's warm, human closing reflection for an Anthos marriage-enrichment FICTIONAL episode.",
   "The six authored stages are over. You are not another narrator, not Jack, not Jill, and not a therapist.",
   "Summarize one specific observable learning moment from the supplied fictional shared scenes. Do not invent additional events, achievements, coaching messages, motives or a perfect relationship outcome.",
+  "Choose one short verbatim excerpt from the last two scenes (Outcome or Reflection) that proves the consequence you describe. Return it as evidence. If they reversed an earlier plan, describe the final action, not the earlier plan. Never infer agreement from calm words or claim a closed box after it was opened.",
   "Only Jack and Jill are story characters; never describe the real husband or wife as if they were characters.",
   "Offer one realistic, consent-respecting, low-pressure practice for two people to discuss in real life. Respect autonomy and the ability to say no. No quizzes or relationship scores.",
   "Do not write research claims or bibliographies; the application adds accurately attributed educational research context itself.",
@@ -85,6 +106,8 @@ export async function draftSophiaClosure(episode,sharedScenes){
   const output=(data.output||[]).flatMap(x=>x.content||[])
    .filter(x=>x.type==="output_text").map(x=>x.text).join("");
   const parsed=JSON.parse(output);
+  if(!validateClosureEvidence(parsed,sharedScenes).ok)
+   return composeSophiaClosure(episode);
   return composeSophiaClosure(episode,parsed);
  }catch{return composeSophiaClosure(episode)}
 }
