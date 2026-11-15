@@ -3,6 +3,7 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
+import {storySupabaseBase} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
@@ -12,7 +13,7 @@ import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerP
 import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulationTransition,simulationInstructions} from "./jj4-character-simulation.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
-const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
+
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
 const ROLE=["jack","jill"];
 const PHASES4=PHASES.map(x=>x.id);
@@ -24,7 +25,7 @@ const error=(message,status=400)=>{throw Object.assign(new Error(message),{statu
 async function db(resource,query={},body,method="GET"){
  const key=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!key)error("Pilot database credentials are unavailable.",503);
- const url=new URL(BASE+resource);
+ const url=new URL(storySupabaseBase()+resource);
  for(const [k,v] of Object.entries(query))url.searchParams.set(k,String(v));
  let res;try{res=await fetch(url,{method,headers:{
   apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",
