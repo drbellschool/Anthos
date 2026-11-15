@@ -30,6 +30,15 @@ test("queries, corrections, no-advice and risky suggestions get distinct meaning
  assert.equal(classifyCoachTurn("Cut off her bank access until she complies.").risk,"potentially_coercive");
  assert.equal(classifyCoachTurn("Ask Jill to explain why she did it.").kind,"advice");
 });
+test("clear real-person danger stops fiction rather than becoming coaching",()=>{
+ assert.equal(classifyCoachTurn("I want to kill myself").kind,"safety");
+ assert.equal(classifyCoachTurn("My spouse hit me yesterday").kind,"safety");
+ assert.equal(classifyCoachTurn("I'm scared of my husband").kind,"safety");
+ assert.equal(classifyCoachTurn("Tell Jack to say that he is scared of Jill").kind,"advice");
+ assert.match(core,/safetyNotice/);
+ assert.match(core,/await pause\(token\)/);
+ assert.match(player,/state\.safetyNotice/);
+});
 test("question prompt is isolated to role and doesn't include the other coach's input",()=>{
  const q=privateQuestionPrompt({
   character:"Jack",question:"Why are you upset?",
