@@ -9,6 +9,7 @@ import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,D
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
 import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCount} from "./jj4-continuity.mjs";
 import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
+import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -100,7 +101,7 @@ async function messages(room,role){
  const [scenes,mine,people]=await Promise.all([
   db(M,{room_id:"eq."+room.id,role:"eq.shared",order:"id.asc",limit:"40",select:"id,kind,body,phase_index,created_at"}),
   db(M,{room_id:"eq."+room.id,role:"eq."+role,order:"id.asc",limit:"60",select:"id,kind,body,phase_index,created_at"}),
-  db(P,{room_id:"eq."+room.id,select:"role,first_name,joined_at,submitted_phase"})
+  db(P,{room_id:"eq."+room.id,select:"role,first_name,joined_at,submitted_phase,paused_at"})
  ]);
  return {scenes:scenes||[],mine:mine||[],people:people||[]};
 }
@@ -118,6 +119,8 @@ export async function status(token){
  const targets=targetRoles(room),needsReply=room.stage==="awaiting"&&targets.includes(person.role)&&person.submitted_phase!==room.phase_index;
  const expected=activeRoles(room);
  const bothJoined=expected.every(role=>people.some(p=>p.role===role&&p.joined_at));
+ const pausedBy=people.filter(p=>expected.includes(p.role)&&p.paused_at).map(p=>p.role);
+ const paused=pausedBy.includes(person.role);
  const hasSophia=scenes.some(x=>x.kind==="sophia");
   // The opening is a read-only, room-snapshot editorial message. It is not the
   // research-based closing and never needs an extra DB row or outbound SMS.
@@ -128,8 +131,9 @@ export async function status(token){
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
   stage:room.stage,needsReply,submitted:person.submitted_phase===room.phase_index,
+  paused,pausedBy,
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
-  canContinue:bothJoined&&["needs_scene","flow"].includes(room.stage),
+  canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage),
   scenes,messages:mine,finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
   researchSources:hasSophia?RESEARCH_SOURCES:[],
@@ -223,6 +227,8 @@ async function directScene(room,phaseIndex){
    "If a coach asserts infidelity without evidence, DO NOT invent or assert an affair. The fictional character might get suspicious, make an unfair accusation, test trust, or reject the suspicion; show the relational fallout of whichever choice fits the character. This is a useful example of harmful advice influencing behavior.",
    "If a coach urges listening or gentle repair, show a specific action that allows a different response; it must not magically heal the whole relationship.",
    "If a coach encourages threats, coercion, sexual pressure, intimidation, or punishment, do not portray the abuse as successful relationship advice. The character may reject it or show how that impulse damages trust and boundaries. Protect consent and safety.",
+   "Use responseKinds: if a coach explicitly has no advice, the character chooses autonomously. Do not invent a suggestion from that coach. If advice is potentially coercive, do not reward coercion; show a refusal or authentic loss of trust.",
+   "Treat factual claims in coaching as uncertain. Never overwrite established story facts because a coach asserted something different.",
    "Distinguish Jack's coached decision from Jill's coached decision. If only one character was coached, the other character should visibly react to that character's behavior, NOT act as if they received the private message.",
    "The two characters retain agency: they can follow, challenge, misinterpret, partly accept or reject their own advice. Even rejection must be a visibly consequential choice.",
    "Produce actions and consequences that implement the NEXT authored phase's educational purpose, without replacing that phase, inventing a separate relationship problem, or preemptively resolving future phases.",
@@ -241,6 +247,7 @@ async function directScene(room,phaseIndex){
    fictionalCharacterMotivations:{jack:room.episode.jackMotivation,jill:room.episode.jillMotivation},
    authorBoundaries:room.episode.boundaries,
    establishedFiction:sharedHistory.slice(-5),
+   responseKinds:influence.responseKinds||{},
    ...(focusedPilot?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
   };
   const plan=await generateStructured({model,key,name:"anthos_jj4_consequence_plan",
@@ -392,8 +399,8 @@ export async function advance(token){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join the episode first.",403);
  if(!["needs_scene","flow"].includes(room.stage))return status(token);
- const people=await db(P,{room_id:"eq."+room.id,select:"role,joined_at"});
- if(!people||!activeRoles(room).every(role=>people.some(p=>p.role===role&&p.joined_at)))return status(token);
+ const people=await db(P,{room_id:"eq."+room.id,select:"role,joined_at,paused_at"});
+ if(!people||!activeRoles(room).every(role=>people.some(p=>p.role===role&&p.joined_at&&!p.paused_at)))return status(token);
  const claim=randomUUID();
  const phase=await db("rpc/anthos_jj4_claim_scene",{}, {p_room:room.id,p_claim:claim},"POST");
  if(typeof phase!=="number"||phase<0)return status(token);
