@@ -341,7 +341,7 @@ async function directScene(room,phaseIndex){
    simulationUpdate=verified;
   }
   lastUsable={result,story,simulationUpdate};
-  if(!focusedPilot&&!simulate)break;
+  if(!focusedPilot)break; // General simulation is validated without the pilot-specific critic.
   const words=wordCount(story);
   if(attempt===0&&(words<60||words>145)){
    reviewFeedback="This was "+words+" words. Target 75–110 words, only what happens NEXT. Avoid recapping previous scenes.";
