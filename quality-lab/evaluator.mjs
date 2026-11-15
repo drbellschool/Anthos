@@ -56,7 +56,7 @@ export function evaluateRun(run){
  if(!run||typeof run!=="object")throw new TypeError("A run object is required");
  const structure=structuralChecks(run),gates={};
  for(const key of HARD_GATES)gates[key]=run.gates?.[key]===true?true:run.gates?.[key]===false?false:null;
- if(structure.failures.length){gates.state=false;if(structure.failures.some(x=>x.includes("coaching")))gates.coaching=false;}
+ if(structure.failures.length){gates.state=false;if(structure.failures.some(x=>/coaching|visible consequence/.test(x)))gates.coaching=false;}
  if(structure.unverified.some(x=>x.includes("transition"))&&gates.state===true)gates.state=null;
  if(structure.unverified.some(x=>x.includes("coaching"))&&gates.coaching===true)gates.coaching=null;
  const scores={},missing=[];
