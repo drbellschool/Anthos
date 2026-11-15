@@ -17,7 +17,9 @@ function fixture(){
   seed:42,engineCommit:"abc123",model:"fixture-only",episodeVersion:1,scenes,transitions,
   coaching:[{role:"jack",afterPhase:0,disposition:"partly_accept",evidence:"Jack places object 1 on the kitchen table"}],
   closure:{body:"Sophia observes an unresolved practical choice, without inventing a resolution."},
-  gates:Object.fromEntries(HARD_GATES.map(k=>[k,true])),judgments,humorBeats:0,costUsd:0.04,latencyMs:5000};
+  gates:Object.fromEntries(HARD_GATES.map(k=>[k,true])),
+  gateEvidence:Object.fromEntries(HARD_GATES.map(k=>[k,"Verified synthetic fixture: "+k+" met after independent checks."])),
+  judgments,humorBeats:0,costUsd:0.04,latencyMs:5000};
 }
 test("weights sum to one and the six quality dimensions are distinct",()=>{
  assert.equal(Object.values(DIMENSIONS).reduce((s,x)=>s+x.weight,0),1);
@@ -67,4 +69,20 @@ test("synthetic coaching is deterministic, role-specific and covers requested st
 test("editorially incomplete episodes remain unready, never scored as engine failures",()=>{
  const m=planMatrix([{id:"e1",petal:"money-stewardship",mode:"shared",editorialReady:false}]);
  assert.equal(m[0].status,"EDITORIALLY_UNREADY");
+});
+
+test("gate boolean alone cannot establish acceptance without evidence",()=>{
+ const run=fixture();delete run.gateEvidence.factual;
+ const r=evaluateRun(run);assert.equal(r.status,"UNVERIFIED");assert.ok(r.unknownGates.includes("factual"));
+});
+test("literal private coaching leakage is a hard privacy failure",()=>{
+ const run=fixture();const privateText="This is private coaching that must never be reproduced word for word.";
+ run.coaching[0].syntheticInput=privateText;
+ run.scenes[1].body+=" "+privateText;
+ const r=evaluateRun(run);assert.equal(r.status,"HARD_FAIL");assert.ok(r.failedGates.includes("privacy"));
+});
+test("repeated identical events cannot count as distinct dramatic developments",()=>{
+ const run=fixture();run.transitions[4].eventEvidence=run.transitions[3].eventEvidence;
+ run.scenes[4].body+=" "+run.transitions[3].eventEvidence+".";
+ const r=evaluateRun(run);assert.equal(r.status,"HARD_FAIL");assert.ok(r.structuralFailures.some(s=>s.includes("Repeated completed event")));
 });
