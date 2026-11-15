@@ -9,12 +9,16 @@ export const SIMULATION_SCHEMA={
  type:"object",additionalProperties:false,properties:{
   jack:{type:"object",additionalProperties:false,
    properties:{position:{type:"string",enum:["favor","oppose","conditional","undecided"]},
-    emotion:{type:"string"},decisionEvidence:{type:"string"}},
-   required:["position","emotion","decisionEvidence"]},
+    emotion:{type:"string"},decisionEvidence:{type:"string"},
+    belief:{type:"string"},beliefEvidence:{type:"string"},
+    feltCost:{type:"string"},costEvidence:{type:"string"}},
+   required:["position","emotion","decisionEvidence","belief","beliefEvidence","feltCost","costEvidence"]},
   jill:{type:"object",additionalProperties:false,
    properties:{position:{type:"string",enum:["favor","oppose","conditional","undecided"]},
-    emotion:{type:"string"},decisionEvidence:{type:"string"}},
-   required:["position","emotion","decisionEvidence"]},
+    emotion:{type:"string"},decisionEvidence:{type:"string"},
+    belief:{type:"string"},beliefEvidence:{type:"string"},
+    feltCost:{type:"string"},costEvidence:{type:"string"}},
+   required:["position","emotion","decisionEvidence","belief","beliefEvidence","feltCost","costEvidence"]},
   objectChanges:{type:"array",items:{type:"object",additionalProperties:false,
    properties:{id:{type:"string"},condition:{type:"string"},location:{type:"string"},
     actionEvidence:{type:"string"}},
@@ -66,9 +70,19 @@ export function initialSimulation(episode={}){
  const position=(v,fallback)=>["favor","oppose","conditional","undecided"].includes(v)?v:fallback;
  const characters={
   jack:{want:limit(authored.jackWant||episode.jackMotivation||"To be understood",240),
-   position:position(authored.jackPosition,"undecided"),emotion:"guarded"},
+   position:position(authored.jackPosition,"undecided"),emotion:"guarded",
+   belief:limit(authored.jackBelief||(isMicrowave?
+    "Unannounced spending may endanger our shared savings":"My interpretation of this conflict may be incomplete"),220),
+   fear:limit(authored.jackFear||(isMicrowave?
+    "Losing financial security or a voice in joint decisions":"Not being heard"),180),
+   feltCost:""},
   jill:{want:limit(authored.jillWant||episode.jillMotivation||"To be understood",240),
-   position:position(authored.jillPosition,isMicrowave?"favor":"undecided"),emotion:"guarded"}
+   position:position(authored.jillPosition,isMicrowave?"favor":"undecided"),emotion:"guarded",
+   belief:limit(authored.jillBelief||(isMicrowave?
+    "Jack's missed repair promises leave me to solve daily problems":"My need may not be understood"),220),
+   fear:limit(authored.jillFear||(isMicrowave?
+    "Another missed promise or being dismissed":"Having my needs dismissed"),180),
+   feltCost:""}
  };
  const initialObjects=isMicrowave?[{id:"replacement_box",condition:"sealed",location:"kitchen counter"}]:
    (Array.isArray(authored.objects)?authored.objects:[]).slice(0,8).map(x=>({
