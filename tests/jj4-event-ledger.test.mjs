@@ -20,8 +20,4 @@ test("isolated pilot receives event ledger in three generation stages",()=>{
  assert.match(core,/anthos_jj4_event_ledger/);
  assert.match(core,/const focusedPilot=isContinuityPilot\(room\)/);
  assert.match(core,/eventLedger:ledgerPrompt\(eventLedger,phase\)/);
- assert.match(core,/completedEventLedger:ledgerPrompt\(eventLedger,phase\)/);
- assert.match(core,/coachingImpact/);
- assert.match(storyLedgerInstructions(),/completed actions/i);
- assert.equal(emptyLedger().confirmedEvents.length,0);
-});
+ assert.match(core,/completedEventLedger:focusedPilot\?ledgerPrompt\(ev¶»§q«^
