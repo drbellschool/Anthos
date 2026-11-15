@@ -94,72 +94,85 @@ export function checkSimulationTransition(previous,proposal,story,phase){
     !Number.isInteger(phase)||previous.lastPhase!==phase-1)
   return {ok:false,reason:"The previous committed character-state version or phase is invalid."};
  if(!proposal?.jack||!proposal?.jill||!proposal?.newEvent)
-  return {ok:false,reason:"The scene omitted the character decisions or its new event."};
- const groundedEvent=matchesEvidence(story,proposal.newEvent.evidence)?
-  limit(proposal.newEvent.evidence,220):observedEventExcerpt(story,previous.events);
- if(!groundedEvent)
-  return {ok:false,reason:"The story contains no observable character action to ground a new event."};
- const next=structuredClone(previous);
+  return {ok:false,reason:"The scene did not include a structured character proposal."};
+ const next=structuredClone(previous),adjustments=[];
+ const choiceWords=/\b(?:agree|accept|keep|return|won't|will not|refuse|change|decide|choose|want|no longer|still)\b/i;
  for(const role of ["jack","jill"]){
   const before=previous.characters[role],after=proposal[role];
-  if(!["favor","oppose","conditional","undecided"].includes(after.position))
-   return {ok:false,reason:"The character decision used an unsupported position."};
-  if(after.position!==before.position){
-   if(!matchesEvidence(story,after.decisionEvidence))
-    return {ok:false,reason:role+" changed their position without a visible, quoted decision."};
-   // A change in belief cannot be inferred from polite cooperation or an
-   // attempt to understand the other character.
-   if(!/\b(?:agree|accept|keep|return|won't|will not|refuse|change|decide|choose|want|no longer|still)\b/i.test(after.decisionEvidence))
-    return {ok:false,reason:role+" needs an explicit choice, not inferred agreement."};
+  // The model may PROPOSE a changed position, but cannot declare a new
+  // agreement without an evidenced explicit decision in the displayed scene.
+  const acceptedChange=["favor","oppose","conditional","undecided"].includes(after.position)&&
+   after.position!==before.position&&
+   matchesEvidence(story,after.decisionEvidence)&&choiceWords.test(after.decisionEvidence);
+  if(after.position!==before.position&&!acceptedChange)
+   adjustments.push(role+" retained prior stance; claimed change lacked explicit scene evidence");
+  next.characters[role]={...before,
+   position:acceptedChange?after.position:before.position,
+   emotion:limit(after.emotion||before.emotion,100)};
+ }
+ if(proposal.humor?.attempted&&
+    matchesEvidence(story,proposal.humor.actionEvidence)&&
+    matchesEvidence(story,proposal.humor.reactionEvidence))
+  next.humorBeats=[...(previous.humorBeats||[]).slice(-7),{
+   phase,action:limit(proposal.humor.actionEvidence,200),
+   reaction:limit(proposal.humor.reactionEvidence,200)}];
+ const updates=Array.isArray(proposal.objectChanges)?proposal.objectChanges.slice(0,8):[];
+ for(const update of updates){
+  const old=next.objects.find(x=>x.id===update?.id);
+  if(!old||!matchesEvidence(story,update.actionEvidence)){
+   adjustments.push("ignored unsupported object-state proposal");
+   continue;
   }
-  next.characters[role]={...before,position:after.position,emotion:limit(after.emotion,100)};
- }
- if(proposal.humor?.attempted){
-  // Humor is important, but missing metadata must never block an otherwise
-  // coherent story. Store only the beats evidenced by the visible scene.
-  if(matchesEvidence(story,proposal.humor.actionEvidence)&&
-     matchesEvidence(story,proposal.humor.reactionEvidence))
-   next.humorBeats=[...(previous.humorBeats||[]).slice(-7),{
-    phase,action:limit(proposal.humor.actionEvidence,200),
-    reaction:limit(proposal.humor.reactionEvidence,200)}];
- }
- const changes=Array.isArray(proposal.objectChanges)?proposal.objectChanges:[];
- if(changes.length>8)return {ok:false,reason:"Too many object changes in one scene."};
- for(const update of changes){
-  if(!update?.id||!matchesEvidence(story,update.actionEvidence))
-   return {ok:false,reason:"An object changed without an observable action in the scene."};
-  const old=next.objects.find(x=>x.id===update.id);
-  if(!old)return {ok:false,reason:"A new object must first be established by the author."};
   if(old.id==="replacement_box"){
-   if(!["sealed","opened","resealed"].includes(update.condition))
-    return {ok:false,reason:"The microwave box must have a recognized physical condition."};
-   if(old.condition==="sealed"&&update.condition==="resealed")
-    return {ok:false,reason:"The microwave box cannot be resealed without having been opened."};
+   if(!["sealed","opened","resealed"].includes(update.condition)||
+     (old.condition==="sealed"&&update.condition==="resealed")){
+    adjustments.push("ignored impossible box-state transition");continue;
+   }
+   if(update.condition==="opened"&&!/\b(?:open(?:s|ed)?|cut|peel(?:s|ed)?|broke|breaks|remove(?:d|s)?|unbox(?:ed|es)?)\b/i.test(update.actionEvidence)){
+    adjustments.push("ignored unproven box opening");continue;
+   }
   }
   old.condition=limit(update.condition,100);
   old.location=limit(update.location,120);
  }
- // Reject hard physical contradictions before publication. This is intentionally
- // conservative: the authored object can be present without needing a change.
  const priorBox=previous.objects.find(x=>x.id==="replacement_box");
- const boxUpdate=changes.find(x=>x.id==="replacement_box");
  const afterBox=next.objects.find(x=>x.id==="replacement_box");
+ const opened=/\b(?:cut open|opened? (?:the )?(?:box|packaging|cardboard)|peel(?:ed|s)? (?:back|off) (?:the )?tape|broke (?:the )?seal|unboxed|pulled out the receipt from the box)\b/i;
+ const resealed=/\b(?:resealed|sealed (?:the )?box (?:again|back)|retaped|taped (?:the )?box shut)\b/i;
+ const claimsUnopened=/\b(?:unopened|still sealed|sealed box|box remains closed)\b/i;
  if(priorBox&&afterBox){
-  if(priorBox.condition==="opened"&&!boxUpdate &&
-     /\b(?:unopened|still sealed|sealed box|box remains closed)\b/i.test(story))
-   return {ok:false,reason:"The microwave box reopened itself into a sealed state."};
-  if(afterBox.condition==="sealed"&&/\b(?:cut open|opened (?:the )?(?:box|packaging|cardboard)|peeled? (?:back|off) (?:the )?tape|broke (?:the )?seal|pulled out the receipt from the box)\b/i.test(story))
-   return {ok:false,reason:"The scene opens the box but leaves the object state sealed."};
+  if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
+   return {ok:false,reason:"An opened object was described as unopened without being resealed."};
+  // An observable physical event outranks model-generated state labels.
+  if(opened.test(story)&&afterBox.condition==="sealed"){
+   afterBox.condition="opened";
+   adjustments.push("visible box opening reconciled into world state");
+  }
+  if(priorBox.condition==="opened"&&resealed.test(story)){
+   afterBox.condition="resealed";
+   adjustments.push("visible resealing reconciled into world state");
+  }
  }
+ // An authored, structurally complete scene is itself the source of truth.
+ // When the model paraphrases a citation, use a literal visible excerpt
+ // instead of rejecting a coherent scene three times.
+ const eventEvidence=matchesEvidence(story,proposal.newEvent.evidence)?
+  limit(proposal.newEvent.evidence,220):
+  observedEventExcerpt(story,previous.events)||
+   limit(String(story||"").replace(/\s+/g," ").trim(),180);
+ if(eventEvidence.length<12)
+  return {ok:false,reason:"The generated scene contains no usable visible event."};
  next.lastPhase=phase;
- next.events=[...previous.events.slice(-17),
-  {phase,actor:limit(proposal.newEvent.actor,50),
-   action:matchesEvidence(story,proposal.newEvent.evidence)?
-    limit(proposal.newEvent.action,300):groundedEvent,
-   evidence:groundedEvent}];
- next.openThreads=(Array.isArray(proposal.openThreads)?proposal.openThreads:previous.openThreads)
-  .slice(0,8).map(x=>limit(x,200));
- return {ok:true,state:next,event:next.events.at(-1)};
+ next.events=[...(previous.events||[]).slice(-17),{
+  phase,actor:limit(proposal.newEvent.actor,50),
+  action:matchesEvidence(story,proposal.newEvent.evidence)?
+   limit(proposal.newEvent.action,300):eventEvidence,
+  evidence:eventEvidence}];
+ // An unresolved question never disappears merely because the narrator wants a
+ // smooth ending. An eventual resolution needs an explicit confirmed choice.
+ next.openThreads=[...new Set([...(previous.openThreads||[]),...
+  (Array.isArray(proposal.openThreads)?proposal.openThreads:[]).map(x=>limit(x,200))])].slice(0,12);
+ return {ok:true,state:next,event:next.events.at(-1),adjustments};
 }
 export const simulationInstructions=[
  "The simulation state is authoritative. Jack and Jill are independent fictional people with distinct persistent wants, beliefs, preferences and boundaries.",
