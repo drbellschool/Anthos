@@ -48,7 +48,7 @@ test("Sophia's edited ending never truncates sentences or cites irrelevant Aron 
  assert.ok(result.includes("\n\n"));
  const broken=composeSophiaClosure(named,{observation:"A long unfinished thought ".repeat(70),practice:"unfinished phrase"});
  assert.doesNotMatch(broken,/unfinished thought.*$/);
- assert.match(broken,/Jack acknowledged his delayed repair/);
+ assert.match(broken,/Jill bought a \$400 microwave from shared savings/);
  const old=composeSophiaClosure({title:"Some other story"},{observation:"A complete sentence.",practice:"Try a small action."});
  assert.match(old,/Aron/);
 });
