@@ -7,7 +7,7 @@ const DIRECT_PAUSE=/^(?:please\s+)?(?:pause|stop|hold)(?:\s+(?:this|the|my|our))
 const FIRST_PERSON_PAUSE=/\b(?:i|we)\s+(?:need|want|would like|have)\s+(?:to\s+)?(?:take\s+(?:a\s+)?break|pause|stop\s+(?:participating|the\s+episode|the\s+story|coaching))\b/i;
 const PAUSE_REQUEST=/\bplease\s+(?:pause|stop)\s+(?:this|the|my|our)?\s*(?:episode|story|pilot|session|conversation|deep dive)\b/i;
 const NO_ADVICE=/^(?:i\s+(?:have|got)\s+no\s+(?:advice|idea)|i\s+(?:don't|do not|can't|cannot)\s+(?:know\s+what\s+to\s+say|want\s+to\s+advise|have\s+an\s+answer)|(?:no\s+advice|i\s+pass|pass))\b/i;
-const CORRECTION=/^(?:(?:no|actually)[,!:.]?\s+)?(?:that(?:'s| is)\s+(?:wrong|not\s+(?:right|what\s+happened))|you\s+(?:got|mixed\s+up|said)\b|(?:jack|jill)\s+(?:didn't|did not|never|wasn't|was not)\b)/i;
+const CORRECTION=/^(?:(?:no|actually)[,!:.]?\s+)?(?:that(?:'s| is)\s+(?:wrong|not\s+(?:right|what\s+happened))|you\s+(?:got|mixed\s+up|said)\b|(?:jack|jill)\s+(?:didn't|did not|never|wasn't|was not|bought|spent|paid)\b)/i;
 const UNSAFE=/(?:cut\s+off\s+(?:her|his|their)\s+(?:bank\s+)?access|force\s+(?:him|her|them)\s+to|threaten\s+(?:him|her|them)|(?:hit|hurt|slap|punch)\s+(?:him|her|them)|(?:coerce|blackmail)\s+(?:him|her|them))/i;
 export function classifyCoachTurn(raw){
  const message=clean(raw).slice(0,900);
