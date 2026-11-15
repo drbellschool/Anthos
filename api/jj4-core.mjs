@@ -331,15 +331,12 @@ async function directScene(room,phaseIndex){
    continue;
   }
   if(simulate){
-   // Never validate evidence against text that is later truncated for display.
-   if(story.length>1300){
-    story=null;
-    reviewFeedback="Shorten the complete visible scene to at most 1300 characters. No summaries or repeated events.";
-    continue;
-   }
+   // The database supports the full validated story up to 2,500 characters.
+   // A soft stylistic target must not create a customer-visible 502.
    const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex);
    if(!verified.ok){
     story=null;
+    console.warn("jj4-simulation-draft-rejected",JSON.stringify({phase:phaseIndex,reason:verified.reason}));
     reviewFeedback="The character simulation rejected this scene: "+verified.reason+
      " Preserve each character's recorded position and physical object state. Quote exact story evidence for new decisions.";
     continue;
@@ -420,7 +417,7 @@ async function directScene(room,phaseIndex){
   ["jack","both"].includes(audience)?rewriteCheckin("jack",result.jackPrompt):Promise.resolve(""),
   ["jill","both"].includes(audience)?rewriteCheckin("jill",result.jillPrompt):Promise.resolve("")
  ]);
- return {scene:brief(scrub(story),focusedPilot?1300:2500),jackPrompt,jillPrompt,
+ return {scene:brief(scrub(story),simulate?2500:focusedPilot?1300:2500),jackPrompt,jillPrompt,
   ...(simulate?{simulationState:simulationUpdate?.state,simulationEvent:simulationUpdate?.event}:{})};
 }
 export async function advance(token){
