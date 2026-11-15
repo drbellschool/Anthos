@@ -22,8 +22,11 @@ export const SIMULATION_SCHEMA={
   newEvent:{type:"object",additionalProperties:false,
    properties:{actor:{type:"string"},action:{type:"string"},evidence:{type:"string"}},
    required:["actor","action","evidence"]},
+  humor:{type:"object",additionalProperties:false,
+   properties:{attempted:{type:"boolean"},actionEvidence:{type:"string"},reactionEvidence:{type:"string"}},
+   required:["attempted","actionEvidence","reactionEvidence"]},
   openThreads:{type:"array",items:{type:"string"}}
- },required:["jack","jill","objectChanges","newEvent","openThreads"]
+ },required:["jack","jill","objectChanges","newEvent","humor","openThreads"]
 };
 export const SIMULATION_SCENE_SCHEMA={
  type:"object",additionalProperties:false,
@@ -62,7 +65,7 @@ export function initialSimulation(episode={}){
    "Whether to keep the $400 replacement microwave bought from emergency savings":
    episode.learningObjective||episode.premise||"The unresolved choice"),260),
   characters,objects:initialObjects,
-  events:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
+  events:[],humorBeats:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
    isMicrowave?["Decide whether to keep the replacement","Address the unconsulted withdrawal and overdue repair"]:
    ["Explore the central conflict"]).slice(0,8).map(x=>limit(x,200)),
   knownFacts:isMicrowave?[
@@ -94,6 +97,14 @@ export function checkSimulationTransition(previous,proposal,story,phase){
     return {ok:false,reason:role+" needs an explicit choice, not inferred agreement."};
   }
   next.characters[role]={...before,position:after.position,emotion:limit(after.emotion,100)};
+ }
+ if(proposal.humor?.attempted){
+  if(!matchesEvidence(story,proposal.humor.actionEvidence)||
+     !matchesEvidence(story,proposal.humor.reactionEvidence))
+   return {ok:false,reason:"A claimed comedic beat must include a visible action AND character reaction."};
+  next.humorBeats=[...(previous.humorBeats||[]).slice(-7),{
+   phase,action:limit(proposal.humor.actionEvidence,200),
+   reaction:limit(proposal.humor.reactionEvidence,200)}];
  }
  const changes=Array.isArray(proposal.objectChanges)?proposal.objectChanges:[];
  if(changes.length>8)return {ok:false,reason:"Too many object changes in one scene."};
@@ -135,6 +146,6 @@ export const simulationInstructions=[
  "newEvent must have an exact verbatim excerpt from the visible scene showing what happened THIS SCENE; do not replay previously completed calls.",
  "No outside pricing, refund deadlines, fees or retailer policies become facts without an actual credible in-story interaction. Unverified claims remain uncertainty.",
  "Characters may follow, resist, misunderstand, or reject coaching; the observable consequence must reflect their agency without silently rewriting the coach's request.",
- "Use earned character-driven humor when appropriate. A humorous deflection should affect the other character's reaction, not become a repeated prop description.",
- "Write ~75–110 words across opening, jackBeat, jillBeat, fallout. Avoid abstract emotional narration. Include a new tangible event."
+ "Use character-driven humor when appropriate: a comic attempt must lead to an actual partner reaction, even irritation. If humor is inappropriate in this phase, set humor.attempted false and evidence fields to empty strings.",
+ "Write ~75–110 words across opening, jackBeat, jillBeat, fallout. Avoid abstract emotional narration. Include a new tangible event. The narrator must never mention a past event as if it just happened again."
 ].join(" ");
