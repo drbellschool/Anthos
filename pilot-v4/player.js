@@ -69,9 +69,10 @@ function mount(root,invite,options={}){
   if(!entries.length)area.append(el("div","jj4-empty","The episode begins once both coaches join."));
   for(const item of entries){
    const isScene=item.kind==="scene",isSophia=item.kind==="sophia",isIntro=item.kind==="introduction";
-   const row=el("article","jj4-entry "+(isScene?"scene":isSophia||isIntro?"sophia":item.kind==="coach"?"coach":"prompt"));
+   const row=el("article","jj4-entry "+(isScene?"scene":isSophia||isIntro?"sophia":["coach","question","reply"].includes(item.kind)?item.kind:"prompt"));
    row.append(el("span","jj4-entry-label",isIntro?"SOPHIA · YOUR EPISODE OBJECTIVE":isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
     isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
+    item.kind==="question"?"YOUR PRIVATE QUESTION":item.kind==="reply"?(state.character||"Character").toUpperCase()+" · PRIVATE ANSWER":
     (state.character||"Character").toUpperCase()+" → "+
     (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));
    row.append(el("p","",item.body));
@@ -100,6 +101,7 @@ function mount(root,invite,options={}){
   const nextKey=[
    state.role,state.joined,state.bothJoined,state.phaseIndex,state.stage,
    state.needsReply,state.submitted,state.finished,state.canContinue,
+   !!state.paused,(state.pausedBy||[]).join(","),
    // Another coach submitting is not a reason to steal this coach's focus.
    state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,
    state.hasSophia,state.closing,autoFailed
@@ -109,6 +111,10 @@ function mount(root,invite,options={}){
   controls.replaceChildren();
   if(!state.joined){message("Private browser rehearsal. Your advice stays on your side.");joinPanel();return}
   if(!state.bothJoined){message("Waiting for the other coach to join…");oneAction("Refresh",refresh);return}
+  if(state.paused){
+   message("You paused this episode. No new scene will start until you resume.");
+   oneAction("Resume episode",async()=>act("resume"),true);return;
+  }
   if(state.finished){
    draftAdvice="";
    if(!state.hasSophia){
@@ -137,15 +143,27 @@ function mount(root,invite,options={}){
    controls.append(field);
    const send=oneAction("Send private advice",async()=>{
     const words=field.value.trim();
-    if(words.length<2){message("Write a suggestion to your character.",true);return}
+    if(words.length<2){message("Write a suggestion or question to your character.",true);return}
     await act("coach",{message:words,requestKey:crypto.randomUUID()});
    },true);
+   oneAction("Ask "+(state.character||"character"),async()=>{
+    const words=field.value.trim();
+    if(words.length<2){message("Enter a private question first.",true);return}
+    await act("ask",{message:words,requestKey:crypto.randomUUID()});
+   });
+   oneAction("No advice this time",async()=>
+    act("coach",{message:"I have no advice right now.",requestKey:crypto.randomUUID()}));
+   oneAction("Pause episode",async()=>act("pause"));
    field.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();send.click()}});
    return;
   }
   if(state.stage==="awaiting"){
    if(state.submitted&&draftPhase===state.phaseIndex)draftAdvice="";
    message(state.submitted?"Your advice is recorded. Waiting for the other coach.":"Waiting for "+state.waitingFor.join(" and ")+" to advise their character.");
+   oneAction("Refresh",refresh);return;
+  }
+  if(state.pausedBy?.length&&!state.needsReply){
+   message("The other coach has paused. The story will resume when they return.");
    oneAction("Refresh",refresh);return;
   }
   if(state.canContinue){
@@ -180,10 +198,17 @@ function mount(root,invite,options={}){
   buttons.forEach(x=>x.disabled=true);
   message(action==="advance"?"Writing the next scene…":
    action==="coach"?"Saving your advice…":
+   action==="ask"?"Asking privately…":
+   action==="pause"?"Pausing episode…":
+   action==="resume"?"Resuming episode…":
    action==="closure"?"Sophia is connecting the story to relationship research…":"Joining…");
   try{
    const result=await api(action,details);
    autoFailed=false;
+   if(["coach","ask"].includes(action)){
+    draftAdvice="";
+    for(const field of controls.querySelectorAll("textarea"))field.value="";
+   }
    if(!destroyed)render(result);
   }catch(e){if(!destroyed){
    if(action==="advance")autoFailed=true;
