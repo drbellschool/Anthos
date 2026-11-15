@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {SIMULATION_VERSION,SIMULATION_SCENE_SCHEMA,initialSimulation,simulationEnabled,
- checkSimulationTransition} from "../api/jj4-character-simulation.mjs";
+ checkSimulationTransition,observedEventExcerpt} from "../api/jj4-character-simulation.mjs";
 const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
 const sql=readFileSync(new URL("../supabase/migrations/20261115190000_jj4_character_simulation_state.sql",import.meta.url),"utf8");
 const testEpisode={title:"The Four-Hundred-Dollar Surprise",
@@ -79,10 +79,21 @@ test("object change must be a narrated action and is persisted",()=>{
  assert.equal(contradict.ok,false);
  assert.match(contradict.reason,/box/i);
 });
-test("invalid phase or fabricated new event cannot advance state",()=>{
+test("invalid phase cannot advance, while paraphrased event evidence is safely replaced",()=>{
  assert.equal(checkSimulationTransition(base(),delta(),beat,2).ok,false);
  const p=delta();p.newEvent.evidence="A phone call that never occurred";
- assert.equal(checkSimulationTransition(base(),p,beat,0).ok,false);
+ const out=checkSimulationTransition(base(),p,beat,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.ok(beat.includes(out.event.evidence));
+ assert.ok(!out.event.evidence.includes("phone call"));
+ assert.equal(out.event.action,out.event.evidence);
+ const excerpt=observedEventExcerpt(beat);
+ assert.match(excerpt,/Jack put the statement/);
+});
+test("no character action means no fallback to an invented event",()=>{
+ const p=delta();p.newEvent.evidence="A phone call never shown";
+ const result=checkSimulationTransition(base(),p,"It was quiet. The clock ticked. Both were thinking.",0);
+ assert.equal(result.ok,false);
 });
 test("scene schema records evidence separate from narrative words",()=>{
  assert.ok(SIMULATION_SCENE_SCHEMA.properties.simulation);
