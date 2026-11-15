@@ -8,10 +8,12 @@ const FIRST_PERSON_PAUSE=/\b(?:i|we)\s+(?:need|want|would like|have)\s+(?:to\s+)
 const PAUSE_REQUEST=/\bplease\s+(?:pause|stop)\s+(?:this|the|my|our)?\s*(?:episode|story|pilot|session|conversation|deep dive)\b/i;
 const NO_ADVICE=/^(?:i\s+(?:have|got)\s+no\s+(?:advice|idea)|i\s+(?:don't|do not|can't|cannot)\s+(?:know\s+what\s+to\s+say|want\s+to\s+advise|have\s+an\s+answer)|(?:no\s+advice|i\s+pass|pass))\b/i;
 const CORRECTION=/^(?:(?:no|actually)[,!:.]?\s+)?(?:that(?:'s| is)\s+(?:wrong|not\s+(?:right|what\s+happened))|you\s+(?:got|mixed\s+up|said)\b|(?:jack|jill)\s+(?:didn't|did not|never|wasn't|was not|bought|spent|paid)\b)/i;
+const PERSONAL_DANGER=/(?:\bi\s+(?:want|plan|intend)\s+to\s+(?:kill\s+myself|end\s+my\s+life)|\bi(?:'m|\s+am)\s+going\s+to\s+(?:kill|hurt)\s+myself|\bmy\s+(?:husband|wife|spouse|partner)\s+(?:hit|hurt|attacked|threatened)\s+me|\bi(?:'m|\s+am)\s+(?:afraid|scared)\s+of\s+my\s+(?:spouse|husband|wife|partner))/i;
 const UNSAFE=/(?:cut\s+off\s+(?:her|his|their)\s+(?:bank\s+)?access|force\s+(?:him|her|them)\s+to|threaten\s+(?:him|her|them)|(?:hit|hurt|slap|punch)\s+(?:him|her|them)|(?:coerce|blackmail)\s+(?:him|her|them))/i;
 export function classifyCoachTurn(raw){
  const message=clean(raw).slice(0,900);
  if(!message)return {kind:"empty",risk:"none"};
+ if(PERSONAL_DANGER.test(message)&&!NEGATIVE_PREFIX.test(message))return {kind:"safety",risk:"personal_safety"};
  if(!NEGATIVE_PREFIX.test(message)&&(DIRECT_PAUSE.test(message)||FIRST_PERSON_PAUSE.test(message)||PAUSE_REQUEST.test(message)))
   return {kind:"pause",risk:"none"};
  if(NO_ADVICE.test(message))return {kind:"no_advice",risk:"none"};
