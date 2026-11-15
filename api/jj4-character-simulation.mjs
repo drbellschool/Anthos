@@ -155,7 +155,22 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  // The 'box's return-policy pamphlet' is not the box itself being opened.
  // Peeling a label's tape corner to read it does not break the box's seal.
  // Only clear, completed unsealing actions can transition it to "opened".
- const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box)\b/i;
+ // Only AFFIRMATIVE, completed physical actions may open the box. Bare
+ // "open the box" often appears in a suggestion or "let's NOT open the box".
+ // It must never silently mutate the world state, even if the model proposes
+ // an unsupported physical transition.
+ const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box)\b/gi;
+ const didUnseal=(text)=>{
+  const source=String(text||"");
+  for(const match of source.matchAll(unsealing)){
+   const before=source.slice(Math.max(0,match.index-110),match.index)
+    .split(/[.!?;:\n“”"]/).at(-1)||"";
+   const negated=/\b(?:not|never|without|didn't|don't|won't|wouldn't|couldn't|can't|cannot|avoid(?:ed|ing)?|refus(?:ed|ing)?|should|could|might|may|will|if|unless|whether|consider(?:ed|ing)?|planned? to|intend(?:ed)? to|wanted? to|asked? to)\b[^.!?;:\n]*$/i;
+   if(negated.test(before))continue;
+   return true;
+  }
+  return false;
+ };
  const explicitlySealed=/\b(?:without (?:breaking|removing) (?:the )?seal|without unsealing|without breaking the seal fully|box (?:stays|remains|is|was) (?:still |firmly |tightly )?sealed|box stayed sealed|sealed box)\b/i;
  const updates=Array.isArray(proposal.objectChanges)?proposal.objectChanges.slice(0,8):[];
  for(const update of updates){
@@ -169,7 +184,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
      (old.condition==="sealed"&&update.condition==="resealed")){
     adjustments.push("ignored impossible box-state transition");continue;
    }
-   if(update.condition==="opened"&&!opened.test(update.actionEvidence)){
+   if(update.condition==="opened"&&!didUnseal(update.actionEvidence)){
     adjustments.push("ignored unproven box opening");continue;
    }
   }
@@ -184,10 +199,10 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
    return {ok:false,reason:"An opened box was described as unopened without being resealed."};
   // An observable physical event outranks model-generated state labels.
-  if(opened.test(story)&&afterBox.condition==="sealed"){
+  if(didUnseal(story)&&afterBox.condition==="sealed"){
    afterBox.condition="opened";
    adjustments.push("visible box opening reconciled into world state");
-  }else if(priorBox.condition==="sealed"&&!opened.test(story)&&claimsUnopened.test(story)){
+  }else if(priorBox.condition==="sealed"&&!didUnseal(story)&&claimsUnopened.test(story)){
    // Explicitly sealed in the visible prose outranks a proposed opening
    // based on a misleading reference to paperwork, a calendar or a receipt.
    afterBox.condition="sealed";
@@ -196,7 +211,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    afterBox.condition="resealed";
    adjustments.push("visible resealing reconciled into world state");
   }
-  if(priorBox.condition==="sealed"&&!opened.test(story)&&explicitlySealed.test(story)){
+  if(priorBox.condition==="sealed"&&!didUnseal(story)&&explicitlySealed.test(story)){
    // Explicit visible evidence that the box was NOT unsealed overrides
    // a speculative AI objectChange, including a peeled label corner.
    if(afterBox.condition!=="sealed")adjustments.push("restored sealed box: no actual unsealing occurred");
