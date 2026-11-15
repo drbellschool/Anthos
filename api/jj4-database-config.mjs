@@ -23,3 +23,13 @@ export function storySupabaseBase(env=process.env){
  return origin+"/rest/v1/";
 }
 export {PRODUCTION_URL};
+
+/** Legacy JWT keys use Authorization; modern opaque Supabase keys must use apikey only. */
+export function storySupabaseHeaders(key){
+ const token=String(key||"").trim();
+ if(!token)throw new Error("Supabase secret key is required.");
+ const headers={apikey:token,"Content-Type":"application/json",Prefer:"return=representation"};
+ if(!token.startsWith("sb_secret_")&&!token.startsWith("sb_publishable_"))
+  headers.Authorization="Bearer "+token;
+ return headers;
+}
