@@ -46,14 +46,16 @@ test("scene can progress without arbitrarily changing either character's decisio
  assert.equal(s.lastPhase,-1,"The old snapshot must not mutate");
  assert.equal(result.state.events.length,1);
 });
-test("unexplained agreement is rejected even if the story sounds cooperative",()=>{
+test("unexplained agreement is ignored without stalling a usable story",()=>{
  const p=delta();p.jack.position="favor";
  let res=checkSimulationTransition(base(),p,beat,0);
- assert.equal(res.ok,false);
- assert.match(res.reason,/without a visible/i);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.characters.jack.position,"undecided");
+ assert.ok(res.adjustments.some(x=>x.includes("retained prior stance")));
  p.jack.decisionEvidence="Jack put the statement beside the microwave";
  res=checkSimulationTransition(base(),p,beat,0);
- assert.equal(res.ok,false,"A statement on the counter is not consent");
+ assert.equal(res.ok,true);
+ assert.equal(res.state.characters.jack.position,"undecided","Putting down a statement is not consent");
 });
 test("explicitly chosen change may update a character, but a different role remains independent",()=>{
  const p=delta();
@@ -69,7 +71,8 @@ test("object change must be a narrated action and is persisted",()=>{
  p.objectChanges=[{id:"replacement_box",condition:"opened",location:"kitchen counter",
  actionEvidence:"Jill peeled back the tape and opened the box"}];
  let out=checkSimulationTransition(base(),p,beat,0);
- assert.equal(out.ok,false);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.objects[0].condition,"sealed","Unsupported box-state proposals must be ignored");
  out=checkSimulationTransition(base(),p,beat+" Jill peeled back the tape and opened the box.",0);
  assert.equal(out.ok,true,out.reason);
  assert.equal(out.state.objects[0].condition,"opened");
@@ -94,6 +97,12 @@ test("no character action means no fallback to an invented event",()=>{
  const p=delta();p.newEvent.evidence="A phone call never shown";
  const result=checkSimulationTransition(base(),p,"It was quiet. The clock ticked. Both were thinking.",0);
  assert.equal(result.ok,false);
+});
+test("visible box opening is recorded even when the model forgets its metadata",()=>{
+ const p=delta();p.objectChanges=[];
+ const result=checkSimulationTransition(base(),p,beat+" Jack opened the packaging.",0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects[0].condition,"opened");
 });
 test("scene schema records evidence separate from narrative words",()=>{
  assert.ok(SIMULATION_SCENE_SCHEMA.properties.simulation);
