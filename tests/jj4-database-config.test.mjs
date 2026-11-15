@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {storySupabaseBase,PRODUCTION_URL} from "../api/jj4-database-config.mjs";
+import {storySupabaseBase,storySupabaseHeaders,PRODUCTION_URL} from "../api/jj4-database-config.mjs";
 
 const prod="kstluxwgrrgdbjyloscb";
 const qa="fake-quality-lab-project";
@@ -27,5 +27,24 @@ test("both story modules use the same server-side routing control",()=>{
   const source=readFileSync(new URL("../api/"+name,import.meta.url),"utf8");
   assert.match(source,/storySupabaseBase\(\)\+resource/);
   assert.doesNotMatch(source,/const (?:BASE|ROOT)="https:\/\/kstluxwgrrgdbjyloscb/);
+ }
+});
+
+test("modern opaque Supabase secret keys are sent only in apikey header",()=>{
+ const key="sb_secret_test_secret_from_qa";
+ const headers=storySupabaseHeaders(key);
+ assert.equal(headers.apikey,key);
+ assert.equal(Object.hasOwn(headers,"Authorization"),false);
+});
+test("legacy JWT service role key retains production bearer authorization",()=>{
+ const key="eyJhbGciOiJIUzI1NiJ9.test.signature";
+ const headers=storySupabaseHeaders(key);
+ assert.equal(headers.apikey,key);
+ assert.equal(headers.Authorization,"Bearer "+key);
+});
+test("both Jack/Jill modules call the shared key header selector",()=>{
+ for(const name of ["jj4-core.mjs","jj2-library.mjs"]){
+  const src=readFileSync(new URL("../api/"+name,import.meta.url),"utf8");
+  assert.match(src,/headers:storySupabaseHeaders\(key\)/);
  }
 });
