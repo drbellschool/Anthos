@@ -31,3 +31,12 @@ test("Sophia can always provide a non-invented fallback without external AI",()=
  assert.match(text,/Jill bought a \$400 microwave/);
  assert.doesNotMatch(text,/they agreed|confirmed refund|return deadline/i);
 });
+
+test("Sophia cannot invent mutual agreement when the ending only shows Jill acting",()=>{
+ const out=validateClosureEvidence({
+  evidence:"Jill snapped the packing tape, opened the box",
+  observation:"They agreed to pause on returning the appliance and rebuild trust."
+ },scenes);
+ assert.equal(out.ok,false);
+ assert.match(out.reason,/unearned mutual agreement/);
+});
