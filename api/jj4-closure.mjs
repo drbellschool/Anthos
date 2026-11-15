@@ -24,6 +24,12 @@ export function validateClosureEvidence(generated,sharedScenes=[]){
  const ending=norm(finalScenes.map(s=>s.body).join(" "));
  const claim=norm(generated?.observation);
  if(!claim)return {ok:false,reason:"empty observation"};
+ // The narrator may describe an offer or unilateral decision, but cannot
+ // upgrade it to mutual consent without a visible two-person acceptance.
+ const consensus=/\b(?:they agreed|both agreed|mutually agreed|jointly decided|they decided together)\b/;
+ const groundedAgreement=/\b(?:they agreed|both agreed|jack agreed and jill agreed|jill agreed and jack agreed|both said yes)\b/;
+ if(consensus.test(claim)&&!groundedAgreement.test(ending))
+  return {ok:false,reason:"unearned mutual agreement in closure"};
  if(/\b(?:unopened|still sealed|remains sealed|sealed box)\b/.test(claim)&&
   /\b(?:opened the box|broke the seal|lifted the lid|snapped the tape|unboxed)\b/.test(ending)&&
   !/\b(?:resealed|taped the box shut)\b/.test(ending))
