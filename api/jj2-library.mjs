@@ -1,6 +1,6 @@
 // Private server-side Anthos Deep Dive 2.0 petal library management.
 // Never import this module from the browser or expose secret Supabase credentials.
-import {storySupabaseBase} from "./jj4-database-config.mjs";
+import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 
 const token=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const bad=(msg,status=400)=>{throw Object.assign(new Error(msg),{status})};
@@ -9,7 +9,7 @@ async function rest(resource,query={},body,method="GET"){
  const url=new URL(storySupabaseBase()+resource);
  for(const [k,v] of Object.entries(query))url.searchParams.set(k,v);
  let res;try{
-  res=await fetch(url,{method,headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=representation"},
+  res=await fetch(url,{method,headers:storySupabaseHeaders(key),
    ...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(14000)});
  }catch{bad("Library database could not be reached",502)}
  if(!res.ok)bad(res.status===409?"This draft was changed elsewhere. Reload before saving.":"Library database rejected the request",res.status===409?409:502);
