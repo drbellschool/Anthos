@@ -32,3 +32,10 @@
 .jj4-sources{display:grid;gap:5px;border-top:1px solid #c9dbc9;padding-top:9px;margin-top:10px}
 .jj4-source{color:#185b43;font-size:11px;text-decoration:underline;line-height:1.4}
 .jj4-source:hover{text-decoration:none}
+
+/* Distinguish private clarification turns from submitted coaching. */
+.jj4-entry.question{background:#f0f5ff;border-color:#adc4e6;margin-left:10px}
+.jj4-entry.reply{background:#eff8ff;border-color:#8dc2de;margin-right:10px}
+.jj4-entry.question .jj4-entry-label{color:#3555a4}
+.jj4-entry.reply .jj4-entry-label{color:#24668e}
+.jj4-controls .jj4-button{min-width:0;white-space:normal}
