@@ -8,6 +8,7 @@ import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
 import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCount} from "./jj4-continuity.mjs";
+import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
 
 const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -196,7 +197,20 @@ async function directScene(room,phaseIndex){
   phase:PHASES4[m.phase_index],body:scrub(m.body)
  }));
  const influence=adviceForNextScene(phaseIndex,room.episode,ordered);
+ const focusedPilot=isContinuityPilot(room);
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
+ let eventLedger=emptyLedger();
+ if(focusedPilot&&sharedHistory.length){
+  try{
+   const extracted=await generateStructured({model,key,name:"anthos_jj4_event_ledger",
+    schema:LEDGER_SCHEMA,input:{canonicalFacts:eventLedger.confirmedFacts,committedScenes:sharedHistory},
+    instructions:storyLedgerInstructions(),maxTokens:1150,timeout:20000});
+   eventLedger=sanitizeLedger(extracted);
+  }catch{
+   eventLedger={...eventLedger,unresolved:[...eventLedger.unresolved,
+    "Before writing, inspect supplied scenes for previously completed actions."]};
+  }
+ }
  let coachingImpact=null;
  if(influence){
   // First call: transform real coaching into observable fictional behavior.
@@ -226,7 +240,8 @@ async function directScene(room,phaseIndex){
    directRecipients:influence.activeRoles,
    fictionalCharacterMotivations:{jack:room.episode.jackMotivation,jill:room.episode.jillMotivation},
    authorBoundaries:room.episode.boundaries,
-   establishedFiction:sharedHistory.slice(-5)
+   establishedFiction:sharedHistory.slice(-5),
+   ...(focusedPilot?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
   };
   const plan=await generateStructured({model,key,name:"anthos_jj4_consequence_plan",
    schema:IMPACT_SCHEMA,input:planInput,instructions:planInstructions,
@@ -236,7 +251,6 @@ async function directScene(room,phaseIndex){
  }
  // Second call: enact those decisions as real character action and fallout.
  // Advice is never simply pasted into a message or retold to the other coach.
- const focusedPilot=isContinuityPilot(room);
  const continuity=focusedPilot?continuityInput(phaseIndex,sharedHistory,coachingImpact):null;
  const input={
   title:room.title,primaryObjective:room.episode.primarySkill,
@@ -256,7 +270,7 @@ async function directScene(room,phaseIndex){
   checkpoint:cp,fictionalCharacters:fictionalNames,
   history:sharedHistory.map(m=>({role:"shared",kind:"scene",phase:m.phase,body:scrub(m.body)})),
   coachingImpact,
-  ...(focusedPilot?{continuity}:{})
+  ...(focusedPilot?{continuity,eventLedger:ledgerPrompt(eventLedger,phase)}:{})
  };
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
@@ -275,7 +289,7 @@ async function directScene(room,phaseIndex){
   "NEVER begin a private message 'Jack, ...' or 'Jill, ...', never say 'Jill, consider...', 'How could Jill...', 'Tell Jack what to do', or 'How do you feel about Jill'. Those are narrator instructions aimed at the character or coach, NOT a character texting a friend.",
   "Do not insert names or private advice from the real husband or wife into the message. Speak ONLY as the fictional sender and don't ask the user to roleplay that sender.",
   "Jack and Jill are always the fictional characters; the real husband and wife are private coaches, never characters.",
-  focusedPilot?"Write 75–110 words TOTAL across all four narrative beats. Start AFTER the previous scene. Do not retell past events, earlier apologies, earlier agreements, prior calls, or old discoveries. Include ONE genuinely NEW action or consequence; leave the past in the past. Use concise dialogue and no recaps.":"The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
+  focusedPilot?"Write only 75–110 words TOTAL across all four beats. Begin where the last scene ended. The eventLedger is authoritative for completed actions and unverified claims. Never repeat a completed call, prior apology or policy lookup as new. Show exactly one NEW observable consequence; do not recap or use summary metaphors. Do not invent return fees or dates.":"The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
   "Return JSON only: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt.",
   "If checkpoint audience is none or the phase is Reflection, return empty strings for both prompts. If Jack-only, Jill's prompt is empty; if Jill-only, Jack's is empty. If both, two different private prompts. Each must respond to what just happened, not repeat a canned question about the theoretical skill."
  ].join(" ");
@@ -314,11 +328,14 @@ async function directScene(room,phaseIndex){
     schema:SCENE_REVIEW_SCHEMA,
     input:{canonicalFacts:continuity.canonicalFacts,previouslyShownScenes:sharedHistory,
      phaseIndex,scene:story,requiredNewDevelopment:continuity.nextSceneRule,
+     completedEventLedger:ledgerPrompt(eventLedger,phase),
      expectedObservableCoachEffect:coachingImpact},
     instructions:[
      "Evaluate chronology and concrete events, not literary preferences. A callback to an established fact is allowed; replaying it as a new event is not.",
      "A character acknowledging an existing promise is not a duplicated action if another new event occurs.",
      "Jill made the $400 purchase. Jack postponed the old microwave repair.",
+     "Compare already completed events to actions happening NOW; never duplicate a completed phone call or decision.",
+     "Coached behavior must follow the coachingImpact or visibly refuse it and suffer an actual consequence.",
      "Flag an actual contradiction or repeated completed event; avoid rejecting simply because the same physical object remains present.",
      "Return short corrective notes only for factual defects. If there is a genuine new event, approve."
     ].join(" "),maxTokens:400,timeout:14000});
