@@ -456,12 +456,69 @@ export async function sophia(token){
  }
  return status(token);
 }
+// A durable, individual pause. A paused role blocks the next scene for the
+// whole room, but does not delete the submitted coaching or history.
+export async function pause(token){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join this episode before pausing.",403);
+ if(room.stage==="retired"||room.stage==="complete")return status(token);
+ if(!person.paused_at)await db(P,{id:"eq."+person.id,paused_at:"is.null"},
+  {paused_at:new Date().toISOString()},"PATCH");
+ return status(token);
+}
+export async function resume(token){
+ const {person}=await participant(token);
+ if(!person.joined_at)error("Join this episode before resuming.",403);
+ if(person.paused_at)await db(P,{id:"eq."+person.id},
+  {paused_at:null},"PATCH");
+ return status(token);
+}
+// A coach can ask a private factual or character question without consuming
+// the required intervention. Answers are visible only to that token's role.
+export async function ask(token,body,requestKey){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join the episode first.",403);
+ if(room.stage!=="awaiting"||!targetRoles(room).includes(person.role)||
+    person.submitted_phase===room.phase_index||person.paused_at)
+  return status(token);
+ if(!UUID.test(requestKey||""))error("Invalid message request.");
+ const question=brief(body,900);
+ if(question.length<2)error("Enter a question for your character.");
+ const prior=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
+  kind:"eq.question",phase_index:"eq."+room.phase_index,select:"id",limit:"2"});
+ if(prior.length>=2)error("Two private questions are allowed per checkpoint. Send advice or pause to continue.",429);
+ const key=process.env.OPENAI_API_KEY?.trim();
+ if(!key)error("The private-question service is unavailable.",503);
+ const {scenes,mine}=await messages(room,person.role);
+ const character=person.role==="jack"?"Jack":"Jill";
+ const prompt=privateQuestionPrompt({character,question,scenes,mine,episode:room.episode});
+ const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
+ const reply=await generateStructured({
+  model,key,name:"anthos_jj4_private_clarification",schema:PRIVATE_ANSWER_SCHEMA,
+  input:prompt,instructions:prompt.boundaries.join(" "),
+  maxTokens:280,timeout:16000
+ });
+ const response=brief(reply?.reply,900);
+ if(response.length<5)error("Your character could not answer that question. Try again.",502);
+ const saved=await db("rpc/anthos_jj4_store_private_question",{},
+  {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+   p_question:question,p_reply:response,p_key:requestKey},"POST");
+ if(saved==="limit")error("Question limit reached for this checkpoint.",429);
+ if(saved==="invalid")error("The private answer was not accepted. Please retry.",502);
+ if(saved==="unavailable")return status(token);
+ return status(token);
+}
+
 export async function coach(token,body,requestKey){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join before advising your character.",403);
  if(room.stage!=="awaiting")return status(token);
  const words=brief(body,900);
  if(words.length<2)error("Write a short suggestion to your character.");
+ const routing=classifyCoachTurn(words);
+ if(routing.kind==="pause")return pause(token);
+ if(routing.kind==="question"||routing.kind==="correction")return ask(token,words,requestKey);
+ if(person.paused_at)return status(token);
  if(!UUID.test(requestKey||""))error("Invalid message request.");
  const saved=await db("rpc/anthos_jj4_submit_coaching",{},
   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,p_message:words,p_key:requestKey},"POST");
