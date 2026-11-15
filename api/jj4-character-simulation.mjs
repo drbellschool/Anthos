@@ -120,9 +120,31 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    matchesEvidence(story,after.decisionEvidence)&&choiceWords.test(after.decisionEvidence);
   if(after.position!==before.position&&!acceptedChange)
    adjustments.push(role+" retained prior stance; claimed change lacked explicit scene evidence");
+  // Keep each fictional person's interpretations and interpersonal costs
+  // independent. The shared narrator may update a belief only with observable,
+  // actor-attributed evidence; the other character's coaching is not evidence.
+  const attributed=(excerpt)=>{
+   if(!matchesEvidence(story,excerpt))return false;
+   const quote=normalize(excerpt),other=role==="jack"?"jill":"jack";
+   if(quote.includes(other)&&!quote.includes(role))return false;
+   const scene=normalize(story),at=scene.indexOf(quote);
+   const prefix=scene.slice(Math.max(0,at-100),at);
+   const mentions=[...prefix.matchAll(/\b(jack|jill)\b/g)];
+   return quote.includes(role)||mentions.at(-1)?.[1]===role;
+  };
+  const newBelief=limit(after.belief,220);
+  const changedBelief=Boolean(newBelief)&&newBelief!==before.belief;
+  const beliefAllowed=changedBelief&&attributed(after.beliefEvidence);
+  const newCost=limit(after.feltCost,180);
+  const costAllowed=Boolean(newCost)&&attributed(after.costEvidence);
+  if(changedBelief&&!beliefAllowed)adjustments.push(role+" belief retained: no visible attribution");
+  if(newCost&&!costAllowed)adjustments.push(role+" felt cost retained: no visible attribution");
   next.characters[role]={...before,
    position:acceptedChange?after.position:before.position,
-   emotion:limit(after.emotion||before.emotion,100)};
+   emotion:limit(after.emotion||before.emotion,100),
+   belief:beliefAllowed?newBelief:before.belief,
+   fear:before.fear,
+   feltCost:costAllowed?newCost:before.feltCost};
  }
  if(proposal.humor?.attempted&&
     matchesEvidence(story,proposal.humor.actionEvidence)&&
@@ -222,6 +244,11 @@ export const simulationInstructions=[
  "The simulation state is authoritative. Jack and Jill are independent fictional people with distinct persistent wants, beliefs, preferences and boundaries.",
  "The six-phase storyboard determines pacing, NOT whether their disagreement resolves. A final scene may end unresolved.",
  "The position values describe each character's stance on the centralChoice: favor, oppose, conditional, undecided. Never infer agreement from calmness, budgeting or willingness to listen.",
+ "Jack and Jill each have an independent want, fear, interpretation (belief) and most recent felt interpersonal cost. Neither reads the other's internal state or privately received coaching. Only something spoken or acted out in the shared world can change what the other knows.",
+ "Propose a new belief only when the same character clearly reveals that interpretation in a narrated act or spoken response; cite the exact excerpt in beliefEvidence. Otherwise repeat their existing belief and return empty beliefEvidence.",
+ "Propose feltCost only when the same character visibly experiences a new consequence or names a personal cost, with exact attributable costEvidence; otherwise repeat previous feltCost with empty costEvidence.",
+ "Character agency means believable imperfect choices, not automatic alignment. Harsh coaching may be followed, partially followed, or explicitly refused with believable fallout. Never quietly substitute a generic polite response.",
+
  "If a character's position changes, include a short EXACT excerpt of the visible scene containing an explicit decision; if unchanged use decisionEvidence as an empty string.",
  "objectChanges includes ONLY objects whose physical condition or location visibly changed. Use one exact evidence excerpt per changed object. If none changed, return [].",
  "Object changes must be earned: if the box is opened, it stays opened unless somebody visibly reseals it. Never say 'unopened' about an already opened box.",
