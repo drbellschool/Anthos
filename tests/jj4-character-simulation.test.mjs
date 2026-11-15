@@ -10,8 +10,12 @@ const testEpisode={title:"The Four-Hundred-Dollar Surprise",
  jillMotivation:"Keep the kitchen usable and assert independence"};
 const base=()=>initialSimulation(testEpisode);
 const delta=()=>({
- jack:{position:"undecided",emotion:"worried",decisionEvidence:""},
- jill:{position:"favor",emotion:"frustrated",decisionEvidence:""},
+ jack:{position:"undecided",emotion:"worried",decisionEvidence:"",
+  belief:"Unannounced spending may endanger our shared savings",beliefEvidence:"",
+  feltCost:"",costEvidence:""},
+ jill:{position:"favor",emotion:"frustrated",decisionEvidence:"",
+  belief:"Jack's missed repair promises leave me to solve daily problems",beliefEvidence:"",
+  feltCost:"",costEvidence:""},
  objectChanges:[],
  newEvent:{actor:"Jack",action:"asked about shared savings",
  evidence:"Jack put the statement beside the microwave"},
@@ -155,4 +159,42 @@ test("simulation writes state atomically with scene and leaves earlier pilots al
  assert.match(core,/simulationEnabled\(latest\)/);
  assert.match(core,/anthos_jj4_commit_simulated_scene/);
  assert.match(core,/SIMULATION_SCENE_SCHEMA/);
+});
+
+test("characters retain independent fears and beliefs after a new scene",()=>{
+ const previous=base(),out=checkSimulationTransition(previous,delta(),beat,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.match(out.state.characters.jack.fear,/financial security/i);
+ assert.match(out.state.characters.jill.fear,/missed promise/i);
+ assert.notEqual(previous.characters.jack.belief,previous.characters.jill.belief);
+ assert.equal(out.state.characters.jack.belief,previous.characters.jack.belief);
+ assert.equal(out.state.characters.jill.belief,previous.characters.jill.belief);
+});
+test("visible Jill interpretation and cost never overwrite Jack's belief",()=>{
+ const previous=base(),p=delta();
+ const JillBelief="Jack is not taking me seriously";
+ p.jill.belief=JillBelief;
+ p.jill.beliefEvidence="Jill says she is not taking his delay lightly.";
+ p.jill.feltCost="Jill feels dismissed.";
+ p.jill.costEvidence="Jill says she feels dismissed by his response.";
+ const scene="Jack looks at the box. Jill says she is not taking his delay lightly. Jill says she feels dismissed by his response.";
+ const out=checkSimulationTransition(previous,p,scene,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.characters.jill.belief,JillBelief);
+ assert.equal(out.state.characters.jill.feltCost,"Jill feels dismissed.");
+ assert.equal(out.state.characters.jack.belief,previous.characters.jack.belief);
+ assert.equal(out.state.characters.jack.feltCost,"");
+});
+test("covert belief edit and other-character evidence cannot silently change Jack",()=>{
+ const previous=base(),p=delta();
+ p.jack.belief="Jill intended to bankrupt us";
+ p.jack.beliefEvidence="Jill says she feels dismissed by his response.";
+ p.jack.feltCost="Jack is devastated";
+ p.jack.costEvidence="Jack silently imagines an entirely new betrayal.";
+ const scene="Jack stands near the counter. Jill says she feels dismissed by his response.";
+ const out=checkSimulationTransition(previous,p,scene,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.characters.jack.belief,previous.characters.jack.belief);
+ assert.equal(out.state.characters.jack.feltCost,"");
+ assert.ok(out.adjustments.some(s=>s.includes("belief retained")));
 });
