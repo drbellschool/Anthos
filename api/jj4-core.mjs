@@ -331,6 +331,12 @@ async function directScene(room,phaseIndex){
    continue;
   }
   if(simulate){
+   // Never validate evidence against text that is later truncated for display.
+   if(story.length>1300){
+    story=null;
+    reviewFeedback="Shorten the complete visible scene to at most 1300 characters. No summaries or repeated events.";
+    continue;
+   }
    const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex);
    if(!verified.ok){
     story=null;
