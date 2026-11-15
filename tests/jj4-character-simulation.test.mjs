@@ -198,3 +198,39 @@ test("covert belief edit and other-character evidence cannot silently change Jac
  assert.equal(out.state.characters.jack.feltCost,"");
  assert.ok(out.adjustments.some(s=>s.includes("belief retained")));
 });
+
+
+test("regression: refusing to open a box cannot mutate persisted physical state",()=>{
+ const previous=base(),proposal=delta();
+ const scene="Jack stands by the sealed box and says, 'Let's not open the box tonight.' Jill nods and writes 'decide tomorrow' on the sealed package.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"sealed");
+});
+test("regression: models cannot turn Jill's explicit refusal into an open box",()=>{
+ const previous=base(),proposal=delta();
+ proposal.objectChanges=[{id:"replacement_box",condition:"opened",location:"kitchen counter",
+  actionEvidence:"Jill says she will not open the box tonight"}];
+ const scene="Jill says she will not open the box tonight. Jack looks upset. The box remains sealed.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"sealed");
+});
+test("regression: conditional discussion cannot count as completed box opening",()=>{
+ const previous=base(),proposal=delta();
+ const scene="Jack says, 'If Jill opened the box, we could not put it back exactly.' Jill crosses her arms. The box is still sealed.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"sealed");
+});
+test("positive unsealing remains durable with a real on-stage action",()=>{
+ const previous=base(),proposal=delta();
+ const scene="Jill opened the microwave box with both hands, then placed the lid on the counter. Jack watched her in silence.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"opened");
+ const p2=delta();
+ const sequel=checkSimulationTransition(res.state,p2,"Jack says, 'Let's not open the box again.' Jill stands beside him.",1);
+ assert.equal(sequel.ok,true,sequel.reason);
+ assert.equal(sequel.state.objects[0].condition,"opened");
+});
