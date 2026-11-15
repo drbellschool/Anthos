@@ -116,6 +116,8 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   next.humorBeats=[...(previous.humorBeats||[]).slice(-7),{
    phase,action:limit(proposal.humor.actionEvidence,200),
    reaction:limit(proposal.humor.reactionEvidence,200)}];
+ // The 'box's return-policy pamphlet' is not the box itself being opened.
+ const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)(?![’']s)|peel(?:ed|s)? (?:back|off) (?:the )?tape|broke (?:the )?seal|unboxed|pulled out the receipt from the box)\b/i;
  const updates=Array.isArray(proposal.objectChanges)?proposal.objectChanges.slice(0,8):[];
  for(const update of updates){
   const old=next.objects.find(x=>x.id===update?.id);
@@ -128,7 +130,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
      (old.condition==="sealed"&&update.condition==="resealed")){
     adjustments.push("ignored impossible box-state transition");continue;
    }
-   if(update.condition==="opened"&&!/\b(?:open(?:s|ed)?|cut|peel(?:s|ed)?|broke|breaks|remove(?:d|s)?|unbox(?:ed|es)?)\b/i.test(update.actionEvidence)){
+   if(update.condition==="opened"&&!opened.test(update.actionEvidence)){
     adjustments.push("ignored unproven box opening");continue;
    }
   }
@@ -137,9 +139,8 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  }
  const priorBox=previous.objects.find(x=>x.id==="replacement_box");
  const afterBox=next.objects.find(x=>x.id==="replacement_box");
- const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)|peel(?:ed|s)? (?:back|off) (?:the )?tape|broke (?:the )?seal|unboxed|pulled out the receipt from the box)\b/i;
  const resealed=/\b(?:resealed|sealed (?:the )?box (?:again|back)|retaped|taped (?:the )?box shut)\b/i;
- const claimsUnopened=/\b(?:unopened|still sealed|sealed box|box remains closed)\b/i;
+ const claimsUnopened=/\b(?:unopened(?:\s+\w+){0,3}\s+box|box\s+(?:is|remains|stays)\s+(?:tightly\s+)?(?:sealed|unopened|closed)|still[- ]sealed(?:\s+\$?\d+)?\s+box|sealed box|box stays (?:tightly )?sealed)\b/i;
  if(priorBox&&afterBox){
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
    return {ok:false,reason:"An opened box was described as unopened without being resealed."};
@@ -147,6 +148,10 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   if(opened.test(story)&&afterBox.condition==="sealed"){
    afterBox.condition="opened";
    adjustments.push("visible box opening reconciled into world state");
+  }else if(priorBox.condition==="sealed"&&!opened.test(story)&&claimsUnopened.test(story)){
+   // Explicitly sealed in the visible prose outranks a proposed opening
+   // based on a misleading reference to paperwork, a calendar or a receipt.
+   afterBox.condition="sealed";
   }
   if(priorBox.condition==="opened"&&resealed.test(story)){
    afterBox.condition="resealed";
@@ -171,8 +176,23 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   evidence:eventEvidence}];
  // An unresolved question never disappears merely because the narrator wants a
  // smooth ending. An eventual resolution needs an explicit confirmed choice.
- next.openThreads=[...new Set([...(previous.openThreads||[]),...
-  (Array.isArray(proposal.openThreads)?proposal.openThreads:[]).map(x=>limit(x,200))])].slice(0,12);
+ const allThreads=[...(previous.openThreads||[]),...
+  (Array.isArray(proposal.openThreads)?proposal.openThreads:[]).map(x=>limit(x,200))];
+ const stop=new Set(["the","a","an","or","and","to","about","for","whether","how","what","when",
+  "of","is","are","was","will","with","their","our","this","that","they","jack","jill"]);
+ const topic=x=>new Set(limit(x,200).toLowerCase().replace(/[^a-z0-9]+/g," ").split(/\s+/)
+  .filter(w=>w.length>2&&!stop.has(w)));
+ const overlaps=(a,b)=>{
+  const x=topic(a),y=topic(b);
+  return x.size&&y.size?[...x].filter(w=>y.has(w)).length/Math.min(x.size,y.size):0;
+ };
+ next.openThreads=[];
+ for(const thread of allThreads){
+  const t=limit(thread,200);
+  if(!t||next.openThreads.some(old=>overlaps(old,t)>=0.8))continue;
+  next.openThreads.push(t);
+  if(next.openThreads.length>=8)break;
+ }
  return {ok:true,state:next,event:next.events.at(-1),adjustments};
 }
 export const simulationInstructions=[

@@ -104,6 +104,27 @@ test("visible box opening is recorded even when the model forgets its metadata",
  assert.equal(result.ok,true,result.reason);
  assert.equal(result.state.objects[0].condition,"opened");
 });
+test("opening a box's pamphlet does not silently open the box itself",()=>{
+ const p=delta();
+ const sentence="Jack opens the box’s return policy pamphlet and glances at Jill. The still-sealed $400 box waits on the counter.";
+ p.newEvent.evidence="Jack opens the box’s return policy pamphlet";
+ p.objectChanges=[{id:"replacement_box",condition:"opened",location:"kitchen counter",
+  actionEvidence:"Jack opens the box’s return policy pamphlet"}];
+ const out=checkSimulationTransition(base(),p,sentence,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.objects[0].condition,"sealed");
+});
+test("repeated unresolved questions collapse into distinct threads",()=>{
+ const p=delta();
+ p.openThreads=["Whether to keep or return the microwave",
+  "Decision whether to keep or return the replacement microwave",
+  "How to rebuild shared savings"];
+ const prior=base();
+ prior.openThreads=["Whether to keep the microwave","How to rebuild shared savings"];
+ const out=checkSimulationTransition(prior,p,beat,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.ok(out.state.openThreads.length<5);
+});
 test("scene schema records evidence separate from narrative words",()=>{
  assert.ok(SIMULATION_SCENE_SCHEMA.properties.simulation);
  assert.ok(SIMULATION_SCENE_SCHEMA.required.includes("jackBeat"));
