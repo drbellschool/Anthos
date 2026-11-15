@@ -5,6 +5,7 @@ import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
+import {unearnedMicrowaveActivation} from "./jj4-quality-guards.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
@@ -364,6 +365,10 @@ async function directScene(room,phaseIndex){
    story=null;reviewFeedback="Unsupported external policy or return terms: "+
     unsupportedPolicies.slice(0,2).join(" / ")+
     ". No actual retailer policy is known. Replace with explicit uncertainty or a plan to check later.";
+   continue;
+  }
+  if(unearnedMicrowaveActivation(story,sharedHistory)){
+   story=null;reviewFeedback="A microwave cannot hum, beep or cook until the story first shows safe power connection and setup. Preserve the physical sequence; do not invent a completed installation.";
    continue;
   }
   const size=checkSceneLength(story);
