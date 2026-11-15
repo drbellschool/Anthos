@@ -74,7 +74,7 @@ export function unearnedMicrowaveActivation(scene,previousScenes=[]){
  if(!/\bmicrowave\b/i.test(now)||!/\b(?:hums?|humming|beeps?|beeping|starts? running|heats?|heating)\b/i.test(now))
   return false;
  const completed=[...(previousScenes||[]).map(s=>typeof s==="string"?s:s?.body||""),now].join(" ");
- const connected=/\b(?:plug(?:ged|s|ging)?(?:\s+\w+){0,3}\s+in|connect(?:ed|s)?\s+to\s+(?:the\s+)?(?:outlet|power)|install(?:ed|ation)?(?:\s+\w+){0,4}\s+completed|wired?\s+(?:it\s+)?(?:up|in))\b/i.test(completed);
+ const connected=/\b(?:plug(?:ged|s|ging)?(?:\s+\w+){0,3}\s+in|connect(?:ed|s)?\s+(?:it\s+)?to\s+(?:the\s+)?(?:outlet|power)|install(?:ed|ation)?(?:\s+\w+){0,4}\s+completed|wired?\s+(?:it\s+)?(?:up|in))\b/i.test(completed);
  const asserted=/\b(?:microwave\s+(?:hums?|humming|beeps?|beeping|starts? running|heats?|heating)|(?:hums?|humming|beeps?|beeping)\s+(?:from\s+)?(?:the\s+)?(?:new\s+)?microwave)\b/i.test(now);
  return asserted&&!connected;
 }
