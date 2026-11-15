@@ -1,11 +1,12 @@
 // Private server-side Anthos Deep Dive 2.0 petal library management.
 // Never import this module from the browser or expose secret Supabase credentials.
-const ROOT="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
+import {storySupabaseBase} from "./jj4-database-config.mjs";
+
 const token=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()||"";
 const bad=(msg,status=400)=>{throw Object.assign(new Error(msg),{status})};
 async function rest(resource,query={},body,method="GET"){
  const key=token();if(!key)bad("Library database is not configured",503);
- const url=new URL(ROOT+resource);
+ const url=new URL(storySupabaseBase()+resource);
  for(const [k,v] of Object.entries(query))url.searchParams.set(k,v);
  let res;try{
   res=await fetch(url,{method,headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"return=representation"},
