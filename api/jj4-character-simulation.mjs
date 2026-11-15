@@ -113,6 +113,12 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    return {ok:false,reason:"An object changed without an observable action in the scene."};
   const old=next.objects.find(x=>x.id===update.id);
   if(!old)return {ok:false,reason:"A new object must first be established by the author."};
+  if(old.id==="replacement_box"){
+   if(!["sealed","opened","resealed"].includes(update.condition))
+    return {ok:false,reason:"The microwave box must have a recognized physical condition."};
+   if(old.condition==="sealed"&&update.condition==="resealed")
+    return {ok:false,reason:"The microwave box cannot be resealed without having been opened."};
+  }
   old.condition=limit(update.condition,100);
   old.location=limit(update.location,120);
  }
@@ -125,7 +131,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   if(priorBox.condition==="opened"&&!boxUpdate &&
      /\b(?:unopened|still sealed|sealed box|box remains closed)\b/i.test(story))
    return {ok:false,reason:"The microwave box reopened itself into a sealed state."};
-  if(afterBox.condition==="sealed"&&/\b(?:cut open|opened the box|peeled back the tape|pulled out the receipt from the box)\b/i.test(story))
+  if(afterBox.condition==="sealed"&&/\b(?:cut open|opened (?:the )?(?:box|packaging|cardboard)|peeled? (?:back|off) (?:the )?tape|broke (?:the )?seal|pulled out the receipt from the box)\b/i.test(story))
    return {ok:false,reason:"The scene opens the box but leaves the object state sealed."};
  }
  next.lastPhase=phase;
