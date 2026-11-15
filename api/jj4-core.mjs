@@ -3,7 +3,7 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {storySupabaseBase} from "./jj4-database-config.mjs";
+import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
@@ -27,9 +27,7 @@ async function db(resource,query={},body,method="GET"){
  if(!key)error("Pilot database credentials are unavailable.",503);
  const url=new URL(storySupabaseBase()+resource);
  for(const [k,v] of Object.entries(query))url.searchParams.set(k,String(v));
- let res;try{res=await fetch(url,{method,headers:{
-  apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",
-  Prefer:"return=representation"},
+ let res;try{res=await fetch(url,{method,headers:storySupabaseHeaders(key),
   ...(body===undefined?{}:{body:JSON.stringify(body)}),
   signal:AbortSignal.timeout(15000)
  });}catch{error("Pilot database could not be reached.",502)}
