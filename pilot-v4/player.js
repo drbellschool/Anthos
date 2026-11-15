@@ -112,7 +112,7 @@ function mount(root,invite,options={}){
   if(!state.joined){message("Private browser rehearsal. Your advice stays on your side.");joinPanel();return}
   if(!state.bothJoined){message("Waiting for the other coach to join…");oneAction("Refresh",refresh);return}
   if(state.paused){
-   message("You paused this episode. No new scene will start until you resume.");
+   message(state.safetyNotice||"You paused this episode. No new scene will start until you resume.");
    oneAction("Resume episode",async()=>act("resume"),true);return;
   }
   if(state.finished){
