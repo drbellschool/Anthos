@@ -62,6 +62,35 @@ node quality-lab/report.mjs qa-artifacts
 
 **Live runner limitations:** The existing browser pilot API provides displayed scenes but not its privileged simulation event ledger, inference usage, or token cost. Generated runs will correctly remain **UNVERIFIED** until a service-only export attaches those records and independent (ideally human-calibrated) narrative evaluation fills evidence and hard gates. Do not put service credentials, private tokens, or raw real customer text into repository artifacts.
 
+## One-call automated narrative judging (opt-in, synthetic only)
+After a completed synthetic pilot, the independent judge evaluates the six requested
+dimensions using **literal evidence excerpts** from the synthetic replay. It makes one
+OpenAI structured-output call with `store:false`; judge model and token usage are
+recorded separately from scene generation costs.
+
+```bash
+# In a trusted environment with OPENAI_API_KEY already configured:
+ANTHOS_QA_ENABLE_JUDGE=1 node quality-lab/judge.mjs qa-artifacts/qa-RUN-ID.json
+node quality-lab/report.mjs qa-artifacts
+```
+
+A numeric AI estimate **does not approve a run**. Even if the judge says all six
+hard gates pass, those flags remain **unverified** until independent
+evidence review/calibration. Evidenced suspected violations can automatically
+**fail** the run. The static dashboard intentionally shows scores, missing evidence,
+and unverified states separately; it does not claim a release-grade success rate.
+
+Judge prompt quality should be calibrated by at least two human raters on a
+balanced set of episodes and coaching styles, with excerpts, disagreements,
+false-fail/false-pass analysis and explicit adjudication before any `ACCEPTED`
+quality status is assigned. The judge cannot compensate for absent saved
+world-state snapshots or unsupported scene facts; those require server-side
+instrumentation.
+
+**CI note (2026-11-15):** the quality-lab tests pass but the repository-wide
+suite has 7 other failures in customer signup/directory and admin progress
+tests. No customer infrastructure was modified as part of this PR.
+
 ## Next implementation increments
 1. Service-only, audit-safe QA export of before/after simulation events, coach disposition, factual provenance, model usage and cost for synthetic room IDs, protected by existing admin authentication.
 2. Generalize authored seed/object state and continuity review across episodes; remove only episode-specific shortcuts after matched regression evidence.
