@@ -114,6 +114,21 @@ test("opening a box's pamphlet does not silently open the box itself",()=>{
  assert.equal(out.ok,true,out.reason);
  assert.equal(out.state.objects[0].condition,"sealed");
 });
+test("reading a return label without unsealing does NOT open the replacement box",()=>{
+ const p=delta();
+ const scene="Jack peels back the tape corner, squinting at the print on the return label. He smooths the tape back down without breaking the seal fully. The box stays sealed on the counter. Jill watches him.";
+ p.newEvent.evidence="Jack peels back the tape corner, squinting at the print on the return label.";
+ p.objectChanges=[{id:"replacement_box",condition:"opened",location:"kitchen counter",
+  actionEvidence:"Jack peels back the tape corner"}];
+ const out=checkSimulationTransition(base(),p,scene,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.objects[0].condition,"sealed");
+ assert.ok(out.state.events[0].evidence.length>12);
+ const later={...delta(),newEvent:{actor:"Jill",action:"insists on the decision",evidence:"Jill says she wants to keep it"}};
+ const follow=checkSimulationTransition(out.state,later,"Jill says she wants to keep it. The box remains sealed.",1);
+ assert.equal(follow.ok,true,follow.reason);
+ assert.equal(follow.state.objects[0].condition,"sealed");
+});
 test("repeated unresolved questions collapse into distinct threads",()=>{
  const p=delta();
  p.openThreads=["Whether to keep or return the microwave",
