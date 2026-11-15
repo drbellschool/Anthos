@@ -137,7 +137,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  }
  const priorBox=previous.objects.find(x=>x.id==="replacement_box");
  const afterBox=next.objects.find(x=>x.id==="replacement_box");
- const opened=/\b(?:cut open|opened? (?:the )?(?:box|packaging|cardboard)|peel(?:ed|s)? (?:back|off) (?:the )?tape|broke (?:the )?seal|unboxed|pulled out the receipt from the box)\b/i;
+ const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)|peel(?:ed|s)? (?:back|off) (?:the )?tape|broke (?:the )?seal|unboxed|pulled out the receipt from the box)\b/i;
  const resealed=/\b(?:resealed|sealed (?:the )?box (?:again|back)|retaped|taped (?:the )?box shut)\b/i;
  const claimsUnopened=/\b(?:unopened|still sealed|sealed box|box remains closed)\b/i;
  if(priorBox&&afterBox){
@@ -159,7 +159,8 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  const eventEvidence=matchesEvidence(story,proposal.newEvent.evidence)?
   limit(proposal.newEvent.evidence,220):
   observedEventExcerpt(story,previous.events)||
-   limit(String(story||"").replace(/\s+/g," ").trim(),180);
+   (/\b(?:jack|jill)\b/i.test(story)?
+    limit(String(story||"").replace(/\s+/g," ").trim(),180):"");
  if(eventEvidence.length<12)
   return {ok:false,reason:"The generated scene contains no usable visible event."};
  next.lastPhase=phase;
