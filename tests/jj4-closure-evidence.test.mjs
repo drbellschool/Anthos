@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {validateClosureEvidence,composeSophiaClosure} from "../api/jj4-closure.mjs";
+import {validateClosureEvidence,composeSophiaClosure,groundedClosureFallback} from "../api/jj4-closure.mjs";
 const scenes=[
  {phase_index:3,body:"Jack suggested checking the return policy later."},
  {phase_index:4,body:"Jill snapped the packing tape, opened the box and said she wanted the microwave tonight."},
@@ -39,4 +39,30 @@ test("Sophia cannot invent mutual agreement when the ending only shows Jill acti
  },scenes);
  assert.equal(out.ok,false);
  assert.match(out.reason,/unearned mutual agreement/);
+});
+
+test("fallback for a postponed conversation is grounded in the actual ending, not intimacy",()=>{
+ const episode={title:"Can We Talk Later?",learningObjective:"Return to a postponed conversation"};
+ const scenes=[
+  {phase_index:4,body:"Jack checks the family calendar. Jill says she needs a specific time to revisit the problem."},
+  {phase_index:5,body:"Jill points to the date they chose. Jack agrees to put a reminder on his phone."}
+ ];
+ const result=composeSophiaClosure(episode,{},scenes);
+ assert.match(result,/family calendar|date they chose|reminder/);
+ assert.doesNotMatch(result,/assumptions about affection|kind of closeness|physical intimacy/i);
+});
+test("cross-petal fact fallback copies events without inventing victory",()=>{
+ const episode={title:"A Fight on Vacation"};
+ const scenes=[
+  {phase_index:4,body:"Jack puts his phone away and walks toward the beach. Jill follows him but still looks disappointed."},
+  {phase_index:5,body:"Jill stops by the seawall to catch her breath. Jack waits without arguing."}
+ ];
+ const observation=groundedClosureFallback(episode,scenes);
+ assert.match(observation,/beach|seawall|waits/);
+ assert.doesNotMatch(observation,/affection|they agreed|reservation was restored|happily/i);
+});
+test("no observed ending produces uncertainty, not a fake agreement",()=>{
+ const result=groundedClosureFallback({title:"A Generous Yes"},[]);
+ assert.match(result,/A Generous Yes/);
+ assert.doesNotMatch(result,/they agreed|fixed|repaired/i);
 });
