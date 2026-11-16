@@ -335,6 +335,7 @@ async function directScene(room,phaseIndex){
  let result,story,simulationUpdate;
  const attempts=qualityGate?5:simulate?3:focusedPilot?2:influence?2:1;
  let reviewFeedback="";
+ let lastGateReason="none";
  let lastUsable=null;
  for(let attempt=0;attempt<attempts;attempt++){
   const draftInput=reviewFeedback?{...input,requiredCorrectionsFromPriorAttempt:reviewFeedback}:input;
@@ -348,13 +349,13 @@ async function directScene(room,phaseIndex){
   }
   try{story=assembleDirectedScene(result,!!coachingImpact)}
   catch{
-   story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
+   lastGateReason="incomplete_beats";story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
    continue;
   }
   if(coachingImpact){
    const trace=checkCoachingTrace(story,result.coachingTrace,Object.keys(influence.advice));
    if(!trace.ok){
-    story=null;reviewFeedback=trace.reason+
+    lastGateReason="coaching_trace";story=null;reviewFeedback=trace.reason+
      " Include a literal observable decision (including explicit refusal if rejecting the coach) and visible fallout.";
     continue;
    }
@@ -363,7 +364,7 @@ async function directScene(room,phaseIndex){
   // without exposing raw private messages to the shared scene narrator.
   const speaker=wrongSpeakerForQuotedCoaching(story,influence?.advice||{});
   if(!speaker.ok){
-   story=null;
+   story=null;lastGateReason="wrong_coached_speaker";
    reviewFeedback=speaker.reason+" Rewrite the next scene with the quoted line spoken ONLY by its coached owner, or omit the quote and show a consequence of rejecting it.";
    continue;
   }
@@ -372,7 +373,7 @@ async function directScene(room,phaseIndex){
   if(qualityGate&&sharedHistory.length){
    const place=abruptLocationJump(sharedHistory.at(-1)?.body,story);
    if(!place.ok){
-    story=null;reviewFeedback=place.reason+" Show an on-stage transition or keep the scene in the prior location.";
+    story=null;lastGateReason="unearned_location";reviewFeedback=place.reason+" Show an on-stage transition or keep the scene in the prior location.";
     continue;
    }
   }
@@ -381,20 +382,25 @@ async function directScene(room,phaseIndex){
    ...(Array.isArray(simulationBefore?.knownFacts)?simulationBefore.knownFacts:[])];
   const unsupportedPolicies=unsupportedExternalPolicyClaims(story,validFacts);
   if(unsupportedPolicies.length){
-   story=null;reviewFeedback="Unsupported external policy or return terms: "+
+   story=null;lastGateReason="invented_policy";reviewFeedback="Unsupported external policy or return terms: "+
     unsupportedPolicies.slice(0,2).join(" / ")+
     ". No actual retailer policy is known. Replace with explicit uncertainty or a plan to check later.";
    continue;
   }
   if(unearnedMicrowaveActivation(story,sharedHistory)){
-   story=null;reviewFeedback="A microwave cannot hum, beep or cook until the story first shows safe power connection and setup. Preserve the physical sequence; do not invent a completed installation.";
+   story=null;lastGateReason="unearned_appliance";reviewFeedback="A microwave cannot hum, beep or cook until the story first shows safe power connection and setup. Preserve the physical sequence; do not invent a completed installation.";
    continue;
   }
   const size=checkSceneLength(story);
-  const maxWords=qualityGate?110:125;
-  if(conciseScenes&&(size.words>maxWords||(qualityGate&&size.words<70))){
+  // First seek 75–110 words. A high-quality 111–145-word scene is
+  // preferable to a 502 after multiple honest editing attempts. Never admit
+  // an unverified physical or causal fact merely to meet a style budget.
+  const maxWords=qualityGate?145:125;
+  if(conciseScenes&&(size.words>maxWords||(qualityGate&&size.words<70)||
+      (qualityGate&&size.words>110&&attempt<attempts-1))){
+   lastGateReason="word_budget_"+size.words;
    story=null;reviewFeedback="The scene is "+size.words+
-    " words; required range 75–110 words, with an absolute "+maxWords+"-word ceiling. Cut summary and repetition; keep actions and fallout.";
+    " words; target 75–110, hard ceiling "+maxWords+". Cut repeated interpretation and metaphors, but preserve the coached action, both reactions, and irreversible events.";
    continue;
   }
   if(simulate){
@@ -402,7 +408,7 @@ async function directScene(room,phaseIndex){
    // A soft stylistic target must not create a customer-visible 502.
    const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex);
    if(!verified.ok){
-    story=null;
+    story=null;lastGateReason="invalid_world_state";
     console.warn("jj4-simulation-draft-rejected",JSON.stringify({phase:phaseIndex,reason:verified.reason}));
     reviewFeedback="The character simulation rejected this scene: "+verified.reason+
      " Preserve each character's recorded position and physical object state. Quote exact story evidence for new decisions.";
@@ -411,7 +417,7 @@ async function directScene(room,phaseIndex){
    simulationUpdate=verified;
    if(qualityGate&&coachingImpact?.humorRequested&&coachingImpact?.comedicBeat?.attempted&&
       verified.state.humorBeats.length<=simulationBefore.humorBeats.length){
-    story=null;reviewFeedback="A coach requested a safe comic beat, but no observable joke and partner reaction were committed. "+
+    story=null;lastGateReason="missing_comic_effect";reviewFeedback="A coach requested a safe comic beat, but no observable joke and partner reaction were committed. "+
      "Put the comedic action and distinct reaction in the scene and copy exact excerpts to simulation.humor.";
     continue;
    }
@@ -451,7 +457,7 @@ async function directScene(room,phaseIndex){
   }catch{
    // Unavailable reviewers do not certify strict QA sessions. Customer sessions
    // still retain the last deterministically validated, privately safe scene.
-   if(qualityGate){story=null;reviewFeedback="The independent quality review did not finish. Retry.";continue}
+   if(qualityGate){story=null;lastGateReason="review_timeout";reviewFeedback="The independent quality review did not finish. Retry.";continue}
    break;
   }
   if(reviewPass(review))break;
@@ -466,7 +472,11 @@ async function directScene(room,phaseIndex){
    "Keep the character ledger stable and move the story forward with a specific new action.";
  }
  if(!story&&lastUsable&&!qualityGate)({result,story,simulationUpdate}=lastUsable);
- if(!story)error("The scene could not be written completely. Retry this scene.",502);
+ if(!story){
+  if(qualityGate)console.warn("jj4-strict-qa-exhausted",JSON.stringify({
+   phase,attempts,lastGateReason}));
+  error("The scene could not be written completely. Retry this scene.",502);
+ }
  const audience=cp?.audience||"none";
  // Validate the speaker, not just the correct delivery audience. Some earlier
  // pilot prompts incorrectly addressed "Jill" as if the wife coach *were* Jill.
