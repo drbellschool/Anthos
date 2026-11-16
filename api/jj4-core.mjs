@@ -352,6 +352,31 @@ async function directScene(room,phaseIndex){
    lastGateReason="incomplete_beats";story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
    continue;
   }
+  // A compacting pass repairs excessive prose without changing the scene's
+  // actions. The editor returns the SAME structured scene contract, so every
+  // coaching-evidence and world-state claim is checked against the new text.
+  if(qualityGate&&checkSceneLength(story).words>110){
+   try{
+    const edited=await generateStructured({model,key,name:"anthos_jj4_scene_compact_edit",
+     schema:simulate?SIMULATION_SCENE_SCHEMA:DIRECTED_SCENE_SCHEMA,
+     input:{draft:result,priorStory:sharedHistory.at(-1)?.body||"",
+      priorWorld:simulationBefore,phase,requiredCoachConsequences:coachingImpact,
+      desiredLength:"80 to 105 TOTAL narrative words"},
+     instructions:[
+      "You are a COPY EDITOR, not another narrator. Keep the same decisions, attributed dialogue, object states, location, tension, and consequences while compressing opening, jackBeat, jillBeat and fallout to 80-105 words TOTAL.",
+      "Remove repetition, speculation, therapy lectures, metaphors and recap. Keep each character's key spoken line or physical choice and the observable fallout. Never invent a fact, retailer term, new action, agreement, or promise.",
+      "Preserve jackPrompt and jillPrompt purpose, audience and voice. Every coachingTrace and simulation evidence quotation MUST come directly from your NEW condensed story text, not the previous long draft.",
+      "If a world-state change no longer appears in the shortened scene, remove that change from simulation. Keep speaker identities and the existing location unless movement is explicitly narrated.",
+      "Return the exact same JSON field names and all required schema fields. Prefer 20-28 words per narrative beat, with 105 narrative words maximum."
+     ].join(" "),maxTokens:simulate?1700:1200,timeout:30000});
+    const compact=assembleDirectedScene(edited,!!coachingImpact);
+    if(checkSceneLength(compact).words<checkSceneLength(story).words){
+     result=edited;story=compact;
+    }
+   }catch{
+    lastGateReason="copy_editor_failed";
+   }
+  }
   if(coachingImpact){
    const trace=checkCoachingTrace(story,result.coachingTrace,Object.keys(influence.advice));
    if(!trace.ok){
