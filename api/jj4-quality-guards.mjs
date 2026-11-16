@@ -129,3 +129,37 @@ export function wrongSpeakerForQuotedCoaching(story,privateAdvice={}){
  }
  return {ok:true};
 }
+
+
+/**
+ * Re-anchor a model's copied evidence to real words in the visible scene.
+ * This never inserts invented behavior: each replacement is a verbatim scene
+ * substring. The independent director review still verifies the *meaning*
+ * of a coach's influence against the intended consequential action.
+ */
+export function groundCoachingEvidence(story,trace={},coachedRoles=[]){
+ const source=String(story||"");
+ const next={jackEvidence:trace?.jackEvidence||"",jillEvidence:trace?.jillEvidence||"",
+  falloutEvidence:trace?.falloutEvidence||""};
+ const segments=source.replace(/\s+/g," ").match(/[^.!?]+[.!?]?/g)||[];
+ const actorLine=(role)=>{
+  const pattern=new RegExp("\\b"+role+"\\b","i");
+  const candidates=segments.map(x=>x.trim()).filter(x=>x.length>=20&&pattern.test(x));
+  const action=/\b(?:says?|said|asks?|asked|tells?|told|opens?|opened|moves?|moved|points?|pointed|refuses?|refused|jokes?|joked|quips?|quipped|laughs?|laughed|winces?|winced|nods?|nodded|turns?|turned|puts?|placed|pulls?|pulled|crosses?|crossed|holds?|held|admits?|admitted)\b/i;
+  return candidates.find(x=>action.test(x))||candidates[0]||"";
+ };
+ for(const role of coachedRoles||[]){
+  if(!["jack","jill"].includes(role))continue;
+  const field=role+"Evidence";
+  if(appears(source,next[field])&&new RegExp("\\b"+role+"\\b","i").test(normalize(next[field])))
+   continue;
+  next[field]=actorLine(role);
+ }
+ if(!appears(source,next.falloutEvidence)){
+  const reactions=segments.map(x=>x.trim()).filter(x=>x.length>=20&&
+   /\b(?:Jack|Jill)\b/i.test(x)&&
+   /\b(?:anger|angry|upset|stung|withdraw|react|winced|frowned|shocked|tension|disagree|refused|hurt|defensive|smirk|replied|looked|watched|stiffened)\b/i.test(x));
+  next.falloutEvidence=reactions.at(-1)||segments.map(x=>x.trim()).filter(x=>x.length>=20).at(-1)||"";
+ }
+ return next;
+}
