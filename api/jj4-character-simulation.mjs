@@ -100,7 +100,7 @@ export function initialSimulation(episode={}){
    "Jill made the $400 purchase using shared emergency savings, without Jack's consent.",
    "Jack postponed repairing the original microwave for three weeks.",
    "A store's return policy, exact purchase date and professional repair cost are not yet known."
-  ]:[]
+  ]:Array.isArray(authored.knownFacts)?authored.knownFacts.slice(0,12).map(x=>limit(x,260)).filter(Boolean):[]
  };
 }
 export function checkSimulationTransition(previous,proposal,story,phase){
