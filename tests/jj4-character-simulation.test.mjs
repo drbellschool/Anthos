@@ -247,3 +247,32 @@ test("a different Anthos petal retains its own authored facts, not microwave fac
  assert.match(state.characters.jack.belief,/drifting away/);
  assert.match(state.characters.jill.belief,/misunderstand/);
 });
+
+
+test("Batch 1 regression: the opened microwave box cannot become sealed in Reflection",()=>{
+ const previous=base();
+ const opened=checkSimulationTransition(previous,delta(),"Jill breaks the tape on the microwave box and lifts the lid. Jack watches her.",0);
+ assert.equal(opened.ok,true,opened.reason);
+ assert.equal(opened.state.objects[0].condition,"opened");
+ const next=delta();
+ next.objectChanges=[{id:"replacement_box",condition:"sealed",location:"kitchen counter",
+  actionEvidence:"The sealed microwave box waits quietly on the counter."}];
+ const invalid=checkSimulationTransition(opened.state,next,
+  "Jack places the repair note by the sink. The sealed microwave box waits quietly on the counter. Jill looks away.",1);
+ assert.equal(invalid.ok,false);
+ assert.match(invalid.reason,/opened box/);
+});
+test("Batch 1 regression: a sealed replacement microwave box in prose contradicts an already opened box",()=>{
+ const state=base();state.objects[0].condition="opened";state.lastPhase=0;
+ const r=checkSimulationTransition(state,delta(),
+  "Jack looks at the sealed microwave box, although Jill had opened it. Jill nods.",1);
+ assert.equal(r.ok,false);
+ assert.match(r.reason,/opened box/);
+});
+test("Batch 1 regression: an unsubstantiated structured sealed transition is rejected",()=>{
+ const state=base();state.objects[0].condition="opened";state.lastPhase=0;
+ const proposed=delta();
+ proposed.objectChanges=[{id:"replacement_box",condition:"sealed",location:"kitchen counter",actionEvidence:"Jack shifts the lid on the counter"}];
+ const result=checkSimulationTransition(state,proposed,"Jack shifts the lid on the counter while Jill watches.",1);
+ assert.equal(result.ok,false);
+});
