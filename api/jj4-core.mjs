@@ -5,7 +5,7 @@ import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
-import {unearnedMicrowaveActivation} from "./jj4-quality-guards.mjs";
+import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching} from "./jj4-quality-guards.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
@@ -333,7 +333,7 @@ async function directScene(room,phaseIndex){
   "If checkpoint audience is none or the phase is Reflection, return empty strings for both prompts. If Jack-only, Jill's prompt is empty; if Jill-only, Jack's is empty. If both, two different private prompts. Each must respond to what just happened, not repeat a canned question about the theoretical skill."
  ].join(" ");
  let result,story,simulationUpdate;
- const attempts=qualityGate?5:simulate?3:focusedPilot?2:1;
+ const attempts=qualityGate?5:simulate?3:focusedPilot?2:influence?2:1;
  let reviewFeedback="";
  let lastUsable=null;
  for(let attempt=0;attempt<attempts;attempt++){
@@ -356,6 +356,23 @@ async function directScene(room,phaseIndex){
    if(!trace.ok){
     story=null;reviewFeedback=trace.reason+
      " Include a literal observable decision (including explicit refusal if rejecting the coach) and visible fallout.";
+    continue;
+   }
+  }
+  // Enforce privacy of specifically quoted coaching as actual dialogue,
+  // without exposing raw private messages to the shared scene narrator.
+  const speaker=wrongSpeakerForQuotedCoaching(story,influence?.advice||{});
+  if(!speaker.ok){
+   story=null;
+   reviewFeedback=speaker.reason+" Rewrite the next scene with the quoted line spoken ONLY by its coached owner, or omit the quote and show a consequence of rejecting it.";
+   continue;
+  }
+  // Physical scenes must not move the same people between rooms without an
+  // observable walk, exit or other transition. Strict synthetic QA only.
+  if(qualityGate&&sharedHistory.length){
+   const place=abruptLocationJump(sharedHistory.at(-1)?.body,story);
+   if(!place.ok){
+    story=null;reviewFeedback=place.reason+" Show an on-stage transition or keep the scene in the prior location.";
     continue;
    }
   }
