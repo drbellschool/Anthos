@@ -78,3 +78,54 @@ export function unearnedMicrowaveActivation(scene,previousScenes=[]){
  const asserted=/\b(?:microwave\s+(?:hums?|humming|beeps?|beeping|starts? running|heats?|heating)|(?:hums?|humming|beeps?|beeping)\s+(?:from\s+)?(?:the\s+)?(?:new\s+)?microwave)\b/i.test(now);
  return asserted&&!connected;
 }
+
+
+/**
+ * Test-only physical-continuity check. A character can change locations,
+ * but a scene must narrate the movement rather than quietly teleporting.
+ * Restrict this to strong locators so ordinary dialogue about destinations
+ * never becomes an impossible world-state assertion.
+ */
+export function abruptLocationJump(previousScene,currentScene){
+ const last=String(previousScene||"").slice(-320);
+ const first=String(currentScene||"").slice(0,240);
+ const places=/\b(?:on|onto|at|in)\s+(?:(?:the|their|a)\s+)?(?:(?:front|back|small|old|worn|family|living-room)\s+)?(porch|couch|sofa|kitchen|bedroom|hallway|driveway|car)\b/gi;
+ const from=[...last.matchAll(places)].at(-1)?.[1]?.toLowerCase();
+ const to=[...first.matchAll(places)][0]?.[1]?.toLowerCase();
+ const same=(a,b)=>a===b||["couch","sofa"].includes(a)&&["couch","sofa"].includes(b);
+ if(!from||!to||same(from,to))return {ok:true};
+ if(/\b(?:walk(?:s|ed|ing)?|step(?:s|ped|ping)?|move(?:s|d|ing)?|head(?:s|ed|ing)?|return(?:s|ed|ing)?|enter(?:s|ed|ing)?|come|came|go(?:es|ing)?|went|leave|left|cross(?:es|ed|ing)?|follow(?:s|ed|ing)?)\b/i.test(first))
+  return {ok:true};
+ return {ok:false,reason:"Characters moved from "+from+" to "+to+" without an on-stage transition."};
+}
+
+/**
+ * The privately coached speaker owns an explicitly quoted line. A renderer
+ * may paraphrase advice freely; when it uses that precise quote, however,
+ * another actor must not deliver it before the coached actor does.
+ * Returns only evidence-based violations (not generic dialogue judgments).
+ */
+export function wrongSpeakerForQuotedCoaching(story,privateAdvice={}){
+ const original=String(story||"");
+ for(const [role,advice] of Object.entries(privateAdvice||{})){
+  if(!["jack","jill"].includes(role))continue;
+  const phrases=[...String(advice||"").matchAll(/[“"]([^”"]{22,140})[”"]/g)]
+   .map(m=>m[1].replace(/\s+/g," ").trim()).filter(x=>x.split(/\s+/).length>=4);
+  for(const phrase of phrases){
+   const canonical=phrase.replace(/[‘’]/g,"'").toLowerCase();
+   const quotes=[...original.matchAll(/[“"]([^”"]{12,180})[”"]/g)];
+   for(const quote of quotes){
+    const spoken=quote[1].replace(/[‘’]/g,"'").toLowerCase().replace(/\s+/g," ");
+    if(!spoken.includes(canonical))continue;
+    // Prefer the actor whose speech verb introduces this quotation.
+    const intro=original.slice(Math.max(0,quote.index-170),quote.index);
+    const named=[...intro.matchAll(/\b(Jack|Jill)\b[^.!?]{0,135}?\b(?:says?|said|snaps?|snapped|quips?|quipped|jokes?|joked|mutters?|murmured?|asks?|asked|replies|replied|responds?|answered|adds?|added|blurts?|blurted|fires? back)\b/gi)].at(-1);
+    const attributed=named?.[1]?.toLowerCase()||
+      [...intro.slice(-95).matchAll(/\b(Jack|Jill)\b/g)].at(-1)?.[1]?.toLowerCase();
+    if(attributed&&attributed!==role)
+     return {ok:false,reason:"Quoted coaching intended for "+role+" was spoken by "+attributed+"."};
+   }
+  }
+ }
+ return {ok:true};
+}
