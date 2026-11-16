@@ -234,3 +234,16 @@ test("positive unsealing remains durable with a real on-stage action",()=>{
  assert.equal(sequel.ok,true,sequel.reason);
  assert.equal(sequel.state.objects[0].condition,"opened");
 });
+
+
+test("a different Anthos petal retains its own authored facts, not microwave facts",()=>{
+ const episode={title:"Changing Seasons of Desire",jackMotivation:"Wants connection",jillMotivation:"Needs autonomy",
+  simulationSeed:{enabled:true,knownFacts:["Neither partner owes sex in response to a gift.","Consent must be freely given."],
+   jackBelief:"Jill may be drifting away",jillBelief:"Jack may misunderstand my exhaustion"}};
+ const state=initialSimulation(episode);
+ assert.equal(state.knownFacts.length,2);
+ assert.match(state.knownFacts[0],/gift/);
+ assert.doesNotMatch(state.knownFacts.join(" "),/microwave|\$400/);
+ assert.match(state.characters.jack.belief,/drifting away/);
+ assert.match(state.characters.jill.belief,/misunderstand/);
+});
