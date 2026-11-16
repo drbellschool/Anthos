@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor,unearnedMicrowaveActivation} from "../api/jj4-quality-guards.mjs";
+import {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor,unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching} from "../api/jj4-quality-guards.mjs";
 
 test("refuses made-up 30-day retailer refund claim",()=>{
  const scene='Jack reads the fine print: "We have 30 days to return it but the receipt is required." Jill frowns.';
@@ -48,4 +48,29 @@ test("accepts earned appliance power or an unpowered discussion",()=>{
   {body:"The electrician installed the microwave, connected it to power and verified the outlet."}
  ]),false);
  assert.equal(unearnedMicrowaveActivation("Jill asks when the new microwave can be installed.",[]),false);
+});
+
+test("location continuity flags unexplained porch-to-couch teleport",()=>{
+ const before="Jill held her tea while the pair sat on the porch, still unsure how to reconnect.";
+ const wrong="Jack sat on their worn couch, running his finger around a cup of tea. Jill looked at him.";
+ assert.equal(abruptLocationJump(before,wrong).ok,false);
+ assert.match(abruptLocationJump(before,wrong).reason,/porch to couch/);
+ const earned="Jack walked in from the porch and sat on their worn couch. Jill followed him.";
+ assert.deepEqual(abruptLocationJump(before,earned),{ok:true});
+});
+test("location guard ignores already established scenes and ungrounded locations",()=>{
+ assert.deepEqual(abruptLocationJump("They were on the porch.", "Jack stayed on the porch and looked at Jill."),{ok:true});
+ assert.deepEqual(abruptLocationJump("Jack glanced at the box.", "He suggested they go outside."),{ok:true});
+});
+test("private coach's exact line cannot be spoken by the wrong character",()=>{
+ const advice={jill:'Tell Jill to say "Your Saturday note belongs in the museum of broken promises." Do not apologize.'};
+ const wrong='Jack stares at the note and says, "Your Saturday note belongs in the museum of broken promises." Jill frowns.';
+ assert.equal(wrongSpeakerForQuotedCoaching(wrong,advice).ok,false);
+ const good='Jill looks at Jack and quips, "Your Saturday note belongs in the museum of broken promises." Jack winces.';
+ assert.deepEqual(wrongSpeakerForQuotedCoaching(good,advice),{ok:true});
+});
+test("private-coach attribution does not penalize paraphrases or harmless questions",()=>{
+ const advice={jill:'Tell her to say "Your Saturday note belongs in the museum of broken promises."'};
+ const paraphrase='Jack studies the note. Jill calls it a monument to postponed chores.';
+ assert.deepEqual(wrongSpeakerForQuotedCoaching(paraphrase,advice),{ok:true});
 });
