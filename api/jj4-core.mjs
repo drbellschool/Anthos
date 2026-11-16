@@ -212,8 +212,10 @@ async function directScene(room,phaseIndex){
  const simulate=simulationEnabled(room);
  // Only explicit synthetic QA rooms block completion for soft editorial faults.
  // All simulated rooms get the objective fact/visible-coaching safeguards.
- const qualityGate=simulate&&room.episode?.qualityMode==="strict";
- const conciseScenes=simulate||focusedPilot;
+ // An explicit synthetic QA room can enforce strict factual review even when
+ // the older episode has not yet opted into persistent character simulation.
+ const qualityGate=room.episode?.qualityMode==="strict";
+ const conciseScenes=simulate||focusedPilot||qualityGate;
  const simulationBefore=simulate?room.simulation_state:null;
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
  let eventLedger=emptyLedger();
@@ -372,9 +374,10 @@ async function directScene(room,phaseIndex){
    continue;
   }
   const size=checkSceneLength(story);
-  if(conciseScenes&&size.words>125){
+  const maxWords=qualityGate?110:125;
+  if(conciseScenes&&(size.words>maxWords||(qualityGate&&size.words<70))){
    story=null;reviewFeedback="The scene is "+size.words+
-    " words; this exceeded the 125-word ceiling. Write 75–110 total words across all narrative beats.";
+    " words; required range 75–110 words, with an absolute "+maxWords+"-word ceiling. Cut summary and repetition; keep actions and fallout.";
    continue;
   }
   if(simulate){
@@ -421,7 +424,8 @@ async function directScene(room,phaseIndex){
     instructions:[
      "Evaluate chronology and concrete events, not literary preferences. A callback to an established fact is allowed; replaying it as a new event is not.",
      "A character acknowledging an existing promise is not a duplicated action if another new event occurs.",
-     "Jill made the $400 purchase. Jack postponed the old microwave repair.",
+     focusedPilot?"Jill made the $400 purchase. Jack postponed the old microwave repair.":
+      "Use ONLY this episode's authored premise, boundaries, story events and factual state. Do not import facts or relationship problems from other episodes.",
      "Compare already completed events to actions happening NOW; never duplicate a completed phone call or decision.",
      "Coached behavior must follow the coachingImpact or visibly refuse its SPECIFIC proposed behavior and suffer a distinct consequence. Flag generic evasion or boilerplate compromise.",
      "Flag an actual contradiction or repeated completed event; avoid rejecting simply because the same physical object remains present.",
