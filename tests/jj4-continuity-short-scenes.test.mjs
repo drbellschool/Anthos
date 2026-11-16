@@ -63,3 +63,14 @@ test("strict QA brevity and review can run on a non-microwave episode",()=>{
  assert.match(core,/Use ONLY this episode's authored premise/);
  assert.match(core,/if\(qualityGate\)\{story=null;lastGateReason="review_timeout";reviewFeedback=/);
 });
+
+
+test("long scenes go through structured copy editing before causal and world-state checks",()=>{
+ const editor=core.indexOf('name:"anthos_jj4_scene_compact_edit"');
+ const trace=core.indexOf('const trace=checkCoachingTrace(story,');
+ const world=core.indexOf('checkSimulationTransition(simulationBefore,');
+ assert.ok(editor>0&&trace>editor&&world>trace);
+ assert.match(core,/Every coachingTrace and simulation evidence quotation MUST come directly/);
+ assert.match(core,/desiredLength:"80 to 105 TOTAL narrative words"/);
+ assert.match(core,/if\(checkSceneLength\(compact\)\.words<checkSceneLength\(story\)\.words\)/);
+});
