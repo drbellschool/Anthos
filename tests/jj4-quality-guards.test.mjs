@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor,unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching} from "../api/jj4-quality-guards.mjs";
+import {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor,unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "../api/jj4-quality-guards.mjs";
 
 test("refuses made-up 30-day retailer refund claim",()=>{
  const scene='Jack reads the fine print: "We have 30 days to return it but the receipt is required." Jill frowns.';
@@ -73,4 +73,20 @@ test("private-coach attribution does not penalize paraphrases or harmless questi
  const advice={jill:'Tell her to say "Your Saturday note belongs in the museum of broken promises."'};
  const paraphrase='Jack studies the note. Jill calls it a monument to postponed chores.';
  assert.deepEqual(wrongSpeakerForQuotedCoaching(paraphrase,advice),{ok:true});
+});
+
+test("copied evidence paraphrase is repaired only with observable scene text",()=>{
+ const story='Jill jokes, "Your Saturday note belongs in the museum of broken promises." Jack winces and turns away. The joke deepens their argument.';
+ const wrong={jackEvidence:"",jillEvidence:"Jill made a joke and everything got better.",falloutEvidence:"The couple relaxed."};
+ const trace=groundCoachingEvidence(story,wrong,["jill"]);
+ assert.match(trace.jillEvidence,/Jill jokes/);
+ assert.ok(story.includes(trace.jillEvidence));
+ assert.ok(story.includes(trace.falloutEvidence));
+ assert.equal(checkCoachingTrace(story,trace,["jill"]).ok,true);
+});
+test("grounding cannot invent a coached action absent from the story",()=>{
+ const story="The room fell silent. A cold microwave box waited on the counter.";
+ const trace=groundCoachingEvidence(story,{},["jill"]);
+ assert.equal(trace.jillEvidence,"");
+ assert.equal(checkCoachingTrace(story,trace,["jill"]).ok,false);
 });
