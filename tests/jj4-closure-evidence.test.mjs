@@ -66,3 +66,17 @@ test("no observed ending produces uncertainty, not a fake agreement",()=>{
  assert.match(result,/A Generous Yes/);
  assert.doesNotMatch(result,/they agreed|fixed|repaired/i);
 });
+
+
+test("Sophia fallback never lowercases Jill or leaves an unfinished speech quote",()=>{
+ const episode={title:"That's Not What Happened"};
+ const scenes=[
+ {phase_index:4,body:'Jill leans forward, voice firm, "I do not accept that writing words down settles this. The tone matters." Jack pushes the paper aside. Both remain uneasy.'},
+ {phase_index:5,body:'Jack looks at the paper and thinks. Jill watches him carefully. He pushes the paper away.'}
+ ];
+ const result=groundedClosureFallback(episode,scenes);
+ assert.match(result,/The ending showed these moments:/);
+ assert.doesNotMatch(result,/\bjill\b/);
+ assert.equal((result.match(/"/g)||[]).length%2,0);
+ assert.doesNotMatch(result,/In the final moments, jill/);
+});
