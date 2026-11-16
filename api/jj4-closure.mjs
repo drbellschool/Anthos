@@ -37,6 +37,33 @@ export function validateClosureEvidence(generated,sharedScenes=[]){
  return {ok:true};
 }
 
+/**
+ * Conservative factual fallback when the AI closure cannot be verified.
+ * Copy short, COMPLETE observable sentences from the actual outcome and
+ * reflection; never substitute generic intimacy content for another petal.
+ */
+export function groundedClosureFallback(episode,sharedScenes=[]){
+ const final=Array.isArray(sharedScenes)?sharedScenes
+  .filter(x=>typeof x?.body==="string"&&x.body.trim()&&Number(x.phase_index)>=4)
+  .sort((a,b)=>a.phase_index-b.phase_index).slice(-2):[];
+ const excerpts=[];
+ for(const scene of final){
+  const sentences=String(scene.body).replace(/\s+/g," ").trim()
+   .match(/[^.!?]+(?:[.!?]+(?:[”"']|$)?|$)/g)||[];
+  const candidate=sentences.map(x=>x.trim()).find(x=>
+   x.length>=28&&x.length<=220&&/\b(?:Jack|Jill)\b/i.test(x));
+  if(candidate)excerpts.push(candidate);
+ }
+ if(excerpts.length){
+  const grounded=excerpts.slice(-2).join(" ");
+  return "In the final moments, "+grounded.charAt(0).toLowerCase()+grounded.slice(1);
+ }
+ // Without evidence, do NOT guess at a particular character decision.
+ const topic=clean(episode?.title,110)||"this disagreement";
+ return "Jack and Jill faced the unresolved choices in "+topic+
+  ". Their next steps must depend on what they actually say and do, not an assumed agreement.";
+}
+
 function completeSentence(text,max,fallback){
  const source=String(text||"").trim();
  if(!source)return fallback;
@@ -46,8 +73,9 @@ function completeSentence(text,max,fallback){
  const last=matches.at(-1);
  return last&&last.index>30?clipped.slice(0,last.index+1):fallback;
 }
-function specificClosing(episode,generated){
+function specificClosing(episode,generated,sharedScenes=[]){
  const observation=completeSentence(generated.observation,430,
+  sharedScenes.length?groundedClosureFallback(episode,sharedScenes):
   "Jill bought a $400 microwave from shared savings after Jack repeatedly delayed a repair. Their choices exposed a disagreement about urgency and shared decisions; any resolution must come from what they actually did.");
  const practice=completeSentence(generated.practice,250,
   "Ask each other what action would rebuild trust after a difficult financial decision, then choose one specific next step.");
@@ -57,12 +85,12 @@ function specificClosing(episode,generated){
   "One thing to try: "+practice+"\n\n"+
   "The story is fictional and its ending is not a grade on your marriage.";
 }
-export function composeSophiaClosure(episode,generated={}){
- if(targetedEpisode(episode))return specificClosing(episode,generated);
+export function composeSophiaClosure(episode,generated={},sharedScenes=[]){
+ if(targetedEpisode(episode))return specificClosing(episode,generated,sharedScenes);
  const observation=clean(generated.observation,460)||
-  "Jack and Jill's story showed how assumptions about affection can get in the way of understanding what each person needs now.";
+  groundedClosureFallback(episode,sharedScenes);
  const practice=clean(generated.practice,320)||
-  "Try asking each other: “What kind of closeness would feel good and welcome this week?” Listen without pressure to agree to anything immediately.";
+  "Ask which specific action changed the conversation and what each person needs before taking the next step. Do not assume agreement.";
  const science=[
   "Gottman's observational work describes small bids for attention or connection and the importance of how partners respond to them [1].",
   "Schnarch's differentiation framework emphasizes being able to stay connected while speaking honestly about your own needs and boundaries; this is a clinical model, not a score from this story [2].",
@@ -77,7 +105,7 @@ export function composeSophiaClosure(episode,generated={}){
 }
 export async function draftSophiaClosure(episode,sharedScenes){
  const key=process.env.OPENAI_API_KEY?.trim();
- if(!key)return composeSophiaClosure(episode);
+ if(!key)return composeSophiaClosure(episode,{},sharedScenes);
  const input={
   title:episode.title,
   learningObjective:episode.learningObjective,
@@ -107,13 +135,13 @@ export async function draftSophiaClosure(episode,sharedScenes){
     text:{format:{type:"json_schema",name:"jj4_sophia_closure",strict:true,schema:EPILOGUE_SCHEMA}}}),
    signal:AbortSignal.timeout(35000)
   });
-  if(!res.ok)return composeSophiaClosure(episode);
+  if(!res.ok)return composeSophiaClosure(episode,{},sharedScenes);
   const data=await res.json();
   const output=(data.output||[]).flatMap(x=>x.content||[])
    .filter(x=>x.type==="output_text").map(x=>x.text).join("");
   const parsed=JSON.parse(output);
   if(!validateClosureEvidence(parsed,sharedScenes).ok)
-   return composeSophiaClosure(episode);
-  return composeSophiaClosure(episode,parsed);
- }catch{return composeSophiaClosure(episode)}
+   return composeSophiaClosure(episode,{},sharedScenes);
+  return composeSophiaClosure(episode,parsed,sharedScenes);
+ }catch{return composeSophiaClosure(episode,{},sharedScenes)}
 }
