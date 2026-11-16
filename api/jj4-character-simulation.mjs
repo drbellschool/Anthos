@@ -159,7 +159,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  // "open the box" often appears in a suggestion or "let's NOT open the box".
  // It must never silently mutate the world state, even if the model proposes
  // an unsupported physical transition.
- const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box)\b/gi;
+ const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box|(?:breaks?|broke|peels?|peeled|tears?|tore|cuts?|cut) (?:back )?(?:the )?(?:packing |sealing )?tape (?:on|off|of|sealing) (?:the )?(?:\w+\s+){0,2}box|(?:lifts?|lifted|opens?|opened) (?:the )?(?:box lid|lid of (?:the )?box))\b/gi;
  const didUnseal=(text)=>{
   const source=String(text||"");
   for(const match of source.matchAll(unsealing)){
