@@ -444,9 +444,12 @@ async function directScene(room,phaseIndex){
    simulationUpdate=verified;
    if(qualityGate&&coachingImpact?.humorRequested&&coachingImpact?.comedicBeat?.attempted&&
       verified.state.humorBeats.length<=simulationBefore.humorBeats.length){
-    story=null;lastGateReason="missing_comic_effect";reviewFeedback="A coach requested a safe comic beat, but no observable joke and partner reaction were committed. "+
-     "Put the comedic action and distinct reaction in the scene and copy exact excerpts to simulation.humor.";
-    continue;
+    // Humor is an editorial quality dimension, not a physical or safety fact.
+    // Do not fail a completed scene merely because the AI failed to annotate
+    // the joke in simulation metadata. The independent critic still reviews
+    // coached behavior; the pilot grader records the missed humor separately.
+    console.warn("jj4-strict-qa-soft-warning",JSON.stringify({
+     phase,code:"humor_not_verified_in_world_state"}));
    }
   }
   lastUsable={result,story,simulationUpdate};
