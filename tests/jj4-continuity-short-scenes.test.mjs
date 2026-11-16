@@ -61,5 +61,5 @@ test("strict QA brevity and review can run on a non-microwave episode",()=>{
  assert.match(core,/qualityGate&&size\.words>110&&attempt<attempts-1/);
  assert.match(core,/jj4-strict-qa-exhausted/);
  assert.match(core,/Use ONLY this episode's authored premise/);
- assert.match(core,/if\(qualityGate\)\{story=null;reviewFeedback=/);
+ assert.match(core,/if\(qualityGate\)\{story=null;lastGateReason="review_timeout";reviewFeedback=/);
 });
