@@ -75,3 +75,12 @@ test("long scenes go through structured copy editing before causal and world-sta
  assert.match(core,/desiredLength:"80 to 105 TOTAL narrative words"/);
  assert.match(core,/if\(checkSceneLength\(compact\)\.words<checkSceneLength\(story\)\.words\)/);
 });
+
+
+test("a missing humor annotation is scored instead of blocking a coherent scene",()=>{
+ assert.match(core,/jj4-strict-qa-soft-warning/);
+ assert.match(core,/humor_not_verified_in_world_state/);
+ assert.doesNotMatch(core,/missing_comic_effect/);
+ assert.match(core,/const speaker=wrongSpeakerForQuotedCoaching/);
+ assert.match(core,/unsupportedExternalPolicyClaims\(story,validFacts\)/);
+});
