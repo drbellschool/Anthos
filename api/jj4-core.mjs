@@ -5,7 +5,7 @@ import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
-import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching} from "./jj4-quality-guards.mjs";
+import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
@@ -378,7 +378,9 @@ async function directScene(room,phaseIndex){
    }
   }
   if(coachingImpact){
-   const trace=checkCoachingTrace(story,result.coachingTrace,Object.keys(influence.advice));
+   const groundedTrace=groundCoachingEvidence(story,result.coachingTrace,Object.keys(influence.advice));
+   const trace=checkCoachingTrace(story,groundedTrace,Object.keys(influence.advice));
+   if(trace.ok)result.coachingTrace=groundedTrace;
    if(!trace.ok){
     lastGateReason="coaching_trace";story=null;reviewFeedback=trace.reason+
      " Include a literal observable decision (including explicit refusal if rejecting the coach) and visible fallout.";
