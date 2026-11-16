@@ -50,13 +50,21 @@ export function groundedClosureFallback(episode,sharedScenes=[]){
  for(const scene of final){
   const sentences=String(scene.body).replace(/\s+/g," ").trim()
    .match(/[^.!?]+(?:[.!?]+(?:[”"']|$)?|$)/g)||[];
-  const candidate=sentences.map(x=>x.trim()).find(x=>
-   x.length>=28&&x.length<=220&&/\b(?:Jack|Jill)\b/i.test(x));
+  // Extract narration or a fully closed quoted line. A quotation mark
+  // left hanging by sentence segmentation is not a usable Sophia sentence.
+  const candidate=sentences.map(x=>x.trim()).find(x=>{
+   if(x.length<28||x.length>220||!/\b(?:Jack|Jill)\b/i.test(x))return false;
+   const asciiQuotes=(x.match(/"/g)||[]).length;
+   const typographicOpen=(x.match(/“/g)||[]).length;
+   const typographicClose=(x.match(/”/g)||[]).length;
+   return asciiQuotes%2===0&&typographicOpen===typographicClose;
+  });
   if(candidate)excerpts.push(candidate);
  }
  if(excerpts.length){
+  // Use a colon so actor names keep correct capitalization.
   const grounded=excerpts.slice(-2).join(" ");
-  return "In the final moments, "+grounded.charAt(0).toLowerCase()+grounded.slice(1);
+  return "The ending showed these moments: "+grounded;
  }
  // Without evidence, do NOT guess at a particular character decision.
  const topic=clean(episode?.title,110)||"this disagreement";
