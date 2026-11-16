@@ -17,7 +17,8 @@ test("Strict quality mode and simulation receive guarded continuity/word limits"
  assert.match(core,/if\(!story&&lastUsable&&!qualityGate\)/);
  assert.match(core,/if\(phaseIndex===0\)break/);
  assert.match(core,/unsupportedExternalPolicyClaims\(story,validFacts\)/);
- assert.match(core,/checkCoachingTrace\(story,result.coachingTrace/);
+ assert.match(core,/groundCoachingEvidence\(story,result.coachingTrace/);
+ assert.match(core,/checkCoachingTrace\(story,groundedTrace/);
  assert.match(core,/if\(reviewPass\(review\)\)break/);
  assert.doesNotMatch(core,/The story repeated or contradicted an earlier scene/);
 });
