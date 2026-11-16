@@ -52,3 +52,12 @@ test("Sophia's edited ending never truncates sentences or cites irrelevant Aron 
  const old=composeSophiaClosure({title:"Some other story"},{observation:"A complete sentence.",practice:"Try a small action."});
  assert.match(old,/Aron/);
 });
+
+
+test("strict QA brevity and review can run on a non-microwave episode",()=>{
+ assert.match(core,/const qualityGate=room\.episode\?\.qualityMode==="strict"/);
+ assert.match(core,/const conciseScenes=simulate\|\|focusedPilot\|\|qualityGate/);
+ assert.match(core,/const maxWords=qualityGate\?110:125/);
+ assert.match(core,/Use ONLY this episode's authored premise/);
+ assert.match(core,/if\(qualityGate\)\{story=null;reviewFeedback=/);
+});
