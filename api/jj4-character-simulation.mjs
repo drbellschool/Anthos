@@ -187,6 +187,11 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    if(update.condition==="opened"&&!didUnseal(update.actionEvidence)){
     adjustments.push("ignored unproven box opening");continue;
    }
+   // Once the original seal is broken, the prior "sealed" state must not
+   // reappear. A model cannot erase an irreversible action by proposing a
+   // different object state, even if it copies a contradicting phrase.
+   if(old.condition==="opened"&&update.condition==="sealed")
+    return {ok:false,reason:"An opened box cannot return to sealed without a narrated resealing action."};
   }
   old.condition=limit(update.condition,100);
   old.location=limit(update.location,120);
@@ -194,7 +199,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  const priorBox=previous.objects.find(x=>x.id==="replacement_box");
  const afterBox=next.objects.find(x=>x.id==="replacement_box");
  const resealed=/\b(?:resealed|sealed (?:the )?box (?:again|back)|retaped|taped (?:the )?box shut)\b/i;
- const claimsUnopened=/\b(?:unopened(?:\s+\w+){0,3}\s+box|box\s+(?:is|remains|stays)\s+(?:tightly\s+)?(?:sealed|unopened|closed)|still[- ]sealed(?:\s+\$?\d+)?\s+box|sealed box|box stays (?:tightly )?sealed)\b/i;
+ const claimsUnopened=/\b(?:unopened(?:\s+\w+){0,3}\s+box|box\s+(?:is|remains|stays)\s+(?:tightly\s+)?(?:sealed|unopened|closed)|still[- ]sealed(?:\s+\w+){0,3}\s+box|sealed(?:\s+\w+){0,3}\s+box|box stays (?:tightly )?sealed)\b/i;
  if(priorBox&&afterBox){
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
    return {ok:false,reason:"An opened box was described as unopened without being resealed."};
