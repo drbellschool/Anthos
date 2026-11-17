@@ -10,10 +10,10 @@ const placeMap=[
  ["porch",/\bporch\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
  ["living room",/\b(?:living\s+room|couch)\b/i],["beach",/\bbeach\b/i],
  ["lake",/\blakeside\b|\blake\b/i],["yard",/\byard\b/i],
- ["bedroom",/\bbedroom\b/i],["office",/\boffice\b/i],
+ ["bedroom",/\bbedroom\b/i],["away",/\baway\b/i],["office",/\boffice\b/i],
  ["restaurant",/\brestaurant\b/i]
 ];
-const movement=/(?:\b(?:walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|got|gets|climb(?:s|ed|ing)?)\b)/i;
+const movement=/(?:\b(?:sit(?:s|ting)?|sat|settle(?:s|d)?|walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|got|gets|climb(?:s|ed|ing)?)\b)/i;
 const placeOf=fragment=>{
  const t=norm(fragment);
  for(const [p,pattern] of placeMap)if(pattern.test(t))return p;
@@ -86,6 +86,17 @@ export function validateActorLocations(previous,story,phase,changes=[]){
     return {ok:false,reason:role+" appeared at "+observation.place+" without moving from "+current+
       ". Narrate the move or keep the actor at the last committed location."};
    if(observation.transition||current==="unknown")current=observation.place;
+  }
+  // A departure without a named destination is still a physical change.
+  // Persist "away" instead of leaving Jack back in the kitchen on the next
+  // turn. An explicitly narrated return is necessary to clear this state.
+  const name=role==="jack"?"Jack":"Jill";
+  const exit=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:left(?:\\s+quickly)?|heads?\\s+out|headed\\s+out|walks?\\s+out|drove\\s+away|drives?\\s+away)\\b","i");
+  const returned=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:returned|returns|came back|comes back|arrived home|arrives home)\\b","i");
+  if(exit.test(actual)&&!returned.test(actual)){
+   // An actor who leaves the house for work is not automatically located at
+   // the office; the next scene may establish their car, workplace, etc.
+   if(current===placeOf(state.place)||current==="kitchen")current="away";
   }
   next[role]={place:current,asOfPhase:current!==state.place?phase:state.asOfPhase??-1};
  }
