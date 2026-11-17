@@ -21,9 +21,8 @@ test("Sophia gives a separate researched closing reflection after the six fictio
  assert.match(text,/SOPHIA · A CLOSING THOUGHT/);
  assert.match(text,/What I noticed:/);
  assert.match(text,/Gottman/);
- assert.match(text,/Schnarch/);
- assert.match(text,/Aron/);
- assert.match(text,/clinical model, not a score/);
+ assert.doesNotMatch(text,/Schnarch|Aron/);
+ assert.match(text,/Gottman/);
  assert.match(text,/One small thing to try:/);
  assert.match(text,/Jack and Jill are fictional/);
  assert.ok(text.length<2500);
