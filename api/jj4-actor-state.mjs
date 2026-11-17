@@ -121,8 +121,8 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   // "Jill watched him leave." That is a completed physical move for Jack,
   // not merely a plan to depart. Attribution is explicit and cross-role.
   const witness=role==="jack"?
-   /\\bJill\\b[^.!?]{0,95}\\b(?:watched|watches|saw|sees|heard|hears)\\s+(?:him|Jack)\\s+(?:leave|depart|walk\\s+(?:out|away)|exit|go\\s+out)\\b/i:
-   /\\bJack\\b[^.!?]{0,95}\\b(?:watched|watches|saw|sees|heard|hears)\\s+(?:her|Jill)\\s+(?:leave|depart|walk\\s+(?:out|away)|exit|go\\s+out)\\b/i;
+   /\bJill\b[^.!?]{0,95}\b(?:watched|watches|saw|sees|heard|hears)\s+(?:him|Jack)\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i:
+   /\bJack\b[^.!?]{0,95}\b(?:watched|watches|saw|sees|heard|hears)\s+(?:her|Jill)\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i;
   const pronounDeparture=[...actual.matchAll(pronoun)].some(match=>{
    const context=actual.slice(Math.max(0,match.index-260),match.index);
    const named=[...context.matchAll(/\b(Jack|Jill)\b/g)];
