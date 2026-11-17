@@ -44,3 +44,21 @@ test("a factual callback is not a replay",()=>{
  const scene='Jack glanced at the note on the counter. Jill broke the seal on the new box. He looked worried.';
  assert.deepEqual(committedTimelineViolation(history,scene),{ok:true});
 });
+
+
+test("live retest: Jack cannot pause at the door after his car already left",()=>{
+ const history=[{body:"Jack fastens his watch. He heads out. Jack's car drives away while Jill waits."}];
+ const scene='Jack pauses at the door. "Could we agree to speak Sunday?" he asks, then closes the door.';
+ const out=committedTimelineViolation(history,scene);
+ assert.equal(out.ok,false);
+ assert.equal(out.code,"replayed_departure");
+});
+test("an actual return home permits a separate doorway action",()=>{
+ const history=[{body:"Jack's car drives away."},
+  {body:"After his work meeting, Jack returns home and unlocks the front door."}];
+ assert.deepEqual(committedTimelineViolation(history,"Jack grabs his keys and walks to the door."),{ok:true});
+});
+test("calling Jill from the car does not replay a doorway departure",()=>{
+ const history=[{body:"Jack's car drives away."}];
+ assert.deepEqual(committedTimelineViolation(history,'Jack calls Jill from the car. "Can we set a time?"'),{ok:true});
+});
