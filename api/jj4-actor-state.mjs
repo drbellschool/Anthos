@@ -7,6 +7,8 @@ const placeMap=[
  ["motel parking lot",/\bmotel\s+parking\s+lot\b/i],
  ["parking lot",/\bparking\s+lot\b/i],
  ["motel office",/\bmotel\s+office\b/i],
+ ["conference room",/\bconference\s+room\b/i],
+ ["meeting room",/\bmeeting\s+room\b/i],
  ["kitchen",/\b(?:kitchen(?:\s+doorway|\s+door|\s+counter)?|front\s+door|family\s+calendar)\b/i],
  ["porch",/\bporch\b/i],["inside",/\binside\b/i],["outside",/\b(?:outside|doorstep|front steps)\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
  ["living room",/\b(?:living\s+room|couch)\b/i],["beach",/\bbeach\b/i],
@@ -14,7 +16,10 @@ const placeMap=[
  ["bedroom",/\bbedroom\b/i],["away",/\baway\b/i],["office",/\boffice\b/i],
  ["restaurant",/\brestaurant\b/i]
 ];
-const movement=/(?:\b(?:sit(?:s|ting)?|sat|settle(?:s|d)?|walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|slide(?:s|d)?|slid|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|got|gets|climb(?:s|ed|ing)?)\b)/i;
+// Merely sitting in a newly mentioned place does not narrate travel there.
+// "settled into the car" and "got into the car" do establish a move;
+// "sat in the meeting room" and "got a text" do not.
+const movement=/\b(?:walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|slide(?:s|d)?|slid|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|climb(?:s|ed|ing)?)\b|\b(?:sat|sit|sits|settle(?:s|d)?|got|gets)\s+(?:(?:down|back)\s+)?(?:into|onto)\b/i;
 const placeOf=fragment=>{
  const t=norm(fragment);
  for(const [p,pattern] of placeMap)if(pattern.test(t))return p;
@@ -30,7 +35,7 @@ export function initialActorLocations(episode={}){
 const sentences=text=>clean(text).match(/[^.!?]+[.!?]?/g)||[];
 const openingLocation=(sentence,role)=>{
  const name=role==="jack"?"Jack":"Jill";
- const match=sentence.match(/^\s*(?:In|At|On|Inside|By)\s+(?:the\s+)?(motel\s+parking\s+lot|parking\s+lot|car|kitchen|porch|outside|motel\s+office|living\s+room|beach|bedroom)\s*,\s*(Jack|Jill)\b/i);
+ const match=sentence.match(/^\s*(?:In|At|On|Inside|By)\s+(?:the\s+)?(motel\s+parking\s+lot|parking\s+lot|car|kitchen|porch|outside|motel\s+office|conference\s+room|meeting\s+room|living\s+room|beach|bedroom)\s*,\s*(Jack|Jill)\b/i);
  if(!match||match[2]!==name)return null;
  return {place:placeOf(match[1]),transition:false,evidence:clean(sentence).slice(0,220)};
 };
@@ -56,7 +61,7 @@ function observeActor(sentence,role){
   const other=role==="jack"?/\bJill\b/:/\bJack\b/;
   const cut=frag.search(other);
   const own=cut>=0?frag.slice(0,cut):frag;
-  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:(?:small|cramped|busy|quiet|messy|home)\s+){0,2}(?:kitchen(?:\s+doorway)?|front\s+door|porch|inside|outside|doorstep|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b|\b(?:stepped|walked|went|headed|came)\s+(?:back\s+)?(?:outside|inside)\b/gi)];
+  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:(?:small|cramped|busy|quiet|messy|home)\s+){0,2}(?:kitchen(?:\s+doorway)?|front\s+door|porch|inside|outside|doorstep|car|parking\s+lot|motel\s+office|conference\s+room|meeting\s+room|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b|\b(?:stepped|walked|went|headed|came)\s+(?:back\s+)?(?:outside|inside)\b/gi)];
   const anchored=placeMatches.at(-1);
   if(!anchored)continue;
   const place=placeOf(anchored[0]);
