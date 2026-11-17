@@ -100,10 +100,20 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const name=role==="jack"?"Jack":"Jill";
   const exit=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:left(?:\\s+quickly)?|heads?\\s+out|headed\\s+out|walks?\\s+out|drove\\s+away|drives?\\s+away)\\b","i");
   const returned=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:returned|returns|came back|comes back|arrived home|arrives home)\\b","i");
-  if(exit.test(actual)&&!returned.test(actual)){
-   // An actor who leaves the house for work is not automatically located at
-   // the office; the next scene may establish their car, workplace, etc.
-   if(current===placeOf(state.place)||current==="kitchen")current="away";
+  // "He left" and "She left" refer to the named fictional actor only
+  // when the most recently named character before the pronoun is that actor.
+  // Do not treat arbitrary private dialogue or advice as a physical event.
+  const pronoun=role==="jack"?/\\bHe\\s+(?:left|headed\\s+out|walked\\s+out|drove\\s+away)\\b/gi:
+   /\\bShe\\s+(?:left|headed\\s+out|walked\\s+out|drove\\s+away)\\b/gi;
+  const pronounDeparture=[...actual.matchAll(pronoun)].some(match=>{
+   const context=actual.slice(Math.max(0,match.index-260),match.index);
+   const named=[...context.matchAll(/\\b(Jack|Jill)\\b/g)];
+   return named.at(-1)?.[1]?.toLowerCase()===role;
+  });
+  if((exit.test(actual)||pronounDeparture)&&!returned.test(actual)){
+   // Only replace the previous location when there is no newer, explicitly
+   // established destination later in the scene.
+   if(current===(placeOf(state.place)||"unknown"))current="away";
   }
   next[role]={place:current,asOfPhase:current!==state.place?phase:state.asOfPhase??-1};
  }
