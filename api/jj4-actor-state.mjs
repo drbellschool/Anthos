@@ -29,7 +29,7 @@ export function initialActorLocations(episode={}){
 const sentences=text=>clean(text).match(/[^.!?]+[.!?]?/g)||[];
 const openingLocation=(sentence,role)=>{
  const name=role==="jack"?"Jack":"Jill";
- const match=sentence.match(/^\\s*(?:In|At|On|Inside|By)\\s+(?:the\\s+)?(motel\\s+parking\\s+lot|parking\\s+lot|car|kitchen|porch|outside|motel\\s+office|living\\s+room|beach|bedroom)\\s*,\\s*(Jack|Jill)\\b/i);
+ const match=sentence.match(/^\s*(?:In|At|On|Inside|By)\s+(?:the\s+)?(motel\s+parking\s+lot|parking\s+lot|car|kitchen|porch|outside|motel\s+office|living\s+room|beach|bedroom)\s*,\s*(Jack|Jill)\b/i);
  if(!match||match[2]!==name)return null;
  return {place:placeOf(match[1]),transition:false,evidence:clean(sentence).slice(0,220)};
 };
