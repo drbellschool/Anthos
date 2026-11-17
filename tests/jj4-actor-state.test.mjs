@@ -164,3 +164,14 @@ test("a stated return permits a new physical counter action",()=>{
  const result=validateActorLocations(before,scene,1,[]);
  assert.equal(result.ok,true,result.reason);
 });
+
+
+test("live QA Hook cannot replace Jack's authored 'later' with tentative tomorrow after 8",()=>{
+ const episode={phases:{hook:"At breakfast Jill asks about the serious issue. Jack says 'later' and reaches for his keys."},sceneStress:"No time has been mutually agreed."};
+ const bad='Jack said firmly, "I can’t dive in before my meeting. I’ll carve out time tomorrow after 8." Jill repeated tomorrow after 8, still feeling postponed.';
+ const result=enforcePhaseContract(episode,0,bad);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"missing_authored_dialogue");
+ const good='Jack glanced at the calendar, sighed, "We’ll talk later," and grabbed his keys. Jill watched him leave.';
+ assert.deepEqual(enforcePhaseContract(episode,0,good),{ok:true});
+});
