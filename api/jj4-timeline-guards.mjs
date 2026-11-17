@@ -48,6 +48,17 @@ export function committedTimelineViolation(priorHistory,currentScene){
  const backInside=/(?:back|return(?:s|ed)?|walk(?:s|ed)?|step(?:s|ped)?)\s+(?:into|inside|to)\s+(?:the\s+)?kitchen/i;
  if(previousLocation==="porch"&&fromKitchenToPorch.test(now)&&!backInside.test(now))
   return {ok:false,code:"location_replay",reason:"The characters already reached the porch. Show a new action there or narrate their actual return to the kitchen first."};
+ // One specific scheduled call cannot be enacted twice at the same clock
+ // time as though both were the initial follow-through. Distinguish a
+ // completed call from a mere proposal. This applies to ANY episode.
+ const actualCall=/\b(?:jack\b[\s\S]{0,130}?\b(?:called|dialed)\s+jill\b|\bhe\s+(?:called|dialed)\s+jill\b)/i;
+ const clock=s=>[...s.matchAll(/\b(?:at|right at|exactly)\s+(\d{1,2}:[0-5]\d)\b/gi)].map(x=>x[1]);
+ const previousCalls=prior.filter(x=>actualCall.test(x)).flatMap(x=>clock(x));
+ const currentCalls=actualCall.test(now)?clock(now):[];
+ const laterDay=/\b(?:next day|following day|another day|tomorrow|a week later)\b/i;
+ if(!laterDay.test(now)&&currentCalls.some(t=>previousCalls.includes(t)))
+  return {ok:false,code:"replayed_scheduled_call",
+   reason:"The same scheduled call has already happened at this exact time. Reflect on its consequence or show a distinct later event instead of dialing the initial call again."};
  // Keep evidence-free omniscient agreement out of strict QA stories. An
  // explicit acceptance can come from a spoken yes, agreement or clear nod
  // immediately after a proposal. Merely asking 'can we agree' is not consent.
