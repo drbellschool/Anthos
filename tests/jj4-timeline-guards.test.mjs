@@ -62,3 +62,21 @@ test("calling Jill from the car does not replay a doorway departure",()=>{
  const history=[{body:"Jack's car drives away."}];
  assert.deepEqual(committedTimelineViolation(history,'Jack calls Jill from the car. "Can we set a time?"'),{ok:true});
 });
+
+
+test("live generic-ledger regression: car departure cannot become kitchen doorway next scene",()=>{
+ const history=[
+  {body:"Jack left quickly, his watch buzzing as Jill stared at the calendar."},
+  {body:"Jack sat in his car and texted Jill while she remained in the kitchen."},
+  {body:"Jack's phone buzzed as his meeting began; Jill replied to his text."}
+ ];
+ const wrong='Jack paused at the kitchen doorway, watched his phone, and texted Jill: "Can we shift our talk to tonight?"';
+ const result=committedTimelineViolation(history,wrong);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"replayed_departure");
+});
+test("after leaving for meeting, in-car texts remain valid",()=>{
+ const history=[{body:"Jack left quickly; Jill remained in the kitchen."}];
+ const story='Jack sat in his car and texted Jill, asking whether she could talk after his meeting.';
+ assert.deepEqual(committedTimelineViolation(history,story),{ok:true});
+});
