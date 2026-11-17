@@ -5,7 +5,8 @@ import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
-import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";
+import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";;
+import {committedTimelineViolation} from "./jj4-timeline-guards.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
@@ -394,6 +395,17 @@ async function directScene(room,phaseIndex){
    story=null;lastGateReason="wrong_coached_speaker";
    reviewFeedback=speaker.reason+" Rewrite the next scene with the quoted line spoken ONLY by its coached owner, or omit the quote and show a consequence of rejecting it.";
    continue;
+  }
+  // Synthetic QA must not accept a reset of completed physical actions,
+  // an unexplained return to a departed location, or unsupported consensus.
+  // Compare against committed story, never against untrusted coach wishes.
+  if(qualityGate){
+   const chronology=committedTimelineViolation(sharedHistory,story);
+   if(!chronology.ok){
+    story=null;lastGateReason=chronology.code;
+    reviewFeedback=chronology.reason+" Continue from the actual last on-stage action without repeating it.";
+    continue;
+   }
   }
   // Physical scenes must not move the same people between rooms without an
   // observable walk, exit or other transition. Strict synthetic QA only.
