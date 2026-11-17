@@ -138,6 +138,15 @@ export function validateActorLocations(previous,story,phase,changes=[]){
    // established destination later in the scene.
    if(current===(placeOf(state.place)||"unknown"))current="away";
   }
+  // Departure is a committed transition. A new scene cannot stage the
+  // original household exit again just because it also contains a fresh text
+  // message. Another exit is only possible after a visible return home.
+  const homeContext=/\b(?:kitchen|family\s+calendar|front\s+door|house)\b/i;
+  const homeExit=new RegExp("\\b"+name+"\\b[^.!?]{0,125}\\b(?:rush(?:es|ed)?|hurr(?:ies|ied)|head(?:s|ed)?|walk(?:s|ed)?|step(?:s|ped)?|leave(?:s)?|left|exit(?:s|ed)?)\\b[^.!?]{0,35}\\b(?:out|through|from)\\s+(?:the\\s+)?(?:front\\s+)?door\\b","i");
+  const returnHome=/\b(?:returns?|returned|came|comes|walked|walks|stepped|steps|went|goes)\b[^.!?]{0,80}\b(?:back\\s+)?(?:home|inside|into\\s+(?:the\\s+)?(?:house|kitchen))\b/i;
+  if(["away","outside","car","office"].includes(placeOf(state.place)||"unknown")&&
+     homeContext.test(actual)&&homeExit.test(actual)&&!returnHome.test(actual))
+   return {ok:false,reason:role+" replayed a household doorway departure despite already being away. Only a narrated return can precede another exit."};
   // Reject physically reusing a household counter after an explicit
   // departure, unless the actor's on-stage return is visible. Reference to
   // a counter alone does not relocate them; a hand-on object action does.
