@@ -219,13 +219,14 @@ async function directScene(room,phaseIndex){
  const conciseScenes=simulate||focusedPilot||qualityGate;
  const simulationBefore=simulate?room.simulation_state:null;
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
- let eventLedger=emptyLedger();
- if(focusedPilot&&sharedHistory.length){
+ let eventLedger=emptyLedger(room.episode,simulationBefore);
+ if((focusedPilot||qualityGate)&&sharedHistory.length){
   try{
    const extracted=await generateStructured({model,key,name:"anthos_jj4_event_ledger",
-    schema:LEDGER_SCHEMA,input:{canonicalFacts:eventLedger.confirmedFacts,committedScenes:sharedHistory},
-    instructions:storyLedgerInstructions(),maxTokens:1150,timeout:20000});
-   eventLedger=sanitizeLedger(extracted);
+    schema:LEDGER_SCHEMA,input:{canonicalFacts:eventLedger.confirmedFacts,committedScenes:sharedHistory,
+     characterState:simulationBefore?.characters,worldObjects:simulationBefore?.objects},
+    instructions:storyLedgerInstructions(),maxTokens:1850,timeout:23000});
+   eventLedger=sanitizeLedger(extracted,room.episode,simulationBefore,sharedHistory);
   }catch{
    eventLedger={...eventLedger,unresolved:[...eventLedger.unresolved,
     "Before writing, inspect supplied scenes for previously completed actions."]};
@@ -270,7 +271,7 @@ async function directScene(room,phaseIndex){
    authoredHumorCue:room.episode.humorNotes||"",
    checkpointHumorCue:room.episode.checkpoints?.find(c=>c.afterPhase===influence.afterPhase)?.humorCue||"",
    ...(simulate?{charactersAndWorld:simulationBefore}:{}),
-   ...(focusedPilot?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
+   ...((focusedPilot||qualityGate)?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
   };
   const plan=await generateStructured({model,key,name:"anthos_jj4_consequence_plan",
    schema:IMPACT_SCHEMA,input:planInput,instructions:planInstructions,
@@ -309,6 +310,7 @@ async function directScene(room,phaseIndex){
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan: preserve its issue, phase purpose and order, character facts, locked text, and earned closure target. It is not six fixed speeches, an inevitable smooth journey, or an excuse to fabricate a happy ending when coaching has worsened the situation.",
   "The field coachingImpact is a MANDATORY causal plan from the private coaching. It is not a suggestion. Write a fresh scene in which Jack visibly does jack.action, Jill visibly does jill.action, and their actions produce coachingImpact.sharedFallout plus personal consequences.",
+  "Treat eventLedger.alreadyCompletedDoNotReplay as immutable previous ACTIONS, not optional inspiration. A character who left for work cannot perform their first kitchen departure again, and a couple already on a porch cannot travel there again without a visible return. ProposalsNotYetAccepted are NOT agreements.",
   "If coachedRoles includes Jack or Jill, the next scene MUST demonstrate how that character chose to follow, resist, partly accept or misinterpret the specific advised behavior; an unexplained switch to polite compromise does NOT count. Rejecting harsh advice is permitted only if the tension and rejection are explicit in dialogue or action.",
   "After writing the narrative, copy exact 18+ character quotations from the VISIBLE scene into coachingTrace.jackEvidence and/or coachingTrace.jillEvidence for the actual coachedRoles, and coachingTrace.falloutEvidence for the character consequence. These fields are verification references, never private coach quotations. Uncoached roles use empty evidence strings.",
   "Do not claim a verified real-world fact such as return deadlines, refund eligibility, warranty terms, policy requirements, appointment confirmations or external prices merely by inventing a phone call, receipt, label or store employee. Unless explicitly in author-controlled facts, characters must remain uncertain and can check later.",
@@ -481,7 +483,7 @@ async function directScene(room,phaseIndex){
     input:{canonicalFacts:continuity?.canonicalFacts||validFacts,previouslyShownScenes:sharedHistory,
      phaseIndex,scene:story,requiredNewDevelopment:continuity?.nextSceneRule||
       "Only one new action and its consequence; previous actions are not replayed.",
-     completedEventLedger:focusedPilot?ledgerPrompt(eventLedger,phase):{
+     completedEventLedger:(focusedPilot||qualityGate)?ledgerPrompt(eventLedger,phase):{
       completedEvents:simulationBefore?.events||[],currentState:simulationBefore?.characters,
       objects:simulationBefore?.objects,openThreads:simulationBefore?.openThreads},
      expectedObservableCoachEffect:coachingImpact,
@@ -492,6 +494,8 @@ async function directScene(room,phaseIndex){
      focusedPilot?"Jill made the $400 purchase. Jack postponed the old microwave repair.":
       "Use ONLY this episode's authored premise, boundaries, story events and factual state. Do not import facts or relationship problems from other episodes.",
      "Compare already completed events to actions happening NOW; never duplicate a completed phone call or decision.",
+     "The completedEventLedger is derived from ACTUAL prior scenes with verbatim citations. If it says Jack already left for the meeting, reject a scene putting him back at the front door without an on-stage return. If a couple already reached the porch, reject another first departure there.",
+     "Never promote a proposed or in-progress action to completed merely because the narrator says both agreed; look for explicit accepted behavior.",
      "Coached behavior must follow the coachingImpact or visibly refuse its SPECIFIC proposed behavior and suffer a distinct consequence. Flag generic evasion or boilerplate compromise.",
      "Flag an actual contradiction or repeated completed event; avoid rejecting simply because the same physical object remains present.",
      "Return short corrective notes only for factual defects. If there is a genuine new event, approve."
