@@ -276,3 +276,23 @@ test("Batch 1 regression: an unsubstantiated structured sealed transition is rej
  const result=checkSimulationTransition(state,proposed,"Jack shifts the lid on the counter while Jill watches.",1);
  assert.equal(result.ok,false);
 });
+
+test("QA live event ledger credits Jill rather than Jack for Jill-only quoted action",()=>{
+ const proposal=delta();
+ proposal.newEvent={actor:"Jack",action:"Jack accepted for Jill",
+  evidence:'Jill replied, "Sunday after lunch is better than nothing."'};
+ const story='Jack read his phone. Jill replied, "Sunday after lunch is better than nothing."';
+ const out=checkSimulationTransition(base(),proposal,story,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.event.actor,"Jill");
+ assert.equal(out.event.action,proposal.newEvent.evidence);
+ assert.ok(out.adjustments.some(x=>/corrected event actor/.test(x)));
+});
+
+test("a two-character observed event does not guess an actor from a mention",()=>{
+ const proposal=delta();
+ proposal.newEvent={actor:"Jack",action:"Jack texted Jill",evidence:"Jack texted Jill a specific time."};
+ const out=checkSimulationTransition(base(),proposal,"Jack texted Jill a specific time. Jill read the message.",0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.event.actor,"Jack");
+});
