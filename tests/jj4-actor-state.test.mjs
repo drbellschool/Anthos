@@ -142,3 +142,25 @@ test("after entering home, office location can be established in a later scene",
  assert.equal(r.ok,true,r.reason);
  assert.equal(r.locations.jack.place,"office");
 });
+
+
+test("new real Hook: Jill watches him leave means Jack actually departed",()=>{
+ const before={actorLocations:{jack:{place:"kitchen",asOfPhase:-1},jill:{place:"kitchen",asOfPhase:-1}}};
+ const scene='Jack tightens his watch. Jill stands by the kitchen calendar. Jack said, "We will talk later," grabs his keys and prepares to leave. She watches him leave. The door clicks shut.';
+ const result=validateActorLocations(before,scene,0,[]);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.locations.jack.place,"away");
+});
+test("new real Conflict: cannot use kitchen counter again without a return",()=>{
+ const before={actorLocations:{jack:{place:"away",asOfPhase:0},jill:{place:"kitchen",asOfPhase:0}}};
+ const scene="Jack slings his keys onto the counter; his watch buzzes as he reaches for the door. Jill watches.";
+ const result=validateActorLocations(before,scene,1,[]);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/counter after leaving/);
+});
+test("a stated return permits a new physical counter action",()=>{
+ const before={actorLocations:{jack:{place:"away",asOfPhase:0},jill:{place:"kitchen",asOfPhase:0}}};
+ const scene="Jack returned home to the kitchen and slings his keys onto the counter. Jill looked up.";
+ const result=validateActorLocations(before,scene,1,[]);
+ assert.equal(result.ok,true,result.reason);
+});
