@@ -90,3 +90,21 @@ test("a returned actor can enter kitchen without being marked away by earlier de
  assert.equal(r.ok,true,r.reason);
  assert.equal(r.locations.jack.place,"kitchen");
 });
+
+
+test("actual second Hook records Jack stepping outside after vague later",()=>{
+ const prior={actorLocations:initialActorLocations({sceneSetting:"A kitchen breakfast"})};
+ const scene="Jack fastened his watch. Jill asked a serious question. Jack said, 'We'll talk later.' He grabbed keys and left through the front door. Jill watched. Jack stepped outside, the door clicking shut.";
+ const r=validateActorLocations(prior,scene,0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.ok(["away","outside"].includes(r.locations.jack.place));
+ assert.notEqual(r.locations.jack.place,"kitchen");
+});
+test("actual Conflict moves Jack from doorstep into car without resetting him to kitchen",()=>{
+ const prior={actorLocations:{jack:{place:"outside",asOfPhase:0},jill:{place:"kitchen",asOfPhase:-1}}};
+ const scene="Jack's watch buzzed as he fumbled with his phone on the doorstep, texting Jill. He sent the text, slid into his car and looked away. Jill read the message by the kitchen calendar.";
+ const r=validateActorLocations(prior,scene,1,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"car");
+ assert.equal(r.locations.jill.place,"kitchen");
+});
