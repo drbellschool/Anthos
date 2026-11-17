@@ -16,12 +16,12 @@ test("event ledger distinguishes completed, proposed and unverifiable details",(
  assert.ok(!prompt.alreadyCompletedDoNotReplay.some(x=>x.includes("might return")));
  assert.match(ledger.confirmedFacts.join(" "),/Jill spent \$400/);
 });
-test("isolated pilot receives event ledger in three generation stages",()=>{
+test("every strict cross-petal pilot receives the event ledger in three generation stages",()=>{
  assert.match(core,/anthos_jj4_event_ledger/);
  assert.match(core,/const focusedPilot=isContinuityPilot\(room\)/);
  assert.match(core,/eventLedger:ledgerPrompt\(eventLedger,phase\)/);
- assert.match(core,/completedEventLedger:focusedPilot\?ledgerPrompt\(eventLedger,phase\)/);
+ assert.match(core,/completedEventLedger:\(focusedPilot\|\|qualityGate\)\?ledgerPrompt\(eventLedger,phase\)/);
  assert.match(core,/coachingImpact/);
- assert.match(storyLedgerInstructions(),/completed actions/i);
+ assert.match(storyLedgerInstructions(),/completed.*merely proposed|completed.*in progress/i);
  assert.equal(emptyLedger().confirmedEvents.length,0);
 });
