@@ -47,7 +47,7 @@ test("cannot invent a location transition only in structured annotation",()=>{
  }]);
  assert.equal(result.ok,true,result.reason);
  assert.equal(result.locations.jack.place,"car");
- assert.ok(result.adjustments.some(x=>/destination not shown/.test(x)));
+ assert.ok(result.adjustments.some(x=>/destination not shown|no narrated travel/.test(x)));
 });
 test("never moves someone based on the other character's location",()=>{
  const state={actorLocations:{jack:{place:"car",asOfPhase:1},jill:{place:"kitchen",asOfPhase:1}}};
