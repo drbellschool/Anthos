@@ -123,12 +123,17 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const witness=role==="jack"?
    /\bJill\b[^.!?]{0,95}\b(?:watched|watches|saw|sees|heard|hears)\s+(?:him|Jack)\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i:
    /\bJack\b[^.!?]{0,95}\b(?:watched|watches|saw|sees|heard|hears)\s+(?:her|Jill)\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i;
+  // The actor can be witnessed by an unambiguous opposite-gender
+  // third-person narrator pronoun: "She watches him leave" and vice versa.
+  const pronounWitness=role==="jack"?
+    /\bShe\b[^.!?]{0,80}\b(?:watched|watches|saw|sees)\s+him\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i:
+    /\bHe\b[^.!?]{0,80}\b(?:watched|watches|saw|sees)\s+her\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i;
   const pronounDeparture=[...actual.matchAll(pronoun)].some(match=>{
    const context=actual.slice(Math.max(0,match.index-260),match.index);
    const named=[...context.matchAll(/\b(Jack|Jill)\b/g)];
    return named.at(-1)?.[1]?.toLowerCase()===role;
   });
-  if((exit.test(actual)||pronounDeparture||witness.test(actual))&&!returned.test(actual)){
+  if((exit.test(actual)||pronounDeparture||witness.test(actual)||pronounWitness.test(actual))&&!returned.test(actual)){
    // Only replace the previous location when there is no newer, explicitly
    // established destination later in the scene.
    if(current===(placeOf(state.place)||"unknown"))current="away";
@@ -139,7 +144,7 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const handsAtCounter=new RegExp("\\b"+name+"\\b[^.!?]{0,90}\\b(?:slings?|drops?|sets?|puts?|places?|picks?\\s+up|grabs?)\\b[^.!?]{0,95}\\b(?:keys|watch|mug|bag|phone)\\b[^.!?]{0,65}\\b(?:onto|on|off|from)\\s+(?:the\\s+)?(?:kitchen\\s+)?counter\\b","i");
   if(["away","outside","car"].includes(placeOf(state.place)||"unknown")&&
      handsAtCounter.test(actual)&&
-     !/\\b(?:returned|came back|went back|walked back|stepped back|entered|walked into)\\b[^.!?]{0,65}\\b(?:home|house|kitchen|inside)\\b/i.test(actual))
+     !/\b(?:returned|came back|went back|walked back|stepped back|entered|walked into)\b[^.!?]{0,65}\b(?:home|house|kitchen|inside)\b/i.test(actual))
     return {ok:false,reason:role+" physically handled an item on the home counter after leaving, with no narrated return."};
   next[role]={place:current,asOfPhase:current!==state.place?phase:state.asOfPhase??-1};
  }
