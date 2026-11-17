@@ -15,7 +15,9 @@ test("Strict quality mode and simulation receive guarded continuity/word limits"
  assert.match(core,/words<70\|\|words>115/);
  assert.match(core,/anthos_jj4_scene_quality_gate/);
  assert.match(core,/if\(!story&&lastUsable&&!qualityGate\)/);
- assert.match(core,/if\(phaseIndex===0\)break/);
+ assert.match(core,/if\(phaseIndex===0&&!qualityGate\)break/);
+ assert.match(core,/authoredPhaseDirection:storyDirection/);
+ assert.match(core,/reject premature agreement/);
  assert.match(core,/unsupportedExternalPolicyClaims\(story,validFacts\)/);
  assert.match(core,/groundCoachingEvidence\(story,result.coachingTrace/);
  assert.match(core,/checkCoachingTrace\(story,groundedTrace/);
