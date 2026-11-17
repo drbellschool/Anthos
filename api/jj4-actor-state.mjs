@@ -34,7 +34,7 @@ const roleSubjects=(sentence,role)=>{
  // Jack and Jill have fixed fictional third-person references. Track a
  // sentence-initial "He"/"She" only when the sentence itself supplies an
  // unambiguous narrator subject, never a quoted coach direction.
- const pronoun=role==="jack"?/^(?:\\s*["“']?\\s*)He\\b/:/^(?:\\s*["“']?\\s*)She\\b/;
+ const pronoun=role==="jack"?/^(?:\s*["“']?\s*)He\b/:/^(?:\s*["“']?\s*)She\b/;
  return pronoun.test(sentence)?[0,...explicit]:explicit;
 };
 function observeActor(sentence,role){
