@@ -243,7 +243,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  // fictional actor. A two-name dialogue or pronoun-only excerpt is ambiguous;
  // preserve its actor tag rather than guessing from unrelated narrative.
  const proposedEventActor=limit(proposal.newEvent.actor,50);
- const namedEvidenceActors=[...new Set((eventEvidence.match(/\\b(?:Jack|Jill)\\b/gi)||[])
+ const namedEvidenceActors=[...new Set((eventEvidence.match(/\b(?:Jack|Jill)\b/gi)||[])
   .map(name=>name.toLowerCase()))];
  const observedActor=namedEvidenceActors.length===1?
   (namedEvidenceActors[0]==="jack"?"Jack":"Jill"):proposedEventActor;
