@@ -80,3 +80,19 @@ test("after leaving for meeting, in-car texts remain valid",()=>{
  const story='Jack sat in his car and texted Jill, asking whether she could talk after his meeting.';
  assert.deepEqual(committedTimelineViolation(history,story),{ok:true});
 });
+
+
+test("full pilot: scheduled 2:15 call cannot replay in Reflection",()=>{
+ const history=[
+  {body:"At 2:15, Jack's phone buzzed in his cramped office. He dialed Jill, determined to keep his promise amid work pressure."}
+ ];
+ const bad="Jack called Jill promptly at 2:15, voice brisk: 'I'm here, as promised, but can only spare a few minutes.'";
+ const result=committedTimelineViolation(history,bad);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"replayed_scheduled_call");
+});
+test("a proposed 2:15 call is not incorrectly recorded as completed",()=>{
+ const history=[{body:"Jack promised Jill he'd call at 2:15, but he hasn't dialed yet."}];
+ const now="At 2:15, Jack called Jill from his desk and she answered.";
+ assert.deepEqual(committedTimelineViolation(history,now),{ok:true});
+});
