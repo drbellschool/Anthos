@@ -190,3 +190,17 @@ test("workplace exit is not incorrectly treated as a duplicate home departure",(
  const result=validateActorLocations(prev,scene,3,[]);
  assert.equal(result.ok,true,result.reason);
 });
+
+
+test("cross-petal setting isolation: generic parking lot never becomes motel parking lot",()=>{
+ const prior={actorLocations:{jack:{place:"away",asOfPhase:2},jill:{place:"kitchen",asOfPhase:2}}};
+ const scene="Jack pauses in the parking lot and texts Jill a specific follow-up time. Jill replies from her kitchen.";
+ const result=validateActorLocations(prior,scene,3,[]);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.locations.jack.place,"parking lot");
+});
+test("motel-specific parking lot retains its distinct authored setting",()=>{
+ const state=initialActorLocations({sceneSetting:"Jack and Jill stand in a motel parking lot near the beach."});
+ assert.equal(state.jack.place,"motel parking lot");
+ assert.equal(state.jill.place,"motel parking lot");
+});
