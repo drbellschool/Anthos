@@ -1,4 +1,3 @@
-import {groundedClosureFallback} from "../api/jj4-closure.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {validateClosureEvidence,composeSophiaClosure,groundedClosureFallback} from "../api/jj4-closure.mjs";
