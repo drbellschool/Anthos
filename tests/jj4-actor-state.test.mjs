@@ -204,3 +204,42 @@ test("motel-specific parking lot retains its distinct authored setting",()=>{
  assert.equal(state.jack.place,"motel parking lot");
  assert.equal(state.jill.place,"motel parking lot");
 });
+
+test("a physically established meeting room cannot be skipped when Jack appears elsewhere",()=>{
+ const prior={actorLocations:{jack:{place:"car",asOfPhase:1},jill:{place:"kitchen",asOfPhase:1}}};
+ const arrivedWithoutTravel=validateActorLocations(prior,"Jack sat in the conference room, checking his watch mid-meeting. Jill stayed in the kitchen.",2,[]);
+ assert.equal(arrivedWithoutTravel.ok,false,"A conference-room arrival needs a narrated move from the car");
+ const returned=validateActorLocations(
+  {actorLocations:{jack:{place:"conference room",asOfPhase:2},jill:{place:"kitchen",asOfPhase:1}}},
+  "Jack paused in the parking lot and texted Jill.",3,[]);
+ assert.equal(returned.ok,false,"A parking-lot appearance needs movement from the conference room");
+});
+test("narrated meeting-room travel updates only Jack",()=>{
+ const previous={actorLocations:{jack:{place:"car",asOfPhase:1},jill:{place:"kitchen",asOfPhase:1}}};
+ const result=validateActorLocations(previous,"Jack walked from his car into the conference room, where his watch buzzed. Jill checked her calendar in the kitchen.",2,[]);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.locations.jack.place,"conference room");
+ assert.equal(result.locations.jill.place,"kitchen");
+});
+test("receiving a message is not proof of moving into a conference room",()=>{
+ const previous={actorLocations:{jack:{place:"car",asOfPhase:1},jill:{place:"kitchen",asOfPhase:1}}};
+ const scene="Jack got a text in the conference room. Jill remained home in the kitchen.";
+ const result=validateActorLocations(previous,scene,2,[]);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/jack appeared at conference room without moving from car/);
+});
+test("settling into a car is real movement from a parking lot",()=>{
+ const previous={actorLocations:{jack:{place:"parking lot",asOfPhase:2},jill:{place:"kitchen",asOfPhase:2}}};
+ const scene="Jack settled into his car and sent Jill a message. Jill continued reading in the kitchen.";
+ const result=validateActorLocations(previous,scene,3,[]);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.locations.jack.place,"car");
+ assert.equal(result.locations.jill.place,"kitchen");
+});
+test("remote meetings do not relocate Jack out of his car",()=>{
+ const previous={actorLocations:{jack:{place:"car",asOfPhase:2},jill:{place:"kitchen",asOfPhase:2}}};
+ const scene="Jack sat in his car during a remote meeting, sending Jill a message during a break.";
+ const result=validateActorLocations(previous,scene,3,[]);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.locations.jack.place,"car");
+});
