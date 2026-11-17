@@ -1,3 +1,4 @@
+import {groundedClosureFallback} from "../api/jj4-closure.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {validateClosureEvidence,composeSophiaClosure,groundedClosureFallback} from "../api/jj4-closure.mjs";
@@ -79,4 +80,17 @@ test("Sophia fallback never lowercases Jill or leaves an unfinished speech quote
  assert.doesNotMatch(result,/\bjill\b/);
  assert.equal((result.match(/"/g)||[]).length%2,0);
  assert.doesNotMatch(result,/In the final moments, jill/);
+});
+
+
+test("Sophia fallback prioritizes both partners' actions, not a phone buzz and a seated Jack",()=>{
+ const scenes=[
+  {phase_index:4,body:"Jack's phone shrieked as he settled into his car, startling a pedestrian. Jack set an alarm to remind him to call Jill. Jill replied to ask him to message first."},
+  {phase_index:5,body:"Jack sat in his parked car, phone in hand, hesitant to call Jill. Jack sent the text initiating the call, bracing himself. Jill answered cautiously, mixing relief with wariness."}
+ ];
+ const fallback=groundedClosureFallback({title:"Can We Talk Later?"},scenes);
+ assert.match(fallback,/Jack sent the text initiating the call/);
+ assert.match(fallback,/Jill answered cautiously/);
+ assert.doesNotMatch(fallback,/phone shrieked|Jack sat in his parked car/);
+ assert.match(fallback,/agreement cannot be assumed/);
 });
