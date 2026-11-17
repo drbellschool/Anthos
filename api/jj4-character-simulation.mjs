@@ -3,6 +3,7 @@
 // choices and facts rather than numerical "relationship health" scores.
 // State records only fictional behavior, never private real-couple data.
 import {DIRECTED_SCENE_SCHEMA} from "./jj4-causality.mjs";
+import {initialActorLocations,validateActorLocations} from "./jj4-actor-state.mjs";
 
 export const SIMULATION_VERSION="character-simulation-v1";
 export const SIMULATION_SCHEMA={
@@ -23,6 +24,10 @@ export const SIMULATION_SCHEMA={
    properties:{id:{type:"string"},condition:{type:"string"},location:{type:"string"},
     actionEvidence:{type:"string"}},
    required:["id","condition","location","actionEvidence"]}},
+  actorMoves:{type:"array",items:{type:"object",additionalProperties:false,
+   properties:{role:{type:"string",enum:["jack","jill"]},from:{type:"string"},
+    to:{type:"string"},evidence:{type:"string"}},
+   required:["role","from","to","evidence"]}},
   newEvent:{type:"object",additionalProperties:false,
    properties:{actor:{type:"string"},action:{type:"string"},evidence:{type:"string"}},
    required:["actor","action","evidence"]},
@@ -30,7 +35,7 @@ export const SIMULATION_SCHEMA={
    properties:{attempted:{type:"boolean"},actionEvidence:{type:"string"},reactionEvidence:{type:"string"}},
    required:["attempted","actionEvidence","reactionEvidence"]},
   openThreads:{type:"array",items:{type:"string"}}
- },required:["jack","jill","objectChanges","newEvent","humor","openThreads"]
+ },required:["jack","jill","objectChanges","actorMoves","newEvent","humor","openThreads"]
 };
 export const SIMULATION_SCENE_SCHEMA={
  type:"object",additionalProperties:false,
@@ -92,7 +97,7 @@ export function initialSimulation(episode={}){
   centralChoice:limit(authored.centralChoice||(isMicrowave?
    "Whether to keep the $400 replacement microwave bought from emergency savings":
    episode.learningObjective||episode.premise||"The unresolved choice"),260),
-  characters,objects:initialObjects,
+  characters,objects:initialObjects,actorLocations:initialActorLocations(episode),
   events:[],humorBeats:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
    isMicrowave?["Decide whether to keep the replacement","Address the unconsulted withdrawal and overdue repair"]:
    ["Explore the central conflict"]).slice(0,8).map(x=>limit(x,200)),
@@ -233,6 +238,13 @@ export function checkSimulationTransition(previous,proposal,story,phase){
     limit(String(story||"").replace(/\s+/g," ").trim(),180):"");
  if(eventEvidence.length<12)
   return {ok:false,reason:"The generated scene contains no usable visible event."};
+ // Cross-scene actor location is a committed world fact, not a stylistic
+ // detail. Accept only on-stage departures and ground-truth movement evidence.
+ // Older v1 rooms lacking actorLocations are still supported as unknown.
+ const locations=validateActorLocations(previous,story,phase,proposal.actorMoves||[]);
+ if(!locations.ok)return {ok:false,reason:locations.reason};
+ next.actorLocations=locations.locations;
+ adjustments.push(...locations.adjustments);
  next.lastPhase=phase;
  next.events=[...(previous.events||[]).slice(-17),{
   phase,actor:limit(proposal.newEvent.actor,50),
@@ -271,6 +283,8 @@ export const simulationInstructions=[
 
  "If a character's position changes, include a short EXACT excerpt of the visible scene containing an explicit decision; if unchanged use decisionEvidence as an empty string.",
  "objectChanges includes ONLY objects whose physical condition or location visibly changed. Use one exact evidence excerpt per changed object. If none changed, return [].",
+ "actorMoves includes ONLY actual on-stage moves by Jack or Jill. Include role, from (the prior committed actorLocations place), to (the new place), and a verbatim excerpt describing movement. When there is no travel, return []. Do not invent a travel step or relocate someone because of a phone conversation.",
+ "actorLocations are durable facts. Jack cannot reappear in the kitchen after leaving for work without a visible return. The previous person's location is authoritative, even when the narrative voice is tempted to reset the scene.",
  "Object changes must be earned: if the box is opened, it stays opened unless somebody visibly reseals it. Never say 'unopened' about an already opened box.",
  "newEvent must have an exact verbatim excerpt from the visible scene showing what happened THIS SCENE; do not replay previously completed calls.",
  "No outside pricing, refund deadlines, fees or retailer policies become facts without an actual credible in-story interaction. Unverified claims remain uncertainty.",
