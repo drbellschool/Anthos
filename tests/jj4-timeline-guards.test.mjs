@@ -96,3 +96,30 @@ test("a proposed 2:15 call is not incorrectly recorded as completed",()=>{
  const now="At 2:15, Jack called Jill from his desk and she answered.";
  assert.deepEqual(committedTimelineViolation(history,now),{ok:true});
 });
+
+
+test("saved six-scene QA: a Sunday call cannot occur before any Sunday transition",()=>{
+ const history=[
+  {body:"From his car, Jack texted Jill, 'Let's talk Sunday after lunch? Can you hold till then?'"},
+  {body:"Jill replied that she would hold until Sunday, but was worried."},
+  {body:"Jack set a Sunday alarm to remind him to call Jill."}
+ ];
+ const unearned='Jack sat in his parked car. He texted, "Starting the call now." Jill answered cautiously.';
+ const result=committedTimelineViolation(history,unearned);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"unearned_future_call");
+});
+
+test("a clearly narrated arrival of the scheduled day permits an earned call",()=>{
+ const history=[{body:"Jack and Jill agreed to talk Sunday after lunch."}];
+ const result=committedTimelineViolation(history,
+  'On Sunday, Jack sat in his car and texted Jill, "Starting the call now." Jill answered and they spoke.');
+ assert.deepEqual(result,{ok:true});
+});
+
+test("planning or checking an upcoming call is not mistaken for completing it",()=>{
+ const history=[{body:"Jack promised Jill they would talk Friday after dinner."}];
+ const result=committedTimelineViolation(history,
+  'Jack set a Friday reminder and texted Jill that their call was still scheduled.');
+ assert.deepEqual(result,{ok:true});
+});
