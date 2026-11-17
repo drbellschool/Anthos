@@ -7,7 +7,7 @@ const placeMap=[
  ["motel parking lot",/\b(?:motel\s+)?parking\s+lot\b/i],
  ["motel office",/\bmotel\s+office\b/i],
  ["kitchen",/\b(?:kitchen(?:\s+doorway|\s+door|\s+counter)?|front\s+door|family\s+calendar)\b/i],
- ["porch",/\bporch\b/i],["outside",/\b(?:outside|doorstep|front steps)\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
+ ["porch",/\bporch\b/i],["inside",/\binside\b/i],["outside",/\b(?:outside|doorstep|front steps)\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
  ["living room",/\b(?:living\s+room|couch)\b/i],["beach",/\bbeach\b/i],
  ["lake",/\blakeside\b|\blake\b/i],["yard",/\byard\b/i],
  ["bedroom",/\bbedroom\b/i],["away",/\baway\b/i],["office",/\boffice\b/i],
@@ -55,7 +55,7 @@ function observeActor(sentence,role){
   const other=role==="jack"?/\bJill\b/:/\bJack\b/;
   const cut=frag.search(other);
   const own=cut>=0?frag.slice(0,cut):frag;
-  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:kitchen(?:\s+doorway)?|front\s+door|porch|outside|doorstep|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b|\b(?:stepped|walked|went|headed)\s+outside\b/gi)];
+  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:(?:small|cramped|busy|quiet|messy|home)\s+){0,2}(?:kitchen(?:\s+doorway)?|front\s+door|porch|inside|outside|doorstep|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b|\b(?:stepped|walked|went|headed|came)\s+(?:back\s+)?(?:outside|inside)\b/gi)];
   const anchored=placeMatches.at(-1);
   if(!anchored)continue;
   const place=placeOf(anchored[0]);
@@ -101,10 +101,10 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const observations=sentences(actual).map(s=>observeActor(s,role)).filter(Boolean);
   for(const observation of observations){
    if(!observation.place)continue;
-   if(!["unknown","away"].includes(current)&&observation.place!==current&&!observation.transition)
+   if(!["unknown","away","inside"].includes(current)&&observation.place!==current&&!observation.transition)
     return {ok:false,reason:role+" appeared at "+observation.place+" without moving from "+current+
       ". Narrate the move or keep the actor at the last committed location."};
-   if(observation.transition||["unknown","away"].includes(current))current=observation.place;
+   if(observation.transition||["unknown","away","inside"].includes(current))current=observation.place;
   }
   // A departure without a named destination is still a physical change.
   // Persist "away" instead of leaving Jack back in the kitchen on the next
