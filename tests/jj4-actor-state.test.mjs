@@ -73,3 +73,20 @@ test("simulation schema records actorMoves without altering existing character r
  assert.ok(SIMULATION_SCHEMA.required.includes("actorMoves"));
  assert.ok(SIMULATION_SCHEMA.required.includes("newEvent"));
 });
+
+
+test("real Hook: pronoun 'He left' commits Jack as away instead of kitchen",()=>{
+ const state={actorLocations:initialActorLocations({sceneSetting:"Kitchen breakfast"})};
+ const story='Jack reached for the door. Jill demanded a time. Jack paused, keys in hand. He left without answering. Jill sighed.';
+ const r=validateActorLocations(state,story,0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"away");
+ assert.equal(r.locations.jill.place,"kitchen");
+});
+test("a returned actor can enter kitchen without being marked away by earlier departure",()=>{
+ const state={actorLocations:{jack:{place:"car",asOfPhase:1},jill:{place:"kitchen",asOfPhase:1}}};
+ const story="Jack left his car and walked into the kitchen. Jill greeted him inside.";
+ const r=validateActorLocations(state,story,2,[{role:"jack",from:"car",to:"kitchen",evidence:"Jack left his car and walked into the kitchen."}]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"kitchen");
+});
