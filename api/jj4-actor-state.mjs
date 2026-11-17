@@ -103,11 +103,11 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   // "He left" and "She left" refer to the named fictional actor only
   // when the most recently named character before the pronoun is that actor.
   // Do not treat arbitrary private dialogue or advice as a physical event.
-  const pronoun=role==="jack"?/\\bHe\\s+(?:left|headed\\s+out|walked\\s+out|drove\\s+away)\\b/gi:
-   /\\bShe\\s+(?:left|headed\\s+out|walked\\s+out|drove\\s+away)\\b/gi;
+  const pronoun=role==="jack"?/\bHe\s+(?:left|headed\s+out|walked\s+out|drove\s+away)\b/gi:
+   /\bShe\s+(?:left|headed\s+out|walked\s+out|drove\s+away)\b/gi;
   const pronounDeparture=[...actual.matchAll(pronoun)].some(match=>{
    const context=actual.slice(Math.max(0,match.index-260),match.index);
-   const named=[...context.matchAll(/\\b(Jack|Jill)\\b/g)];
+   const named=[...context.matchAll(/\b(Jack|Jill)\b/g)];
    return named.at(-1)?.[1]?.toLowerCase()===role;
   });
   if((exit.test(actual)||pronounDeparture)&&!returned.test(actual)){
