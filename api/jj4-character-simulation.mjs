@@ -238,6 +238,17 @@ export function checkSimulationTransition(previous,proposal,story,phase){
     limit(String(story||"").replace(/\s+/g," ").trim(),180):"");
  if(eventEvidence.length<12)
   return {ok:false,reason:"The generated scene contains no usable visible event."};
+ // The event ledger must not credit Jack for Jill's visible actions (or vice versa).
+ // Only correct a model's actor tag when the exact observed evidence names ONE
+ // fictional actor. A two-name dialogue or pronoun-only excerpt is ambiguous;
+ // preserve its actor tag rather than guessing from unrelated narrative.
+ const proposedEventActor=limit(proposal.newEvent.actor,50);
+ const namedEvidenceActors=[...new Set((eventEvidence.match(/\\b(?:Jack|Jill)\\b/gi)||[])
+  .map(name=>name.toLowerCase()))];
+ const observedActor=namedEvidenceActors.length===1?
+  (namedEvidenceActors[0]==="jack"?"Jack":"Jill"):proposedEventActor;
+ if(observedActor.toLowerCase()!==proposedEventActor.toLowerCase())
+  adjustments.push("corrected event actor to match the visible named character");
  // Cross-scene actor location is a committed world fact, not a stylistic
  // detail. Accept only on-stage departures and ground-truth movement evidence.
  // Older v1 rooms lacking actorLocations are still supported as unknown.
@@ -247,9 +258,10 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  adjustments.push(...locations.adjustments);
  next.lastPhase=phase;
  next.events=[...(previous.events||[]).slice(-17),{
-  phase,actor:limit(proposal.newEvent.actor,50),
-  action:matchesEvidence(story,proposal.newEvent.evidence)?
-   limit(proposal.newEvent.action,300):eventEvidence,
+  phase,actor:observedActor,
+  action:observedActor.toLowerCase()!==proposedEventActor.toLowerCase()?eventEvidence:
+   matchesEvidence(story,proposal.newEvent.evidence)?
+    limit(proposal.newEvent.action,300):eventEvidence,
   evidence:eventEvidence}];
  // An unresolved question never disappears merely because the narrator wants a
  // smooth ending. An eventual resolution needs an explicit confirmed choice.
