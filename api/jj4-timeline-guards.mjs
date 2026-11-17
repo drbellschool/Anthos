@@ -36,7 +36,11 @@ export function committedTimelineViolation(priorHistory,currentScene){
  let jackAlreadyAway=false;
  for(const past of prior){
   if(arrivedBack.test(past))jackAlreadyAway=false;
-  if(leftForMeeting.test(past))jackAlreadyAway=true;
+  // A grounded third-person exit is still a completed departure, even when
+  // the narration uses "he exited" instead of repeating Jack's name.
+  // Require Jack to be explicitly present; Jill's exit cannot move Jack.
+  if(leftForMeeting.test(past)||(/\bjack\b/i.test(past)&&/\b(?:he|jack)\s+exited\b/i.test(past)))
+   jackAlreadyAway=true;
  }
  const replayedDeparture=/\bjack\b[^.!?]{0,95}\b(?:pause(?:s|d)?\s+at\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|(?:stands?|waits?)\s+(?:at|by)\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|closes?\s+(?:the\s+)?door|(?:grabs?|reaches?\s+for)\s+(?:his\s+)?keys|(?:hurried|hurries|heads?|walks?)\s+(?:out|to\s+(?:the\s+)?door)|fastens?\s+(?:his\s+)?watch|(?:stands?|sits?)\s+(?:in|at)\s+(?:the\s+)?kitchen)\b/i;
  if(jackAlreadyAway&&replayedDeparture.test(now)&&!arrivedBack.test(now))
