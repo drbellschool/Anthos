@@ -104,7 +104,7 @@ export function validateActorLocations(previous,story,phase,changes=[]){
    if(!["unknown","away"].includes(current)&&observation.place!==current&&!observation.transition)
     return {ok:false,reason:role+" appeared at "+observation.place+" without moving from "+current+
       ". Narrate the move or keep the actor at the last committed location."};
-   if(observation.transition||current==="unknown")current=observation.place;
+   if(observation.transition||["unknown","away"].includes(current))current=observation.place;
   }
   // A departure without a named destination is still a physical change.
   // Persist "away" instead of leaving Jack back in the kitchen on the next
