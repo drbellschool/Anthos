@@ -43,10 +43,11 @@ function observeActor(sentence,role){
   const other=role==="jack"?/\bJill\b/:/\bJack\b/;
   const cut=frag.search(other);
   const own=cut>=0?frag.slice(0,cut):frag;
-  const anchored=own.match(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:kitchen(?:\s+doorway)?|front\s+door|porch|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b/i);
+  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:kitchen(?:\s+doorway)?|front\s+door|porch|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b/gi)];
+  const anchored=placeMatches.at(-1);
   if(!anchored)continue;
   const place=placeOf(anchored[0]);
-  const verb=own.slice(0,own.indexOf(anchored[0]));
+  const verb=own.slice(0,own.indexOf(anchored[0])+anchored[0].length);
   locations.push({place,transition:movement.test(verb),evidence:clean(own).slice(0,220)});
  }
  return locations.at(-1)||null;
@@ -68,6 +69,12 @@ export function validateActorLocations(previous,story,phase,changes=[]){
    }
    if(!movement.test(evidence)){
     adjustments.push(role+" location change ignored: no narrated travel");continue;
+   }
+   if(!new RegExp("\\b"+(role==="jack"?"Jack":"Jill")+"\\b|\\b(?:they|both)\\b","i").test(evidence)){
+    adjustments.push(role+" location change ignored: movement not attributed");continue;
+   }
+   if(!norm(evidence).includes(norm(p.to))){
+    adjustments.push(role+" location change ignored: destination not shown");continue;
    }
    const destination=placeOf(p.to);
    if(!destination||destination==="unknown"){
