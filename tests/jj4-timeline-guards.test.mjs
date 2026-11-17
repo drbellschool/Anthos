@@ -123,3 +123,17 @@ test("planning or checking an upcoming call is not mistaken for completing it",(
   'Jack set a Friday reminder and texted Jill that their call was still scheduled.');
  assert.deepEqual(result,{ok:true});
 });
+
+
+test("archived six-scene QA: Jack cannot leave twice after a narrated he exited",()=>{
+ const first="Jack tightened his watch strap as Jill asked a serious question, the busy kitchen calendar behind her underscoring no free time soon. Glancing at the chaotic calendar, Jack said quietly, \"Later, I promise,\" but left without setting a time, his watch buzzing as he exited.";
+ const replay="Jack hurried out the door, phone in hand, the busy family calendar looming. From his car, Jack texted Jill.";
+ const result=committedTimelineViolation([{body:first}],replay);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"replayed_departure");
+});
+
+test("Jill exiting does not imply Jack left",()=>{
+ const history=[{body:"Jill exited the kitchen while Jack waited by the door, still looking for his keys."}];
+ assert.deepEqual(committedTimelineViolation(history,"Jack grabs his keys and walks to the door."),{ok:true});
+});
