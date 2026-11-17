@@ -108,3 +108,21 @@ test("actual Conflict moves Jack from doorstep into car without resetting him to
  assert.equal(r.locations.jack.place,"car");
  assert.equal(r.locations.jill.place,"kitchen");
 });
+
+
+test("live third Hook: 'then leaves' commits Jack's departure",()=>{
+ const state={actorLocations:initialActorLocations({sceneSetting:"A kitchen breakfast"})};
+ const story='Jack fastens his watch. Jill asks a question. Jack says, "We will talk later." He tightens his grip on keys, pauses by the family calendar, then leaves, closing the door behind him. Jill watches.';
+ const r=validateActorLocations(state,story,0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"away");
+});
+test("live third Conflict: fronted parking-lot setting locates Jack away from Jill",()=>{
+ const state={actorLocations:{jack:{place:"away",asOfPhase:0},jill:{place:"kitchen",asOfPhase:0}}};
+ const story="In the parking lot, Jack texts Jill that his meeting may run late. Jill taps the kitchen calendar and asks him to choose an actual time.";
+ const r=validateActorLocations(state,story,1,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.notEqual(r.locations.jack.place,"kitchen");
+ assert.match(r.locations.jack.place,/parking lot/);
+ assert.equal(r.locations.jill.place,"kitchen");
+});
