@@ -51,7 +51,8 @@ test("Sophia's edited ending never truncates sentences or cites irrelevant Aron 
  assert.doesNotMatch(broken,/unfinished thought.*$/);
  assert.match(broken,/Jill bought a \$400 microwave from shared savings/);
  const old=composeSophiaClosure({title:"Some other story"},{observation:"A complete sentence.",practice:"Try a small action."});
- assert.match(old,/Aron/);
+ assert.match(old,/Gottman/);
+ assert.doesNotMatch(old,/Aron|novel activities/i);
 });
 
 
