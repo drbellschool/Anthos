@@ -7,6 +7,7 @@ import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs"
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";
 import {committedTimelineViolation} from "./jj4-timeline-guards.mjs";
+import {enforcePhaseContract} from "./jj4-phase-contract.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
@@ -304,11 +305,13 @@ async function directScene(room,phaseIndex){
   coachedRoles:influence?Object.keys(influence.advice):[],
   humorRequested,
   ...(focusedPilot?{continuity,eventLedger:ledgerPrompt(eventLedger,phase)}:{}),
-  ...(simulate?{characterSimulation:simulationBefore}:{})
+  ...(simulate?{characterSimulation:simulationBefore,
+   actorWorldPosition:simulationBefore?.actorLocations||null}:{} )
  };
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan: preserve its issue, phase purpose and order, character facts, locked text, and earned closure target. It is not six fixed speeches, an inevitable smooth journey, or an excuse to fabricate a happy ending when coaching has worsened the situation.",
+  "During HOOK, honor the authored initial dilemma literally. If it says a partner defers with vague 'later' and no return time, do not introduce a jointly accepted time before the first private checkpoint. An agreed time is earned through actual later choices, not a narrator improvement.",
   "The field coachingImpact is a MANDATORY causal plan from the private coaching. It is not a suggestion. Write a fresh scene in which Jack visibly does jack.action, Jill visibly does jill.action, and their actions produce coachingImpact.sharedFallout plus personal consequences.",
   "Treat eventLedger.alreadyCompletedDoNotReplay as immutable previous ACTIONS, not optional inspiration. A character who left for work cannot perform their first kitchen departure again, and a couple already on a porch cannot travel there again without a visible return. ProposalsNotYetAccepted are NOT agreements.",
   "If coachedRoles includes Jack or Jill, the next scene MUST demonstrate how that character chose to follow, resist, partly accept or misinterpret the specific advised behavior; an unexplained switch to polite compromise does NOT count. Rejecting harsh advice is permitted only if the tension and rejection are explicit in dialogue or action.",
@@ -397,6 +400,17 @@ async function directScene(room,phaseIndex){
    story=null;lastGateReason="wrong_coached_speaker";
    reviewFeedback=speaker.reason+" Rewrite the next scene with the quoted line spoken ONLY by its coached owner, or omit the quote and show a consequence of rejecting it.";
    continue;
+  }
+  // The author's actual Hook is a contract. Some stories require the
+  // opening conflict to remain unresolved until private coaching begins.
+  // A polished early resolution is still a phase failure.
+  if(qualityGate){
+   const contract=enforcePhaseContract(room.episode,phaseIndex,story);
+   if(!contract.ok){
+    story=null;lastGateReason=contract.code;
+    reviewFeedback=contract.reason+" Follow the saved Hook without preempting a later checkpoint.";
+    continue;
+   }
   }
   // Synthetic QA must not accept a reset of completed physical actions,
   // an unexplained return to a departed location, or unsupported consensus.
