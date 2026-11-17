@@ -138,23 +138,34 @@ export async function draftSophiaClosure(episode,sharedScenes){
   targetedEpisode(episode)?"Return two complete concise fields: observation 30–55 words about the NEW consequences and the actual ending, and practice one practical invitation of 15–30 words. Do not recap all six scenes or promise a happy resolution.":"Return two short fields: observation (45–80 words grounded in the story) and practice (one concrete invitation, 20–45 words).",
   "Avoid empty praise, glib humor, cheesy metaphors, shaming, overpromises, and diagnosing a couple."
  ].join(" ");
- try{
-  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
-  const res=await fetch("https://api.openai.com/v1/responses",{
-   method:"POST",
-   headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
-   body:JSON.stringify({model,store:false,instructions,input:JSON.stringify(input),
-    max_output_tokens:550,
-    text:{format:{type:"json_schema",name:"jj4_sophia_closure",strict:true,schema:EPILOGUE_SCHEMA}}}),
-   signal:AbortSignal.timeout(35000)
-  });
-  if(!res.ok)return composeSophiaClosure(episode,{},sharedScenes);
-  const data=await res.json();
-  const output=(data.output||[]).flatMap(x=>x.content||[])
-   .filter(x=>x.type==="output_text").map(x=>x.text).join("");
-  const parsed=JSON.parse(output);
-  if(!validateClosureEvidence(parsed,sharedScenes).ok)
-   return composeSophiaClosure(episode,{},sharedScenes);
-  return composeSophiaClosure(episode,parsed,sharedScenes);
- }catch{return composeSophiaClosure(episode,{},sharedScenes)}
+ const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
+ let failedReason="",failedDraft=null;
+ // At most one targeted evidence repair. Never accept invented closure facts
+ // simply to avoid a second provider call; the final fallback is grounded.
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   const nextInput=attempt===0?input:{
+    ...input,priorRejectedDraft:failedDraft,reasonRejected:failedReason,
+    realFinalActions:sharedScenes.filter(x=>x.phase_index>=4).slice(-2)
+     .map(x=>({phase:x.phase_index,body:x.body}))
+   };
+   const res=await fetch("https://api.openai.com/v1/responses",{
+    method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+    body:JSON.stringify({model,store:false,
+     instructions:instructions+(attempt===0?"":" EVIDENCE REPAIR: Your previous observation was rejected. This time anchor the central claim to a VERBATIM 18+ character excerpt from Outcome or Reflection and make that exact excerpt the evidence field. Do not paraphrase the evidence, invent a new event, or imply mutual agreement not visibly accepted."),
+     input:JSON.stringify(nextInput),max_output_tokens:650,
+     text:{format:{type:"json_schema",name:"jj4_sophia_closure",strict:true,schema:EPILOGUE_SCHEMA}}}),
+    signal:AbortSignal.timeout(30000)
+   });
+   if(!res.ok)break;
+   const data=await res.json();
+   const raw=(data.output||[]).flatMap(x=>x.content||[])
+    .filter(x=>x.type==="output_text").map(x=>x.text).join("");
+   const parsed=JSON.parse(raw);
+   const verdict=validateClosureEvidence(parsed,sharedScenes);
+   if(verdict.ok)return composeSophiaClosure(episode,parsed,sharedScenes);
+   failedDraft=parsed;failedReason=verdict.reason;
+  }catch{break}
+ }
+ return composeSophiaClosure(episode,{},sharedScenes);
 }
