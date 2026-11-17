@@ -4,7 +4,8 @@
 const clean=x=>String(x||"").replace(/\s+/g," ").trim();
 const norm=x=>clean(x).toLowerCase().replace(/[’‘]/g,"'").replace(/[“”]/g,'"');
 const placeMap=[
- ["motel parking lot",/\b(?:motel\s+)?parking\s+lot\b/i],
+ ["motel parking lot",/\bmotel\s+parking\s+lot\b/i],
+ ["parking lot",/\bparking\s+lot\b/i],
  ["motel office",/\bmotel\s+office\b/i],
  ["kitchen",/\b(?:kitchen(?:\s+doorway|\s+door|\s+counter)?|front\s+door|family\s+calendar)\b/i],
  ["porch",/\bporch\b/i],["inside",/\binside\b/i],["outside",/\b(?:outside|doorstep|front steps)\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
