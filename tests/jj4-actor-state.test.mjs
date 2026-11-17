@@ -175,3 +175,18 @@ test("live QA Hook cannot replace Jack's authored 'later' with tentative tomorro
  const good='Jack glanced at the calendar, sighed, "We’ll talk later," and grabbed his keys. Jill watched him leave.';
  assert.deepEqual(enforcePhaseContract(episode,0,good),{ok:true});
 });
+
+
+test("live Scene 2 must not replay home departure after Hook already put Jack away",()=>{
+ const prev={actorLocations:{jack:{place:"away",asOfPhase:0},jill:{place:"kitchen",asOfPhase:-1}}};
+ const scene="Jack hurried out the door, phone in hand, the busy family calendar looming. From his car, Jack texted Jill that his meeting had started.";
+ const result=validateActorLocations(prev,scene,1,[]);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/replayed a household doorway departure/);
+});
+test("workplace exit is not incorrectly treated as a duplicate home departure",()=>{
+ const prev={actorLocations:{jack:{place:"office",asOfPhase:2},jill:{place:"kitchen",asOfPhase:2}}};
+ const scene="Jack hurried out the office door, phone in hand, headed toward his car. Jill was home.";
+ const result=validateActorLocations(prev,scene,3,[]);
+ assert.equal(result.ok,true,result.reason);
+});
