@@ -46,29 +46,29 @@ export function groundedClosureFallback(episode,sharedScenes=[]){
  const final=Array.isArray(sharedScenes)?sharedScenes
   .filter(x=>typeof x?.body==="string"&&x.body.trim()&&Number(x.phase_index)>=4)
   .sort((a,b)=>a.phase_index-b.phase_index).slice(-2):[];
- const excerpts=[];
- for(const scene of final){
-  const sentences=String(scene.body).replace(/\s+/g," ").trim()
-   .match(/[^.!?]+(?:[.!?]+(?:[”"']|$)?|$)/g)||[];
-  // Extract narration or a fully closed quoted line. A quotation mark
-  // left hanging by sentence segmentation is not a usable Sophia sentence.
-  const candidate=sentences.map(x=>x.trim()).find(x=>{
-   if(x.length<28||x.length>220||!/\b(?:Jack|Jill)\b/i.test(x))return false;
-   const asciiQuotes=(x.match(/"/g)||[]).length;
-   const typographicOpen=(x.match(/“/g)||[]).length;
-   const typographicClose=(x.match(/”/g)||[]).length;
-   return asciiQuotes%2===0&&typographicOpen===typographicClose;
+ const sentences=final.flatMap(scene=>(String(scene.body).replace(/\s+/g," ").trim()
+  .match(/[^.!?]+(?:[.!?]+(?:[”"']|$)?|$)/g)||[])
+  .map(x=>({text:x.trim(),phase:scene.phase_index}))).filter(x=>{
+   if(x.text.length<28||x.text.length>235)return false;
+   const ascii=(x.text.match(/"/g)||[]).length;
+   const left=(x.text.match(/“/g)||[]).length,right=(x.text.match(/”/g)||[]).length;
+   return ascii%2===0&&left===right;
   });
-  if(candidate)excerpts.push(candidate);
+ const action=/\b(?:said|says|asked|asks|texted|texts|replied|replies|answered|answers|called|calls|dialed|dials|agreed|agrees|accepted|accepts|refused|refuses|set|sent|opened|chose|chooses|decided|explained|apologized)\b/i;
+ const trivial=/\b(?:buzzed|buzzes|glanced|stared|sat|shrieked|stood|watched)\b/i;
+ const pick=role=>sentences.filter(x=>new RegExp("\\b"+role+"\\b","i").test(x.text))
+  .map(x=>({...x,score:(x.phase>=5?6:0)+(action.test(x.text)?5:0)+
+   (new RegExp("^"+role+"\\b","i").test(x.text)?2:0)-
+   (trivial.test(x.text)&&!action.test(x.text)?8:0)}))
+  .sort((a,b)=>b.score-a.score)[0]?.text;
+ const jack=pick("Jack"),jill=pick("Jill");
+ const distinct=[jack,jill].filter((x,i,arr)=>x&&arr.indexOf(x)===i);
+ if(distinct.length){
+  return "The ending showed these moments: "+distinct.join(" ")+
+   " Only the choices actually spoken or shown are established; a larger agreement cannot be assumed.";
  }
- if(excerpts.length){
-  // Use a colon so actor names keep correct capitalization.
-  const grounded=excerpts.slice(-2).join(" ");
-  return "The ending showed these moments: "+grounded;
- }
- // Without evidence, do NOT guess at a particular character decision.
  const topic=clean(episode?.title,110)||"this disagreement";
- return "Jack and Jill faced the unresolved choices in "+topic+
+ return "Jack and Jill faced the choices in "+topic+
   ". Their next steps must depend on what they actually say and do, not an assumed agreement.";
 }
 
