@@ -86,7 +86,7 @@ function specificClosing(episode,generated,sharedScenes=[]){
   sharedScenes.length?groundedClosureFallback(episode,sharedScenes):
   "Jill bought a $400 microwave from shared savings after Jack repeatedly delayed a repair. Their choices exposed a disagreement about urgency and shared decisions; any resolution must come from what they actually did.");
  const practice=completeSentence(generated.practice,250,
-  "Ask each other what action would rebuild trust after a difficult financial decision, then choose one specific next step.");
+  "Ask what both of you need after a significant shared purchase, then identify one concrete next step without presuming consent.");
  return "SOPHIA · A CLOSING THOUGHT\n\n"+
   "What happened: "+observation+"\n\n"+
   "The skill connection: Facing a hard decision means owning your part without controlling the other person. A gentle startup raises a concern without blame; accepting influence means considering a partner's actual reasons.\n\n"+
@@ -97,13 +97,18 @@ export function composeSophiaClosure(episode,generated={},sharedScenes=[]){
  if(targetedEpisode(episode))return specificClosing(episode,generated,sharedScenes);
  const observation=clean(generated.observation,460)||
   groundedClosureFallback(episode,sharedScenes);
+ const lens=String(episode?.primarySkill||"");
  const practice=clean(generated.practice,320)||
-  "Ask which specific action changed the conversation and what each person needs before taking the next step. Do not assume agreement.";
- const science=[
-  "Gottman's observational work describes small bids for attention or connection and the importance of how partners respond to them [1].",
-  "Schnarch's differentiation framework emphasizes being able to stay connected while speaking honestly about your own needs and boundaries; this is a clinical model, not a score from this story [2].",
-  "In experimental work, Aron and colleagues found that doing novel activities together can improve short-term reports of relationship quality [3]."
- ].join(" ");
+  (lens.startsWith("a-")?
+   "Ask what each of you would enjoy about an optional new shared experience, including what you would rather not do.":
+   lens==="g-repair"||lens==="g-start"?
+   "Name one repair that was actually attempted, and ask what small concrete step each person could voluntarily try next.":
+   "Ask what changed in each person's interpretation, then invite one specific next action without assuming agreement.");
+ const science=lens.startsWith("a-")?
+  "Aron and colleagues studied how mutually welcome novel shared activities can influence short-term reports of relationship quality [3].":
+  lens.startsWith("s-")?
+  "Schnarch's differentiation framework describes staying connected while expressing distinct needs; this is a theoretical clinical framework, not a score [2].":
+  "Gottman's observational work discusses bids for connection and the importance of how partners respond to them [1].";
  const result="SOPHIA · A CLOSING THOUGHT\n\n"+
   "What I noticed: "+observation+"\n\n"+
   "The research connection: "+science+"\n\n"+
