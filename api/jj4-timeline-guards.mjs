@@ -26,6 +26,21 @@ export function committedTimelineViolation(priorHistory,currentScene){
  // occurred in between. Checking a watch is NOT the same as fastening it.
  if(watchFastened(now)&&watchFastened(committed)&&!watchUnfastened(committed))
   return {ok:false,code:"replayed_completed_action",reason:"Jack already fastened or tightened the watch in an earlier scene. This is not a new action."};
+ // A person who already left for a meeting cannot perform that original
+ // front-door goodbye again unless the story showed their return. This guard
+ // only catches explicit physical restaging, not phone calls from the car.
+ const leftForMeeting=/(?:jack[’']?s?\s+(?:car\s+drives?\s+away|brisk\s+exit)|jack[^.!?]{0,100}\b(?:heads?\s+out|left\s+(?:the\s+)?house|walks?\s+out|exits?\s+(?:the\s+)?house|drives?\s+away)\b)/i;
+ const arrivedBack=/(?:jack[^.!?]{0,80}\b(?:came|comes|returned|returns|arrived|arrives|walked|walks)\s+(?:back\s+)?(?:home|inside|into\s+the\s+(?:house|kitchen))\b)/i;
+ // Search the sequence, not one giant combined transcript: a return after a
+ // departure clears it, a subsequent fresh departure re-establishes it.
+ let jackAlreadyAway=false;
+ for(const past of prior){
+  if(arrivedBack.test(past))jackAlreadyAway=false;
+  if(leftForMeeting.test(past))jackAlreadyAway=true;
+ }
+ const replayedDeparture=/\bjack\b[^.!?]{0,90}\b(?:pauses?\s+at\s+(?:the\s+)?door|closes?\s+(?:the\s+)?door|(?:grabs?|reaches?\s+for)\s+(?:his\s+)?keys|(?:hurried|hurries|heads?|walks?)\s+(?:out|to\s+(?:the\s+)?door)|fastens?\s+(?:his\s+)?watch)\b/i;
+ if(jackAlreadyAway&&replayedDeparture.test(now)&&!arrivedBack.test(now))
+  return {ok:false,code:"replayed_departure",reason:"Jack already left for the meeting. A new front-door goodbye requires an actual narrated return; otherwise show him where he is now."};
  // The previous scene already established a porch arrival. Do not put them
  // back in the kitchen to show that exact same arrival, without a return trip.
  const previousLocation=lastPhysicalLocation(priorHistory);
