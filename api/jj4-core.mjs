@@ -475,12 +475,14 @@ async function directScene(room,phaseIndex){
   }
   // The first (Hook) has no earlier scenes to contradict. Do not use an
   // independent reviewer to block the introductory action.
-  if(phaseIndex===0)break;
+  if(phaseIndex===0&&!qualityGate)break;
   let review;
   try{
    review=await generateStructured({model,key,name:"anthos_jj4_scene_quality_gate",
     schema:SCENE_REVIEW_SCHEMA,
-    input:{canonicalFacts:continuity?.canonicalFacts||validFacts,previouslyShownScenes:sharedHistory,
+    input:{canonicalFacts:continuity?.canonicalFacts||validFacts,
+     authoredPhaseDirection:storyDirection,authoredPremise:room.episode.premise,
+     earlierAndLaterPhaseNames:PHASES4,previouslyShownScenes:sharedHistory,
      phaseIndex,scene:story,requiredNewDevelopment:continuity?.nextSceneRule||
       "Only one new action and its consequence; previous actions are not replayed.",
      completedEventLedger:(focusedPilot||qualityGate)?ledgerPrompt(eventLedger,phase):{
@@ -489,7 +491,9 @@ async function directScene(room,phaseIndex){
      expectedObservableCoachEffect:coachingImpact,
      coachedRoles:influence?Object.keys(influence.advice):[]},
     instructions:[
-     "Evaluate chronology and concrete events, not literary preferences. A callback to an established fact is allowed; replaying it as a new event is not.",
+     "Evaluate chronology, factual actions, and the AUTHOR'S specific current-phase direction, not literary preferences. A callback to a past fact is allowed; replaying it as new is not.",
+     "On the HOOK, check authoredPhaseDirection. If it establishes an unresolved opening, reject premature agreement, invented appointments or decisions that solve the conflict before any coaching. Flag this as continuityError.",
+     "At any phase, a scene that preempts the authored Outcome or Reflection violates phase order even when the dialogue is plausible. Return approved=false with a specific continuityError grounded in the text.",
      "A character acknowledging an existing promise is not a duplicated action if another new event occurs.",
      focusedPilot?"Jill made the $400 purchase. Jack postponed the old microwave repair.":
       "Use ONLY this episode's authored premise, boundaries, story events and factual state. Do not import facts or relationship problems from other episodes.",
