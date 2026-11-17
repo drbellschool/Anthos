@@ -38,7 +38,7 @@ export function committedTimelineViolation(priorHistory,currentScene){
   if(arrivedBack.test(past))jackAlreadyAway=false;
   if(leftForMeeting.test(past))jackAlreadyAway=true;
  }
- const replayedDeparture=/\bjack\b[^.!?]{0,95}\b(?:pauses?\s+at\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|(?:stands?|waits?)\s+(?:at|by)\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|closes?\s+(?:the\s+)?door|(?:grabs?|reaches?\s+for)\s+(?:his\s+)?keys|(?:hurried|hurries|heads?|walks?)\s+(?:out|to\s+(?:the\s+)?door)|fastens?\s+(?:his\s+)?watch|(?:stands?|sits?)\s+(?:in|at)\s+(?:the\s+)?kitchen)\b/i;
+ const replayedDeparture=/\bjack\b[^.!?]{0,95}\b(?:pause(?:s|d)?\s+at\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|(?:stands?|waits?)\s+(?:at|by)\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|closes?\s+(?:the\s+)?door|(?:grabs?|reaches?\s+for)\s+(?:his\s+)?keys|(?:hurried|hurries|heads?|walks?)\s+(?:out|to\s+(?:the\s+)?door)|fastens?\s+(?:his\s+)?watch|(?:stands?|sits?)\s+(?:in|at)\s+(?:the\s+)?kitchen)\b/i;
  if(jackAlreadyAway&&replayedDeparture.test(now)&&!arrivedBack.test(now))
   return {ok:false,code:"replayed_departure",reason:"Jack already left for the meeting. A new front-door goodbye requires an actual narrated return; otherwise show him where he is now."};
  // The previous scene already established a porch arrival. Do not put them
