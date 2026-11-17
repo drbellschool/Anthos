@@ -7,13 +7,13 @@ const placeMap=[
  ["motel parking lot",/\b(?:motel\s+)?parking\s+lot\b/i],
  ["motel office",/\bmotel\s+office\b/i],
  ["kitchen",/\b(?:kitchen(?:\s+doorway|\s+door|\s+counter)?|front\s+door|family\s+calendar)\b/i],
- ["porch",/\bporch\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
+ ["porch",/\bporch\b/i],["outside",/\b(?:outside|doorstep|front steps)\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
  ["living room",/\b(?:living\s+room|couch)\b/i],["beach",/\bbeach\b/i],
  ["lake",/\blakeside\b|\blake\b/i],["yard",/\byard\b/i],
  ["bedroom",/\bbedroom\b/i],["away",/\baway\b/i],["office",/\boffice\b/i],
  ["restaurant",/\brestaurant\b/i]
 ];
-const movement=/(?:\b(?:sit(?:s|ting)?|sat|settle(?:s|d)?|walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|got|gets|climb(?:s|ed|ing)?)\b)/i;
+const movement=/(?:\b(?:sit(?:s|ting)?|sat|settle(?:s|d)?|walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|slide(?:s|d)?|slid|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|got|gets|climb(?:s|ed|ing)?)\b)/i;
 const placeOf=fragment=>{
  const t=norm(fragment);
  for(const [p,pattern] of placeMap)if(pattern.test(t))return p;
@@ -30,7 +30,12 @@ const sentences=text=>clean(text).match(/[^.!?]+[.!?]?/g)||[];
 const roleSubjects=(sentence,role)=>{
  const name=role==="jack"?"Jack":"Jill";
  const regex=new RegExp("\\b"+name+"\\b","ig");
- return [...sentence.matchAll(regex)].map(m=>m.index||0);
+ const explicit=[...sentence.matchAll(regex)].map(m=>m.index||0);
+ // Jack and Jill have fixed fictional third-person references. Track a
+ // sentence-initial "He"/"She" only when the sentence itself supplies an
+ // unambiguous narrator subject, never a quoted coach direction.
+ const pronoun=role==="jack"?/^(?:\\s*["“']?\\s*)He\\b/:/^(?:\\s*["“']?\\s*)She\\b/;
+ return pronoun.test(sentence)?[0,...explicit]:explicit;
 };
 function observeActor(sentence,role){
  const hits=roleSubjects(sentence,role);
@@ -43,7 +48,7 @@ function observeActor(sentence,role){
   const other=role==="jack"?/\bJill\b/:/\bJack\b/;
   const cut=frag.search(other);
   const own=cut>=0?frag.slice(0,cut):frag;
-  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:kitchen(?:\s+doorway)?|front\s+door|porch|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b/gi)];
+  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:kitchen(?:\s+doorway)?|front\s+door|porch|outside|doorstep|car|parking\s+lot|motel\s+office|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b|\b(?:stepped|walked|went|headed)\s+outside\b/gi)];
   const anchored=placeMatches.at(-1);
   if(!anchored)continue;
   const place=placeOf(anchored[0]);
@@ -103,8 +108,8 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   // "He left" and "She left" refer to the named fictional actor only
   // when the most recently named character before the pronoun is that actor.
   // Do not treat arbitrary private dialogue or advice as a physical event.
-  const pronoun=role==="jack"?/\bHe\s+(?:left|headed\s+out|walked\s+out|drove\s+away)\b/gi:
-   /\bShe\s+(?:left|headed\s+out|walked\s+out|drove\s+away)\b/gi;
+  const pronoun=role==="jack"?/\bHe\b[^.!?]{0,75}\b(?:left|headed\s+out|walked\s+out|drove\s+away)\b/gi:
+   /\bShe\b[^.!?]{0,75}\b(?:left|headed\s+out|walked\s+out|drove\s+away)\b/gi;
   const pronounDeparture=[...actual.matchAll(pronoun)].some(match=>{
    const context=actual.slice(Math.max(0,match.index-260),match.index);
    const named=[...context.matchAll(/\b(Jack|Jill)\b/g)];
