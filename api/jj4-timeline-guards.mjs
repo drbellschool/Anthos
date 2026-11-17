@@ -59,6 +59,27 @@ export function committedTimelineViolation(priorHistory,currentScene){
  if(!laterDay.test(now)&&currentCalls.some(t=>previousCalls.includes(t)))
   return {ok:false,code:"replayed_scheduled_call",
    reason:"The same scheduled call has already happened at this exact time. Reflect on its consequence or show a distinct later event instead of dialing the initial call again."};
+
+ // A promised future appointment is not already completed. In synthetic QA,
+ // a visible call at a named later weekday needs a narrated transition to
+ // that day. This is intentionally narrow: scheduling or mentioning a call
+ // must not count as making it, and normal unrelated calls are unaffected.
+ const days="Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday";
+ const namedFuture=new RegExp("\\b(?:call|talk|speak|phone|conversation)\\b[^.!?]{0,110}\\b("+days+")\\b|\\b("+days+")\\b[^.!?]{0,85}\\b(?:call|talk|speak|phone|conversation)\\b","i");
+ let deferredDay="";
+ for(const past of prior){
+  const match=past.match(namedFuture);
+  if(match)deferredDay=(match[1]||match[2]||"").toLowerCase();
+ }
+ if(deferredDay){
+  const spokenNow=/\b(?:starting the call now|calling (?:you|her|him) now|jack (?:called|dialed|phoned) jill|jill (?:answered|picked up) (?:the |his )?(?:call|phone))\b/i.test(now);
+  const actualTimeReached=new RegExp("\\b(?:on|it was|it is|it's now|by the time it was)\\s+"+deferredDay+"\\b|\\b"+deferredDay+"\\s+(?:arrived|came around)\\b","i");
+  const previousTimeReached=prior.some(x=>actualTimeReached.test(x));
+  if(spokenNow&&!actualTimeReached.test(now)&&!previousTimeReached)
+   return {ok:false,code:"unearned_future_call",reason:"A call scheduled for "+deferredDay+
+    " was shown as happening now without establishing that the agreed day arrived. Narrate the real time transition or leave the call pending."};
+ }
+
  // Keep evidence-free omniscient agreement out of strict QA stories. An
  // explicit acceptance can come from a spoken yes, agreement or clear nod
  // immediately after a proposal. Merely asking 'can we agree' is not consent.
