@@ -126,3 +126,19 @@ test("live third Conflict: fronted parking-lot setting locates Jack away from Ji
  assert.match(r.locations.jack.place,/parking lot/);
  assert.equal(r.locations.jill.place,"kitchen");
 });
+
+
+test("full live pilot: Jack steps back inside after being outside",()=>{
+ const prior={actorLocations:{jack:{place:"outside",asOfPhase:0},jill:{place:"kitchen",asOfPhase:-1}}};
+ const story="Jack's watch buzzed as he opened the door, paused, then stepped back inside. Facing Jill, Jack said, '2:15 is still our plan.'";
+ const r=validateActorLocations(prior,story,3,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"inside");
+});
+test("after entering home, office location can be established in a later scene",()=>{
+ const prior={actorLocations:{jack:{place:"inside",asOfPhase:3},jill:{place:"kitchen",asOfPhase:-1}}};
+ const story="At 2:15, Jack's phone buzzed in his cramped office. He dialed Jill from his desk.";
+ const r=validateActorLocations(prior,story,4,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"office");
+});
