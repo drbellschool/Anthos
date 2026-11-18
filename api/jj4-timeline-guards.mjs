@@ -42,7 +42,7 @@ export function committedTimelineViolation(priorHistory,currentScene){
  // "Jack's ... as he closes the door behind him". This is a finished
  // departure, not permission to stage the same doorway scene next turn.
  const closedBehindJack=scene=>
-  /\bjack\b[^.!?]{0,190}\bheads?\s+(?:for|to|toward)\s+(?:the\s+)?door\b/i.test(scene)&&
+  /(?:\bjack\b|\bhe\b)[^.!?]{0,190}\bheads?\s+(?:for|to|toward)\s+(?:the\s+)?door\b/i.test(scene)&&
   /(?:\bjack\b[^.!?]{0,160}\bhe\b|\bjack\b)\s+clos(?:e|es|ed)\s+(?:the\s+)?door\s+behind\s+him\b/i.test(scene);
  const arrivedBack=/(?:jack[^.!?]{0,80}\b(?:came|comes|returned|returns|arrived|arrives|walked|walks)\s+(?:back\s+)?(?:home|inside|into\s+the\s+(?:house|kitchen))\b)/i;
  // Search the sequence, not one giant combined transcript: a return after a

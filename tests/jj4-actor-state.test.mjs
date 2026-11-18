@@ -252,3 +252,11 @@ test("live completed Hook persists Jack's exit when he closes the door behind hi
  assert.equal(r.locations.jack.place,"away");
  assert.equal(r.locations.jill.place,"kitchen");
 });
+
+test("verbatim live narrative: He heads for the door and Jack closes it behind him",()=>{
+ const state={actorLocations:{jack:{place:"kitchen",asOfPhase:-1},jill:{place:"kitchen",asOfPhase:-1}}};
+ const scene="Jack insists we'll talk later, his fingers already curling around the car keys. He shoots Jill a quick look and heads for the door leaving the calendar behind him. Jack's vague promise sticks in the air as he closes the door behind him.";
+ const r=validateActorLocations(state,scene,0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"away");
+});

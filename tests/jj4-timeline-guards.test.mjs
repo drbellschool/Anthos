@@ -153,3 +153,11 @@ test("live pilot: evening to morning requires a narrated next day",()=>{
  assert.equal(result.code,"unearned_time_rewind");
  assert.deepEqual(committedTimelineViolation(previous,"The next morning, Jack takes his watch off while Jill makes coffee."),{ok:true});
 });
+
+test("verbatim live narrative: He headed for the door and shut it, so scene two cannot rewind",()=>{
+ const hook="Jack insisted, 'We'll talk later,' his fingers already curling around the car keys. He shoots Jill a quick look, hoping his promise suffices, and heads for the door leaving the calendar's colors crowded behind him. Jack's vague promise sticks in the air as he closes the door behind him.";
+ const next="Jack pauses at the door, his hand on the knob, then turns back hesitantly.";
+ const result=committedTimelineViolation([hook],next);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"replayed_departure");
+});
