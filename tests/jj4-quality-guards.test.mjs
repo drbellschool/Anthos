@@ -75,18 +75,32 @@ test("private-coach attribution does not penalize paraphrases or harmless questi
  assert.deepEqual(wrongSpeakerForQuotedCoaching(paraphrase,advice),{ok:true});
 });
 
-test("copied evidence paraphrase is repaired only with observable scene text",()=>{
+test("a paraphrased coaching claim cannot be converted into an unrelated visible action",()=>{
  const story='Jill jokes, "Your Saturday note belongs in the museum of broken promises." Jack winces and turns away. The joke deepens their argument.';
  const wrong={jackEvidence:"",jillEvidence:"Jill made a joke and everything got better.",falloutEvidence:"The couple relaxed."};
  const trace=groundCoachingEvidence(story,wrong,["jill"]);
- assert.match(trace.jillEvidence,/Jill jokes/);
- assert.ok(story.includes(trace.jillEvidence));
- assert.ok(story.includes(trace.falloutEvidence));
- assert.equal(checkCoachingTrace(story,trace,["jill"]).ok,true);
+ assert.equal(trace.jillEvidence,"");
+ assert.equal(trace.falloutEvidence,"");
+ assert.equal(checkCoachingTrace(story,trace,["jill"]).ok,false);
 });
 test("grounding cannot invent a coached action absent from the story",()=>{
  const story="The room fell silent. A cold microwave box waited on the counter.";
  const trace=groundCoachingEvidence(story,{},["jill"]);
  assert.equal(trace.jillEvidence,"");
  assert.equal(checkCoachingTrace(story,trace,["jill"]).ok,false);
+});
+
+test("empty model metadata cannot fabricate coaching influence from a generic exchange",()=>{
+ const story="Jack checks his watch and tells Jill, 'Maybe Sunday.' Jill frowns at the empty promise.";
+ const grounded=groundCoachingEvidence(story,{jackEvidence:"",jillEvidence:"",falloutEvidence:""},["jack"]);
+ assert.equal(grounded.jackEvidence,"");
+ assert.equal(grounded.falloutEvidence,"");
+ assert.equal(checkCoachingTrace(story,grounded,["jack"]).ok,false);
+});
+test("a model's accurate literal coaching evidence still passes unchanged",()=>{
+ const story="Jack admits he forgot the appointment and apologizes. Jill's shoulders loosen, although she asks for a calendar reminder.";
+ const source={jackEvidence:"Jack admits he forgot the appointment and apologizes.",jillEvidence:"",falloutEvidence:"Jill's shoulders loosen, although she asks for a calendar reminder."};
+ const grounded=groundCoachingEvidence(story,source,["jack"]);
+ assert.deepEqual(grounded,source);
+ assert.deepEqual(checkCoachingTrace(story,grounded,["jack"]),{ok:true});
 });
