@@ -243,3 +243,12 @@ test("remote meetings do not relocate Jack out of his car",()=>{
  assert.equal(result.ok,true,result.reason);
  assert.equal(result.locations.jack.place,"car");
 });
+
+test("live completed Hook persists Jack's exit when he closes the door behind him",()=>{
+ const previous={actorLocations:{jack:{place:"kitchen",asOfPhase:-1},jill:{place:"kitchen",asOfPhase:-1}}};
+ const story="Jack shoots Jill a quick look and heads for the door leaving the kitchen calendar behind him. Jack's vague promise sticks in the air as he closes the door behind him. Jill stays in the kitchen.";
+ const r=validateActorLocations(previous,story,0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"away");
+ assert.equal(r.locations.jill.place,"kitchen");
+});

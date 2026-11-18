@@ -139,7 +139,15 @@ export function validateActorLocations(previous,story,phase,changes=[]){
    const named=[...context.matchAll(/\b(Jack|Jill)\b/g)];
    return named.at(-1)?.[1]?.toLowerCase()===role;
   });
-  if((exit.test(actual)||pronounDeparture||witness.test(actual)||pronounWitness.test(actual))&&!returned.test(actual)){
+  // A visible household goodbye can finish with a door closing behind
+  // the departing actor, without the narrator explicitly saying "left".
+  // Only commit this when that actor is the one heading for the door.
+  const subjectPronoun=role==="jack"?"he":"she";
+  const objectPronoun=role==="jack"?"him":"her";
+  const doorIntent=new RegExp("\\b"+name+"\\b[^.!?]{0,190}\\bheads?\\s+(?:for|to|toward)\\s+(?:the\\s+)?door\\b","i");
+  const doorFinish=new RegExp("(?:\\b"+name+"\\b[^.!?]{0,160}\\b"+subjectPronoun+"\\b|\\b"+name+"\\b)\\s+clos(?:e|es|ed)\\s+(?:the\\s+)?door\\s+behind\\s+"+objectPronoun+"\\b","i");
+  const completedDoorExit=doorIntent.test(actual)&&doorFinish.test(actual);
+  if((exit.test(actual)||completedDoorExit||pronounDeparture||witness.test(actual)||pronounWitness.test(actual))&&!returned.test(actual)){
    // Only replace the previous location when there is no newer, explicitly
    // established destination later in the scene.
    if(current===(placeOf(state.place)||"unknown"))current="away";

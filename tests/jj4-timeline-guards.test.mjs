@@ -137,3 +137,19 @@ test("Jill exiting does not imply Jack left",()=>{
  const history=[{body:"Jill exited the kitchen while Jack waited by the door, still looking for his keys."}];
  assert.deepEqual(committedTimelineViolation(history,"Jack grabs his keys and walks to the door."),{ok:true});
 });
+
+test("live pilot: a closed front door means Jack already left",()=>{
+ const hook="Jack shoots Jill a quick look and heads for the door leaving the calendar behind him. Jack's vague promise sticks in the air as he closes the door behind him.";
+ const scene2="Jack pauses at the door, his hand on the knob, then turns back hesitantly.";
+ const out=committedTimelineViolation([{body:hook}],scene2);
+ assert.equal(out.ok,false);
+ assert.equal(out.code,"replayed_departure");
+});
+test("live pilot: evening to morning requires a narrated next day",()=>{
+ const previous=[{body:"As the clock inches toward 6 p.m., Jack sends Jill his promised text. Jill reads it."}];
+ const rewind="The familiar buzz of Jack's watch cuts through the morning calm. Jill folds her arms.";
+ const result=committedTimelineViolation(previous,rewind);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"unearned_time_rewind");
+ assert.deepEqual(committedTimelineViolation(previous,"The next morning, Jack takes his watch off while Jill makes coffee."),{ok:true});
+});

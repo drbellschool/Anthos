@@ -21,6 +21,14 @@ function lastPhysicalLocation(history){
 export function committedTimelineViolation(priorHistory,currentScene){
  const prior=sceneBodies(priorHistory),now=text(currentScene);
  if(!prior.length||!now)return {ok:true};
+ // A completed early-evening check-in cannot jump back to the
+ // same morning on the following scene without a narrated day change.
+ const sentSixPm=prior.some(p=>/\b6(?::00)?\s*p\.?\s*m\.?\b/i.test(p)&&
+  /\b(?:sends?|sent|text(?:s|ed)?|messages?|messaged)\b/i.test(p));
+ const morningAgain=/\b(?:morning\s+(?:calm|light|quiet|air|sun)|early\s+morning|next\s+morning|following\s+morning|at\s+breakfast)\b/i.test(now.slice(0,240));
+ const newDay=/\b(?:next|following)\s+(?:day|morning)\b|\b(?:a|one|two|\d+)\s+days?\s+later\b/i.test(now.slice(0,240));
+ if(sentSixPm&&morningAgain&&!newDay)
+  return {ok:false,code:"unearned_time_rewind",reason:"A 6 p.m. text was completed in an earlier scene. Narrate the next day before staging another morning."};
  const committed=prior.join(" ");
  // A completed adjustment cannot be performed as new if no reverse action
  // occurred in between. Checking a watch is NOT the same as fastening it.
@@ -30,6 +38,12 @@ export function committedTimelineViolation(priorHistory,currentScene){
  // front-door goodbye again unless the story showed their return. This guard
  // only catches explicit physical restaging, not phone calls from the car.
  const leftForMeeting=/(?:jack[’']?s?\s+(?:car\s+drives?\s+away|(?:quick|brisk|hurried)\s+exit)|jack[^.!?]{0,110}\b(?:heads?\s+out|left\s+(?:quickly|before|for|the\s+house)|walks?\s+out|exits?\s+(?:the\s+)?house|drives?\s+away)|jack[^.!?]{0,55}\b(?:sat|sits|waits|waited)\s+in\s+(?:his|the)\s+car\b)/i;
+ // A narrated exit may use "Jack heads for the door" followed by
+ // "Jack's ... as he closes the door behind him". This is a finished
+ // departure, not permission to stage the same doorway scene next turn.
+ const closedBehindJack=scene=>
+  /\bjack\b[^.!?]{0,190}\bheads?\s+(?:for|to|toward)\s+(?:the\s+)?door\b/i.test(scene)&&
+  /(?:\bjack\b[^.!?]{0,160}\bhe\b|\bjack\b)\s+clos(?:e|es|ed)\s+(?:the\s+)?door\s+behind\s+him\b/i.test(scene);
  const arrivedBack=/(?:jack[^.!?]{0,80}\b(?:came|comes|returned|returns|arrived|arrives|walked|walks)\s+(?:back\s+)?(?:home|inside|into\s+the\s+(?:house|kitchen))\b)/i;
  // Search the sequence, not one giant combined transcript: a return after a
  // departure clears it, a subsequent fresh departure re-establishes it.
@@ -39,7 +53,7 @@ export function committedTimelineViolation(priorHistory,currentScene){
   // A grounded third-person exit is still a completed departure, even when
   // the narration uses "he exited" instead of repeating Jack's name.
   // Require Jack to be explicitly present; Jill's exit cannot move Jack.
-  if(leftForMeeting.test(past)||(/\bjack\b/i.test(past)&&/\b(?:he|jack)\s+exited\b/i.test(past)))
+  if(leftForMeeting.test(past)||closedBehindJack(past)||(/\bjack\b/i.test(past)&&/\b(?:he|jack)\s+exited\b/i.test(past)))
    jackAlreadyAway=true;
  }
  const replayedDeparture=/\bjack\b[^.!?]{0,95}\b(?:pause(?:s|d)?\s+at\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|(?:stands?|waits?)\s+(?:at|by)\s+(?:the\s+)?(?:kitchen\s+)?door(?:way)?|closes?\s+(?:the\s+)?door|(?:grabs?|reaches?\s+for)\s+(?:his\s+)?keys|(?:hurried|hurries|heads?|walks?)\s+(?:out|to\s+(?:the\s+)?door)|fastens?\s+(?:his\s+)?watch|(?:stands?|sits?)\s+(?:in|at)\s+(?:the\s+)?kitchen)\b/i;
