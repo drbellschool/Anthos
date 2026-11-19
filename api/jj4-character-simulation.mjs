@@ -202,7 +202,7 @@ export function checkSimulationTransition(previous,proposal,story,phase,options=
  // "open the box" often appears in a suggestion or "let's NOT open the box".
  // It must never silently mutate the world state, even if the model proposes
  // an unsupported physical transition.
- const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box|(?:breaks?|broke|peels?|peeled|tears?|tore|cuts?|cut) (?:back )?(?:the )?(?:packing |sealing )?tape (?:on|off|of|sealing) (?:the )?(?:\w+\s+){0,2}box|(?:lifts?|lifted|opens?|opened) (?:the )?(?:box lid|lid of (?:the )?box))\b/gi;
+ const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box|(?:breaks?|broke|peels?|peeled|tears?|tore|cuts?|cut) (?:back )?(?:the )?(?:packing |sealing )?tape (?:on|off|of|sealing) (?:the )?(?:\w+\s+){0,2}box|(?:lifts?|lifted|opens?|opened) (?:the )?(?:box lid|lid of (?:the )?box)|(?:peels?|peeled|removes?|removed|tears?|tore) (?:back )?(?:the )?(?:packing |sealing )?tape from (?:the )?(?:new )?(?:microwave )?box|(?:box[’']s |the )?seal breaks?|(?:opened|opens) (?:the )?flaps of (?:the )?box)\b/gi;
  const didUnseal=(text)=>{
   const source=String(text||"");
   for(const match of source.matchAll(unsealing)){
@@ -263,6 +263,11 @@ export function checkSimulationTransition(previous,proposal,story,phase,options=
  if(priorBox&&afterBox){
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
    return {ok:false,reason:"An opened box was described as unopened without being resealed."};
+  // A new, present-tense opening is impossible once the seal is already broken.
+  // A narrator can recall the past opening, but may not stage it anew.
+  const newOpening=/\b(?:(?:Jack|Jill) (?:opens?|unboxes?) (?:the )?(?:new )?(?:microwave )?box|watches? (?:Jack|Jill) open (?:the )?(?:new )?(?:microwave )?box|(?:Jack|Jill) (?:peels?|tears?) (?:the )?tape from (?:the )?(?:new )?(?:microwave )?box)\b/i;
+  if(priorBox.condition==="opened"&&newOpening.test(story)&&!resealed.test(story))
+   return {ok:false,reason:"The box was already opened; the scene cannot replay its opening."};
   // An observable physical event outranks model-generated state labels.
   if(didUnseal(story)&&afterBox.condition==="sealed"){
    afterBox.condition="opened";

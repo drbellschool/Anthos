@@ -296,3 +296,24 @@ test("a two-character observed event does not guess an actor from a mention",()=
  assert.equal(out.ok,true,out.reason);
  assert.equal(out.event.actor,"Jack");
 });
+
+test("the visible seal breaking is committed even when AI proposes no object changes",()=>{
+ const prior=base();
+ const scene=beat+" Jill peels tape from the new microwave box. The box’s seal breaks with a sharp tear.";
+ const proposal=delta();
+ proposal.objectChanges=[];
+ const result=checkSimulationTransition(prior,proposal,scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects.find(x=>x.id==="replacement_box").condition,"opened");
+});
+test("opening a previously opened box again must be rejected",()=>{
+ const prior=base();
+ prior.objects.find(x=>x.id==="replacement_box").condition="opened";
+ prior.lastPhase=0;
+ const scene="Jack watches Jill open the new microwave box. Jill says she needed to act.";
+ const proposal=delta();
+ proposal.objectChanges=[];
+ const result=checkSimulationTransition(prior,proposal,scene,1);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/already opened/i);
+});

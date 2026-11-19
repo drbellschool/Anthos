@@ -194,3 +194,15 @@ test("two similar sets of keys cannot share a change unless specified",()=>{
  assert.equal(result.ok,true,result.reason);
  assert.equal(result.state.objects[0].location,"counter");
 });
+
+test("visible receipt, repair note and phone enter the private object registry when metadata omitted",()=>{
+ const state=initial();
+ state.events=[{phase:0,actor:"Jack",action:"Read his phone",evidence:"Jack checked the repair note on his phone."}];
+ const prose="Jack checked the repair note on his phone. Jill handed him the receipt from the purchase.";
+ const saved=saveSceneFacts(state,{when:{kind:"unspecified",label:"",evidence:""},objectsIntroduced:[]},prose,0);
+ assert.equal(saved.state.objects.some(x=>x.id==="receipt"),true);
+ assert.equal(saved.state.objects.some(x=>x.id==="repair_note"),true);
+ assert.equal(saved.state.objects.some(x=>x.id==="phone"),true);
+ assert.equal(saved.state.objects.find(x=>x.id==="receipt").location,"unknown");
+ assert.equal(saved.state.objects.find(x=>x.id==="receipt").condition,"unspecified");
+});

@@ -39,6 +39,31 @@ export function saveSceneFacts(state,proposal={},story="",phase=0,{coachedRoles=
    condition:suggestedCondition&&norm(evidence).includes(norm(suggestedCondition))?suggestedCondition:"unspecified",
    firstSeenPhase:phase,lastChangedPhase:phase});
  }
+ // If the scene model omits metadata, still remember visible physical props.
+ // Record identity only; condition/location remain unknown unless witnessed.
+ const props=[
+  ["receipt",/\breceipt\b/i],
+  ["repair_note",/\b(?:repair note|fix it saturday.{0,7}note|note on the broken microwave|taped note)\b/i],
+  ["phone",/\bphone\b/i],
+  ["calendar",/\bcalendar\b/i],
+  ["keys",/\bkeys\b/i],
+  ["watch",/\bwatch\b/i],
+  ["mug",/\bmug\b/i]
+ ];
+ for(const [id,pattern] of props){
+  if(objects.length>=32)break;
+  const mentioned=String(story||"").match(pattern);
+  if(!mentioned)continue;
+  const label=mentioned[0];
+  const aliases={
+   receipt:/\breceipt\b/i,repair_note:/\bnote\b/i,phone:/\bphone\b/i,
+   calendar:/\bcalendar\b/i,keys:/\bkeys\b/i,watch:/\bwatch\b/i,mug:/\bmug\b/i
+  };
+  if(objects.some(x=>x.id===id||aliases[id].test(x.label||"")))continue;
+  objects.push({id,label,location:"unknown",condition:"unspecified",
+   firstSeenPhase:phase,lastChangedPhase:phase});
+  adjustments.push("recognized visible physical prop without model metadata");
+ }
  const event=state.events?.at(-1)||{};
  const lastWhen=state.sceneFacts?.at(-1)?.when||{anchor:"time not established",asOfPhase:-1,evidence:""};
  const proposedTime=metadata.when||{};
