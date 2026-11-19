@@ -110,6 +110,42 @@ export function initialSimulation(episode={}){
   ]:Array.isArray(authored.knownFacts)?authored.knownFacts.slice(0,12).map(x=>limit(x,260)).filter(Boolean):[]
  };
 }
+// Object-state claims need evidence about THIS object, not any action.
+// When two different objects share a noun, a vague reference is insufficient.
+const objectNamedIn=(old,all,evidence)=>{
+ const words=x=>normalize(x).replace(/[^a-z0-9]+/g," ").trim();
+ const text=" "+words(evidence)+" ";
+ const full=words(old.label||old.id);
+ if(full&&text.includes(" "+full+" "))return true;
+ const noun=full.split(/\s+/).at(-1);
+ if(!noun)return false;
+ const collisions=all.filter(x=>words(x.label||x.id).split(/\s+/).at(-1)===noun);
+ if(collisions.length===1&&text.includes(" "+noun+" "))return true;
+ // Historical microwave box: lid, tape or packaging can mean this box.
+ if(old.id==="replacement_box"&&
+    !all.some(x=>x.id!==old.id&&/box|packaging|tape|lid/i.test(x.label||x.id)))
+  return /\b(?:box|packaging|lid|packing tape|sealing tape)\b/i.test(text);
+ return false;
+};
+const conditionWitnessed=(condition,evidence)=>{
+ const value=normalize(condition),text=normalize(evidence);
+ if(!value)return false;
+ if(text.includes(value))return true;
+ const synonyms={
+  opened:/\b(?:opens?|opened|opening|unseal(?:ed|ing)?|peeled|cut open)\b/i,
+  sealed:/\b(?:seal(?:ed|ing)?|taped? shut|closed?)\b/i,
+  resealed:/\b(?:reseal(?:ed|ing)?|retaped|taped? (?:the )?box shut)\b/i,
+  broken:/\b(?:broke|broken|breaks?|snapped|shattered)\b/i,
+  cracked:/\b(?:crack(?:ed|ing|s)?)\b/i,
+  folded:/\b(?:fold(?:ed|s|ing)?)\b/i,
+  empty:/\b(?:empt(?:y|ied)|drained|finished)\b/i,
+  full:/\b(?:filled|full|refilled)\b/i,
+  charged:/\b(?:charg(?:ed|ing)|plugged in)\b/i,
+  lost:/\b(?:lost|missing|misplaced)\b/i,
+  found:/\b(?:found|discovered|recovered)\b/i
+ };
+ return Boolean(synonyms[value]?.test(text));
+};
 export function checkSimulationTransition(previous,proposal,story,phase,options={}){
  if(!previous||previous.version!==SIMULATION_VERSION||
     !Number.isInteger(phase)||previous.lastPhase!==phase-1)
@@ -186,6 +222,10 @@ export function checkSimulationTransition(previous,proposal,story,phase,options=
    adjustments.push("ignored unsupported object-state proposal");
    continue;
   }
+  if(!objectNamedIn(old,next.objects,update.actionEvidence)){
+   adjustments.push("ignored wrong object: change evidence did not name its object");
+   continue;
+  }
   if(old.id==="replacement_box"){
    if(!["sealed","opened","resealed"].includes(update.condition)||
      (old.condition==="sealed"&&update.condition==="resealed")){
@@ -200,7 +240,12 @@ export function checkSimulationTransition(previous,proposal,story,phase,options=
    if(old.condition==="opened"&&update.condition==="sealed")
     return {ok:false,reason:"An opened box cannot return to sealed without a narrated resealing action."};
   }
-  old.condition=limit(update.condition,100);
+  const proposedCondition=limit(update.condition,100);
+  if(proposedCondition&&proposedCondition!==old.condition){
+   if(conditionWitnessed(proposedCondition,update.actionEvidence)){
+    old.condition=proposedCondition;old.lastChangedPhase=phase;
+   }else adjustments.push("ignored unsupported object condition without visible evidence");
+  }
   const proposedLocation=limit(update.location,120);
   if(proposedLocation&&proposedLocation!==old.location){
    // Object relocation needs a visible destination, not an invented position

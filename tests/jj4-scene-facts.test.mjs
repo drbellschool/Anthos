@@ -146,3 +146,51 @@ test("a future reference does not override previously committed scene time",()=>
  assert.match(state.sceneFacts[1].when.anchor,/6:00 p.m./);
  assert.equal(state.sceneFacts[1].when.futureReferences.length,1);
 });
+
+test("a story about a paper note cannot move or break different keys",()=>{
+ const state=initialSimulation({sceneSetting:"kitchen",simulationSeed:{objects:[
+  {id:"brass_keys",condition:"intact",location:"kitchen counter"},
+  {id:"paper_note",condition:"folded",location:"desk"}]}});
+ const scene="Jill folded the paper note and placed it inside Jill's purse. Jack watched quietly.";
+ const p=event("put the note away");
+ p.objectChanges=[{id:"brass_keys",condition:"broken",location:"Jill's purse",
+  actionEvidence:"Jill folded the paper note and placed it inside Jill's purse."}];
+ p.sceneMetadata={when:{kind:"unspecified",label:"",evidence:""},objectsIntroduced:[]};
+ p.newEvent={actor:"Jill",action:"folded a note",
+  evidence:"Jill folded the paper note and placed it inside Jill's purse."};
+ const result=checkSimulationTransition(state,p,scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects[0].condition,"intact");
+ assert.equal(result.state.objects[0].location,"kitchen counter");
+ assert.ok(result.adjustments.some(a=>a.includes("wrong object")));
+});
+test("an object cannot spontaneously become broken when only relocated",()=>{
+ const state=initialSimulation({sceneSetting:"kitchen",simulationSeed:{objects:[
+  {id:"brass_keys",condition:"intact",location:"kitchen counter"}]}});
+ const scene="Jack placed the brass keys inside his jacket pocket.";
+ const p=event("tucked keys into a pocket");
+ p.objectChanges=[{id:"brass_keys",condition:"broken",location:"jacket pocket",
+  actionEvidence:"Jack placed the brass keys inside his jacket pocket."}];
+ p.sceneMetadata={when:{kind:"unspecified",label:"",evidence:""},objectsIntroduced:[]};
+ p.newEvent={actor:"Jack",action:"moved the keys",
+  evidence:"Jack placed the brass keys inside his jacket pocket."};
+ const result=checkSimulationTransition(state,p,scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects[0].condition,"intact");
+ assert.equal(result.state.objects[0].location,"jacket pocket");
+ assert.ok(result.adjustments.some(a=>a.includes("unsupported object condition")));
+});
+test("two similar sets of keys cannot share a change unless specified",()=>{
+ const state=initialSimulation({sceneSetting:"kitchen",simulationSeed:{objects:[
+  {id:"brass_keys",condition:"intact",location:"counter"},
+  {id:"car_keys",condition:"intact",location:"drawer"}]}});
+ const scene="Jack placed the keys in his jacket pocket.";
+ const p=event("moved keys");
+ p.objectChanges=[{id:"brass_keys",condition:"intact",location:"jacket pocket",
+  actionEvidence:"Jack placed the keys in his jacket pocket."}];
+ p.sceneMetadata={when:{kind:"unspecified",label:"",evidence:""},objectsIntroduced:[]};
+ p.newEvent={actor:"Jack",action:"moved keys",evidence:"Jack placed the keys in his jacket pocket."};
+ const result=checkSimulationTransition(state,p,scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects[0].location,"counter");
+});
