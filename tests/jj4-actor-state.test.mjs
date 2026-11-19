@@ -260,3 +260,24 @@ test("verbatim live narrative: He heads for the door and Jack closes it behind h
  assert.equal(r.ok,true,r.reason);
  assert.equal(r.locations.jack.place,"away");
 });
+
+test("live A/B Hook: Jack finally exited commits his departure",()=>{
+ const before={actorLocations:{jack:{place:"kitchen",asOfPhase:-1},jill:{place:"kitchen",asOfPhase:-1}}};
+ const r=validateActorLocations(before,"Jack finally exited. Jill stayed in the kitchen.",0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"away");
+ assert.equal(r.locations.jill.place,"kitchen");
+});
+test("live A/B Hook: He finally exited after Jack grabbed keys",()=>{
+ const before={actorLocations:{jack:{place:"kitchen",asOfPhase:-1},jill:{place:"kitchen",asOfPhase:-1}}};
+ const r=validateActorLocations(before,"Jack grabbed his keys. He finally exited the house. Jill stayed in the kitchen.",0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"away");
+});
+test("Jill exiting does not silently relocate Jack",()=>{
+ const before={actorLocations:{jack:{place:"kitchen",asOfPhase:-1},jill:{place:"kitchen",asOfPhase:-1}}};
+ const r=validateActorLocations(before,"Jack watched. Jill finally exited the house.",0,[]);
+ assert.equal(r.ok,true,r.reason);
+ assert.equal(r.locations.jack.place,"kitchen");
+ assert.equal(r.locations.jill.place,"away");
+});

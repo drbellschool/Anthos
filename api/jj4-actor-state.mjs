@@ -118,11 +118,15 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const name=role==="jack"?"Jack":"Jill";
   const exit=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:left(?:\\s+quickly)?|leaves|depart(?:s|ed)?|heads?\\s+out|headed\\s+out|walks?\\s+out|drove\\s+away|drives?\\s+away)\\b","i");
   const returned=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:returned|returns|came back|comes back|arrived home|arrives home)\\b","i");
+  // A directly named exit is a completed move. Do not count
+  // "Jack watched Jill exit" as Jack leaving.
+  const namedExit=role==="jack"?/\bJack\s+(?:(?:finally|quietly|quickly|abruptly|eventually|then)\s+)?exit(?:s|ed)?\b/i:
+   /\bJill\s+(?:(?:finally|quietly|quickly|abruptly|eventually|then)\s+)?exit(?:s|ed)?\b/i;
   // "He left" and "She left" refer to the named fictional actor only
   // when the most recently named character before the pronoun is that actor.
   // Do not treat arbitrary private dialogue or advice as a physical event.
-  const pronoun=role==="jack"?/\bHe\b[^.!?]{0,85}\b(?:left|leaves|departed|departs|headed\s+out|walked\s+out|drove\s+away)\b/gi:
-   /\bShe\b[^.!?]{0,85}\b(?:left|leaves|departed|departs|headed\s+out|walked\s+out|drove\s+away)\b/gi;
+  const pronoun=role==="jack"?/\bHe\b[^.!?]{0,85}\b(?:left|leaves|departed|departs|headed\s+out|walked\s+out|drove\s+away|(?:finally\s+)?exited)\b/gi:
+   /\bShe\b[^.!?]{0,85}\b(?:left|leaves|departed|departs|headed\s+out|walked\s+out|drove\s+away|(?:finally\s+)?exited)\b/gi;
   // A partner can witness a departure using an object pronoun, e.g.
   // "Jill watched him leave." That is a completed physical move for Jack,
   // not merely a plan to depart. Attribution is explicit and cross-role.
@@ -147,7 +151,7 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const doorIntent=new RegExp("(?:\\b"+name+"\\b|\\b"+subjectPronoun+"\\b)[^.!?]{0,190}\\bheads?\\s+(?:for|to|toward)\\s+(?:the\\s+)?door\\b","i");
   const doorFinish=new RegExp("(?:\\b"+name+"\\b[^.!?]{0,160}\\b"+subjectPronoun+"\\b|\\b"+name+"\\b)\\s+clos(?:e|es|ed)\\s+(?:the\\s+)?door\\s+behind\\s+"+objectPronoun+"\\b","i");
   const completedDoorExit=doorIntent.test(actual)&&doorFinish.test(actual);
-  if((exit.test(actual)||completedDoorExit||pronounDeparture||witness.test(actual)||pronounWitness.test(actual))&&!returned.test(actual)){
+  if((exit.test(actual)||namedExit.test(actual)||completedDoorExit||pronounDeparture||witness.test(actual)||pronounWitness.test(actual))&&!returned.test(actual)){
    // Only replace the previous location when there is no newer, explicitly
    // established destination later in the scene.
    if(current===(placeOf(state.place)||"unknown"))current="away";
