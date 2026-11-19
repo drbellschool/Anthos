@@ -7,6 +7,7 @@ import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs"
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";
 import {committedTimelineViolation} from "./jj4-timeline-guards.mjs";
+import {sceneSettingForPhase} from "./jj4-scene-setting.mjs";
 import {enforcePhaseContract} from "./jj4-phase-contract.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
@@ -287,7 +288,7 @@ async function directScene(room,phaseIndex){
  const input={
   title:room.title,primaryObjective:room.episode.primarySkill,
    participantMode:room.episode.pilotMode||"shared",participatingCoaches:activeRoles(room),
-   sceneSetting:room.episode.sceneSetting,sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
+   sceneSetting:sceneSettingForPhase(room.episode,phaseIndex,sharedHistory,simulationBefore),sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
    jackExample:room.episode.jackExample,jillExample:room.episode.jillExample,
    toneApproach:room.episode.toneApproach,toneIntensity:room.episode.toneIntensity,toneElement:room.episode.toneElement,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
