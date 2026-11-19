@@ -5,7 +5,7 @@ import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
-import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";
+import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence,recoverCoachingEvidence} from "./jj4-quality-guards.mjs";
 import {committedTimelineViolation} from "./jj4-timeline-guards.mjs";
 import {enforcePhaseContract} from "./jj4-phase-contract.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
@@ -392,7 +392,8 @@ async function directScene(room,phaseIndex){
    }
   }
   if(coachingImpact){
-   const groundedTrace=groundCoachingEvidence(story,result.coachingTrace,Object.keys(influence.advice));
+   const modelTrace=groundCoachingEvidence(story,result.coachingTrace,Object.keys(influence.advice));
+   const groundedTrace=recoverCoachingEvidence(story,result,modelTrace,Object.keys(influence.advice));
    const trace=checkCoachingTrace(story,groundedTrace,Object.keys(influence.advice));
    if(trace.ok)result.coachingTrace=groundedTrace;
    if(!trace.ok){
@@ -559,6 +560,8 @@ async function directScene(room,phaseIndex){
   // logging real coaches' private messages or model transcripts.
   console.warn("jj4-generation-exhausted",JSON.stringify({
    phase,attempts,lastGateReason,simulated:simulate,strict:qualityGate}));
+  if(qualityGate)console.warn("jj4-strict-qa-exhausted",JSON.stringify({
+   phase,attempts,lastGateReason}));
   // Explicitly synthetic internal QA rooms can see the reason code. Regular
   // customers still receive only the generic retry notice.
   const qaReason=room.title?.startsWith("QA STAGED ")?
