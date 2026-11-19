@@ -555,9 +555,15 @@ async function directScene(room,phaseIndex){
  }
  if(!story&&lastUsable&&!qualityGate)({result,story,simulationUpdate}=lastUsable);
  if(!story){
-  if(qualityGate)console.warn("jj4-strict-qa-exhausted",JSON.stringify({
-   phase,attempts,lastGateReason}));
-  error("The scene could not be written completely. Retry this scene.",502);
+  // Stable reason codes support production reliability telemetry without
+  // logging real coaches' private messages or model transcripts.
+  console.warn("jj4-generation-exhausted",JSON.stringify({
+   phase,attempts,lastGateReason,simulated:simulate,strict:qualityGate}));
+  // Explicitly synthetic internal QA rooms can see the reason code. Regular
+  // customers still receive only the generic retry notice.
+  const qaReason=room.title?.startsWith("QA STAGED ")?
+   " [QA: "+lastGateReason+"]":"";
+  error("The scene could not be written completely."+qaReason+" Retry this scene.",502);
  }
  const audience=cp?.audience||"none";
  // Validate the speaker, not just the correct delivery audience. Some earlier
