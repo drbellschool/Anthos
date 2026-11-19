@@ -35,7 +35,7 @@ export function initialActorLocations(episode={}){
 const sentences=text=>clean(text).match(/[^.!?]+[.!?]?/g)||[];
 const openingLocation=(sentence,role)=>{
  const name=role==="jack"?"Jack":"Jill";
- const match=sentence.match(/^\s*(?:In|At|On|Inside|By)\s+(?:the\s+)?(motel\s+parking\s+lot|parking\s+lot|car|kitchen|porch|outside|motel\s+office|conference\s+room|meeting\s+room|living\s+room|beach|bedroom)\s*,\s*(Jack|Jill)\b/i);
+ const match=sentence.match(/^\s*(?:In|At|On|Inside|By)\s+(?:the\s+)?(motel\s+parking\s+lot|parking\s+lot|car|kitchen|porch|outside|motel\s+office|conference\s+room|meeting\s+room|living\s+room|beach|bedroom|office|restaurant|yard)\s*,\s*(Jack|Jill)\b/i);
  if(!match||match[2]!==name)return null;
  return {place:placeOf(match[1]),transition:false,evidence:clean(sentence).slice(0,220)};
 };
@@ -107,6 +107,13 @@ export function validateActorLocations(previous,story,phase,changes=[]){
   const observations=sentences(actual).map(s=>observeActor(s,role)).filter(Boolean);
   for(const observation of observations){
    if(!observation.place)continue;
+   // Departing a place does not authorize a free return to that place.
+   const unexplainedReturn=current==="away"&&state.departedFrom&&
+     same(observation.place,state.departedFrom)&&!observation.transition&&
+     !new RegExp("\\b"+(role==="jack"?"Jack":"Jill")+"\\b[^.!?]{0,85}\\b(?:returned|returns|came back|comes back|arrived back|walked back|went back|entered)\\b","i").test(actual);
+   if(unexplainedReturn)
+    return {ok:false,reason:role+" returned to "+state.departedFrom+
+      " without narrated travel. The last committed position was away."};
    if(!["unknown","away","inside"].includes(current)&&observation.place!==current&&!observation.transition)
     return {ok:false,reason:role+" appeared at "+observation.place+" without moving from "+current+
       ". Narrate the move or keep the actor at the last committed location."};
@@ -173,7 +180,10 @@ export function validateActorLocations(previous,story,phase,changes=[]){
      handsAtCounter.test(actual)&&
      !/\b(?:returned|came back|went back|walked back|stepped back|entered|walked into)\b[^.!?]{0,65}\b(?:home|house|kitchen|inside)\b/i.test(actual))
     return {ok:false,reason:role+" physically handled an item on the home counter after leaving, with no narrated return."};
-  next[role]={place:current,asOfPhase:current!==state.place?phase:state.asOfPhase??-1};
+  const departingFrom=current==="away"?
+    (state.departedFrom||(["unknown","away"].includes(placeOf(state.place))?"":placeOf(state.place))):"";
+  next[role]={place:current,asOfPhase:current!==state.place?phase:state.asOfPhase??-1,
+   ...(departingFrom?{departedFrom:departingFrom}:{})};
  }
  return {ok:true,locations:next,adjustments};
 }

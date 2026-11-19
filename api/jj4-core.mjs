@@ -7,7 +7,6 @@ import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs"
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence} from "./jj4-quality-guards.mjs";
 import {committedTimelineViolation} from "./jj4-timeline-guards.mjs";
-import {sceneSettingForPhase} from "./jj4-scene-setting.mjs";
 import {enforcePhaseContract} from "./jj4-phase-contract.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
 import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
@@ -74,13 +73,13 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
   if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
- // Simulation is pinned at room creation. Old pilots retain their v4 behavior.
+ // All NEW v4 pilots pin the existing actor, object, and event state.
+ // Previously created rooms retain their recorded engine version.
  const seed=scenario.episode_studio?.simulationSeed;
- if(seed?.enabled===true)draft.simulationSeed=seed;
- const simulate=isContinuityPilot({scenario_id:scenario.id})||seed?.enabled===true;
+ if(seed&&typeof seed==="object")draft.simulationSeed=seed;
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0,
-  ...(simulate?{simulation_state:initialSimulation(draft)}:{})
+  simulation_state:initialSimulation(draft)
  },"POST"))?.[0];
  if(!created?.id)error("Could not create the pilot room.",502);
  const invitations={};
@@ -288,7 +287,7 @@ async function directScene(room,phaseIndex){
  const input={
   title:room.title,primaryObjective:room.episode.primarySkill,
    participantMode:room.episode.pilotMode||"shared",participatingCoaches:activeRoles(room),
-   sceneSetting:sceneSettingForPhase(room.episode,phaseIndex,sharedHistory,simulationBefore),sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
+   sceneSetting:phaseIndex===0?room.episode.sceneSetting:"",sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
    jackExample:room.episode.jackExample,jillExample:room.episode.jillExample,
    toneApproach:room.episode.toneApproach,toneIntensity:room.episode.toneIntensity,toneElement:room.episode.toneElement,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
@@ -351,7 +350,7 @@ async function directScene(room,phaseIndex){
     schema:simulate?SIMULATION_SCENE_SCHEMA:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
     maxTokens:simulate?1900:focusedPilot?1100:1600,timeout:35000});
   }catch(err){
-   if(lastUsable){({result,story,simulationUpdate}=lastUsable);break}
+   if(lastUsable&&!qualityGate){({result,story,simulationUpdate}=lastUsable);break}
    throw err;
   }
   try{story=assembleDirectedScene(result,!!coachingImpact)}
@@ -362,7 +361,7 @@ async function directScene(room,phaseIndex){
   // A compacting pass repairs excessive prose without changing the scene's
   // actions. The editor returns the SAME structured scene contract, so every
   // coaching-evidence and world-state claim is checked against the new text.
-  if(qualityGate&&checkSceneLength(story).words>110){
+  if((qualityGate||simulate)&&checkSceneLength(story).words>110){
    try{
     const edited=await generateStructured({model,key,name:"anthos_jj4_scene_compact_edit",
      schema:simulate?SIMULATION_SCENE_SCHEMA:DIRECTED_SCENE_SCHEMA,
@@ -416,7 +415,7 @@ async function directScene(room,phaseIndex){
   // Synthetic QA must not accept a reset of completed physical actions,
   // an unexplained return to a departed location, or unsupported consensus.
   // Compare against committed story, never against untrusted coach wishes.
-  if(qualityGate){
+  if(qualityGate||simulate){
    const chronology=committedTimelineViolation(sharedHistory,story);
    if(!chronology.ok){
     story=null;lastGateReason=chronology.code;
