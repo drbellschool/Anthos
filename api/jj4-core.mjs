@@ -15,7 +15,7 @@ import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCou
 import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
 import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulationTransition,simulationInstructions} from "./jj4-character-simulation.mjs";
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
-import {checkSceneProgression} from "./jj4-progress-guards.mjs";
+import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
 
@@ -303,6 +303,7 @@ async function directScene(room,phaseIndex){
   personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
   checkpoint:cp,fictionalCharacters:fictionalNames,
   history:sharedHistory.map(m=>({role:"shared",kind:"scene",phase:m.phase,body:scrub(m.body)})),
+  freshnessConstraints:sceneProgressionHints(sharedHistory),
   coachingImpact,
   coachedRoles:influence?Object.keys(influence.advice):[],
   humorRequested,
@@ -330,6 +331,9 @@ async function directScene(room,phaseIndex){
   "You are allowed to show anger, defensiveness, distrust, embarrassment, or resistance without endorsing the underlying claim. Never establish infidelity or wrongdoing as fact based solely on a coach's speculation.",
   "Use humor cues when earned and welcome, but avoid cheesy punchlines, repetitive couch reconciliations, idealized lectures or physical-intimacy pressure. Respect individual needs and boundaries.",
   "Open with a new event in the present, do not summarize the argument or repeat metaphors about an object representing their feelings. Give one small choice a cost in a changed object, a clear refusal, a request answered or a new practical obstacle.",
+  "The freshnessConstraints include specific rhetorical images already used. Retire every spent metaphor or running joke unless a repetition causes a visibly different consequence; do not reuse it as comic filler. Preserve factual details but do not repeat prior dialogue as a supposedly new event.",
+  "Ending a scene with 'the box symbolizes their impasse', 'trust remains fragile', or any narrator commentary is not a consequence. End on a concrete change in the situation: a real refusal, commitment with follow-through, new information, an earned physical action, or a hard obstacle. The coach's advice must visibly matter.",
+  "During REFLECTION, the visible outcome must be different from the prior scene: show what the most recent choice causes now, or one partner exercising a new boundary. Repeating the argument, removing a symbolic note, or touching an unchanged prop is not enough.",
   "Treat every scene as an irreversible next step. Repeating setting and props are context, not developments. Each phase needs one NEW, observable action, refusal, obstacle, decision, or discovery which is not a paraphrase of the preceding scene. Metaphorical sealed boxes and mutual nods do NOT count as consequences.",
   "Sixth Reflection: show a visible earned after-effect of the last choice without adding a new agreement, negotiation or compromise. Do not end on another description of the same untouched prop.",
   "Humor means a specific attempted visual or conversational gag with a visible, individual reaction. A label of tentative humor does not count.",
@@ -439,9 +443,16 @@ async function directScene(room,phaseIndex){
   if(simulate||qualityGate){
    const progress=checkSceneProgression(sharedHistory,story,phaseIndex);
    if(!progress.ok){
-    story=null;lastGateReason="stalled_progression";
-    reviewFeedback=progress.reason+" Keep the committed story facts; advance with a new concrete behavior.";
-    continue;
+    // Editorial quality gets two real correction attempts, but cannot
+    // indefinitely 502 a customer's scene. Factual duplicate scenes remain
+    // a hard block; softer literary repetition warns on the final attempt.
+    if(progress.severity==="hard"||attempt<attempts-1){
+     story=null;lastGateReason="stalled_progression_"+(progress.code||"generic");
+     reviewFeedback=progress.reason+" Keep the committed story facts; advance with a new concrete behavior.";
+     continue;
+    }
+    console.warn("jj4-progress-soft-warning",JSON.stringify({
+     phase:phaseIndex,code:progress.code||"generic"}));
    }
   }
   // Physical scenes must not move the same people between rooms without an

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {checkSceneProgression} from "../api/jj4-progress-guards.mjs";
+import {checkSceneProgression,repeatedRhetoricalImage,sceneProgressionHints,hasNewConsequence} from "../api/jj4-progress-guards.mjs";
 const history=[{body:"Jack promised to check the repair cost tomorrow. Jill agreed to wait to decide whether to open the sealed box."}];
 test("real live reflection repeat fails without concrete after-effect",()=>{
  const last="Jill rests her hands on the kitchen counter, eyes narrowing briefly at the box on the counter, then back to Jack’s guarded face. Jack shifts his stance and manages a shaky smile. I guess this box sitting here is our unspoken agreement — neither opened nor forgotten. With a bitter chuckle, Jill taps the box again. Yeah, a monument to waiting and our misfires. But I’m tired of frozen dinners and broken promises. Jack nods slowly, tension still tight but easing. Jill's poke at the box leaves it exactly where she put it—unopened, a cold truce neither dares thaw tonight. They share a quiet moment charged with lingering frustration and reluctant respect.";
@@ -23,4 +23,41 @@ test("hook and early stages are allowed unresolved conflict",()=>{
 test("current core enforces scene progression for simulated episodes",()=>{
  const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
  assert.match(core,/checkSceneProgression\(sharedHistory,story,phaseIndex\)/);
+});
+
+test("a rerun of the museum-of-broken-promises metaphor is blocked",()=>{
+ const h=[{body:"Jill tapped the sealed box. She called the note a museum of broken promises. Jack winced."}];
+ const s="Jill lifted the lid of the repair manual and quipped that the kitchen had become a museum of broken promises. Jack frowned.";
+ const result=checkSceneProgression(h,s,4);
+ assert.equal(result.ok,false);
+ assert.equal(result.code,"repeated_image");
+ assert.ok(sceneProgressionHints(h).rhetoricalImagesAlreadySpent.length>0);
+});
+test("repeating a physical object is allowed when the action genuinely changes",()=>{
+ const h=[{body:"The unopened box remained on the counter. Jack asked for a time to talk."}];
+ const s="Jill refused to wait another Saturday. She wrote a repair deadline on the calendar and handed the pen to Jack. He agreed to phone the repair shop next morning.";
+ assert.equal(checkSceneProgression(h,s,4).ok,true);
+});
+test("a symbolic final note removal without consequence fails",()=>{
+ const h=[{body:"Jack wrote the reminder. Jill remained guarded. The unopened microwave box represented the argument."}];
+ const s="Jack peeled off the old note and placed it by the box. Jill touched the box. He said it was time the note retired. The box remained a symbol of unresolved tension.";
+ const r=checkSceneProgression(h,s,5);
+ assert.equal(r.ok,false);
+ assert.equal(r.code,"no_after_effect");
+});
+test("a new costly choice in the final scene passes without happy ending",()=>{
+ const h=[{body:"Jack promised to call tomorrow. Jill would not yet agree to return the microwave."}];
+ const s="Jill refused to put the purchase on the credit card. She wrote the spending limit on the family calendar; Jack said he needed to think before agreeing. She left the sealed box on the counter and walked away. He did not follow.";
+ assert.equal(hasNewConsequence(h,s),true);
+ assert.equal(checkSceneProgression(h,s,5).ok,true);
+});
+test("generic late-night kitchen tension is not a repeated image by itself",()=>{
+ const h=[{body:"The couple stood in the kitchen. Jack asked about the money. Jill looked at the microwave."}];
+ const s="Jill called the repair shop on speaker. There was no answer. Jack put the receipt beside the phone and refused to open the new appliance.";
+ assert.equal(repeatedRhetoricalImage(h,s),null);
+});
+test("main engine feeds prior images and soft retries the style failures",()=>{
+ const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
+ assert.match(core,/freshnessConstraints:sceneProgressionHints\(sharedHistory\)/);
+ assert.match(core,/progress.severity==="hard"\|\|attempt<attempts-1/);
 });
