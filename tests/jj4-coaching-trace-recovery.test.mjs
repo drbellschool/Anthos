@@ -42,3 +42,29 @@ test("core calls evidence recovery before rejecting scene",()=>{
  const code=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
  assert.match(code,/recoverCoachingEvidence\(story,result,modelTrace,Object\.keys\(influence\.advice\)\)/);
 });
+
+test("an opposing character reaction is valid fallout evidence",()=>{
+ const beats={
+  opening:"Jill stands beside the microwave.",
+  jackBeat:"Jack wrote a phone reminder to call the repair shop.",
+  jillBeat:"Jill frowned when Jack said he would call tomorrow.",
+  fallout:"The tension remains unresolved."
+ };
+ const story=Object.values(beats).join(" ");
+ const trace=recoverCoachingEvidence(story,beats,{},["jack"]);
+ assert.match(trace.jackEvidence,/Jack wrote a phone reminder/);
+ assert.match(trace.falloutEvidence,/Jill frowned/);
+ assert.equal(checkCoachingTrace(story,trace,["jack"]).ok,true);
+});
+test("abstract emotions do not become invented fallout",()=>{
+ const beats={
+  opening:"Jack waits.",
+  jackBeat:"Jack wrote a phone reminder to call the repair shop.",
+  jillBeat:"Jill understands the importance of communication.",
+  fallout:"Their relationship develops renewed mutual understanding."
+ };
+ const story=Object.values(beats).join(" ");
+ const trace=recoverCoachingEvidence(story,beats,{},["jack"]);
+ assert.equal(trace.falloutEvidence,"");
+ assert.equal(checkCoachingTrace(story,trace,["jack"]).ok,false);
+});

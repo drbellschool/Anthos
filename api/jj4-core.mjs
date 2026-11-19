@@ -397,6 +397,9 @@ async function directScene(room,phaseIndex){
    const trace=checkCoachingTrace(story,groundedTrace,Object.keys(influence.advice));
    if(trace.ok)result.coachingTrace=groundedTrace;
    if(!trace.ok){
+    // This is a fixed validator reason, not private coaching text.
+    console.warn("jj4-coaching-trace-rejected",JSON.stringify({
+     phase:phaseIndex,reason:trace.reason}));
     lastGateReason="coaching_trace";story=null;reviewFeedback=trace.reason+
      " Include a literal observable decision (including explicit refusal if rejecting the coach) and visible fallout.";
     continue;

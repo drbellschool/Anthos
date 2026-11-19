@@ -166,6 +166,14 @@ function witnessedSentence(beat,character,verbs){
  const s=lines.find(x=>x.length>=20&&named.test(x)&&verbs.test(x));
  return s?s.slice(0,400):"";
 }
+function roleBeatEvidence(story,beat,role){
+ // Never manufacture evidence from a model's claim. Quote the final
+ // scene verbatim, and require the coached character to own an action.
+ const lines=String(beat||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
+ const named=new RegExp("\\b"+role+"\\b","i");
+ return lines.find(x=>x.length>=20&&named.test(x)&&
+  OBSERVABLE_COACH_ACTION.test(x)&&appears(story,x))||"";
+}
 export function recoverCoachingEvidence(story,structured,trace,coachedRoles=[]){
  const grounded=groundCoachingEvidence(story,trace,coachedRoles);
  if(checkCoachingTrace(story,grounded,coachedRoles).ok)return grounded;
@@ -175,12 +183,19 @@ export function recoverCoachingEvidence(story,structured,trace,coachedRoles=[]){
   const field=role+"Evidence";
   if(appears(story,next[field])&&
     new RegExp("\\b"+role+"\\b","i").test(next[field]))continue;
-  const fromBeat=witnessedSentence(structured?.[role+"Beat"],role,OBSERVABLE_COACH_ACTION);
-  if(appears(story,fromBeat))next[field]=fromBeat;
+  const fromBeat=roleBeatEvidence(story,structured?.[role+"Beat"],role);
+  if(fromBeat)next[field]=fromBeat;
  }
  if(!appears(story,next.falloutEvidence)){
-  const fromFallout=witnessedSentence(structured?.fallout,"both",OBSERVABLE_FALLOUT);
-  if(appears(story,fromFallout))next.falloutEvidence=fromFallout;
+  // A reaction by the OTHER character is valid fallout. It need not be
+  // repeated in the dedicated fallout paragraph.
+  const reactions=[
+   witnessedSentence(structured?.fallout,"both",OBSERVABLE_FALLOUT),
+   ...coachedRoles.map(role=>witnessedSentence(
+    structured?.[role==="jack"?"jillBeat":"jackBeat"],
+    role==="jack"?"jill":"jack",OBSERVABLE_FALLOUT))
+  ];
+  next.falloutEvidence=reactions.find(x=>appears(story,x))||"";
  }
  return next;
 }
