@@ -4,6 +4,7 @@
 // State records only fictional behavior, never private real-couple data.
 import {DIRECTED_SCENE_SCHEMA} from "./jj4-causality.mjs";
 import {initialActorLocations,validateActorLocations} from "./jj4-actor-state.mjs";
+import {SCENE_METADATA_SCHEMA,saveSceneFacts} from "./jj4-scene-facts.mjs";
 
 export const SIMULATION_VERSION="character-simulation-v1";
 export const SIMULATION_SCHEMA={
@@ -20,6 +21,7 @@ export const SIMULATION_SCHEMA={
     belief:{type:"string"},beliefEvidence:{type:"string"},
     feltCost:{type:"string"},costEvidence:{type:"string"}},
    required:["position","emotion","decisionEvidence","belief","beliefEvidence","feltCost","costEvidence"]},
+  sceneMetadata:SCENE_METADATA_SCHEMA,
   objectChanges:{type:"array",items:{type:"object",additionalProperties:false,
    properties:{id:{type:"string"},condition:{type:"string"},location:{type:"string"},
     actionEvidence:{type:"string"}},
@@ -35,7 +37,7 @@ export const SIMULATION_SCHEMA={
    properties:{attempted:{type:"boolean"},actionEvidence:{type:"string"},reactionEvidence:{type:"string"}},
    required:["attempted","actionEvidence","reactionEvidence"]},
   openThreads:{type:"array",items:{type:"string"}}
- },required:["jack","jill","objectChanges","actorMoves","newEvent","humor","openThreads"]
+ },required:["jack","jill","sceneMetadata","objectChanges","actorMoves","newEvent","humor","openThreads"]
 };
 export const SIMULATION_SCENE_SCHEMA={
  type:"object",additionalProperties:false,
@@ -98,7 +100,7 @@ export function initialSimulation(episode={}){
    "Whether to keep the $400 replacement microwave bought from emergency savings":
    episode.learningObjective||episode.premise||"The unresolved choice"),260),
   characters,objects:initialObjects,actorLocations:initialActorLocations(episode),
-  events:[],humorBeats:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
+  events:[],sceneFacts:[],humorBeats:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
    isMicrowave?["Decide whether to keep the replacement","Address the unconsulted withdrawal and overdue repair"]:
    ["Explore the central conflict"]).slice(0,8).map(x=>limit(x,200)),
   knownFacts:isMicrowave?[
@@ -108,7 +110,7 @@ export function initialSimulation(episode={}){
   ]:Array.isArray(authored.knownFacts)?authored.knownFacts.slice(0,12).map(x=>limit(x,260)).filter(Boolean):[]
  };
 }
-export function checkSimulationTransition(previous,proposal,story,phase){
+export function checkSimulationTransition(previous,proposal,story,phase,options={}){
  if(!previous||previous.version!==SIMULATION_VERSION||
     !Number.isInteger(phase)||previous.lastPhase!==phase-1)
   return {ok:false,reason:"The previous committed character-state version or phase is invalid."};
@@ -199,7 +201,15 @@ export function checkSimulationTransition(previous,proposal,story,phase){
     return {ok:false,reason:"An opened box cannot return to sealed without a narrated resealing action."};
   }
   old.condition=limit(update.condition,100);
-  old.location=limit(update.location,120);
+  const proposedLocation=limit(update.location,120);
+  if(proposedLocation&&proposedLocation!==old.location){
+   // Object relocation needs a visible destination, not an invented position
+   // silently inserted by the scene model.
+   if(normalize(update.actionEvidence).includes(normalize(proposedLocation))){
+    old.location=proposedLocation;
+    old.lastChangedPhase=phase;
+   }else adjustments.push("ignored object relocation without a visible destination");
+  }
  }
  const priorBox=previous.objects.find(x=>x.id==="replacement_box");
  const afterBox=next.objects.find(x=>x.id==="replacement_box");
@@ -282,6 +292,8 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   next.openThreads.push(t);
   if(next.openThreads.length>=8)break;
  }
+ const savedFacts=saveSceneFacts(next,proposal.sceneMetadata,story,phase,options);
+ adjustments.push(...savedFacts.adjustments);
  return {ok:true,state:next,event:next.events.at(-1),adjustments};
 }
 export const simulationInstructions=[
@@ -295,7 +307,8 @@ export const simulationInstructions=[
 
  "If a character's position changes, include a short EXACT excerpt of the visible scene containing an explicit decision; if unchanged use decisionEvidence as an empty string.",
  "objectChanges includes ONLY objects whose physical condition or location visibly changed. Use one exact evidence excerpt per changed object. If none changed, return [].",
- "actorMoves includes ONLY actual on-stage moves by Jack or Jill. Include role, from (the prior committed actorLocations place), to (the new place), and a verbatim excerpt describing movement. When there is no travel, return []. Do not invent a travel step or relocate someone because of a phone conversation.",
+ "For EVERY scene supply simulation.sceneMetadata.when: label, verbatim 12+ character evidence, and kind=current if this is the scene's ACTUAL present time, kind=future_reference if a character is only mentioning a planned future appointment, or kind=unspecified with empty strings when no time is stated. Never confuse Sunday's scheduled conversation with the clock still being Friday morning. Include every newly introduced physical prop that can be moved, handled, altered, lost, or referenced later (e.g. keys, watch, calendar, receipt, mug, phone), not only the central prop, in sceneMetadata.objectsIntroduced: stable snake_case id, visible label, location and condition only when explicitly witnessed, and exact 12+ character scene evidence. Do not invent objects or time; objects already in state must not be introduced twice. These are private metadata fields, never user-facing dialogue.",
+  "actorMoves includes ONLY actual on-stage moves by Jack or Jill. Include role, from (the prior committed actorLocations place), to (the new place), and a verbatim excerpt describing movement. When there is no travel, return []. Do not invent a travel step or relocate someone because of a phone conversation.",
  "actorLocations are durable facts. Jack cannot reappear in the kitchen after leaving for work without a visible return. The previous person's location is authoritative, even when the narrative voice is tempted to reset the scene.",
  "Object changes must be earned: if the box is opened, it stays opened unless somebody visibly reseals it. Never say 'unopened' about an already opened box.",
  "newEvent must have an exact verbatim excerpt from the visible scene showing what happened THIS SCENE; do not replay previously completed calls.",

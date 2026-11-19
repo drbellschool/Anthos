@@ -14,6 +14,7 @@ import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./j
 import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCount} from "./jj4-continuity.mjs";
 import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
 import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulationTransition,simulationInstructions} from "./jj4-character-simulation.mjs";
+import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
 
@@ -271,7 +272,7 @@ async function directScene(room,phaseIndex){
    humorRequested,
    authoredHumorCue:room.episode.humorNotes||"",
    checkpointHumorCue:room.episode.checkpoints?.find(c=>c.afterPhase===influence.afterPhase)?.humorCue||"",
-   ...(simulate?{charactersAndWorld:simulationBefore}:{}),
+   ...(simulate?{charactersAndWorld:simulationBefore,continuityFacts:sceneFactsForAI(simulationBefore)}:{}),
    ...((focusedPilot||qualityGate)?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
   };
   const plan=await generateStructured({model,key,name:"anthos_jj4_consequence_plan",
@@ -306,13 +307,15 @@ async function directScene(room,phaseIndex){
   humorRequested,
   ...(focusedPilot?{continuity,eventLedger:ledgerPrompt(eventLedger,phase)}:{}),
   ...(simulate?{characterSimulation:simulationBefore,
-   actorWorldPosition:simulationBefore?.actorLocations||null}:{} )
+   actorWorldPosition:simulationBefore?.actorLocations||null,
+   continuityFacts:sceneFactsForAI(simulationBefore)}:{} )
  };
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan: preserve its issue, phase purpose and order, character facts, locked text, and earned closure target. It is not six fixed speeches, an inevitable smooth journey, or an excuse to fabricate a happy ending when coaching has worsened the situation.",
   "During HOOK, honor the authored initial dilemma literally. If it says a partner defers with vague 'later' and no return time, do not introduce a jointly accepted time before the first private checkpoint. An agreed time is earned through actual later choices, not a narrator improvement.",
   "The field coachingImpact is a MANDATORY causal plan from the private coaching. It is not a suggestion. Write a fresh scene in which Jack visibly does jack.action, Jill visibly does jill.action, and their actions produce coachingImpact.sharedFallout plus personal consequences.",
+  "Carry the private, evidence-grounded continuityFacts forward: who acted, what changed, each character's last known location, the ACTUAL scene time versus future plans, why each acted, and the current object registry. These facts are not user-facing narration. Never move or alter a tracked object without a visible scene action.",
   "Treat eventLedger.alreadyCompletedDoNotReplay as immutable previous ACTIONS, not optional inspiration. A character who left for work cannot perform their first kitchen departure again, and a couple already on a porch cannot travel there again without a visible return. ProposalsNotYetAccepted are NOT agreements.",
   "If coachedRoles includes Jack or Jill, the next scene MUST demonstrate how that character chose to follow, resist, partly accept or misinterpret the specific advised behavior; an unexplained switch to polite compromise does NOT count. Rejecting harsh advice is permitted only if the tension and rejection are explicit in dialogue or action.",
   "After writing the narrative, copy exact 18+ character quotations from the VISIBLE scene into coachingTrace.jackEvidence and/or coachingTrace.jillEvidence for the actual coachedRoles, and coachingTrace.falloutEvidence for the character consequence. These fields are verification references, never private coach quotations. Uncoached roles use empty evidence strings.",
@@ -373,6 +376,7 @@ async function directScene(room,phaseIndex){
       "Remove repetition, speculation, therapy lectures, metaphors and recap. Keep each character's key spoken line or physical choice and the observable fallout. Never invent a fact, retailer term, new action, agreement, or promise.",
       "Preserve jackPrompt and jillPrompt purpose, audience and voice. Every coachingTrace and simulation evidence quotation MUST come directly from your NEW condensed story text, not the previous long draft.",
       "If a world-state change no longer appears in the shortened scene, remove that change from simulation. Keep speaker identities and the existing location unless movement is explicitly narrated.",
+      "Update simulation.sceneMetadata.when and objectsIntroduced to quote only the FINAL compacted scene. Do not invent time or props, and never turn a mentioned future appointment into the scene's present time.",
       "Return the exact same JSON field names and all required schema fields. Prefer 20-28 words per narrative beat, with 105 narrative words maximum."
      ].join(" "),maxTokens:simulate?1700:1200,timeout:30000});
     const compact=assembleDirectedScene(edited,!!coachingImpact);
@@ -461,7 +465,8 @@ async function directScene(room,phaseIndex){
   if(simulate){
    // The database supports the full validated story up to 2,500 characters.
    // A soft stylistic target must not create a customer-visible 502.
-   const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex);
+   const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex,{
+    coachedRoles:influence?Object.keys(influence.advice):[],coachingTrace:result.coachingTrace||{}});
    if(!verified.ok){
     story=null;lastGateReason="invalid_world_state";
     console.warn("jj4-simulation-draft-rejected",JSON.stringify({phase:phaseIndex,reason:verified.reason}));
