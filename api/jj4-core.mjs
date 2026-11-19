@@ -15,6 +15,7 @@ import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCou
 import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
 import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulationTransition,simulationInstructions} from "./jj4-character-simulation.mjs";
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
+import {checkSceneProgression} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
 
@@ -329,6 +330,9 @@ async function directScene(room,phaseIndex){
   "You are allowed to show anger, defensiveness, distrust, embarrassment, or resistance without endorsing the underlying claim. Never establish infidelity or wrongdoing as fact based solely on a coach's speculation.",
   "Use humor cues when earned and welcome, but avoid cheesy punchlines, repetitive couch reconciliations, idealized lectures or physical-intimacy pressure. Respect individual needs and boundaries.",
   "Open with a new event in the present, do not summarize the argument or repeat metaphors about an object representing their feelings. Give one small choice a cost in a changed object, a clear refusal, a request answered or a new practical obstacle.",
+  "Treat every scene as an irreversible next step. Repeating setting and props are context, not developments. Each phase needs one NEW, observable action, refusal, obstacle, decision, or discovery which is not a paraphrase of the preceding scene. Metaphorical sealed boxes and mutual nods do NOT count as consequences.",
+  "Sixth Reflection: show a visible earned after-effect of the last choice without adding a new agreement, negotiation or compromise. Do not end on another description of the same untouched prop.",
+  "Humor means a specific attempted visual or conversational gag with a visible, individual reaction. A label of tentative humor does not count.",
   "HumorRequested is true when a private coach specifically asked for humor. Translate the underlying safe fictional comedy into action without leaking that coach's literal text.",
   "Keep HOOK, CONFLICT and DISCOVERY sufficiently unsettled for a genuine REATTEMPT. OUTCOME can be imperfect but should close the original dilemma. REFLECTION should be grounded, and Sophia provides the research debrief afterward.",
   "Follow EXACTLY the author-configured checkpoint audience, purpose, and wait setting. Ask only those coaches authorized by the checkpoint, privately. Never substitute a generic educational quiz for a consequential decision.",
@@ -424,6 +428,15 @@ async function directScene(room,phaseIndex){
    if(!chronology.ok){
     story=null;lastGateReason=chronology.code;
     reviewFeedback=chronology.reason+" Continue from the actual last on-stage action without repeating it.";
+    continue;
+   }
+  }
+  // Review observable narrative progress, not just chronology or locations.
+  if(simulate||qualityGate){
+   const progress=checkSceneProgression(sharedHistory,story,phaseIndex);
+   if(!progress.ok){
+    story=null;lastGateReason="stalled_progression";
+    reviewFeedback=progress.reason+" Keep the committed story facts; advance with a new concrete behavior.";
     continue;
    }
   }
