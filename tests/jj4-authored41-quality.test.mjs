@@ -79,3 +79,11 @@ test("Sophia's 4.1 reflection distinguishes a true agreement from a stalemate",(
  assert.match(good,/not a grade on your marriage/i);
  assert.notEqual(good,hard);
 });
+
+test("the running tomato-magnet joke pays off only in an earned mutual ending",()=>{
+ const cooperative=exercise(()=>({choice:"own",text:"Acknowledge your part and listen."}));
+ const resistant=exercise(()=>({choice:"own",text:"Don't apologize. It is the other person's fault."}));
+ assert.match(cooperative.scenes[5],/New repair supervisor/);
+ assert.match(cooperative.scenes[5],/attendance record/);
+ assert.doesNotMatch(resistant.scenes[5],/New repair supervisor|attendance record/);
+});
