@@ -459,7 +459,7 @@ function authoredOutcomeBeat(outcome,phase){
   return "Jack returns to the savings withdrawal, and Jill returns to the repair delay. Neither accepts the other's proposed next step. The box remains sealed only because neither opens it; no joint decision has been reached.";
  }
  if(phase===5){
-  if(outcome==="mutual")return "Jack places the receipt beside the budget notebook so they can review actual options tomorrow. Jill agrees to take part in that conversation. No one claims the disagreement has disappeared; they have made one specific joint commitment.";
+  if(outcome==="mutual")return "Jack places the receipt beside the budget notebook. Jill agrees to review their options tomorrow. He moves the smiling tomato magnet from the fridge onto the notebook. \u0027New repair supervisor,\u0027 he says. Jill gives him a reluctant laugh: \u0027It has a better attendance record than you.\u0027 Their agreement is real, but it does not erase the earlier hurt.";
   if(outcome==="jack_ready")return "Jack leaves a note to revisit the issue tomorrow. Jill does not promise to join him. He realizes that taking responsibility himself cannot force her to be ready.";
   if(outcome==="jill_ready")return "Jill leaves the receipt on the counter rather than packing it away. Jack has not agreed to a plan. Her willingness to try again is real, but it is not a mutual repair.";
   if(outcome==="partial")return "Both agree that there is more to discuss, but neither commits to a specific solution. The appliance decision and the question of shared spending remain unresolved.";
