@@ -1,4 +1,4 @@
-import {status,join,advance,coach,ask,pause,resume,sophia} from "./jj4-core.mjs";
+import {status,join,advance,coach,choose,ask,pause,resume,sophia} from "./jj4-core.mjs";
 const HEADERS={"Content-Type":"application/json; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(value,statusCode=200)=>new Response(JSON.stringify(value),{status:statusCode,headers:HEADERS});
 export default {async fetch(request){
@@ -17,6 +17,7 @@ export default {async fetch(request){
   switch(body.action){
    case "join":return json(await join(token,body.name));
    case "advance":return json(await advance(token));
+   case "choice":return json(await choose(token,body.optionId,body.requestKey));
    case "coach":return json(await coach(token,body.message,body.requestKey));
    case "ask":return json(await ask(token,body.message,body.requestKey));
    case "pause":return json(await pause(token));
