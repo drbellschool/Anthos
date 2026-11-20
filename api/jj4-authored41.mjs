@@ -12,10 +12,10 @@ const microwave={
  scenes:[
   "At six ten, Jill sets a sealed microwave box on the kitchen counter. Jack stares at the price printed on the receipt: four hundred dollars, taken from their shared emergency savings. Jill says she finally replaced the old microwave after waiting three weeks for Jack to arrange its repair. Jack says that was not permission to spend the money. Neither is entirely wrong about the frustration. Neither sounds particularly interested in admitting it. The box sits between them like a very expensive third person at dinner.",
   "Five minutes pass in the same kitchen. The new microwave remains sealed on the counter, and the old one still has not been repaired. The fight is no longer about whether the replacement has enough settings. It is about being consulted and being taken seriously. What each of them says next changes whether the other hears an explanation or another accusation.",
-  "At six twenty-two, the receipt lies beside the sealed box. Jack finally admits that seeing the emergency savings used frightened him. Jill admits that three weeks without a working microwave made her feel that her requests were optional. Neither revelation fixes the purchase. It does explain why their argument keeps missing the target.",
-  "At six thirty, they attempt the conversation again without leaving the kitchen. Jack has an opportunity to describe his worries without making Jill the enemy. Jill has an opportunity to explain her frustration without dismissing their shared budget. The box is still unopened, and they are still two people trying to settle one disagreement.",
-  "At six thirty-five, the couple agrees not to open the replacement tonight. They have not established a return policy, and neither pretends to know one. Instead they write down two decisions to revisit tomorrow: whether to keep the appliance after checking real options, and how either spouse should handle an unexpected major purchase. They have not agreed about the past.",
-  "By six forty-two, Jack moves the receipt into a folder, leaving the microwave box sealed on the counter. Jill puts a pen beside the budget notebook. The decision about the appliance is still open. Both know tomorrow will require another conversation, and neither can guarantee that conversation will be easy. Their disagreement remains real."
+  "At six twenty-two, the receipt lies beside the sealed box. The emergency savings and the three-week repair delay are the same facts, but each spouse has a different story about what those facts mean. The question now is whether either can actually hear the fear and frustration beneath the other's argument.",
+  "At six thirty, neither has left the kitchen. Jack still worries about the savings, and Jill still resents the delayed repair. The box is still unopened. One of them tries to restart the conversation; whether it becomes a real attempt or just another argument depends on what each is willing to do next.",
+  "At six thirty-five, the sealed microwave box still sits on the counter. Nobody has checked the store's actual return policy, and neither can claim to know it. The larger question is whether they can make a plan while both still have legitimate, unresolved concerns.",
+  "By six forty-two, the replacement microwave remains sealed in the kitchen. The original repair delay and the surprise withdrawal still happened, regardless of how the conversation went. Tomorrow's possibilities depend on what Jack and Jill actually managed to say and hear tonight."
  ],
  roles:{
   jack:{
@@ -80,12 +80,14 @@ export function selectedAuthoredChoice(episode,role,phase,history=[]){
  return options.find(x=>x.label===selected?.body)||null;
 }
 export function classifyAuthoredFollowup(text){
- const s=String(text||"").toLowerCase();
- if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(s))return "unsafe";
- if(/\b(?:no|never|don't|do not|wrong|blame|fault|punish|ridiculous)\b/.test(s)&&
-   (!/\b(?:apolog|acknowledge|listen|understand|respect|ask)\w*/.test(s)||
-    /\b(?:don't|do not|never)\s+(?:apolog\w*|listen|acknowledg\w*|ask)\b/.test(s)))return "resist";
- if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk)\w*/.test(s))return "engage";
+ const s=String(text||"").toLowerCase().replace(/[’]/g,"'");
+ // A warning AGAINST intimidation is not itself coercive advice.
+ const withoutProhibitions=s.replace(/\b(?:don't|do not|never|please don't|avoid|stop|shouldn't|must not)\s+(?:try to\s+)?(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/g,"[prohibited harm]");
+ if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(withoutProhibitions))return "unsafe";
+ if(/\b(?:don't|do not|never|shouldn't|not going to)\s+(?:try to\s+)?(?:apolog\w*|listen|acknowledg\w*|ask|own)\b/.test(s))return "resist";
+ if(/\b(?:never admit|do not admit|don't admit|no need to apologize|none of this is your fault)\b/.test(s))return "resist";
+ if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk|speak|take responsibility)\w*/.test(s))return "engage";
+ if(/\b(?:it's all (?:his|her|their) fault|blame|punish|teach (?:him|her) a lesson)\b/.test(s))return "resist";
  return "unclear";
 }
 export function authoredCommitment(choice,text){
@@ -106,6 +108,46 @@ export function authoredSignals(episode,history=[]){
    state[role][k]=limit(state[role][k]+factor*delta,0,10);
  }
  return state;
+}
+// Applies only to fiction: derived from the actual saved private coaching acts.
+// Do not convert scores into assessments of the participating real couple.
+function storyOutcome(history=[]){
+ const counts={jack:{engaged:0,opposed:0},jill:{engaged:0,opposed:0}};
+ for(const event of history){
+  if(event.kind!=="coach"||event.phase_index<0||event.phase_index>3||!counts[event.role])continue;
+  const kind=classifyAuthoredFollowup(event.body);
+  if(kind==="engage")counts[event.role].engaged++;
+  else counts[event.role].opposed++;
+ }
+ const j=counts.jack,l=counts.jill;
+ if(j.engaged>=3&&l.engaged>=3&&j.opposed===0&&l.opposed===0)return "mutual";
+ if(j.engaged>=2&&l.engaged<2)return "jack_ready";
+ if(l.engaged>=2&&j.engaged<2)return "jill_ready";
+ if(j.engaged>=2&&l.engaged>=2)return "partial";
+ return "stalemate";
+}
+function authoredOutcomeBeat(outcome,phase){
+ if(phase===2){
+  if(outcome==="mutual"||outcome==="partial")return "Both are beginning to name their own worries. Neither assumes that listening requires endorsing the surprise purchase or the delayed repair.";
+  if(outcome==="jack_ready")return "Jack is beginning to make space for Jill's frustration; Jill is not ready to offer the same openness.";
+  if(outcome==="jill_ready")return "Jill begins to listen to Jack's fear about the savings; Jack still treats her concern as a personal attack.";
+  return "Neither is ready to admit much. Jack keeps returning to the spending, while Jill keeps returning to the unanswered repair request. The deeper fear remains unspoken.";
+ }
+ if(phase===4){
+  if(outcome==="mutual")return "Jack and Jill agree to keep the box sealed tonight. They write a note to check the actual purchase options tomorrow, then discuss future spending before deciding what to do. They still disagree about whose frustration was greater, but both accept the next step.";
+  if(outcome==="jack_ready")return "Jack proposes leaving the box sealed and reviewing the options tomorrow. Jill does not agree yet; she asks why her three weeks of waiting are only now being taken seriously. They have not reached a joint plan.";
+  if(outcome==="jill_ready")return "Jill proposes checking options for the sealed box tomorrow. Jack cannot yet agree and keeps circling back to the emergency fund. There is no jointly accepted plan.";
+  if(outcome==="partial")return "They make some progress explaining their concerns but cannot agree on the next decision. The sealed box remains untouched, and they leave the question of what to do with it open.";
+  return "Jack returns to the savings withdrawal, and Jill returns to the repair delay. Neither accepts the other's proposed next step. The box remains sealed only because neither opens it; no joint decision has been reached.";
+ }
+ if(phase===5){
+  if(outcome==="mutual")return "Jack places the receipt beside the budget notebook so they can review actual options tomorrow. Jill agrees to take part in that conversation. No one claims the disagreement has disappeared; they have made one specific joint commitment.";
+  if(outcome==="jack_ready")return "Jack leaves a note to revisit the issue tomorrow. Jill does not promise to join him. He realizes that taking responsibility himself cannot force her to be ready.";
+  if(outcome==="jill_ready")return "Jill leaves the receipt on the counter rather than packing it away. Jack has not agreed to a plan. Her willingness to try again is real, but it is not a mutual repair.";
+  if(outcome==="partial")return "Both agree that there is more to discuss, but neither commits to a specific solution. The appliance decision and the question of shared spending remain unresolved.";
+  return "Jack remains at the kitchen table while Jill stands by the sink. The unopened box is still there. They have reached no agreement, and tonight's coaching has not repaired their conflict.";
+ }
+ return "";
 }
 export function authoredScene(episode,phase,history=[]){
  const script=episode?.authored41;
@@ -137,15 +179,7 @@ export function authoredScene(episode,phase,history=[]){
   }
  }
  const fictionalSignals=authoredSignals(episode,history);
- if(phase===5){
-  const jackReady=fictionalSignals.jack.accountability>=6;
-  const jillReady=fictionalSignals.jill.accountability>=6;
-  parts.push(jackReady&&jillReady?
-   "Jack owns the weeks of delay and Jill owns the unannounced withdrawal. Neither demands instant agreement; both are ready to revisit the purchase together.":
-   jackReady||jillReady?
-   (jackReady?"Jack":"Jill")+" accepts some responsibility while the other still feels unheard. The plan for tomorrow is fragile, not a finished repair.":
-   "Neither accepts much responsibility yet. They leave the budget notebook on the counter, knowing tomorrow's conversation could be harder than tonight's.");
- }
+ if(phase===2||phase===4||phase===5)parts.push(authoredOutcomeBeat(storyOutcome(history),phase));
  const scene=parts.join(" ");
  if(/\b(?:30.days? to return|return policy is|refund guaranteed)\b/i.test(scene))
   throw new Error("Unverified external return policy in authored scene.");
