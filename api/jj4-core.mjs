@@ -64,7 +64,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  const scenario=await getScenario(scenarioId);
  if(!["shared","individual"].includes(scenario.mode))error("Unsupported episode mode.");
  if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
- let draft=normalizeStudio(scenario.episode_studio,scenario);
+ const draft=normalizeStudio(scenario.episode_studio,scenario);
  draft.pilotMode=scenario.mode;
  const active=scenario.mode==="individual"?[draft.soloCoach]:ROLE;
  if(previousRoomId!==null){
@@ -78,7 +78,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
   error("Finish the primary objective and all six phase summaries before piloting.",409);
  const authored=pilotVersion==="4.1.0";
  if(!authored&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
- if(authored)draft=buildAuthored41(draft);
+ if(authored)Object.assign(draft,buildAuthored41(draft));
  // All NEW v4 pilots pin the existing actor, object, and event state.
  // Previously created rooms retain their recorded engine version.
  const seed=scenario.episode_studio?.simulationSeed;
