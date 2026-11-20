@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {buildAuthored41,authoredScene,authoredCommitment,classifyAuthoredFollowup,authoredSignals} from "../api/jj4-authored41.mjs";
+import {buildAuthored41,authoredScene,authoredCommitment,classifyAuthoredFollowup,authoredSignals,composeAuthored41Closure} from "../api/jj4-authored41.mjs";
 
 const ep=buildAuthored41({title:"The Four-Hundred-Dollar Surprise",pilotMode:"shared"});
 function exercise(pattern){
@@ -64,4 +64,18 @@ test("episode maintains sealed box, buyer, privacy, and six distinct chronology 
  assert.doesNotMatch(txt,/Jack bought|Jack purchased|box (?:was|is) opened|30-day return|guaranteed refund/i);
  assert.doesNotMatch(txt,/I need to hear her perspective|Please ask him what he fears/i,"raw private advice must stay out of the shared narrative");
  for(const scene of a.scenes)assert.ok(scene.length>=80&&scene.length<=2500);
+});
+
+test("Sophia's 4.1 reflection distinguishes a true agreement from a stalemate",()=>{
+ const cooperative=exercise(()=>({choice:"own",text:"Acknowledge the mistake and listen to the other person."}));
+ const hostile=exercise(()=>({choice:"own",text:"Don't apologize; this is all their fault."}));
+ const shape=x=>x.scenes.map((body,phase_index)=>({body,phase_index}));
+ const good=composeAuthored41Closure(ep,shape(cooperative));
+ const hard=composeAuthored41Closure(ep,shape(hostile));
+ assert.match(good,/agreed to leave the new microwave sealed/i);
+ assert.match(hard,/No joint next step was accepted/);
+ assert.doesNotMatch(hard,/agreed to leave the new microwave sealed/i);
+ assert.match(hard,/emotional bid/i);
+ assert.match(good,/not a grade on your marriage/i);
+ assert.notEqual(good,hard);
 });
