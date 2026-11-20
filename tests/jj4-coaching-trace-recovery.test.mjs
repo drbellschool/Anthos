@@ -93,3 +93,16 @@ test("role beat cannot misattribute named opposite character",()=>{
  const trace=recoverCoachingEvidence(story,beats,{},["jill"]);
  assert.equal(checkCoachingTrace(story,trace,["jill"],beats).ok,false);
 });
+
+test("Jill speaking her own line is enough grounded coaching evidence even without model metadata",()=>{
+ const beats={
+ opening:"Jack looks at the sealed box.",
+ jackBeat:"Jack asks Jill to reconsider spending the savings.",
+ jillBeat:"Jill replies, \"I will not return the new microwave until we know the alternatives.\"",
+ fallout:"Jack pulls the chair away from the counter in frustration."
+ };
+ const story=Object.values(beats).join(" ");
+ const trace=recoverCoachingEvidence(story,beats,{},["jill"]);
+ assert.match(trace.jillEvidence,/Jill replies/);
+ assert.equal(checkCoachingTrace(story,trace,["jill"],beats).ok,true);
+});

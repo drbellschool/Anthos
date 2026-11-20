@@ -175,12 +175,18 @@ function witnessedSentence(beat,character,verbs){
  return s?s.slice(0,400):"";
 }
 function roleBeatEvidence(story,beat,role){
- // Never manufacture evidence from a model's claim. Quote the final
- // scene verbatim, and require the coached character to own an action.
+ // The structured schema owns a beat for each fictional character. Evidence
+ // must come verbatim from that beat and depict actual speech or movement.
+ // Requiring model-supplied metadata and a second literal role label caused
+ // false 502s for lines such as "She refuses..." or "'I won't,' she says".
  const lines=String(beat||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
  const subject=new RegExp("^\\s*(?:"+role+"|"+(role==="jack"?"he":"she")+")\\b","i");
- return lines.find(x=>x.length>=20&&OBSERVABLE_COACH_ACTION.test(x)&&
-  appears(story,x)&&subject.test(x))||"";
+ const other=role==="jack"?"jill":"jack";
+ const otherSubject=new RegExp("^\\s*"+other+"\\b","i");
+ const behavior=/\b(?:says?|said|repl(?:y|ies|ied)|ask(?:s|ed)?|refus(?:es|ed)?|declin(?:es|ed)?|choos(?:es|e)?|chose|decid(?:es|ed)?|tell(?:s|ing)?|told|mov(?:es|ed)?|slid|slide(?:s)?|open(?:s|ed)?|put(?:s)?|writ(?:es|ten)?|wrote|plac(?:es|ed)?|fold(?:s|ed)?|look(?:s|ed)?|shak(?:es|ing)?|shook|walk(?:s|ed)?|leave(?:s)?|left|hold(?:s|ing)?|held|keep(?:s|ing)?|kept)\b/i;
+ return lines.find(x=>x.length>=20&&appears(story,x)&&
+   !otherSubject.test(x)&&subject.test(x)&&
+   (behavior.test(x)||/["“”]/.test(x)))||"";
 }
 export function recoverCoachingEvidence(story,structured,trace,coachedRoles=[]){
  const grounded=groundCoachingEvidence(story,trace,coachedRoles);
