@@ -364,12 +364,54 @@ export function classifyAuthoredFollowup(text){
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish|teach (?:him|her) a lesson)\b/.test(s))return "resist";
  return "unclear";
 }
-export function authoredCommitment(choice,text){
+// A bounded, deterministic interpretation of the coach's own words. This does
+// not generate narrative, infer personal traits, or transmit private coaching.
+// Explicit, positive first-step instructions may redirect the initial choice.
+export function interpretAuthoredFollowup(text){
  const kind=classifyAuthoredFollowup(text);
- if(kind==="unsafe")return "I'm not going to intimidate my spouse. That would make this worse, not better.";
+ const original=String(text||"").toLowerCase().replace(/[’]/g,"'");
+ if(kind!=="engage")return {kind,focus:null};
+ const first=original.replace(/^(?:well|actually|instead|i think|please)[,\s]*/g,"");
+ const options=[
+  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my)|take responsibility|say (?:you|i)(?:'re| am| was) sorry)\b/g},
+  {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak))\b/g},
+  {id:"explain",re:/\b(?:explain|share (?:your|his|her) (?:concern|worr|fear)|say why|tell (?:him|her) why|state (?:your|a) boundary|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear))\b/g}
+ ];
+ const matches=options.map(x=>({id:x.id,index:first.search(x.re)})).filter(x=>x.index>=0);
+ matches.sort((a,b)=>a.index-b.index);
+ return {kind,focus:matches[0]?.id||null};
+}
+export function effectiveAuthoredChoice(episode,role,phase,selected,text){
+ const {kind,focus}=interpretAuthoredFollowup(text);
+ if(kind!=="engage"||!focus||!selected||focus===selected.id)return selected;
+ return episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options?.find(x=>x.id===focus)||
+  episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===focus)||selected;
+}
+export function authoredCommitment(choice,text,context={}){
+ const kind=classifyAuthoredFollowup(text);
+ const role=context.role==="jill"?"jill":"jack";
+ const phase=Number.isInteger(context.phase)?context.phase:0;
+ if(kind==="unsafe")return role==="jack"?
+  "I'm angry, but I'm not threatening Jill. That wouldn't repair anything between us.":
+  "I'm frustrated, but I won't intimidate Jack. We need a conversation, not fear.";
  if(kind==="resist")return choice.resist;
- if(kind==="engage")return choice.ack;
- return "I don't know if I caught everything you meant. I'll try the part I understand, but I may need to ask you again afterward.";
+ if(kind==="engage"){
+  const effective=context.episode?
+   effectiveAuthoredChoice(context.episode,role,phase,choice,text):choice;
+  const pivot=effective.id!==choice.id?(role==="jack"?
+   ["You're changing my approach. I thought I should explain, but okay. ",
+    "I was ready to use the reminder as my defense. You're giving me a different first step. ",
+    "All right, I hear a different direction than I expected. ",
+    "So I need to change what I do next, not just change the wording. "][phase]||"All right. ":
+   ["Okay, a change of direction. ",
+    "That shifts what I was going to say about that tomato magnet. ",
+    "You're asking me to try something different with Jack's reaction. ",
+    "That is not the speech I had planned, but it might be better. "][phase]||"All right. "):"";
+  return pivot+(effective.ack||choice.ack);
+ }
+ return role==="jack"?
+  "I'm not sure what action you're suggesting. Are you asking me to own something, explain the money worry, or ask Jill a question?":
+  "I'm missing the advice part. Should I acknowledge my decision, explain my frustration, or ask Jack something?";
 }
 export function authoredSignals(episode,history=[]){
  const state={jack:{accountability:3,defensiveness:7},jill:{accountability:3,defensiveness:7}};
@@ -377,8 +419,9 @@ export function authoredSignals(episode,history=[]){
   const option=selectedAuthoredChoice(episode,role,phase,history);
   const submitted=(history||[]).find(x=>x.role===role&&x.phase_index===phase&&x.kind==="coach");
   if(!option||!submitted)continue;
+  const effective=effectiveAuthoredChoice(episode,role,phase,option,submitted.body);
   const factor=classifyAuthoredFollowup(submitted.body)==="engage"?1:0;
-  for(const [k,delta] of Object.entries(option.deltas||{}))
+  for(const [k,delta] of Object.entries(effective.deltas||option.deltas||{}))
    state[role][k]=limit(state[role][k]+factor*delta,0,10);
  }
  return state;
@@ -435,8 +478,9 @@ export function authoredScene(episode,phase,history=[]){
    const selected=selectedAuthoredChoice(episode,role,phase-1,history);
    const reply=(history||[]).find(x=>x.role===role&&x.phase_index===phase-1&&x.kind==="coach");
    if(!selected||!reply)throw new Error("Cannot advance without both completed private coaching exchanges.");
-   const index=(script.roles[role].options||[]).findIndex(x=>x.id===selected.id);
-   const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===selected.id);
+   const effective=effectiveAuthoredChoice(episode,role,phase-1,selected,reply.body);
+   const index=(script.roles[role].options||[]).findIndex(x=>x.id===effective.id);
+   const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===effective.id);
    const action=beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
    const attitude=classifyAuthoredFollowup(reply.body);
