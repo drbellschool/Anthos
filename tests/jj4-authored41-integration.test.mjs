@@ -10,7 +10,7 @@ import {buildAuthored41} from "../api/jj4-authored41.mjs";
 const url="https://anthos.test/api/jack-jill-v4";
 const roomId="99000000-0000-4000-8000-000000000001";
 const sha=x=>createHash("sha256").update(x).digest("hex");
-function makeFixture(){
+function makeFixture({failSubmitOnce=false}={}){
  const tokens={jack:"J".repeat(43),jill:"L".repeat(43)};
  const episode=buildAuthored41({
   title:"The Four-Hundred-Dollar Surprise",pilotMode:"shared",
@@ -25,7 +25,7 @@ function makeFixture(){
   {id:"99000000-0000-4000-8000-000000000012",room_id:roomId,role:"jill",token_hash:sha(tokens.jill),
    joined_at:null,submitted_phase:-1,first_name:null,paused_at:null}
  ];
- const messages=[];let nextId=1,externalCalls=0;
+ const messages=[];let nextId=1,externalCalls=0,failSubmit=failSubmitOnce;
  const add=(role,kind,phase,body,key=null)=>messages.push({
   id:nextId++,room_id:roomId,role,kind,phase_index:phase,body,
   request_key:key,created_at:"2026-11-20T15:00:00.000Z"});
@@ -86,6 +86,7 @@ function makeFixture(){
    return respond("saved");
   }
   if(name==="rpc/anthos_jj4_submit_coaching"){
+   if(failSubmit){failSubmit=false;return respond({error:"Transient test outage"},503)}
    const p=people.find(x=>x.id===body.p_participant);
    if(room.stage!=="awaiting"||!p||p.joined_at===null||p.submitted_phase===room.phase_index)return respond(false);
    add(p.role,"coach",room.phase_index,body.p_message,body.p_key);
@@ -193,5 +194,36 @@ test("actual JJ4 HTTP route completes six scenes and Sophia with separate privat
   globalThis.fetch=oldFetch;
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
   if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;
+ }
+});
+
+test("transient submission failure does not permanently strand a 4.1 private follow-up",async()=>{
+ const fx=makeFixture({failSubmitOnce:true});
+ const oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY;
+ globalThis.fetch=fx.fakeFetch;process.env.SUPABASE_SECRET_KEY="synthetic-test-key";
+ try{
+  await fx.request("jack","join",{name:"Coach J"});
+  await fx.request("jill","join",{name:"Coach L"});
+  await fx.request("jack","advance");
+  await fx.request("jack","choice",{optionId:"own",requestKey:randomUUID()});
+  const message="Own the delay and listen before defending yourself.";
+  async function send(key){
+   return api.fetch(new Request(url,{method:"POST",headers:{"origin":"https://anthos.test",
+    "content-type":"application/json","x-anthos-v4-invite":fx.tokens.jack},
+    body:JSON.stringify({action:"coach",message,requestKey:key})}));
+  }
+  const first=await send(randomUUID());
+  assert.equal(first.status,502,"the simulated failed downstream RPC should surface as an error");
+  assert.equal(fx.messages.filter(x=>x.role==="jack"&&x.kind==="question").length,2,
+   "follow-up was already saved despite failed submission");
+  assert.equal(fx.messages.filter(x=>x.role==="jack"&&x.kind==="coach").length,0);
+  const retry=await send(randomUUID());
+  assert.equal(retry.status,200,"the same user follow-up should be retryable without getting stuck");
+  const state=await retry.json();
+  assert.equal(state.submitted,true);
+  assert.equal(fx.messages.filter(x=>x.role==="jack"&&x.kind==="coach").length,1);
+ }finally{
+  globalThis.fetch=oldFetch;
+  if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
  }
 });
