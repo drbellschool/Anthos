@@ -50,7 +50,9 @@ test("Already-complete 4.0 rooms can generate Sophia using their old invitation"
  assert.match(core,/rpc\/anthos_jj4_commit_closure/);
  assert.match(core,/kind:"eq.scene"/);
  assert.match(core,/hasSophia/);
- assert.match(core,/researchSources:hasSophia\?RESEARCH_SOURCES/);
+ assert.match(core,/researchSources:hasSophia\?/);
+ assert.match(core,/authored41\?RESEARCH_SOURCES\.filter/);
+ assert.match(core,/:RESEARCH_SOURCES\):\[\]/);
 });
 test("Fictional characters are Jack and Jill, not the real coaches",()=>{
  assert.match(core,/fictionalNames=\{jack:"Jack",jill:"Jill"\}/);
