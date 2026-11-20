@@ -421,7 +421,8 @@ export function authoredSignals(episode,history=[]){
   if(!option||!submitted)continue;
   const effective=effectiveAuthoredChoice(episode,role,phase,option,submitted.body);
   const factor=classifyAuthoredFollowup(submitted.body)==="engage"?1:0;
-  for(const [k,delta] of Object.entries(effective.deltas||option.deltas||{}))
+  const deltas=episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===effective.id)?.deltas||option.deltas||{};
+  for(const [k,delta] of Object.entries(deltas))
    state[role][k]=limit(state[role][k]+factor*delta,0,10);
  }
  return state;
