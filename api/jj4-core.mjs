@@ -803,20 +803,32 @@ export async function coach(token,body,requestKey){
   const selected=selectedAuthoredChoice(room.episode,person.role,room.phase_index,prior||[]);
   if(!selected)error("Choose an approach before replying to your character.",409);
   if((prior||[]).some(x=>x.kind==="coach"))return status(token);
-  const reply=authoredCommitment(selected,words);
-  const paired=await db("rpc/anthos_jj4_store_private_question",{},
-   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
-    p_question:words,p_reply:reply,p_key:requestKey},"POST");
-  if(paired==="limit"||paired==="invalid")error("Your follow-up could not be recorded. Refresh and retry.",409);
-  if(paired==="unavailable")return status(token);
+  // The private reply and phase submission are two existing RPCs. If the reply
+  // was committed but phase submission failed, retry the SAME message without
+  // consuming a third (disallowed) question slot or duplicating character text.
+  const existingFollowup=(prior||[]).filter(x=>x.kind==="question")[1];
+  if(existingFollowup&&existingFollowup.body!==words)
+   error("Your previous message was saved. Please retry that same follow-up to continue.",409);
+  if(!existingFollowup){
+   const reply=authoredCommitment(selected,words);
+   const paired=await db("rpc/anthos_jj4_store_private_question",{},
+    {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+     p_question:words,p_reply:reply,p_key:requestKey},"POST");
+   if(paired==="limit"||paired==="invalid")
+    error("Your follow-up could not be recorded. Refresh and retry.",409);
+   if(paired==="unavailable")return status(token);
+  }
   // Separate deterministic idempotency key: question + reply and coach are distinct rows.
   const hex=sha(requestKey+"-authored41-coach");
   const coachKey=hex.slice(0,8)+"-"+hex.slice(8,12)+"-4"+hex.slice(13,16)+"-a"+
    hex.slice(17,20)+"-"+hex.slice(20,32);
-  await db("rpc/anthos_jj4_submit_coaching",{},
+  const submitted=await db("rpc/anthos_jj4_submit_coaching",{},
    {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
     p_message:words,p_key:coachKey},"POST");
-  return status(token);
+  const state=await status(token);
+  if(submitted!==true&&!state.submitted)
+   error("Your advice was saved but final submission did not complete. Retry to continue.",502);
+  return state;
  }
  if(routing.kind==="question"||routing.kind==="correction")return ask(token,words,requestKey);
  if(person.paused_at)return status(token);
