@@ -124,12 +124,14 @@ export function authoredScene(episode,phase,history=[]){
    if(action.length<20)throw new Error("Missing authored consequence.");
    const attitude=classifyAuthoredFollowup(reply.body);
    const name=role==="jack"?"Jack":"Jill";
+   const focus=selected.id==="own"?"taking responsibility for a mistake":
+    selected.id==="explain"?"explaining the concrete concern":"asking a real question";
    const fallback=attitude==="unsafe"?
-    name+" refuses to intimidate the other person, leaving the original disagreement unresolved.":
+    name+" refuses intimidation and says "+focus+" still deserves a respectful conversation.":
     attitude==="resist"?
-    name+" stays defensive instead of following the earlier plan, and the other person grows more frustrated.":
+    name+" stays defensive about "+focus+", and the other person grows more frustrated.":
     attitude==="unclear"?
-    name+" admits uncertainty and asks for a clearer explanation rather than pretending to understand.":
+    name+" asks for clarification before attempting "+focus+", rather than pretending to understand.":
     action;
    parts.push(fallback);
   }
