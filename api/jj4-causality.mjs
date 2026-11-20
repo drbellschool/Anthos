@@ -2,6 +2,8 @@
 // The authored six-phase plan remains fixed; private advice may change how fictional
 // characters behave within that stage, even when the advice is poor or rejected.
 import {classifyCoachTurn} from "./jj4-response-router.mjs";
+import {COACH_TRACE_SCHEMA} from "./jj4-quality-guards.mjs";
+export {unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-quality-guards.mjs";
 export const ROLE_NAMES=Object.freeze({jack:"Jack",jill:"Jill"});
 const PHASES=Object.freeze(["hook","conflict","discovery","reattempt","outcome","reflection"]);
 const TARGET_ROLES=Object.freeze(["jack","jill"]);
@@ -46,9 +48,12 @@ export const IMPACT_SCHEMA={
    personalConsequence:{type:"string"}
   },required:["stance","concreteAction","personalConsequence"]},
   sharedFallout:{type:"string"},
-  tensionToCarry:{type:"string"}
+  tensionToCarry:{type:"string"},
+  comedicBeat:{type:"object",additionalProperties:false,properties:{
+   attempted:{type:"boolean"},action:{type:"string"},reaction:{type:"string"}
+  },required:["attempted","action","reaction"]}
  },
- required:["jack","jill","sharedFallout","tensionToCarry"]
+ required:["jack","jill","sharedFallout","tensionToCarry","comedicBeat"]
 };
 const count=value=>clean(value).length;
 export function validateImpactPlan(plan){
@@ -57,7 +62,8 @@ export function validateImpactPlan(plan){
   if(!BEHAVIOR.includes(plan[role]?.stance))return false;
   if(count(plan[role].concreteAction)<22||count(plan[role].personalConsequence)<22)return false;
  }
- return count(plan.sharedFallout)>=30&&count(plan.tensionToCarry)>=20;
+ return count(plan.sharedFallout)>=30&&count(plan.tensionToCarry)>=20&&
+  (!plan.comedicBeat?.attempted||(count(plan.comedicBeat.action)>=15&&count(plan.comedicBeat.reaction)>=15));
 }
 
 /** Only fictional behavior is fed to the final narrator, never raw private advice. */
@@ -69,15 +75,21 @@ export function publicBehaviorPlan(plan){
   jill:{stance:plan.jill.stance,action:clean(plan.jill.concreteAction),
    consequence:clean(plan.jill.personalConsequence)},
   sharedFallout:clean(plan.sharedFallout),
-  tensionToCarry:clean(plan.tensionToCarry)
+  tensionToCarry:clean(plan.tensionToCarry),
+  comedicBeat:{
+   attempted:plan.comedicBeat?.attempted===true,
+   action:clean(plan.comedicBeat?.action),
+   reaction:clean(plan.comedicBeat?.reaction)
+  }
  };
 }
 
 export const DIRECTED_SCENE_SCHEMA={
  type:"object",additionalProperties:false,properties:{
   opening:{type:"string"},jackBeat:{type:"string"},jillBeat:{type:"string"},
-  fallout:{type:"string"},jackPrompt:{type:"string"},jillPrompt:{type:"string"}
- },required:["opening","jackBeat","jillBeat","fallout","jackPrompt","jillPrompt"]
+  fallout:{type:"string"},jackPrompt:{type:"string"},jillPrompt:{type:"string"},
+  coachingTrace:COACH_TRACE_SCHEMA
+ },required:["opening","jackBeat","jillBeat","fallout","jackPrompt","jillPrompt","coachingTrace"]
 };
 
 /** Enforces that the resulting story includes both characters' actions and their

@@ -10,8 +10,12 @@ const testEpisode={title:"The Four-Hundred-Dollar Surprise",
  jillMotivation:"Keep the kitchen usable and assert independence"};
 const base=()=>initialSimulation(testEpisode);
 const delta=()=>({
- jack:{position:"undecided",emotion:"worried",decisionEvidence:""},
- jill:{position:"favor",emotion:"frustrated",decisionEvidence:""},
+ jack:{position:"undecided",emotion:"worried",decisionEvidence:"",
+  belief:"Unannounced spending may endanger our shared savings",beliefEvidence:"",
+  feltCost:"",costEvidence:""},
+ jill:{position:"favor",emotion:"frustrated",decisionEvidence:"",
+  belief:"Jack's missed repair promises leave me to solve daily problems",beliefEvidence:"",
+  feltCost:"",costEvidence:""},
  objectChanges:[],
  newEvent:{actor:"Jack",action:"asked about shared savings",
  evidence:"Jack put the statement beside the microwave"},
@@ -155,4 +159,176 @@ test("simulation writes state atomically with scene and leaves earlier pilots al
  assert.match(core,/simulationEnabled\(latest\)/);
  assert.match(core,/anthos_jj4_commit_simulated_scene/);
  assert.match(core,/SIMULATION_SCENE_SCHEMA/);
+});
+
+test("characters retain independent fears and beliefs after a new scene",()=>{
+ const previous=base(),out=checkSimulationTransition(previous,delta(),beat,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.match(out.state.characters.jack.fear,/financial security/i);
+ assert.match(out.state.characters.jill.fear,/missed promise/i);
+ assert.notEqual(previous.characters.jack.belief,previous.characters.jill.belief);
+ assert.equal(out.state.characters.jack.belief,previous.characters.jack.belief);
+ assert.equal(out.state.characters.jill.belief,previous.characters.jill.belief);
+});
+test("visible Jill interpretation and cost never overwrite Jack's belief",()=>{
+ const previous=base(),p=delta();
+ const JillBelief="Jack is not taking me seriously";
+ p.jill.belief=JillBelief;
+ p.jill.beliefEvidence="Jill says she is not taking his delay lightly.";
+ p.jill.feltCost="Jill feels dismissed.";
+ p.jill.costEvidence="Jill says she feels dismissed by his response.";
+ const scene="Jack looks at the box. Jill says she is not taking his delay lightly. Jill says she feels dismissed by his response.";
+ const out=checkSimulationTransition(previous,p,scene,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.characters.jill.belief,JillBelief);
+ assert.equal(out.state.characters.jill.feltCost,"Jill feels dismissed.");
+ assert.equal(out.state.characters.jack.belief,previous.characters.jack.belief);
+ assert.equal(out.state.characters.jack.feltCost,"");
+});
+test("covert belief edit and other-character evidence cannot silently change Jack",()=>{
+ const previous=base(),p=delta();
+ p.jack.belief="Jill intended to bankrupt us";
+ p.jack.beliefEvidence="Jill says she feels dismissed by his response.";
+ p.jack.feltCost="Jack is devastated";
+ p.jack.costEvidence="Jack silently imagines an entirely new betrayal.";
+ const scene="Jack stands near the counter. Jill says she feels dismissed by his response.";
+ const out=checkSimulationTransition(previous,p,scene,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.state.characters.jack.belief,previous.characters.jack.belief);
+ assert.equal(out.state.characters.jack.feltCost,"");
+ assert.ok(out.adjustments.some(s=>s.includes("belief retained")));
+});
+
+
+test("regression: refusing to open a box cannot mutate persisted physical state",()=>{
+ const previous=base(),proposal=delta();
+ const scene="Jack stands by the sealed box and says, 'Let's not open the box tonight.' Jill nods and writes 'decide tomorrow' on the sealed package.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"sealed");
+});
+test("regression: models cannot turn Jill's explicit refusal into an open box",()=>{
+ const previous=base(),proposal=delta();
+ proposal.objectChanges=[{id:"replacement_box",condition:"opened",location:"kitchen counter",
+  actionEvidence:"Jill says she will not open the box tonight"}];
+ const scene="Jill says she will not open the box tonight. Jack looks upset. The box remains sealed.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"sealed");
+});
+test("regression: conditional discussion cannot count as completed box opening",()=>{
+ const previous=base(),proposal=delta();
+ const scene="Jack says, 'If Jill opened the box, we could not put it back exactly.' Jill crosses her arms. The box is still sealed.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"sealed");
+});
+test("positive unsealing remains durable with a real on-stage action",()=>{
+ const previous=base(),proposal=delta();
+ const scene="Jill opened the microwave box with both hands, then placed the lid on the counter. Jack watched her in silence.";
+ const res=checkSimulationTransition(previous,proposal,scene,0);
+ assert.equal(res.ok,true,res.reason);
+ assert.equal(res.state.objects[0].condition,"opened");
+ const p2=delta();
+ const sequel=checkSimulationTransition(res.state,p2,"Jack says, 'Let's not open the box again.' Jill stands beside him.",1);
+ assert.equal(sequel.ok,true,sequel.reason);
+ assert.equal(sequel.state.objects[0].condition,"opened");
+});
+
+
+test("a different Anthos petal retains its own authored facts, not microwave facts",()=>{
+ const episode={title:"Changing Seasons of Desire",jackMotivation:"Wants connection",jillMotivation:"Needs autonomy",
+  simulationSeed:{enabled:true,knownFacts:["Neither partner owes sex in response to a gift.","Consent must be freely given."],
+   jackBelief:"Jill may be drifting away",jillBelief:"Jack may misunderstand my exhaustion"}};
+ const state=initialSimulation(episode);
+ assert.equal(state.knownFacts.length,2);
+ assert.match(state.knownFacts[0],/gift/);
+ assert.doesNotMatch(state.knownFacts.join(" "),/microwave|\$400/);
+ assert.match(state.characters.jack.belief,/drifting away/);
+ assert.match(state.characters.jill.belief,/misunderstand/);
+});
+
+
+test("Batch 1 regression: the opened microwave box cannot become sealed in Reflection",()=>{
+ const previous=base();
+ const opened=checkSimulationTransition(previous,delta(),"Jill breaks the tape on the microwave box and lifts the lid. Jack watches her.",0);
+ assert.equal(opened.ok,true,opened.reason);
+ assert.equal(opened.state.objects[0].condition,"opened");
+ const next=delta();
+ next.objectChanges=[{id:"replacement_box",condition:"sealed",location:"kitchen counter",
+  actionEvidence:"The sealed microwave box waits quietly on the counter."}];
+ const invalid=checkSimulationTransition(opened.state,next,
+  "Jack places the repair note by the sink. The sealed microwave box waits quietly on the counter. Jill looks away.",1);
+ assert.equal(invalid.ok,false);
+ assert.match(invalid.reason,/opened box/);
+});
+test("Batch 1 regression: a sealed replacement microwave box in prose contradicts an already opened box",()=>{
+ const state=base();state.objects[0].condition="opened";state.lastPhase=0;
+ const r=checkSimulationTransition(state,delta(),
+  "Jack looks at the sealed microwave box, although Jill had opened it. Jill nods.",1);
+ assert.equal(r.ok,false);
+ assert.match(r.reason,/opened box/);
+});
+test("Batch 1 regression: an unsubstantiated structured sealed transition is rejected",()=>{
+ const state=base();state.objects[0].condition="opened";state.lastPhase=0;
+ const proposed=delta();
+ proposed.objectChanges=[{id:"replacement_box",condition:"sealed",location:"kitchen counter",actionEvidence:"Jack shifts the lid on the counter"}];
+ const result=checkSimulationTransition(state,proposed,"Jack shifts the lid on the counter while Jill watches.",1);
+ assert.equal(result.ok,false);
+});
+
+test("QA live event ledger credits Jill rather than Jack for Jill-only quoted action",()=>{
+ const proposal=delta();
+ proposal.newEvent={actor:"Jack",action:"Jack accepted for Jill",
+  evidence:'Jill replied, "Sunday after lunch is better than nothing."'};
+ const story='Jack read his phone. Jill replied, "Sunday after lunch is better than nothing."';
+ const out=checkSimulationTransition(base(),proposal,story,0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.event.actor,"Jill");
+ assert.equal(out.event.action,proposal.newEvent.evidence);
+ assert.ok(out.adjustments.some(x=>/corrected event actor/.test(x)));
+});
+
+test("a two-character observed event does not guess an actor from a mention",()=>{
+ const proposal=delta();
+ proposal.newEvent={actor:"Jack",action:"Jack texted Jill",evidence:"Jack texted Jill a specific time."};
+ const out=checkSimulationTransition(base(),proposal,"Jack texted Jill a specific time. Jill read the message.",0);
+ assert.equal(out.ok,true,out.reason);
+ assert.equal(out.event.actor,"Jack");
+});
+
+test("the visible seal breaking is committed even when AI proposes no object changes",()=>{
+ const prior=base();
+ const scene=beat+" Jill peels tape from the new microwave box. The box’s seal breaks with a sharp tear.";
+ const proposal=delta();
+ proposal.objectChanges=[];
+ const result=checkSimulationTransition(prior,proposal,scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects.find(x=>x.id==="replacement_box").condition,"opened");
+});
+test("opening a previously opened box again must be rejected",()=>{
+ const prior=base();
+ prior.objects.find(x=>x.id==="replacement_box").condition="opened";
+ prior.lastPhase=0;
+ const scene="Jack watches Jill open the new microwave box. Jill says she needed to act.";
+ const proposal=delta();
+ proposal.objectChanges=[];
+ const result=checkSimulationTransition(prior,proposal,scene,1);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/already opened/i);
+});
+
+test("tape cracked and lid slightly open irreversibly updates the box even without AI metadata",()=>{
+ const prior=base();
+ const scene=beat+" Jill cracks the tape but keeps the lid just slightly open, gripping it while looking cautiously at Jack.";
+ const result=checkSimulationTransition(prior,delta(),scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects.find(x=>x.id==="replacement_box").condition,"opened");
+});
+test("real live Scene 5 opening and later unopened description contradict and are rejected",()=>{
+ const prior=base();
+ const scene=beat+" Jill cracks the tape but keeps the lid just slightly open, gripping it while looking cautiously at Jack, marking a boundary against immediate use. This partial opening brings relief yet the unopened box highlights unresolved doubts.";
+ const result=checkSimulationTransition(prior,delta(),scene,0);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/opened the box.*unopened/i);
 });

@@ -1,0 +1,189 @@
+// Durable physical continuity for fictional JJ4 characters.
+// Never derive locations from private coaching or future authored phases.
+// The previous committed state is canonical; new moves need visible evidence.
+const clean=x=>String(x||"").replace(/\s+/g," ").trim();
+const norm=x=>clean(x).toLowerCase().replace(/[’‘]/g,"'").replace(/[“”]/g,'"');
+const placeMap=[
+ ["motel parking lot",/\bmotel\s+parking\s+lot\b/i],
+ ["parking lot",/\bparking\s+lot\b/i],
+ ["motel office",/\bmotel\s+office\b/i],
+ ["conference room",/\bconference\s+room\b/i],
+ ["meeting room",/\bmeeting\s+room\b/i],
+ ["kitchen",/\b(?:kitchen(?:\s+doorway|\s+door|\s+counter)?|front\s+door|family\s+calendar)\b/i],
+ ["porch",/\bporch\b/i],["inside",/\binside\b/i],["outside",/\b(?:outside|doorstep|front steps)\b/i],["car",/\b(?:his|her|the)?\s*car\b/i],
+ ["living room",/\b(?:living\s+room|couch)\b/i],["beach",/\bbeach\b/i],
+ ["lake",/\blakeside\b|\blake\b/i],["yard",/\byard\b/i],
+ ["bedroom",/\bbedroom\b/i],["away",/\baway\b/i],["office",/\boffice\b/i],
+ ["restaurant",/\brestaurant\b/i]
+];
+// Merely sitting in a newly mentioned place does not narrate travel there.
+// "settled into the car" and "got into the car" do establish a move;
+// "sat in the meeting room" and "got a text" do not.
+const movement=/\b(?:walk(?:s|ed|ing)?|mov(?:es|ed|ing)|step(?:s|ped|ping)?|enter(?:s|ed|ing)?|return(?:s|ed|ing)?|head(?:s|ed|ing)?|go(?:es|ing|ne)?|went|arriv(?:es|ed|ing)|follow(?:s|ed|ing)?|cross(?:es|ed|ing)?|drive(?:s|n)?|drove|slide(?:s|d)?|slid|exit(?:s|ed|ing)?|leave(?:s|ing)?|left|came|comes|come|climb(?:s|ed|ing)?)\b|\b(?:sat|sit|sits|settle(?:s|d)?|got|gets)\s+(?:(?:down|back)\s+)?(?:into|onto)\b/i;
+const placeOf=fragment=>{
+ const t=norm(fragment);
+ for(const [p,pattern] of placeMap)if(pattern.test(t))return p;
+ return "";
+};
+export function initialActorLocations(episode={}){
+ const seed=episode.simulationSeed?.actorLocations||{};
+ const fallback=placeOf(episode.sceneSetting||episode.simulationSeed?.initialLocation||"");
+ const valid=s=>{const location=placeOf(s);return location||"unknown"};
+ return {jack:{place:valid(seed.jack||fallback),asOfPhase:-1},
+  jill:{place:valid(seed.jill||fallback),asOfPhase:-1}};
+}
+const sentences=text=>clean(text).match(/[^.!?]+[.!?]?/g)||[];
+const openingLocation=(sentence,role)=>{
+ const name=role==="jack"?"Jack":"Jill";
+ const match=sentence.match(/^\s*(?:In|At|On|Inside|By)\s+(?:the\s+)?(motel\s+parking\s+lot|parking\s+lot|car|kitchen|porch|outside|motel\s+office|conference\s+room|meeting\s+room|living\s+room|beach|bedroom|office|restaurant|yard)\s*,\s*(Jack|Jill)\b/i);
+ if(!match||match[2]!==name)return null;
+ return {place:placeOf(match[1]),transition:false,evidence:clean(sentence).slice(0,220)};
+};
+const roleSubjects=(sentence,role)=>{
+ const name=role==="jack"?"Jack":"Jill";
+ const regex=new RegExp("\\b"+name+"\\b","ig");
+ const explicit=[...sentence.matchAll(regex)].map(m=>m.index||0);
+ // Jack and Jill have fixed fictional third-person references. Track a
+ // sentence-initial "He"/"She" only when the sentence itself supplies an
+ // unambiguous narrator subject, never a quoted coach direction.
+ const pronoun=role==="jack"?/^(?:\s*["“']?\s*)He\b/:/^(?:\s*["“']?\s*)She\b/;
+ return pronoun.test(sentence)?[0,...explicit]:explicit;
+};
+function observeActor(sentence,role){
+ const fronted=openingLocation(sentence,role);
+ const hits=roleSubjects(sentence,role);
+ if(!hits.length)return fronted;
+ const locations=[];
+ for(const i of hits){
+  const frag=sentence.slice(i,Math.min(i+130,sentence.length));
+  // Don't assign Jill's location to Jack just because she appears later
+  // in the same sentence as the destination.
+  const other=role==="jack"?/\bJill\b/:/\bJack\b/;
+  const cut=frag.search(other);
+  const own=cut>=0?frag.slice(0,cut):frag;
+  const placeMatches=[...own.matchAll(/\b(?:in|at|on|onto|into|inside|by|toward|towards|from|to|entered|entering)\s+(?:the|his|her|their|a)?\s*(?:motel\s+)?(?:(?:small|cramped|busy|quiet|messy|home)\s+){0,2}(?:kitchen(?:\s+doorway)?|front\s+door|porch|inside|outside|doorstep|car|parking\s+lot|motel\s+office|conference\s+room|meeting\s+room|living\s+room|couch|beach|lake(?:side)?|yard|bedroom|office|restaurant)\b|\b(?:stepped|walked|went|headed|came)\s+(?:back\s+)?(?:outside|inside)\b/gi)];
+  const anchored=placeMatches.at(-1);
+  if(!anchored)continue;
+  const place=placeOf(anchored[0]);
+  const verb=own.slice(0,own.indexOf(anchored[0])+anchored[0].length);
+  locations.push({place,transition:movement.test(verb),evidence:clean(own).slice(0,220)});
+ }
+ return locations.at(-1)||fronted||null;
+}
+const same=(a,b)=>norm(a)===norm(b);
+export function validateActorLocations(previous,story,phase,changes=[]){
+ const prev=previous?.actorLocations||{jack:{place:"unknown",asOfPhase:-1},jill:{place:"unknown",asOfPhase:-1}};
+ const next=structuredClone(prev),adjustments=[];
+ const actual=clean(story);
+ if(!actual)return {ok:false,reason:"Missing visible scene for location tracking."};
+ for(const role of ["jack","jill"]){
+  const state=next[role]||{place:"unknown",asOfPhase:-1};
+  let current=placeOf(state.place)||"unknown";
+  const proposed=(Array.isArray(changes)?changes:[]).filter(x=>x?.role===role);
+  for(const p of proposed){
+   const evidence=clean(p.evidence);
+   if(evidence.length<16||!norm(actual).includes(norm(evidence))) {
+    adjustments.push(role+" location change ignored: no verbatim visible evidence");continue;
+   }
+   if(!movement.test(evidence)){
+    adjustments.push(role+" location change ignored: no narrated travel");continue;
+   }
+   if(!new RegExp("\\b"+(role==="jack"?"Jack":"Jill")+"\\b|\\b(?:they|both)\\b","i").test(evidence)){
+    adjustments.push(role+" location change ignored: movement not attributed");continue;
+   }
+   if(!norm(evidence).includes(norm(p.to))){
+    adjustments.push(role+" location change ignored: destination not shown");continue;
+   }
+   const destination=placeOf(p.to);
+   if(!destination||destination==="unknown"){
+    adjustments.push(role+" location change ignored: unknown destination");continue;
+   }
+   if(current!=="unknown"&&p.from&&placeOf(p.from)!=="unknown"&&!same(placeOf(p.from),current))
+    return {ok:false,reason:role+" location proposal began at "+p.from+" while the committed location was "+current+"."};
+   current=destination;
+  }
+  // A direct actor-at-place statement is stronger than ungrounded narration.
+  // A location mismatch is unacceptable unless movement is actually shown.
+  const observations=sentences(actual).map(s=>observeActor(s,role)).filter(Boolean);
+  for(const observation of observations){
+   if(!observation.place)continue;
+   // Departing a place does not authorize a free return to that place.
+   const unexplainedReturn=current==="away"&&state.departedFrom&&
+     same(observation.place,state.departedFrom)&&!observation.transition&&
+     !new RegExp("\\b"+(role==="jack"?"Jack":"Jill")+"\\b[^.!?]{0,85}\\b(?:returned|returns|came back|comes back|arrived back|walked back|went back|entered)\\b","i").test(actual);
+   if(unexplainedReturn)
+    return {ok:false,reason:role+" returned to "+state.departedFrom+
+      " without narrated travel. The last committed position was away."};
+   if(!["unknown","away","inside"].includes(current)&&observation.place!==current&&!observation.transition)
+    return {ok:false,reason:role+" appeared at "+observation.place+" without moving from "+current+
+      ". Narrate the move or keep the actor at the last committed location."};
+   if(observation.transition||["unknown","away","inside"].includes(current))current=observation.place;
+  }
+  // A departure without a named destination is still a physical change.
+  // Persist "away" instead of leaving Jack back in the kitchen on the next
+  // turn. An explicitly narrated return is necessary to clear this state.
+  const name=role==="jack"?"Jack":"Jill";
+  const exit=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:left(?:\\s+quickly)?|leaves|depart(?:s|ed)?|heads?\\s+out|headed\\s+out|walks?\\s+out|drove\\s+away|drives?\\s+away)\\b","i");
+  const returned=new RegExp("\\b"+name+"\\b[^.!?]{0,95}\\b(?:returned|returns|came back|comes back|arrived home|arrives home)\\b","i");
+  // A directly named exit is a completed move. Do not count
+  // "Jack watched Jill exit" as Jack leaving.
+  const namedExit=role==="jack"?/\bJack\s+(?:(?:finally|quietly|quickly|abruptly|eventually|then)\s+)?exit(?:s|ed)?\b/i:
+   /\bJill\s+(?:(?:finally|quietly|quickly|abruptly|eventually|then)\s+)?exit(?:s|ed)?\b/i;
+  // "He left" and "She left" refer to the named fictional actor only
+  // when the most recently named character before the pronoun is that actor.
+  // Do not treat arbitrary private dialogue or advice as a physical event.
+  const pronoun=role==="jack"?/\bHe\b[^.!?]{0,85}\b(?:left|leaves|departed|departs|headed\s+out|walked\s+out|drove\s+away|(?:finally\s+)?exited)\b/gi:
+   /\bShe\b[^.!?]{0,85}\b(?:left|leaves|departed|departs|headed\s+out|walked\s+out|drove\s+away|(?:finally\s+)?exited)\b/gi;
+  // A partner can witness a departure using an object pronoun, e.g.
+  // "Jill watched him leave." That is a completed physical move for Jack,
+  // not merely a plan to depart. Attribution is explicit and cross-role.
+  const witness=role==="jack"?
+   /\bJill\b[^.!?]{0,95}\b(?:watched|watches|saw|sees|heard|hears)\s+(?:him|Jack)\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i:
+   /\bJack\b[^.!?]{0,95}\b(?:watched|watches|saw|sees|heard|hears)\s+(?:her|Jill)\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i;
+  // The actor can be witnessed by an unambiguous opposite-gender
+  // third-person narrator pronoun: "She watches him leave" and vice versa.
+  const pronounWitness=role==="jack"?
+    /\bShe\b[^.!?]{0,80}\b(?:watched|watches|saw|sees)\s+him\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i:
+    /\bHe\b[^.!?]{0,80}\b(?:watched|watches|saw|sees)\s+her\s+(?:leave|depart|walk\s+(?:out|away)|exit|go\s+out)\b/i;
+  const pronounDeparture=[...actual.matchAll(pronoun)].some(match=>{
+   const context=actual.slice(Math.max(0,match.index-260),match.index);
+   const named=[...context.matchAll(/\b(Jack|Jill)\b/g)];
+   return named.at(-1)?.[1]?.toLowerCase()===role;
+  });
+  // A visible household goodbye can finish with a door closing behind
+  // the departing actor, without the narrator explicitly saying "left".
+  // Only commit this when that actor is the one heading for the door.
+  const subjectPronoun=role==="jack"?"he":"she";
+  const objectPronoun=role==="jack"?"him":"her";
+  const doorIntent=new RegExp("(?:\\b"+name+"\\b|\\b"+subjectPronoun+"\\b)[^.!?]{0,190}\\bheads?\\s+(?:for|to|toward)\\s+(?:the\\s+)?door\\b","i");
+  const doorFinish=new RegExp("(?:\\b"+name+"\\b[^.!?]{0,160}\\b"+subjectPronoun+"\\b|\\b"+name+"\\b)\\s+clos(?:e|es|ed)\\s+(?:the\\s+)?door\\s+behind\\s+"+objectPronoun+"\\b","i");
+  const completedDoorExit=doorIntent.test(actual)&&doorFinish.test(actual);
+  if((exit.test(actual)||namedExit.test(actual)||completedDoorExit||pronounDeparture||witness.test(actual)||pronounWitness.test(actual))&&!returned.test(actual)){
+   // Only replace the previous location when there is no newer, explicitly
+   // established destination later in the scene.
+   if(current===(placeOf(state.place)||"unknown"))current="away";
+  }
+  // Departure is a committed transition. A new scene cannot stage the
+  // original household exit again just because it also contains a fresh text
+  // message. Another exit is only possible after a visible return home.
+  const homeContext=/\b(?:kitchen|family\s+calendar|front\s+door|house)\b/i;
+  const homeExit=new RegExp("\\b"+name+"\\b[^.!?]{0,125}\\b(?:rush(?:es|ed)?|hurr(?:ies|ied)|head(?:s|ed)?|walk(?:s|ed)?|step(?:s|ped)?|leave(?:s)?|left|exit(?:s|ed)?)\\b[^.!?]{0,35}\\b(?:out|through|from)\\s+(?:the\\s+)?(?:front\\s+)?door\\b","i");
+  const returnHome=/\b(?:returns?|returned|came|comes|walked|walks|stepped|steps|went|goes)\b[^.!?]{0,80}\b(?:back\\s+)?(?:home|inside|into\\s+(?:the\\s+)?(?:house|kitchen))\b/i;
+  if(["away","outside","car","office"].includes(placeOf(state.place)||"unknown")&&
+     homeContext.test(actual)&&homeExit.test(actual)&&!returnHome.test(actual))
+   return {ok:false,reason:role+" replayed a household doorway departure despite already being away. Only a narrated return can precede another exit."};
+  // Reject physically reusing a household counter after an explicit
+  // departure, unless the actor's on-stage return is visible. Reference to
+  // a counter alone does not relocate them; a hand-on object action does.
+  const handsAtCounter=new RegExp("\\b"+name+"\\b[^.!?]{0,90}\\b(?:slings?|drops?|sets?|puts?|places?|picks?\\s+up|grabs?)\\b[^.!?]{0,95}\\b(?:keys|watch|mug|bag|phone)\\b[^.!?]{0,65}\\b(?:onto|on|off|from)\\s+(?:the\\s+)?(?:kitchen\\s+)?counter\\b","i");
+  if(["away","outside","car"].includes(placeOf(state.place)||"unknown")&&
+     handsAtCounter.test(actual)&&
+     !/\b(?:returned|came back|went back|walked back|stepped back|entered|walked into)\b[^.!?]{0,65}\b(?:home|house|kitchen|inside)\b/i.test(actual))
+    return {ok:false,reason:role+" physically handled an item on the home counter after leaving, with no narrated return."};
+  const departingFrom=current==="away"?
+    (state.departedFrom||(["unknown","away"].includes(placeOf(state.place))?"":placeOf(state.place))):"";
+  next[role]={place:current,asOfPhase:current!==state.place?phase:state.asOfPhase??-1,
+   ...(departingFrom?{departedFrom:departingFrom}:{})};
+ }
+ return {ok:true,locations:next,adjustments};
+}
