@@ -334,6 +334,8 @@ async function directScene(room,phaseIndex){
   "The freshnessConstraints include specific rhetorical images already used. Retire every spent metaphor or running joke unless a repetition causes a visibly different consequence; do not reuse it as comic filler. Preserve factual details but do not repeat prior dialogue as a supposedly new event.",
   "Ending a scene with 'the box symbolizes their impasse', 'trust remains fragile', or any narrator commentary is not a consequence. End on a concrete change in the situation: a real refusal, commitment with follow-through, new information, an earned physical action, or a hard obstacle. The coach's advice must visibly matter.",
   "During REFLECTION, the visible outcome must be different from the prior scene: show what the most recent choice causes now, or one partner exercising a new boundary. Repeating the argument, removing a symbolic note, or touching an unchanged prop is not enough.",
+  "For OUTCOME and REFLECTION, do not narrate any previous agreement as if it were an event. Show an ON-STAGE action performed now: a refusal with a tangible effect, a practical step actually taken, a deliberate boundary exercised, or a fresh obstacle discovered. A character saying 'I will call' without actually calling is NOT follow-through. The next character must react in a distinct way.",
+  "The narrator is a camera, NOT a marriage counselor. Never write that an object 'symbolizes' feelings, that trust 'remains fragile', that tension 'hangs in the air', or that someone 'seeks connection'. If a sentence does not reveal a character's action, spoken words, setting evidence, or consequence, cut it.",
   "Treat every scene as an irreversible next step. Repeating setting and props are context, not developments. Each phase needs one NEW, observable action, refusal, obstacle, decision, or discovery which is not a paraphrase of the preceding scene. Metaphorical sealed boxes and mutual nods do NOT count as consequences.",
   "Sixth Reflection: show a visible earned after-effect of the last choice without adding a new agreement, negotiation or compromise. Do not end on another description of the same untouched prop.",
   "Humor means a specific attempted visual or conversational gag with a visible, individual reaction. A label of tentative humor does not count.",
@@ -351,10 +353,11 @@ async function directScene(room,phaseIndex){
  ].join(" ");
  let result,story,simulationUpdate;
  const attempts=qualityGate?5:simulate?3:focusedPilot?2:influence?2:1;
+ const maxAttempts=simulate&&phaseIndex>=4?Math.max(attempts,5):attempts;
  let reviewFeedback="";
  let lastGateReason="none";
  let lastUsable=null;
- for(let attempt=0;attempt<attempts;attempt++){
+ for(let attempt=0;attempt<maxAttempts;attempt++){
   const draftInput=reviewFeedback?{...input,requiredCorrectionsFromPriorAttempt:reviewFeedback}:input;
   try{
    result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
@@ -446,7 +449,7 @@ async function directScene(room,phaseIndex){
     // Editorial quality gets two real correction attempts, but cannot
     // indefinitely 502 a customer's scene. Factual duplicate scenes remain
     // a hard block; softer literary repetition warns on the final attempt.
-    if(progress.severity==="hard"||attempt<attempts-1){
+    if(progress.severity==="hard"||attempt<maxAttempts-1){
      story=null;lastGateReason="stalled_progression_"+(progress.code||"generic");
      reviewFeedback=progress.reason+" Keep the committed story facts; advance with a new concrete behavior.";
      continue;

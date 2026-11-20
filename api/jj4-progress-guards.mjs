@@ -49,6 +49,33 @@ export function sceneProgressionHints(history=[]){
   requiredNextBeat:"Open on a new, visible event. Each person responds independently; make one choice matter through a consequence or obstacle. Do not repeat prior apologies, jokes, metaphors, or the same decision. End on the actual changed situation, never an abstract description of fragile trust."
  };
 }
+// The prior guard treated "we should talk", "I won't open it" and repeated
+// statements of intent as NEW consequences. Only committed stage actions and
+// distinct decisions can satisfy the final two phases.
+const stageAction=/\b(?:writ(?:es|ten)|wrote|mark(?:s|ed)?|eras(?:es|ed)?|delet(?:es|ed)?|cross(?:es|ed)?\s+out|send(?:s)?|sent|text(?:s|ed)?|call(?:s|ed)?|dial(?:s|ed)?|set(?:s)?\s+(?:a\s+)?(?:reminder|alarm|timer|appointment)|hang(?:s)?\s+up|hung\s+up|put(?:s)?|plac(?:es|ed)?|fold(?:s|ed)?|slides?|slid|hand(?:s|ed)?|pick(?:s|ed)?\s+up|take(?:s)?|took|pack(?:s|ed)?|tape(?:s|d)?|peel(?:s|ed)?|tear(?:s|ing)?|tore|open(?:s|ed)?|clos(?:es|ed)?|turn(?:s|ed)?\s+off|switch(?:es|ed)?\s+off|unplug(?:s|ged)?|plug(?:s|ged)?|walk(?:s|ed)?\s+(?:out|away|into|toward)|leav(?:es|ing)|left|stopp?(?:s|ed)?|sign(?:s|ed)?|pay(?:s|ing)?|paid|refus(?:es|ed)?\s+to|decid(?:es|ed)?\s+to|choos(?:es|e)?\s+to|chose\s+to)\b/i;
+const trivialAction=/\b(?:arms?\s+fold(?:ed|s)?|fold(?:ed|s)?\s+(?:his|her)\s+arms|wip(?:es|ed)?\s+(?:a\s+)?smudge|touch(?:es|ed)?\s+(?:the\s+)?box|tap(?:s|ped)?\s+(?:the\s+)?box|remain(?:s|ed)?|stay(?:s|ed)?|look(?:s|ed)?|smil(?:es|ed)?|nod(?:s|ded)?|shrug(?:s|ged)?|exhal(?:es|ed)?|rub(?:s|bed)?\s+(?:his|her)\s+neck)\b/i;
+function stageEvents(scene){
+ const stripped=String(scene||"").replace(/"[^"]*"/g," ");
+ const parts=stripped.split(/(?<=[.!?])\s+|;\s+/).map(x=>x.trim()).filter(Boolean);
+ return parts.filter(line=>/\b(?:Jack|Jill)\b/i.test(line)&&stageAction.test(line)&&
+   !trivialAction.test(line)&&!/\b(?:will|would|could|might|should|about to|plans to|intends to|hopes to)\b/i.test(line));
+}
+function novelty(history,event){
+ const words=new Set(topicWords(event));
+ const verb=(event.match(stageAction)||[""])[0].toLowerCase();
+ if(!verb||words.size===0)return false;
+ const actor=(event.match(/\b(?:Jack|Jill)\b/i)||[""])[0].toLowerCase();
+ const previous=history.flatMap(h=>stageEvents(h.body||""));
+ return !previous.some(old=>{
+  const oldVerb=(old.match(stageAction)||[""])[0].toLowerCase();
+  const oldActor=(old.match(/\b(?:Jack|Jill)\b/i)||[""])[0].toLowerCase();
+  const shared=[...words].filter(w=>new Set(topicWords(old)).has(w));
+  return oldVerb===verb&&oldActor===actor&&shared.length>=2;
+ });
+}
+export function novelVisibleAfterEffect(history=[],story=""){
+ return stageEvents(story).some(event=>novelty(history,event));
+}
 export function checkSceneProgression(history=[],story="",phaseIndex=0){
  const text=String(story||"").trim();
  if(!text)return {ok:false,reason:"The scene is empty."};
@@ -58,10 +85,16 @@ export function checkSceneProgression(history=[],story="",phaseIndex=0){
  const staleImage=repeatedRhetoricalImage(history,text);
  if(staleImage)return {ok:false,code:"repeated_image",severity:"soft",
   reason:"This scene repeats a previous rhetorical image or joke. Retire that image. Show a new choice or obstacle instead of revisiting the same metaphor."};
+ // A repeated sentence about future intent is not a committed consequence.
+ // In the last two phases this is a hard gate: do not certify a story that
+ // only restates an agreement while a physical prop stays unchanged.
+ if(phaseIndex>=4&&!novelVisibleAfterEffect(history,text))
+  return {ok:false,code:"no_new_event",severity:"hard",
+   reason:"There is no new observable event. Show a distinctly NEW Jack/Jill action, refusal, external obstacle, or cost. It cannot be another statement about waiting or an unchanged box; narrate what actually happens, including the other character's reaction."};
  // A final reflection is earned by an after-effect, not an object's symbolic
  // presence or one more abstract remark about their relationship.
  if(phaseIndex===5&&!hasNewConsequence(history,text))
-  return {ok:false,code:"no_after_effect",severity:"soft",
+  return {ok:false,code:"no_after_effect",severity:"hard",
    reason:"The ending needs an observable new boundary, decision, discovery, practical follow-through or meaningful cost. Another apology, nod, removed note, or object-as-symbol does not count."};
  const ending=String(text).trim().split(/(?<=[.!?])\s+/).slice(-1)[0]||"";
  if(phaseIndex>=2&&symbolicEnding.test(ending)&&!hasNewConsequence(history,text))

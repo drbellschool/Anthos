@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {checkSceneProgression,repeatedRhetoricalImage,sceneProgressionHints,hasNewConsequence} from "../api/jj4-progress-guards.mjs";
+import {checkSceneProgression,repeatedRhetoricalImage,sceneProgressionHints,hasNewConsequence,novelVisibleAfterEffect} from "../api/jj4-progress-guards.mjs";
 const history=[{body:"Jack promised to check the repair cost tomorrow. Jill agreed to wait to decide whether to open the sealed box."}];
 test("real live reflection repeat fails without concrete after-effect",()=>{
  const last="Jill rests her hands on the kitchen counter, eyes narrowing briefly at the box on the counter, then back to Jack’s guarded face. Jack shifts his stance and manages a shaky smile. I guess this box sitting here is our unspoken agreement — neither opened nor forgotten. With a bitter chuckle, Jill taps the box again. Yeah, a monument to waiting and our misfires. But I’m tired of frozen dinners and broken promises. Jack nods slowly, tension still tight but easing. Jill's poke at the box leaves it exactly where she put it—unopened, a cold truce neither dares thaw tonight. They share a quiet moment charged with lingering frustration and reluctant respect.";
@@ -59,5 +59,34 @@ test("generic late-night kitchen tension is not a repeated image by itself",()=>
 test("main engine feeds prior images and soft retries the style failures",()=>{
  const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
  assert.match(core,/freshnessConstraints:sceneProgressionHints\(sharedHistory\)/);
- assert.match(core,/progress.severity==="hard"\|\|attempt<attempts-1/);
+ assert.match(core,/progress.severity==="hard"\|\|attempt<maxAttempts-1/);
+});
+
+test("real latest Scene 6 fails: repeats agreement and a smudge, but no consequence",()=>{
+ const history=[
+ {body:"Jack writes on the fridge, 'Call repair service tomorrow.' Jill replies, 'We will wait for the estimate.'"},
+ {body:"Jill says 'This box stays closed tonight.' Jack agrees to wait for the repair estimate and smiles."}
+ ];
+ const scene="Jack wipes a smudge from the fridge plan. Jill, arms folded by the sealed microwave box, says, 'I’m not opening it before the repair estimate. This box tests if we're syncing.' Jack rubs his neck and admits he should have acted sooner. Jill nods. The box stays untouched, tension palpable.";
+ assert.equal(novelVisibleAfterEffect(history,scene),false);
+ const decision=checkSceneProgression(history,scene,5);
+ assert.equal(decision.ok,false);
+ assert.equal(decision.code,"no_new_event");
+ assert.equal(decision.severity,"hard");
+});
+test("final scene with new visible consequence remains allowed",()=>{
+ const history=[{body:"Jack wrote a repair reminder. Jill said she would wait."}];
+ const scene="Jill leaves the kitchen to heat her dinner on the stove. Jack puts the handwritten reminder in his coat pocket. The old note stays on the microwave. 'I can't fix the past by promising,' Jack says. Jill replies from the stove, 'You could start by showing up tomorrow.'";
+ assert.equal(novelVisibleAfterEffect(history,scene),true);
+ assert.equal(checkSceneProgression(history,scene,5).ok,true);
+});
+test("repeated plan writing is not new merely because the narration changed",()=>{
+ const history=[{body:"Jack writes the repair appointment on his phone calendar."}];
+ const scene="Jack writes the repair appointment in his phone calendar again. Jill stands by the box. Jack tells Jill that the plan now matters. Jill says she is cautiously hopeful.";
+ assert.equal(novelVisibleAfterEffect(history,scene),false);
+ assert.equal(checkSceneProgression(history,scene,5).severity,"hard");
+});
+test("late phase gets additional bounded attempts rather than silently accepting no event",()=>{
+ const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
+ assert.match(core,/const maxAttempts=simulate&&phaseIndex>=4\?Math.max\(attempts,5\):attempts/);
 });
