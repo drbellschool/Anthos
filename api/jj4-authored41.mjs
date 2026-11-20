@@ -188,3 +188,30 @@ export function authoredScene(episode,phase,history=[]){
   jillPrompt:phase<4?script.roles.jill.prompts[phase]:"",
   fictionalSignals};
 }
+
+
+// Sophia 4.1 does not call a story model. It reflects only the outcome already
+// committed to the shared record, never either private coach's actual wording.
+export function composeAuthored41Closure(episode,sharedScenes=[]){
+ const outcome=sharedScenes.find(x=>Number(x.phase_index)===4)?.body||"";
+ const ending=sharedScenes.find(x=>Number(x.phase_index)===5)?.body||"";
+ const proof=outcome+" "+ending;
+ const type=/Jack and Jill agree to keep the box sealed/.test(proof)?"mutual":
+  /Jack proposes leaving the box sealed/.test(proof)?"jack_ready":
+  /Jill proposes checking options/.test(proof)?"jill_ready":
+  /They make some progress explaining/.test(proof)?"partial":
+  /Neither accepts the other's proposed next step/.test(proof)?"stalemate":"unknown";
+ const descriptions={
+  mutual:"Jack and Jill agreed to leave the new microwave sealed and check the available options before deciding. That was a concrete next step, not proof that all their feelings were resolved.",
+  jack_ready:"Jack proposed checking the purchase options together, but Jill was not ready to accept the plan. His effort mattered without becoming a joint agreement.",
+  jill_ready:"Jill suggested reviewing options for the purchase, but Jack did not commit to doing that with her. Her willingness did not erase his concern.",
+  partial:"They made progress in explaining what mattered to each of them, but they still did not agree on the appliance or their next action.",
+  stalemate:"Jack kept returning to the savings withdrawal, and Jill kept returning to the delayed repair. No joint next step was accepted. The box stayed sealed because neither opened it—not because they agreed.",
+  unknown:"The ending did not establish a jointly accepted plan. A calm description of events is not evidence that both people agreed."
+ };
+ return "SOPHIA · A CLOSING THOUGHT\n\n"+
+  "What happened: "+descriptions[type]+"\n\n"+
+  "The research connection: An emotional bid can be an attempt to get a partner's attention or understanding. Responding to the concern behind the words can open a conversation, but listening does not require agreeing. In this story, Jack's worries about shared savings and Jill's frustration about the repair both deserved to be heard. These are fictional choices, not findings about your own marriage.\n\n"+
+  "One thing to try: Name one part of a shared decision you could own, then ask what the situation meant to your spouse. Don't require an immediate agreement.\n\n"+
+  "This story is fictional and is not a grade on your marriage.";
+}
