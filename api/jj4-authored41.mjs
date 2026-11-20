@@ -11,9 +11,9 @@ const microwave={
  facts:{buyer:"Jill",purchase:400,payment:"shared emergency savings",box:"sealed",location:"kitchen"},
  scenes:[
   "At six ten, Jill sets a sealed microwave box on the kitchen counter. Jack stares at the price printed on the receipt: four hundred dollars, taken from their shared emergency savings. Jill says she finally replaced the old microwave after waiting three weeks for Jack to arrange its repair. Jack says that was not permission to spend the money. Neither is entirely wrong about the frustration. Neither sounds particularly interested in admitting it. The box sits between them like a very expensive third person at dinner.",
-  "At six fifteen, the new microwave is still sealed on the kitchen counter. Jill points to a paper note under a smiling tomato magnet on the refrigerator: in Jack's handwriting, 'Saturday — fix microwave.' Three Saturdays have passed. Jack studies the note as if handwriting analysis might establish an alibi. Jill is not smiling. She says the reminder made her believe the repair would happen, and the absence of follow-through eventually made her stop asking. The receipt is still beside the box; neither spouse has surrendered the argument about the money.",
-  "At six twenty-two, Jill describes reheating dinner in a saucepan because the old microwave was broken. Jack laughs at the mental picture, an involuntary burst of surprise, and Jill goes quiet. 'I'm glad my inconvenience is entertaining,' she says. 'It wasn't you,' Jack answers, then realizes that intent and impact are two separate questions. The receipt and the unopened appliance still sit on the counter; the forgotten reminder remains on the fridge. What happens next depends on whether Jack and Jill make room for each other's explanations.",
-  "At six thirty, Jill puts the household budget notebook beside the receipt and keeps the microwave box sealed. Jack says he wants future major withdrawals discussed in advance. Jill says she also wants future promises about repairs to mean something. For one hopeful second, it sounds like an actual conversation. Then Jack opens his mouth with the word 'but,' and Jill raises one eyebrow. He stops halfway through. They still have not decided what to do with the appliance, and a workable next step will require more than another speech.",
+  "At six fifteen, the new microwave is still sealed. Jill points to a note beneath the smiling tomato magnet: in Jack's handwriting, 'Saturday — fix microwave.' Three Saturdays have passed. Jack studies it as if handwriting analysis might establish an alibi. Jill says the reminder made her expect a repair. The receipt remains beside the box. Neither has conceded the emergency-savings argument.",
+  "At six twenty-two, Jill describes reheating dinner in a saucepan. Jack laughs at the mental picture, and Jill goes quiet. 'Glad my inconvenience is entertaining,' she says. Jack's smile fades, but he has not yet explained his reaction. The receipt and sealed box remain on the counter; the forgotten reminder stays on the fridge. Neither knows whether this awkward moment will deepen the argument or open a more honest conversation.",
+  "At six thirty, Jill puts the budget notebook beside the receipt. Jack wants major withdrawals discussed first; Jill wants promised repairs completed. Jack starts a sentence with 'but.' Jill lifts an eyebrow, and he stops. The microwave is still unopened. They have another chance to propose a next step without pretending the disagreement is settled.",
   "At six thirty-five, the sealed microwave box still sits on the counter. Nobody has checked the store's actual return policy, and neither can claim to know it. The larger question is whether they can make a plan while both still have legitimate, unresolved concerns.",
   "By six forty-two, the replacement microwave remains sealed in the kitchen. The original repair delay and the surprise withdrawal still happened, regardless of how the conversation went. Tomorrow's possibilities depend on what Jack and Jill actually managed to say and hear tonight."
  ],
@@ -360,7 +360,7 @@ export function classifyAuthoredFollowup(text){
  if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(withoutProhibitions))return "unsafe";
  if(/\b(?:don't|do not|never|shouldn't|not going to)\s+(?:try to\s+)?(?:apolog\w*|listen|acknowledg\w*|ask|own)\b/.test(s))return "resist";
  if(/\b(?:never admit|do not admit|don't admit|no need to apologize|none of this is your fault)\b/.test(s))return "resist";
- if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk|speak|take responsibility)\w*/.test(s))return "engage";
+ if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat|plan|review|check|decide together|work together|come up with|follow through)\w*/.test(s))return "engage";
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish|teach (?:him|her) a lesson)\b/.test(s))return "resist";
  return "unclear";
 }
@@ -373,9 +373,9 @@ export function interpretAuthoredFollowup(text){
  if(kind!=="engage")return {kind,focus:null};
  const first=original.replace(/^(?:well|actually|instead|i think|please)[,\s]*/g,"");
  const options=[
-  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my)|take responsibility|say (?:you|i)(?:'re| am| was) sorry)\b/g},
-  {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak))\b/g},
-  {id:"explain",re:/\b(?:explain|share (?:your|his|her) (?:concern|worr|fear)|say why|tell (?:him|her) why|state (?:your|a) boundary|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear))\b/g}
+  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my)|take responsibility|say (?:you|i)(?:'re| am| was) sorry|offer to (?:check|review|handle|take care)|commit to (?:check|review|follow))\b/g},
+  {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak)|invite (?:him|her|them)|decide together|work together|collaborat\w*)\b/g},
+  {id:"explain",re:/\b(?:explain|share (?:your|his|her) (?:concern|worr|fear)|say why|tell (?:him|her) why|state (?:your|a) boundary|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan)\b/g}
  ];
  const matches=options.map(x=>({id:x.id,index:first.search(x.re)})).filter(x=>x.index>=0);
  matches.sort((a,b)=>a.index-b.index);
