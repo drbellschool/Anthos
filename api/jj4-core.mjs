@@ -3,7 +3,7 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {buildAuthored41,isAuthored41,authoredOptions,selectedAuthoredChoice,authoredCommitment,authoredScene,composeAuthored41Closure} from "./jj4-authored41.mjs";
+import {buildAuthored41,isAuthored41,authoredOptions,authoredObjection,selectedAuthoredChoice,authoredCommitment,authoredScene,composeAuthored41Closure} from "./jj4-authored41.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence,recoverCoachingEvidence} from "./jj4-quality-guards.mjs";
@@ -772,14 +772,16 @@ export async function choose(token,optionId,requestKey){
  if(room.stage!=="awaiting"||!targetRoles(room).includes(person.role)||
   person.submitted_phase===room.phase_index||person.paused_at)return status(token);
  if(!UUID.test(requestKey||""))error("Invalid coaching request.");
- const option=room.episode.authored41.roles[person.role].options.find(x=>x.id===optionId);
+ const option=authoredOptions(room.episode,person.role,room.phase_index).find(x=>x.id===optionId);
  if(!option||room.phase_index>=4)error("That choice is not available for this scene.",409);
  const history=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
   phase_index:"eq."+room.phase_index,order:"id.asc",select:"role,kind,phase_index,body"});
  if(selectedAuthoredChoice(room.episode,person.role,room.phase_index,history||[]))return status(token);
  const saved=await db("rpc/anthos_jj4_store_private_question",{},
   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
-   p_question:option.label,p_reply:option.objection,p_key:requestKey},"POST");
+   p_question:option.label,
+   p_reply:authoredObjection(room.episode,person.role,room.phase_index,option.id),
+   p_key:requestKey},"POST");
  if(saved==="limit"||saved==="invalid")error("Your coaching choice could not be saved. Refresh and retry.",409);
  return status(token);
 }
