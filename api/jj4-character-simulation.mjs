@@ -202,7 +202,7 @@ export function checkSimulationTransition(previous,proposal,story,phase,options=
  // "open the box" often appears in a suggestion or "let's NOT open the box".
  // It must never silently mutate the world state, even if the model proposes
  // an unsupported physical transition.
- const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box|(?:breaks?|broke|peels?|peeled|tears?|tore|cuts?|cut) (?:back )?(?:the )?(?:packing |sealing )?tape (?:on|off|of|sealing) (?:the )?(?:\w+\s+){0,2}box|(?:lifts?|lifted|opens?|opened) (?:the )?(?:box lid|lid of (?:the )?box)|(?:peels?|peeled|removes?|removed|tears?|tore) (?:back )?(?:the )?(?:packing |sealing )?tape from (?:the )?(?:new )?(?:microwave )?box|(?:box[’']s |the )?seal breaks?|(?:opened|opens) (?:the )?flaps of (?:the )?box)\b/gi;
+ const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box|(?:breaks?|broke|peels?|peeled|tears?|tore|cuts?|cut) (?:back )?(?:the )?(?:packing |sealing )?tape (?:on|off|of|sealing) (?:the )?(?:\w+\s+){0,2}box|(?:lifts?|lifted|opens?|opened) (?:the )?(?:box lid|lid of (?:the )?box)|(?:peels?|peeled|removes?|removed|tears?|tore) (?:back )?(?:the )?(?:packing |sealing )?tape from (?:the )?(?:new )?(?:microwave )?box|(?:box[’']s |the )?seal breaks?|(?:opened|opens) (?:the )?flaps of (?:the )?box|(?:cracks?|cracked|breaks?|broke) (?:the )?(?:packing |sealing )?tape(?: (?:on|of) (?:the )?box)?|(?:lifts?|lifted|raises?|raised) (?:the )?lid (?:a crack|slightly|partly)|lid (?:stays|is|remains) (?:a crack |slightly |partly )?open)\b/gi;
  const didUnseal=(text)=>{
   const source=String(text||"");
   for(const match of source.matchAll(unsealing)){
@@ -261,6 +261,17 @@ export function checkSimulationTransition(previous,proposal,story,phase,options=
  const resealed=/\b(?:resealed|sealed (?:the )?box (?:again|back)|retaped|taped (?:the )?box shut)\b/i;
  const claimsUnopened=/\b(?:unopened(?:\s+\w+){0,3}\s+box|box\s+(?:is|remains|stays)\s+(?:tightly\s+)?(?:sealed|unopened|closed)|still[- ]sealed(?:\s+\w+){0,3}\s+box|sealed(?:\s+\w+){0,3}\s+box|box stays (?:tightly )?sealed)\b/i;
  if(priorBox&&afterBox){
+  // A seal that visibly breaks is an irreversible world event, regardless
+  // of whether the AI remembered to include an objectChanges entry.
+  if(priorBox.condition==="sealed"&&didUnseal(story)){
+   const lastAction=[...String(story).matchAll(unsealing)]
+    .filter(m=>m.index!==undefined).at(-1);
+   const after=lastAction?String(story).slice(lastAction.index+lastAction[0].length):"";
+   if(claimsUnopened.test(after)&&!resealed.test(after))
+    return {ok:false,reason:"The scene opened the box, then incorrectly described it as unopened."};
+   afterBox.condition="opened";
+   afterBox.lastChangedPhase=phase;
+  }
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
    return {ok:false,reason:"An opened box was described as unopened without being resealed."};
   // A new, present-tense opening is impossible once the seal is already broken.

@@ -317,3 +317,18 @@ test("opening a previously opened box again must be rejected",()=>{
  assert.equal(result.ok,false);
  assert.match(result.reason,/already opened/i);
 });
+
+test("tape cracked and lid slightly open irreversibly updates the box even without AI metadata",()=>{
+ const prior=base();
+ const scene=beat+" Jill cracks the tape but keeps the lid just slightly open, gripping it while looking cautiously at Jack.";
+ const result=checkSimulationTransition(prior,delta(),scene,0);
+ assert.equal(result.ok,true,result.reason);
+ assert.equal(result.state.objects.find(x=>x.id==="replacement_box").condition,"opened");
+});
+test("real live Scene 5 opening and later unopened description contradict and are rejected",()=>{
+ const prior=base();
+ const scene=beat+" Jill cracks the tape but keeps the lid just slightly open, gripping it while looking cautiously at Jack, marking a boundary against immediate use. This partial opening brings relief yet the unopened box highlights unresolved doubts.";
+ const result=checkSimulationTransition(prior,delta(),scene,0);
+ assert.equal(result.ok,false);
+ assert.match(result.reason,/opened the box.*unopened/i);
+});

@@ -90,3 +90,13 @@ test("late phase gets additional bounded attempts rather than silently accepting
  const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
  assert.match(core,/const maxAttempts=simulate&&phaseIndex>=4\?Math.max\(attempts,5\):attempts/);
 });
+
+test("latest live Scene 6 cannot claim progress from 'open' used as an adjective",()=>{
+ const history=[
+  {body:"Jack wrote a sticky note calling for a repair estimate. Jill said they would wait."},
+  {body:"Jill cracks the tape but keeps the box lid just slightly open. Jack watches her quietly."}
+ ];
+ const scene='Jack enters the kitchen, eyes on the slightly open microwave box marked by a faded note. Jack cautiously says, "We have not really talked about what happens next." Holding the box, Jill replies, "I am not ready to plug it in yet. I do not want to push while tension is here." Jack nods slowly. Though tension remains, Jill hesitates.';
+ assert.equal(novelVisibleAfterEffect(history,scene),false);
+ assert.equal(checkSceneProgression(history,scene,5).ok,false);
+});

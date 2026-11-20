@@ -52,13 +52,26 @@ export function sceneProgressionHints(history=[]){
 // The prior guard treated "we should talk", "I won't open it" and repeated
 // statements of intent as NEW consequences. Only committed stage actions and
 // distinct decisions can satisfy the final two phases.
-const stageAction=/\b(?:writ(?:es|ten)|wrote|mark(?:s|ed)?|eras(?:es|ed)?|delet(?:es|ed)?|cross(?:es|ed)?\s+out|send(?:s)?|sent|text(?:s|ed)?|call(?:s|ed)?|dial(?:s|ed)?|set(?:s)?\s+(?:a\s+)?(?:reminder|alarm|timer|appointment)|hang(?:s)?\s+up|hung\s+up|put(?:s)?|plac(?:es|ed)?|fold(?:s|ed)?|slides?|slid|hand(?:s|ed)?|pick(?:s|ed)?\s+up|take(?:s)?|took|pack(?:s|ed)?|tape(?:s|d)?|peel(?:s|ed)?|tear(?:s|ing)?|tore|open(?:s|ed)?|clos(?:es|ed)?|turn(?:s|ed)?\s+off|switch(?:es|ed)?\s+off|unplug(?:s|ged)?|plug(?:s|ged)?|walk(?:s|ed)?\s+(?:out|away|into|toward)|leav(?:es|ing)|left|stopp?(?:s|ed)?|sign(?:s|ed)?|pay(?:s|ing)?|paid|refus(?:es|ed)?\s+to|decid(?:es|ed)?\s+to|choos(?:es|e)?\s+to|chose\s+to)\b/i;
+const stageAction=/\b(?:writ(?:es|ten)|wrote|mark(?:s|ed)?|eras(?:es|ed)?|delet(?:es|ed)?|cross(?:es|ed)?\s+out|send(?:s)?|sent|text(?:s|ed)?|call(?:s|ed)?|dial(?:s|ed)?|set(?:s)?\s+(?:a\s+)?(?:reminder|alarm|timer|appointment)|hang(?:s)?\s+up|hung\s+up|put(?:s)?|plac(?:es|ed)?|fold(?:s|ed)?|slides?|slid|hand(?:s|ed)?|pick(?:s|ed)?\s+up|take(?:s)?|took|pack(?:s|ed)?|tape(?:s|d)?|peel(?:s|ed)?|tear(?:s|ing)?|tore|crack(?:s|ed)?|lift(?:s|ed)?|open(?:s|ed)|clos(?:es|ed)?|turn(?:s|ed)?\s+off|switch(?:es|ed)?\s+off|unplug(?:s|ged)?|plug(?:s|ged)?|walk(?:s|ed)?\s+(?:out|away|into|toward)|leav(?:es|ing)|left|stopp?(?:s|ed)?|sign(?:s|ed)?|pay(?:s|ing)?|paid|refus(?:es|ed)?\s+to|decid(?:es|ed)?\s+to|choos(?:es|e)?\s+to|chose\s+to)\b/i;
 const trivialAction=/\b(?:arms?\s+fold(?:ed|s)?|fold(?:ed|s)?\s+(?:his|her)\s+arms|wip(?:es|ed)?\s+(?:a\s+)?smudge|touch(?:es|ed)?\s+(?:the\s+)?box|tap(?:s|ped)?\s+(?:the\s+)?box|remain(?:s|ed)?|stay(?:s|ed)?|look(?:s|ed)?|smil(?:es|ed)?|nod(?:s|ded)?|shrug(?:s|ged)?|exhal(?:es|ed)?|rub(?:s|bed)?\s+(?:his|her)\s+neck)\b/i;
 function stageEvents(scene){
  const stripped=String(scene||"").replace(/"[^"]*"/g," ");
  const parts=stripped.split(/(?<=[.!?])\s+|;\s+/).map(x=>x.trim()).filter(Boolean);
- return parts.filter(line=>/\b(?:Jack|Jill)\b/i.test(line)&&stageAction.test(line)&&
-   !trivialAction.test(line)&&!/\b(?:will|would|could|might|should|about to|plans to|intends to|hopes to)\b/i.test(line));
+ return parts.filter(line=>{
+  // The actor must DO the action. "Jack eyes a box marked by a note" is
+  // description, not Jack marking anything.
+  const actor=/^\s*(?:Jack|Jill)\b(?:,\s*[^,]{0,55},)?/i.exec(line);
+  if(!actor||trivialAction.test(line))return false;
+  const rest=line.slice(actor[0].length);
+  const verb=stageAction.exec(rest);
+  if(!verb)return false;
+  const pre=rest.slice(0,verb.index);
+  if(pre.length>40||/\b(?:enters|watches|sees|looks|replies|says|asks)\b/i.test(pre))
+   return false;
+  if(/\b(?:will|would|could|might|should|about to|plans to|intends to|hopes to)\b/i.test(pre))
+   return false;
+  return true;
+ });
 }
 function novelty(history,event){
  const words=new Set(topicWords(event));
