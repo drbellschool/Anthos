@@ -57,6 +57,271 @@ const microwave={
  }
 };
 
+// Each scene has its own emotional dilemma, objection, consequence and comedy beat.
+// Authored before the session; no model is allowed to invent these events at runtime.
+microwave.coachingCheckpoints={
+ "jack": [
+  {
+   "prompt": "I meant to fix the old microwave, and Jill bought a new one with the emergency savings. I've got a defense ready, plus about three weeks of not fixing anything. What do I say first?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Admit the repair delay",
+     "objection": "You want me to admit I dropped the ball before I even mention the four hundred dollars? My inner attorney just filed an objection.",
+     "ack": "I'll tell her I didn't follow through on Saturday. That isn't permission to raid savings, but it is my responsibility.",
+     "resist": "My mouth is still drafting an excuse. I might need to put the word 'but' on a timeout.",
+     "action": "Jack admits he promised to address the repair and failed, then waits while Jill responds.",
+     "resisted": "Jack tries to defend his schedule rather than owning the delay; Jill looks away."
+    },
+    {
+     "id": "explain",
+     "label": "Explain why emergency savings scared you",
+     "objection": "The money part matters. But if I open with 'you spent our emergency fund,' I may as well begin with 'Ladies and gentlemen of the jury.'",
+     "ack": "I'll describe why that account makes me feel safe, and I'll keep the accusation out of it.",
+     "resist": "I can feel the speech turning into a prosecution. I am not ready to get past that.",
+     "action": "Jack says that dipping into the emergency savings frightened him, without calling Jill careless.",
+     "resisted": "Jack accuses Jill of ignoring his financial concerns; she crosses her arms."
+    },
+    {
+     "id": "ask",
+     "label": "Ask why Jill felt she couldn't wait",
+     "objection": "Ask her what she needed? I was physically in this kitchen for those three weeks. I am starting to suspect that wasn't the same as being useful.",
+     "ack": "I'll ask what waiting was like and let her finish before I answer.",
+     "resist": "I asked, but half of me was still preparing my rebuttal.",
+     "action": "Jack asks why the wait felt intolerable and listens instead of defending his calendar.",
+     "resisted": "Jack asks a question and immediately interrupts with his own excuse."
+    }
+   ]
+  },
+  {
+   "prompt": "I just noticed the repair reminder I wrote on the fridge. Three Saturdays have gone by. It's sitting there under a smiling tomato magnet, judging me. Do I admit I forgot, explain what happened, or ask Jill about those weeks?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Own the forgotten fridge reminder",
+     "objection": "My own handwriting. Three Saturdays. Even the smiling tomato looks disappointed in me. I could say I was busy, which is true, but not particularly helpful.",
+     "ack": "I'll admit the reminder was mine and that I kept moving the job to next weekend.",
+     "resist": "I keep saying 'I meant to.' She has heard that speech already.",
+     "action": "Jack points to his dated repair reminder and admits he repeatedly postponed the job.",
+     "resisted": "Jack tells Jill the reminder does not prove anything about his intentions; she shakes her head."
+    },
+    {
+     "id": "explain",
+     "label": "Explain the delay without making excuses",
+     "objection": "I was exhausted after work, not plotting to deprive anyone of hot leftovers. Trouble is, that sounds suspiciously like another excuse.",
+     "ack": "I'll explain what got in the way, then admit that I still needed to follow through.",
+     "resist": "The reasons keep coming faster than the apology. I can hear it happening.",
+     "action": "Jack describes his fatigue and concedes that no repair was arranged despite his promise.",
+     "resisted": "Jack lists every tiring day of the past month until Jill stops listening."
+    },
+    {
+     "id": "ask",
+     "label": "Ask what waiting cost Jill",
+     "objection": "So I ask what three weeks were like? She might tell me exactly how bad they were. Is there an emergency exit for uncomfortable answers?",
+     "ack": "I'll ask, and I'll keep my next sentence to myself until she's finished.",
+     "resist": "I want to ask and then correct her account. That's not really listening, is it?",
+     "action": "Jack asks Jill what the repeated delay meant to her and does not interrupt her answer.",
+     "resisted": "Jack asks what the delay cost Jill, then disputes the first example she offers."
+    }
+   ]
+  },
+  {
+   "prompt": "Jill says she was reheating dinner in a saucepan. I laughed once, and I think she thought I was laughing at her. I wasn't. I'm scared about the savings, but now I have to decide how to say that without erasing her frustration.",
+   "options": [
+    {
+     "id": "own",
+     "label": "Acknowledge why the saucepan joke hurt",
+     "objection": "I laughed because picturing a saucepan as a microwave is absurd. She looked at me like I was the appliance that needed replacing.",
+     "ack": "I'll tell her I wasn't laughing at her, then apologize for how it landed.",
+     "resist": "I still think the image is funny. She doesn't. I have to stop arguing about the joke.",
+     "action": "Jack tells Jill the laugh came from surprise, then apologizes for making her frustration feel ridiculous.",
+     "resisted": "Jack insists she misunderstood the joke; Jill stops describing her experience."
+    },
+    {
+     "id": "explain",
+     "label": "Share the fear beneath your budget argument",
+     "objection": "I want to say 'it's emergency savings' for the fifth time. Maybe the important bit is that I remember what being short on money felt like.",
+     "ack": "I'll say the withdrawal frightened me, not that she is irresponsible.",
+     "resist": "I can hear myself counting dollars instead of explaining what they meant to me.",
+     "action": "Jack explains that losing the financial cushion frightened him, instead of repeating the dollar amount as an accusation.",
+     "resisted": "Jack repeats the number four hundred until Jill says she already knows the price."
+    },
+    {
+     "id": "ask",
+     "label": "Ask Jill what she heard when you laughed",
+     "objection": "Ask what she heard in my laugh? That is dangerous territory for a man who is not even sure what his own laugh meant.",
+     "ack": "I'll ask what she thought I meant and hear her answer before correcting anything.",
+     "resist": "I'm tempted to explain the joke before I know how it affected her.",
+     "action": "Jack asks what his laughter communicated and listens to Jill's explanation.",
+     "resisted": "Jack asks but interrupts with an explanation of why the saucepan was funny."
+    }
+   ]
+  },
+  {
+   "prompt": "We're at the budget notebook now. Jill wants to know what happens to the microwave tomorrow. I don't want to surrender the money question, and I don't want a fourth round of the same argument. What's my move?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Offer a concrete next step you can own",
+     "objection": "I could actually do something instead of promising to 'look into it.' That phrase has had a terrible month in our house.",
+     "ack": "I'll offer to check the real purchase options tomorrow, without asking her to agree tonight.",
+     "resist": "I want to promise a fix in five minutes, but I know where that got us.",
+     "action": "Jack offers to check the actual purchase options the next day without pretending Jill has already agreed.",
+     "resisted": "Jack promises an instant solution without checking what is possible; Jill looks skeptical."
+    },
+    {
+     "id": "explain",
+     "label": "State a spending boundary without an ultimatum",
+     "objection": "I need us to talk before big withdrawals. But 'never do this again' sounds more like a warning label than a conversation.",
+     "ack": "I'll tell her I want joint decisions on large withdrawals, and I'll ask how to make that workable.",
+     "resist": "I can feel myself turning a future agreement into a punishment for yesterday.",
+     "action": "Jack states his need for joint discussion of major spending and leaves Jill free to respond.",
+     "resisted": "Jack demands a unilateral spending rule; Jill resists being ordered around."
+    },
+    {
+     "id": "ask",
+     "label": "Invite Jill to shape tomorrow's plan",
+     "objection": "If I ask what she thinks we should do, she might say 'keep it.' I would prefer a plan that doesn't arrive gift-wrapped with a verdict.",
+     "ack": "I'll ask what a fair next step looks like to her and listen for something we can both accept.",
+     "resist": "I keep wanting her to choose the answer already in my head.",
+     "action": "Jack invites Jill to propose a next step without treating his own preferred answer as settled.",
+     "resisted": "Jack asks for Jill's input but immediately vetoes every option she mentions."
+    }
+   ]
+  }
+ ],
+ "jill": [
+  {
+   "prompt": "Jack saw the receipt. I spent our emergency savings because the old microwave stayed broken for weeks, and I didn't ask first. I'm not proud of the surprise. Do I admit it, explain why I reached my limit, or hear what he is frightened of?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Own the unannounced purchase",
+     "objection": "I can admit I should have called first. I just can't let him translate that into 'the repair delay was perfectly fine.' Because it wasn't.",
+     "ack": "I'll tell him I should have checked with him before spending our shared savings.",
+     "resist": "I can say I surprised him; I still don't want him to miss what happened before that.",
+     "action": "Jill acknowledges she made the purchase without asking and does not claim the delay justified the decision.",
+     "resisted": "Jill argues that waiting three weeks gave her permission to spend whatever she wanted."
+    },
+    {
+     "id": "explain",
+     "label": "Explain why the delay wore you down",
+     "objection": "I had to reheat leftovers in a saucepan. I'm one step away from inventing stove-top popcorn for the office. How do I tell him I'm tired without filing a complaint?",
+     "ack": "I'll explain how the broken appliance affected our days without making a list of all his failures.",
+     "resist": "I want to count the dinners I reheated. It's hard not to make this a scoreboard.",
+     "action": "Jill describes what the weeks without a working microwave were like without attacking Jack's character.",
+     "resisted": "Jill recites every delayed dinner as an accusation; Jack retreats to the receipt."
+    },
+    {
+     "id": "ask",
+     "label": "Ask what the emergency fund represents to Jack",
+     "objection": "He keeps saying 'emergency fund' as if I spent the children's college fund on a golden toaster. But maybe that money means something to him I haven't asked about.",
+     "ack": "I'll ask what that cushion meant to him before defending my decision again.",
+     "resist": "I want to answer his fear with my inconvenience. I haven't listened yet.",
+     "action": "Jill asks why the emergency savings matter so much to Jack and pauses for his answer.",
+     "resisted": "Jill asks about Jack's worry, then dismisses his first answer."
+    }
+   ]
+  },
+  {
+   "prompt": "I noticed Jack's repair reminder under that ridiculous tomato magnet. He wrote 'Saturday.' It has survived three Saturdays, which is more than I can say for my patience. Should I own my purchase, describe the delay, or ask what he intended?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Separate your purchase from his missed promise",
+     "objection": "His note proves he remembered, right? Actually, it proves he wrote a note. I still made the purchase without calling. Two wrongs apparently can share a fridge.",
+     "ack": "I'll acknowledge my surprise purchase without using his forgotten reminder as a free pass.",
+     "resist": "I want to hold the magnet up in court. There is no court; there is a kitchen.",
+     "action": "Jill acknowledges that Jack's delayed repair and her unannounced spending are separate decisions.",
+     "resisted": "Jill waves the old reminder as proof that she never needed to consult Jack."
+    },
+    {
+     "id": "explain",
+     "label": "Tell Jack what repeated postponement felt like",
+     "objection": "I'm about to recite all twenty-one days. Maybe he doesn't need the documentary series, just the part where I stopped expecting help.",
+     "ack": "I'll tell him I began to feel ignored when each promised Saturday passed.",
+     "resist": "I still want him to know every inconvenience, complete with timestamps.",
+     "action": "Jill says repeated postponements left her feeling that her requests were not urgent to Jack.",
+     "resisted": "Jill lists every missed Saturday until the conversation becomes an argument over dates."
+    },
+    {
+     "id": "ask",
+     "label": "Ask why the repair kept slipping",
+     "objection": "If I ask why he didn't follow through, I'm afraid the answer will be 'I forgot.' I can already feel my eyebrow filing an appeal.",
+     "ack": "I'll ask what kept happening on Saturdays instead of supplying his excuse myself.",
+     "resist": "I want to know the answer but also want to win. Those are competing projects.",
+     "action": "Jill asks what made the repair difficult to complete and listens without excusing the delay.",
+     "resisted": "Jill asks why he forgot and then mocks the first explanation."
+    }
+   ]
+  },
+  {
+   "prompt": "I told Jack about reheating dinner in a saucepan. He laughed. He says he wasn't laughing at me, but I felt about two inches tall. Do I tell him that, listen to his money worry, or ask what he actually meant?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Acknowledge why Jack felt blindsided",
+     "objection": "I want him to understand my frustration. But he saw four hundred dollars disappear without warning. Maybe I can acknowledge the shock without defending the joke.",
+     "ack": "I'll tell him I get why seeing that withdrawal surprised him, even though the repair still mattered.",
+     "resist": "I feel like I'm apologizing for needing a working appliance. That's hard.",
+     "action": "Jill acknowledges that finding the withdrawal on a receipt was upsetting for Jack.",
+     "resisted": "Jill dismisses the surprise because she believes the purchase was necessary."
+    },
+    {
+     "id": "explain",
+     "label": "Explain why the laugh felt dismissive",
+     "objection": "I can take a joke about a saucepan. I can't take one that makes three weeks of asking for help sound silly. How do I say that without turning mean?",
+     "ack": "I'll tell him the laugh made me feel unheard, rather than accusing him of enjoying my struggle.",
+     "resist": "I want to say 'you never listen' even though that is not what happened every time.",
+     "action": "Jill tells Jack the laughter made her feel that her inconvenience was being treated lightly.",
+     "resisted": "Jill accuses Jack of laughing at her on purpose without asking what he meant."
+    },
+    {
+     "id": "ask",
+     "label": "Ask what Jack's laugh meant",
+     "objection": "It looked like he thought my saucepan routine was hilarious. Maybe it was a nervous laugh. I'd rather find out than guess.",
+     "ack": "I'll ask what he was reacting to and explain what I heard without assuming his intention.",
+     "resist": "I can ask, but I still have an accusation waiting in my back pocket.",
+     "action": "Jill asks why Jack laughed and explains that it landed badly for her.",
+     "resisted": "Jill demands an explanation and interrupts before Jack can answer."
+    }
+   ]
+  },
+  {
+   "prompt": "Jack is looking at our budget notebook as though a pen could negotiate a peace treaty. We have to decide what to do tomorrow. I want a plan, not another promise to 'look into it.' What should I do?",
+   "options": [
+    {
+     "id": "own",
+     "label": "Own the spending decision before planning",
+     "objection": "I can say I should have checked with him. I don't want us to end with a rule that only I have to follow while repairs can wait forever.",
+     "ack": "I'll own my purchase and ask how we can make both spending and follow-through fair.",
+     "resist": "I still want to lead with his delay. I need to leave room for my part.",
+     "action": "Jill owns the unannounced purchase and proposes discussing both future spending and follow-through.",
+     "resisted": "Jill demands Jack accept the purchase before she will discuss planning."
+    },
+    {
+     "id": "explain",
+     "label": "Describe a realistic repair-and-spending plan",
+     "objection": "I'm tempted to draft a six-page household operating manual. He'll probably use it to prop up the old microwave.",
+     "ack": "I'll ask for a specific timetable on repairs and a shared threshold for large purchases.",
+     "resist": "I have a complete policy in my head already. I need to hear his ideas, too.",
+     "action": "Jill proposes a concrete way to track repairs and consult each other before major purchases.",
+     "resisted": "Jill presents an inflexible list of rules; Jack pushes back."
+    },
+    {
+     "id": "ask",
+     "label": "Invite Jack to make tomorrow's decision together",
+     "objection": "I know what I want: a working microwave and no more three-week promises. But asking him to help decide might be better than announcing the verdict.",
+     "ack": "I'll ask which options he is willing to review tomorrow, without requiring him to agree now.",
+     "resist": "I want to call it a joint decision while already deciding the outcome. That's not quite joint.",
+     "action": "Jill invites Jack to consider real options for the unopened appliance before making a final decision.",
+     "resisted": "Jill asks for his opinion but treats disagreement as proof he isn't listening."
+    }
+   ]
+  }
+ ]
+};
+
 export function buildAuthored41(episode){
  if(String(episode?.title||"").trim().toLowerCase()!==AUTHORED_TITLE.toLowerCase())
   throw new Error("4.1 authored pilot currently supports only The Four-Hundred-Dollar Surprise.");
@@ -71,13 +336,22 @@ export function buildAuthored41(episode){
 export const isAuthored41=room=>room?.episode?.authored41?.version===AUTHORED_VERSION;
 export function authoredOptions(episode,role,phase){
  if(phase>3||phase<0||!["jack","jill"].includes(role))return [];
- return (episode?.authored41?.roles?.[role]?.options||[]).map(({id,label})=>({id,label}));
+ const entries=episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options;
+ return (entries||episode?.authored41?.roles?.[role]?.options||[]).map(({id,label})=>({id,label}));
+}
+export function authoredObjection(episode,role,phase,optionId){
+ const match=episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options?.find(x=>x.id===optionId);
+ return match?.objection||episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===optionId)?.objection||"";
 }
 export function selectedAuthoredChoice(episode,role,phase,history=[]){
  const options=episode?.authored41?.roles?.[role]?.options||[];
+ const choices=episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options||[];
  const selected=(history||[]).filter(x=>x.role===role&&x.phase_index===phase&&x.kind==="question")
-  .find(x=>options.some(option=>option.label===x.body));
- return options.find(x=>x.label===selected?.body)||null;
+  .find(x=>options.some(option=>option.label===x.body)||choices.some(option=>option.label===x.body));
+ const chosen=choices.find(x=>x.label===selected?.body)||
+  options.find(x=>x.label===selected?.body);
+ if(!chosen)return null;
+ return {...(options.find(x=>x.id===chosen.id)||{}),...chosen};
 }
 export function classifyAuthoredFollowup(text){
  const s=String(text||"").toLowerCase().replace(/[’]/g,"'");
@@ -162,7 +436,8 @@ export function authoredScene(episode,phase,history=[]){
    const reply=(history||[]).find(x=>x.role===role&&x.phase_index===phase-1&&x.kind==="coach");
    if(!selected||!reply)throw new Error("Cannot advance without both completed private coaching exchanges.");
    const index=(script.roles[role].options||[]).findIndex(x=>x.id===selected.id);
-   const action=script.roles[role].actions[index]?.[phase-1]||"";
+   const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===selected.id);
+   const action=beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
    const attitude=classifyAuthoredFollowup(reply.body);
    const name=role==="jack"?"Jack":"Jill";
@@ -171,9 +446,9 @@ export function authoredScene(episode,phase,history=[]){
    const fallback=attitude==="unsafe"?
     name+" refuses intimidation and says "+focus+" still deserves a respectful conversation.":
     attitude==="resist"?
-    name+" stays defensive about "+focus+", and the other person grows more frustrated.":
+    (beat?.resisted||name+" stays defensive about "+focus+", and the other person grows more frustrated."):
     attitude==="unclear"?
-    name+" asks for clarification before attempting "+focus+", rather than pretending to understand.":
+    name+" admits uncertainty about "+focus+" rather than claiming to understand the advice.":
     action;
    parts.push(fallback);
   }
@@ -184,8 +459,8 @@ export function authoredScene(episode,phase,history=[]){
  if(/\b(?:30.days? to return|return policy is|refund guaranteed)\b/i.test(scene))
   throw new Error("Unverified external return policy in authored scene.");
  return {scene,
-  jackPrompt:phase<4?script.roles.jack.prompts[phase]:"",
-  jillPrompt:phase<4?script.roles.jill.prompts[phase]:"",
+  jackPrompt:phase<4?(script.coachingCheckpoints?.jack?.[phase]?.prompt||script.roles.jack.prompts[phase]):"",
+  jillPrompt:phase<4?(script.coachingCheckpoints?.jill?.[phase]?.prompt||script.roles.jill.prompts[phase]):"",
   fictionalSignals};
 }
 
