@@ -85,3 +85,40 @@ test("resistance and unclear text do not fabricate compliance despite an initial
  assert.doesNotMatch(make("Don't apologize; it's their fault."),/Jack admits he promised|Jill acknowledges she made the purchase/);
  assert.doesNotMatch(make("Purple platypuses invented microwave court."),/Jack admits he promised|Jill acknowledges she made the purchase/);
 });
+
+
+test("specific offers and invitations are accepted as coaching, not generic confusion",()=>{
+ const e=ep(),roleCases=[
+  {role:"jack",chosen:"own",advice:"Offer to check the purchase options together tomorrow.",expected:/check the real purchase options/},
+  {role:"jill",chosen:"explain",advice:"Invite him to decide tomorrow without forcing agreement.",expected:/ask which options he is willing to review/}
+ ];
+ for(const {role,chosen,advice,expected} of roleCases){
+  const choice=authoredOptions(e,role,3).find(x=>x.id===chosen);
+  const selected=selectedAuthoredChoice(e,role,3,[event(role,3,"question",choice.label)]);
+  const reply=authoredCommitment(selected,advice,{episode:e,role,phase:3});
+  assert.match(reply,expected);
+  assert.doesNotMatch(reply,/not sure what action|missing the advice/i);
+ }
+});
+
+test("cooperative, defensive, mixed, and unclear six-scene stories meet pacing target",()=>{
+ const e=ep(),cases=[
+  ["Own your part and listen.","Acknowledge your decision and hear him out."],
+  ["Don't apologize. They're wrong.","Never listen; it's all their fault."],
+  ["Offer to check the purchase options tomorrow.","Invite him to decide together."],
+  ["Purple platypuses invented the microwave.","The toaster is plotting revenge."]
+ ];
+ for(const messages of cases){
+  const history=[];
+  for(let phase=0;phase<6;phase++){
+   const scene=authoredScene(e,phase,history).scene;
+   const words=scene.trim().split(/\s+/).length;
+   assert.ok(words<=110,"Scene "+(phase+1)+" exceeds 110 words: "+words);
+   assert.ok(words>=45,"Scene "+(phase+1)+" was too short to convey a meaningful event");
+   if(phase<4)for(const [i,role] of ["jack","jill"].entries()){
+    const selected=authoredOptions(e,role,phase)[(phase+i)%3];
+    history.push(event(role,phase,"question",selected.label),event(role,phase,"coach",messages[i]));
+   }
+  }
+ }
+});
