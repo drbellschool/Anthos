@@ -360,6 +360,8 @@ export function classifyAuthoredFollowup(text){
  if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(withoutProhibitions))return "unsafe";
  if(/\b(?:don't|do not|never|shouldn't|not going to)\s+(?:try to\s+)?(?:apolog\w*|listen|acknowledg\w*|ask|own)\b/.test(s))return "resist";
  if(/\b(?:never admit|do not admit|don't admit|no need to apologize|none of this is your fault)\b/.test(s))return "resist";
+ if(/\b(?:don't|do not|never|refuse to|stop)\s+(?:try to\s+)?(?:offer|invite|propose|plan|review|check|decide|collaborate|make a plan)\b/.test(s))
+  return "resist";
  if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat|plan|review|check|decide together|work together|come up with|follow through)\w*/.test(s))return "engage";
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish|teach (?:him|her) a lesson)\b/.test(s))return "resist";
  return "unclear";
