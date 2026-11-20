@@ -12,9 +12,9 @@ const microwave={
  scenes:[
   "At six ten, Jill sets a sealed microwave box on the kitchen counter. Jack stares at the price printed on the receipt: four hundred dollars, taken from their shared emergency savings. Jill says she finally replaced the old microwave after waiting three weeks for Jack to arrange its repair. Jack says that was not permission to spend the money. Neither is entirely wrong about the frustration. Neither sounds particularly interested in admitting it. The box sits between them like a very expensive third person at dinner.",
   "At six fifteen, the new microwave is still sealed. Jill points to a note beneath the smiling tomato magnet: in Jack's handwriting, 'Saturday — fix microwave.' Three Saturdays have passed. Jack studies it as if handwriting analysis might establish an alibi. Jill says the reminder made her expect a repair. The receipt remains beside the box. Neither has conceded the emergency-savings argument.",
-  "At six twenty-two, Jill describes reheating dinner in a saucepan. Jack laughs at the mental picture, and Jill goes quiet. 'Glad my inconvenience is entertaining,' she says. Jack's smile fades, but he has not yet explained his reaction. The receipt and sealed box remain on the counter; the forgotten reminder stays on the fridge. Neither knows whether this awkward moment will deepen the argument or open a more honest conversation.",
+  "At six twenty-two, Jill describes reheating dinner in a saucepan. Jack laughs; Jill goes quiet. 'Glad my inconvenience is entertaining,' she says. Jack's smile fades. The receipt, unopened box, and forgotten fridge reminder stay where they were. Neither has explained the laughter.",
   "At six thirty, Jill puts the budget notebook beside the receipt. Jack wants major withdrawals discussed first; Jill wants promised repairs completed. Jack starts a sentence with 'but.' Jill lifts an eyebrow, and he stops. The microwave is still unopened. They have another chance to propose a next step without pretending the disagreement is settled.",
-  "At six thirty-five, the sealed microwave box still sits on the counter. Nobody has checked the store's actual return policy, and neither can claim to know it. The larger question is whether they can make a plan while both still have legitimate, unresolved concerns.",
+  "At six thirty-five, nobody has checked the store's return policy. The microwave box remains sealed. Tomorrow's decision depends on what Jack and Jill actually accept.",
   "By six forty-two, the replacement microwave remains sealed in the kitchen. The original repair delay and the surprise withdrawal still happened, regardless of how the conversation went. Tomorrow's possibilities depend on what Jack and Jill actually managed to say and hear tonight."
  ],
  roles:{
@@ -446,10 +446,10 @@ function storyOutcome(history=[]){
 }
 function authoredOutcomeBeat(outcome,phase){
  if(phase===2){
-  if(outcome==="mutual"||outcome==="partial")return "Both are beginning to name their own worries. Neither assumes that listening requires endorsing the surprise purchase or the delayed repair.";
-  if(outcome==="jack_ready")return "Jack is beginning to make space for Jill's frustration; Jill is not ready to offer the same openness.";
-  if(outcome==="jill_ready")return "Jill begins to listen to Jack's fear about the savings; Jack still treats her concern as a personal attack.";
-  return "Neither is ready to admit much. Jack keeps returning to the spending, while Jill keeps returning to the unanswered repair request. The deeper fear remains unspoken.";
+  if(outcome==="mutual"||outcome==="partial")return "Both begin naming their worries without endorsing each other's earlier decisions.";
+  if(outcome==="jack_ready")return "Jack makes room for Jill; she is not ready to reciprocate.";
+  if(outcome==="jill_ready")return "Jill listens more openly; Jack remains defensive about her purchase.";
+  return "Both remain defensive; the deeper worries stay unspoken.";
  }
  if(phase===4){
   if(outcome==="mutual")return "Jack and Jill agree to keep the box sealed tonight. They write a note to check the actual purchase options tomorrow, then discuss future spending before deciding what to do. They still disagree about whose frustration was greater, but both accept the next step.";
