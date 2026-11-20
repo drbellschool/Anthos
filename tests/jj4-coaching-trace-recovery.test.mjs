@@ -68,3 +68,28 @@ test("abstract emotions do not become invented fallout",()=>{
  assert.equal(trace.falloutEvidence,"");
  assert.equal(checkCoachingTrace(story,trace,["jack"]).ok,false);
 });
+
+test("role-labeled Jill beat grounds a third-person visible refusal",()=>{
+ const beats={
+  opening:"Jack gestures toward the counter.",
+  jackBeat:"Jack asks what Jill intends to do about the purchase.",
+  jillBeat:"She refuses to seal away the receipt without checking their options.",
+  fallout:"Jack turns away and closes the cabinet with a frustrated sigh."
+ };
+ const story=Object.values(beats).join(" ");
+ const trace=recoverCoachingEvidence(story,beats,{},["jill"]);
+ assert.match(trace.jillEvidence,/She refuses/);
+ assert.equal(checkCoachingTrace(story,trace,["jill"],beats).ok,true);
+ assert.equal(checkCoachingTrace(story,trace,["jill"]).ok,false);
+});
+test("role beat cannot misattribute named opposite character",()=>{
+ const beats={
+  opening:"Jack and Jill both wait.",
+  jackBeat:"Jack asks what Jill intends to do.",
+  jillBeat:"Jack refuses to return the microwave, despite Jill's concern.",
+  fallout:"Jill asks him not to decide for her."
+ };
+ const story=Object.values(beats).join(" ");
+ const trace=recoverCoachingEvidence(story,beats,{},["jill"]);
+ assert.equal(checkCoachingTrace(story,trace,["jill"],beats).ok,false);
+});

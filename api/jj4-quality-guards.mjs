@@ -40,7 +40,7 @@ export const COACH_TRACE_SCHEMA={
  properties:{jackEvidence:{type:"string"},jillEvidence:{type:"string"},falloutEvidence:{type:"string"}},
  required:["jackEvidence","jillEvidence","falloutEvidence"]
 };
-export function checkCoachingTrace(story,trace,coachedRoles=[]){
+export function checkCoachingTrace(story,trace,coachedRoles=[],structured=null){
  if(!coachedRoles?.length)return {ok:true};
  if(!trace||typeof trace!=="object")return {ok:false,reason:"No visible coaching evidence was supplied."};
  for(const role of coachedRoles){
@@ -48,8 +48,16 @@ export function checkCoachingTrace(story,trace,coachedRoles=[]){
   const evidence=trace[field]||"";
   if(!appears(story,evidence))return {ok:false,reason:"The coached "+role+" response is missing from the visible scene."};
   const context=normalize(evidence);
-  if(!new RegExp("\\b"+role+"\\b").test(context)&&!/\\b(?:i|my|me)\\b/.test(context))
-   return {ok:false,reason:"The coached "+role+" behavior has no identifiable speaker."};
+  const firstNamed=context.match(/(?:jack|jill)/)?.[0];
+  if(firstNamed&&firstNamed!==role)
+   return {ok:false,reason:"The coached "+role+" evidence was attributed to the other character."};
+  if(!new RegExp("\\b"+role+"\\b").test(context)&&!/\b(?:i|my|me)\b/.test(context)){
+   const roleBeat=structured?.[role+"Beat"]||"";
+   const other=role==="jack"?"jill":"jack";
+   const otherNamed=new RegExp("\\b"+other+"\\b").test(context);
+   if(!appears(roleBeat,evidence)||!/\b(?:he|she|him|her|his)\b/.test(context)||otherNamed)
+    return {ok:false,reason:"The coached "+role+" behavior has no identifiable speaker."};
+  }
  }
  if(!appears(story,trace.falloutEvidence))return {ok:false,reason:"The next scene did not visibly show consequences of coaching."};
  return {ok:true};
@@ -158,7 +166,7 @@ export function groundCoachingEvidence(story,trace={},coachedRoles=[]){
 // Use only actual, character-attributed on-stage actions in the final
 // structured beats. Never invent a quotation or treat a generic narrator
 // claim of "understanding" as proof that coaching had consequences.
-const OBSERVABLE_COACH_ACTION=/\b(?:ask(?:s|ed)?|said|says|tell(?:s)?|told|admit(?:s|ted)?|acknowledg(?:es|ed)?|offer(?:s|ed)?|refus(?:es|ed)?|reject(?:s|ed)?|agree(?:s|d)?|promis(?:es|ed)?|propos(?:es|ed)?|insist(?:s|ed)?|challen(?:ges|ged)|request(?:s|ed)?|demand(?:s|ed)?|explain(?:s|ed)?|clarif(?:ies|ied)|decid(?:es|ed)?|choos(?:es|e)|chose|apologiz(?:es|ed)?|open(?:s|ed)?|peel(?:s|ed)?|mov(?:es|ed)?|fold(?:s|ed)?|plac(?:es|ed)?|writ(?:es|ten)?|wrote|pick(?:s|ed)?|pull(?:s|ed)?|hand(?:s|ed)?|set(?:s)?|put(?:s)?|text(?:s|ed)?|call(?:s|ed)?|reach(?:es|ed)?|step(?:s|ped)?|leav(?:es|ing)|left|walk(?:s|ed)?|take(?:s)?|took)\b/i;
+const OBSERVABLE_COACH_ACTION=/\b(?:repl(?:y|ies|ied)|declin(?:es|ed)?|wait(?:s|ed)?|hold(?:s|ing)?|ask(?:s|ed)?|said|says|tell(?:s)?|told|admit(?:s|ted)?|acknowledg(?:es|ed)?|offer(?:s|ed)?|refus(?:es|ed)?|reject(?:s|ed)?|agree(?:s|d)?|promis(?:es|ed)?|propos(?:es|ed)?|insist(?:s|ed)?|challen(?:ges|ged)|request(?:s|ed)?|demand(?:s|ed)?|explain(?:s|ed)?|clarif(?:ies|ied)|decid(?:es|ed)?|choos(?:es|e)|chose|apologiz(?:es|ed)?|open(?:s|ed)?|peel(?:s|ed)?|mov(?:es|ed)?|fold(?:s|ed)?|plac(?:es|ed)?|writ(?:es|ten)?|wrote|pick(?:s|ed)?|pull(?:s|ed)?|hand(?:s|ed)?|set(?:s)?|put(?:s)?|text(?:s|ed)?|call(?:s|ed)?|reach(?:es|ed)?|step(?:s|ped)?|leav(?:es|ing)|left|walk(?:s|ed)?|take(?:s)?|took)\b/i;
 const OBSERVABLE_FALLOUT=/\b(?:refus(?:es|ed)?|reject(?:s|ed)?|agree(?:s|d)?|respond(?:s|ed)?|answer(?:s|ed)?|say(?:s)?|said|ask(?:s|ed)?|laugh(?:s|ed)?|smil(?:es|ed)?|win(?:ces|ced)|frown(?:s|ed)?|flinch(?:es|ed)?|withdraw(?:s|n)?|turn(?:s|ed)?|walk(?:s|ed)?|leave(?:s)?|left|mov(?:es|ed)?|pick(?:s|ed)?|open(?:s|ed)?|stop(?:s|ped)?|hold(?:s)?|held|nod(?:s|ded)?|shake(?:s)?|shook|exhal(?:es|ed)?|sigh(?:s|ed)?|fold(?:s|ed)?|reach(?:es|ed)?|tap(?:s|ped)?|step(?:s|ped)?|look(?:s|ed)?)\b/i;
 function witnessedSentence(beat,character,verbs){
  const lines=String(beat||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
@@ -170,19 +178,20 @@ function roleBeatEvidence(story,beat,role){
  // Never manufacture evidence from a model's claim. Quote the final
  // scene verbatim, and require the coached character to own an action.
  const lines=String(beat||"").split(/(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean);
- const named=new RegExp("\\b"+role+"\\b","i");
- return lines.find(x=>x.length>=20&&named.test(x)&&
-  OBSERVABLE_COACH_ACTION.test(x)&&appears(story,x))||"";
+ const subject=new RegExp("^\\s*(?:"+role+"|"+(role==="jack"?"he":"she")+")\\b","i");
+ return lines.find(x=>x.length>=20&&OBSERVABLE_COACH_ACTION.test(x)&&
+  appears(story,x)&&subject.test(x))||"";
 }
 export function recoverCoachingEvidence(story,structured,trace,coachedRoles=[]){
  const grounded=groundCoachingEvidence(story,trace,coachedRoles);
- if(checkCoachingTrace(story,grounded,coachedRoles).ok)return grounded;
+ if(checkCoachingTrace(story,grounded,coachedRoles,structured).ok)return grounded;
  const next={...grounded};
  for(const role of coachedRoles){
   if(!["jack","jill"].includes(role))continue;
   const field=role+"Evidence";
   if(appears(story,next[field])&&
-    new RegExp("\\b"+role+"\\b","i").test(next[field]))continue;
+    (new RegExp("\\b"+role+"\\b","i").test(next[field])||
+     appears(structured?.[role+"Beat"],next[field])))continue;
   const fromBeat=roleBeatEvidence(story,structured?.[role+"Beat"],role);
   if(fromBeat)next[field]=fromBeat;
  }

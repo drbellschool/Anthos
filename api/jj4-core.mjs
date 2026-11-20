@@ -257,6 +257,8 @@ async function directScene(room,phaseIndex){
    "If a coach suggests an attack or a counterproductive move, characters may reject it, but the rejection MUST be an on-screen decision about THAT proposed behavior (not an unrelated generic kind gesture). Show the cost of resisting or following the impulse.",
    "No quotations or attributions from private coaches appear in the shared story. No real participant names ever become Jack or Jill.",
    "Return concreteAction and personalConsequence for BOTH characters, sharedFallout and tensionToCarry. These will be mandatory constraints for the story narrator.",
+   "For OUTCOME and REFLECTION, a repeated promise, apology, or statement that the box will stay closed is NOT a new event. Produce an on-stage decision with a practical observable cost or immediate step that has not occurred in establishedFiction. The other partner must react independently. Do not invent retailer policies, repair quotes, or additional financial agreements.",
+   "Treat freshnessConstraints as a list of spent images and past actions. Never repeat the previous agreement as a fresh choice. Distinguish a plan made from that plan being carried out.",
   ].join(" ");
   const planInput={
    title:room.title,authoredPremise:room.episode.premise,
@@ -269,6 +271,7 @@ async function directScene(room,phaseIndex){
    fictionalCharacterMotivations:{jack:room.episode.jackMotivation,jill:room.episode.jillMotivation},
    authorBoundaries:room.episode.boundaries,
    establishedFiction:sharedHistory.slice(-5),
+   freshnessConstraints:sceneProgressionHints(sharedHistory),
    responseKinds:influence.responseKinds||{},
    humorRequested,
    authoredHumorCue:room.episode.humorNotes||"",
@@ -401,7 +404,7 @@ async function directScene(room,phaseIndex){
   if(coachingImpact){
    const modelTrace=groundCoachingEvidence(story,result.coachingTrace,Object.keys(influence.advice));
    const groundedTrace=recoverCoachingEvidence(story,result,modelTrace,Object.keys(influence.advice));
-   const trace=checkCoachingTrace(story,groundedTrace,Object.keys(influence.advice));
+   const trace=checkCoachingTrace(story,groundedTrace,Object.keys(influence.advice),result);
    if(trace.ok)result.coachingTrace=groundedTrace;
    if(!trace.ok){
     // This is a fixed validator reason, not private coaching text.
