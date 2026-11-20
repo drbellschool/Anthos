@@ -62,17 +62,25 @@ function mount(root,invite,options={}){
    if(seen.has(x.id+"-"+x.kind))continue;
    seen.add(x.id+"-"+x.kind);entries.push(x);
   }
-  const fp=entries.map(x=>x.id+":"+x.body.length).join("|");
+  const presented=state.version==="4.1.0"?entries.filter(x=>x.kind!=="coach"):entries;
+  const fp=presented.map(x=>x.id+":"+x.body.length).join("|");
   if(fp===lastFingerprint)return;
   lastFingerprint=fp;
   area.replaceChildren();
   if(!entries.length)area.append(el("div","jj4-empty","The episode begins once both coaches join."));
-  for(const item of entries){
+  const questionCounts=new Map();
+  for(const item of presented){
+   let questionLabel="YOUR PRIVATE QUESTION";
+   if(state.version==="4.1.0"&&item.kind==="question"){
+    const count=(questionCounts.get(item.phase_index)||0)+1;
+    questionCounts.set(item.phase_index,count);
+    questionLabel=count===1?"YOUR COACHING CHOICE":"YOUR FOLLOW-UP";
+   }
    const isScene=item.kind==="scene",isSophia=item.kind==="sophia",isIntro=item.kind==="introduction";
    const row=el("article","jj4-entry "+(isScene?"scene":isSophia||isIntro?"sophia":["coach","question","reply"].includes(item.kind)?item.kind:"prompt"));
    row.append(el("span","jj4-entry-label",isIntro?"SOPHIA · YOUR EPISODE OBJECTIVE":isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
     isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
-    item.kind==="question"?"YOUR PRIVATE QUESTION":item.kind==="reply"?(state.character||"Character").toUpperCase()+" · PRIVATE ANSWER":
+    item.kind==="question"?questionLabel:item.kind==="reply"?(state.character||"Character").toUpperCase()+" · PRIVATE ANSWER":
     (state.character||"Character").toUpperCase()+" → "+
     (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));
    row.append(el("p","",item.body));
