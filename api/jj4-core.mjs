@@ -3,7 +3,7 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {buildAuthored41,isAuthored41,authoredOptions,selectedAuthoredChoice,authoredCommitment,authoredScene} from "./jj4-authored41.mjs";
+import {buildAuthored41,isAuthored41,authoredOptions,selectedAuthoredChoice,authoredCommitment,authoredScene,composeAuthored41Closure} from "./jj4-authored41.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence,recoverCoachingEvidence} from "./jj4-quality-guards.mjs";
@@ -155,7 +155,7 @@ export async function status(token){
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage),
   scenes,messages:mine,finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
-  researchSources:hasSophia?RESEARCH_SOURCES:[],
+  researchSources:hasSophia?(authored41?RESEARCH_SOURCES.filter(x=>/Gottman/.test(x.label)):RESEARCH_SOURCES):[],
   info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
 }
 export async function join(token,name){
@@ -696,7 +696,8 @@ export async function sophia(token){
    }
    return {...scene,body};
   });
-  const closure=await draftSophiaClosure(room.episode,sanitized);
+  const closure=isAuthored41(room)?composeAuthored41Closure(room.episode,sanitized):
+   await draftSophiaClosure(room.episode,sanitized);
   const committed=await db("rpc/anthos_jj4_commit_closure",{},
    {p_room:room.id,p_claim:claim,p_message:closure},"POST");
   if(committed!==true)error("Sophia's closing reflection could not be saved. Retry.",502);
