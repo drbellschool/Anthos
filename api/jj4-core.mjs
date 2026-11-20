@@ -3,6 +3,7 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
+import {buildAuthored41,isAuthored41,authoredOptions,selectedAuthoredChoice,authoredCommitment,authoredScene} from "./jj4-authored41.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence,recoverCoachingEvidence} from "./jj4-quality-guards.mjs";
@@ -58,12 +59,12 @@ function targetRoles(room){
  const allowed=activeRoles(room);
  return (audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[]).filter(role=>allowed.includes(role));
 }
-export async function createRoom(origin,scenarioId,previousRoomId=null){
+export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVersion="4.0.0"){
  if(!UUID.test(scenarioId||""))error("Choose a saved 4.0 episode first.");
  const scenario=await getScenario(scenarioId);
  if(!["shared","individual"].includes(scenario.mode))error("Unsupported episode mode.");
  if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
- const draft=normalizeStudio(scenario.episode_studio,scenario);
+ let draft=normalizeStudio(scenario.episode_studio,scenario);
  draft.pilotMode=scenario.mode;
  const active=scenario.mode==="individual"?[draft.soloCoach]:ROLE;
  if(previousRoomId!==null){
@@ -75,13 +76,16 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
  if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
   if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
+ const authored=pilotVersion==="4.1.0";
+ if(!authored&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
+ if(authored)draft=buildAuthored41(draft);
  // All NEW v4 pilots pin the existing actor, object, and event state.
  // Previously created rooms retain their recorded engine version.
  const seed=scenario.episode_studio?.simulationSeed;
  if(seed&&typeof seed==="object")draft.simulationSeed=seed;
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0,
-  simulation_state:initialSimulation(draft)
+  ...(authored?{}:{simulation_state:initialSimulation(draft)})
  },"POST"))?.[0];
  if(!created?.id)error("Could not create the pilot room.",502);
  const invitations={};
@@ -103,7 +107,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
    previousRetired=Array.isArray(affected)&&affected.length===1;
   }catch{previousRetired=false}
  }
- return {ok:true,engine:"4.0.0",title:draft.title,roomId:created.id,
+ return {ok:true,engine:authored?"4.1.0":"4.0.0",title:draft.title,roomId:created.id,
   invitations,mode:scenario.mode,soloCoach:draft.soloCoach,expiresAt:created.expires_at,previousRetired,
   note:"Private browser pilot. No actual text messages will be sent."};
 }
@@ -137,10 +141,15 @@ export async function status(token){
   // A negative ID guarantees it precedes the first generated scene.
   const opening=room.episode?.sophiaIntro?.trim();
   if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",body:personalizeIntroduction(opening,people),phase_index:-1,created_at:room.created_at});
- return {ok:true,version:"4.0.0",title:room.title,role:person.role,
+ const authored41=isAuthored41(room);
+ const selected41=authored41?selectedAuthoredChoice(room.episode,person.role,room.phase_index,
+  mine.map(x=>({...x,role:person.role}))):null;
+ return {ok:true,version:authored41?"4.1.0":"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
   stage:room.stage,needsReply,submitted:person.submitted_phase===room.phase_index,
+  coachChoices:authored41&&needsReply&&!selected41?authoredOptions(room.episode,person.role,room.phase_index):[],
+  selectedOption:selected41?.id||null,
   paused,pausedBy,
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage),
@@ -182,6 +191,11 @@ async function generateStructured({model,key,name,schema,input,instructions,maxT
  return value;
 }
 async function directScene(room,phaseIndex){
+ if(isAuthored41(room)){
+  const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
+   select:"role,kind,phase_index,body"});
+  return authoredScene(room.episode,phaseIndex,history||[]);
+ }
  const key=process.env.OPENAI_API_KEY?.trim();
  if(!key)error("OpenAI is not configured for this pilot.",503);
  const [history,people]=await Promise.all([
@@ -750,6 +764,25 @@ export async function ask(token,body,requestKey){
  return status(token);
 }
 
+export async function choose(token,optionId,requestKey){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join before coaching your character.",403);
+ if(!isAuthored41(room))error("This room does not use the 4.1 coaching format.",409);
+ if(room.stage!=="awaiting"||!targetRoles(room).includes(person.role)||
+  person.submitted_phase===room.phase_index||person.paused_at)return status(token);
+ if(!UUID.test(requestKey||""))error("Invalid coaching request.");
+ const option=room.episode.authored41.roles[person.role].options.find(x=>x.id===optionId);
+ if(!option||room.phase_index>=4)error("That choice is not available for this scene.",409);
+ const history=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
+  phase_index:"eq."+room.phase_index,order:"id.asc",select:"role,kind,phase_index,body"});
+ if(selectedAuthoredChoice(room.episode,person.role,room.phase_index,history||[]))return status(token);
+ const saved=await db("rpc/anthos_jj4_store_private_question",{},
+  {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+   p_question:option.label,p_reply:option.objection,p_key:requestKey},"POST");
+ if(saved==="limit"||saved==="invalid")error("Your coaching choice could not be saved. Refresh and retry.",409);
+ return status(token);
+}
+
 export async function coach(token,body,requestKey){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join before advising your character.",403);
@@ -761,6 +794,29 @@ export async function coach(token,body,requestKey){
  if(routing.kind==="safety"){
   const state=await pause(token);
   return {...state,safetyNotice:"Your episode is paused. Your safety comes before the story. If you are in immediate danger, contact local emergency services. In the U.S., call or text 988 for a mental-health crisis, or call 800-799-7233 / text START to 88788 for domestic-abuse support."};
+ }
+ if(isAuthored41(room)){
+  if(person.paused_at)return status(token);
+  if(!UUID.test(requestKey||""))error("Invalid message request.");
+  const prior=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
+   phase_index:"eq."+room.phase_index,order:"id.asc",select:"role,kind,phase_index,body"});
+  const selected=selectedAuthoredChoice(room.episode,person.role,room.phase_index,prior||[]);
+  if(!selected)error("Choose an approach before replying to your character.",409);
+  if((prior||[]).some(x=>x.kind==="coach"))return status(token);
+  const reply=authoredCommitment(selected,words);
+  const paired=await db("rpc/anthos_jj4_store_private_question",{},
+   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+    p_question:words,p_reply:reply,p_key:requestKey},"POST");
+  if(paired==="limit"||paired==="invalid")error("Your follow-up could not be recorded. Refresh and retry.",409);
+  if(paired==="unavailable")return status(token);
+  // Separate deterministic idempotency key: question + reply and coach are distinct rows.
+  const hex=sha(requestKey+"-authored41-coach");
+  const coachKey=hex.slice(0,8)+"-"+hex.slice(8,12)+"-4"+hex.slice(13,16)+"-a"+
+   hex.slice(17,20)+"-"+hex.slice(20,32);
+  await db("rpc/anthos_jj4_submit_coaching",{},
+   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+    p_message:words,p_key:coachKey},"POST");
+  return status(token);
  }
  if(routing.kind==="question"||routing.kind==="correction")return ask(token,words,requestKey);
  if(person.paused_at)return status(token);
