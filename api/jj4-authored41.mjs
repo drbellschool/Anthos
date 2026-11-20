@@ -15,7 +15,7 @@ const microwave={
   "At six twenty-two, the receipt lies beside the sealed box. Jack finally admits that seeing the emergency savings used frightened him. Jill admits that three weeks without a working microwave made her feel that her requests were optional. Neither revelation fixes the purchase. It does explain why their argument keeps missing the target.",
   "At six thirty, they attempt the conversation again without leaving the kitchen. Jack has an opportunity to describe his worries without making Jill the enemy. Jill has an opportunity to explain her frustration without dismissing their shared budget. The box is still unopened, and they are still two people trying to settle one disagreement.",
   "At six thirty-five, the couple agrees not to open the replacement tonight. They have not established a return policy, and neither pretends to know one. Instead they write down two decisions to revisit tomorrow: whether to keep the appliance after checking real options, and how either spouse should handle an unexpected major purchase. They have not agreed about the past.",
-  "By six forty-two, Jack moves the receipt into a folder, leaving the microwave box sealed on the counter. Jill puts a pen beside the budget notebook. The decision about the appliance is still open, but the two have heard more of the other's concern than they did at six ten. Their disagreement remains real; so does the possibility of handling tomorrow's choice differently."
+  "By six forty-two, Jack moves the receipt into a folder, leaving the microwave box sealed on the counter. Jill puts a pen beside the budget notebook. The decision about the appliance is still open. Both know tomorrow will require another conversation, and neither can guarantee that conversation will be easy. Their disagreement remains real."
  ],
  roles:{
   jack:{
@@ -136,11 +136,21 @@ export function authoredScene(episode,phase,history=[]){
    parts.push(fallback);
   }
  }
+ const fictionalSignals=authoredSignals(episode,history);
+ if(phase===5){
+  const jackReady=fictionalSignals.jack.accountability>=6;
+  const jillReady=fictionalSignals.jill.accountability>=6;
+  parts.push(jackReady&&jillReady?
+   "Jack owns the weeks of delay and Jill owns the unannounced withdrawal. Neither demands instant agreement; both are ready to revisit the purchase together.":
+   jackReady||jillReady?
+   (jackReady?"Jack":"Jill")+" accepts some responsibility while the other still feels unheard. The plan for tomorrow is fragile, not a finished repair.":
+   "Neither accepts much responsibility yet. They leave the budget notebook on the counter, knowing tomorrow's conversation could be harder than tonight's.");
+ }
  const scene=parts.join(" ");
  if(/\b(?:30.days? to return|return policy is|refund guaranteed)\b/i.test(scene))
   throw new Error("Unverified external return policy in authored scene.");
  return {scene,
   jackPrompt:phase<4?script.roles.jack.prompts[phase]:"",
   jillPrompt:phase<4?script.roles.jill.prompts[phase]:"",
-  fictionalSignals:authoredSignals(episode,history)};
+  fictionalSignals};
 }
