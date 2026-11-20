@@ -354,20 +354,23 @@ function closePilot(clearRoom=false){
  if(clearRoom)pilot=null;
  const board=$("episodePilotBoard");if(board)board.hidden=true;
 }
-async function pilotEpisode(reset=false){
+async function pilotEpisode(reset=false,pilotVersion="4.0.0"){
  if(!current||busy)return;
  if(current.dirty||!current.hasSaved){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
   return;
  }
+ if(pilotVersion==="4.1.0"&&String(current.studio?.title||"").trim().toLowerCase()!=="the four-hundred-dollar surprise"){
+  note("4.1 is currently authored for The Four-Hundred-Dollar Surprise only.",true);return;
+ }
  if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
- if(pilot&&(!confirm("Start a fresh 4.0 test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
- setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodePilotReset").disabled=true;
- note("Creating a new, private 4.0 episode rehearsal…");
+ if(pilot&&(!confirm("Start a fresh "+pilotVersion+" test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
+ setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodePilotReset").disabled=true;
+ note("Creating a new, private "+pilotVersion+" episode rehearsal…");
  try{
   const previousRoomId=pilot?.roomId||null;
   const room=await request("episode-studio-pilot-v4",{
-   scenarioId:current.id,previousRoomId
+   scenarioId:current.id,previousRoomId,pilotVersion
   });
   closePilot();
   pilot=room;
@@ -376,6 +379,7 @@ async function pilotEpisode(reset=false){
   const plan=$("episodePilotPlan");
   plan.replaceChildren();
   const snapshot=collect();
+  if(pilotVersion==="4.1.0")plan.append(node("li","episode-pilot-plan-item","4.1 uses four authored coaching checkpoints with separate Jack/Jill choices and follow-ups; the published 4.0 draft is unchanged."));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
    row.append(node("strong","",phase.title+" — "));
@@ -404,9 +408,9 @@ async function pilotEpisode(reset=false){
   if(room.invitations.jack)pilotPlayers.push(window.Anthos4Player.mount(husbandPanel,new URL(room.invitations.jack).searchParams.get("invite")));
   if(room.invitations.jill)pilotPlayers.push(window.Anthos4Player.mount(wifePanel,new URL(room.invitations.jill).searchParams.get("invite")));
   board.scrollIntoView({behavior:"smooth",block:"start"});
-  note("Version 4.0 test room created. Both private coach panels are ready below.");
+  note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
  }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodePilotReset").disabled=false}
+ finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodePilotReset").disabled=false}
 }
 async function copyPilot(which){
  const url=pilot?.invitations?.[which];
@@ -829,7 +833,8 @@ function setup(){
   markDirty();paintSkills();paintSupports();
  });
  $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false));
- $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true));
+ $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
+ $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.0.0"));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
