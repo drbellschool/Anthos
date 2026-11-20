@@ -83,7 +83,8 @@ export function classifyAuthoredFollowup(text){
  const s=String(text||"").toLowerCase();
  if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(s))return "unsafe";
  if(/\b(?:no|never|don't|do not|wrong|blame|fault|punish|ridiculous)\b/.test(s)&&
-   !/\b(?:apolog|acknowledge|listen|understand|respect|ask)\w*/.test(s))return "resist";
+   (!/\b(?:apolog|acknowledge|listen|understand|respect|ask)\w*/.test(s)||
+    /\b(?:don't|do not|never)\s+(?:apolog\w*|listen|acknowledg\w*|ask)\b/.test(s)))return "resist";
  if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk)\w*/.test(s))return "engage";
  return "unclear";
 }
@@ -121,7 +122,16 @@ export function authoredScene(episode,phase,history=[]){
    const index=(script.roles[role].options||[]).findIndex(x=>x.id===selected.id);
    const action=script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
-   parts.push(action);
+   const attitude=classifyAuthoredFollowup(reply.body);
+   const name=role==="jack"?"Jack":"Jill";
+   const fallback=attitude==="unsafe"?
+    name+" refuses to intimidate the other person, leaving the original disagreement unresolved.":
+    attitude==="resist"?
+    name+" stays defensive instead of following the earlier plan, and the other person grows more frustrated.":
+    attitude==="unclear"?
+    name+" admits uncertainty and asks for a clearer explanation rather than pretending to understand.":
+    action;
+   parts.push(fallback);
   }
  }
  const scene=parts.join(" ");
