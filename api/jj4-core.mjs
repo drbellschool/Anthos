@@ -813,7 +813,7 @@ export async function coach(token,body,requestKey){
   if(existingFollowup&&existingFollowup.body!==words)
    error("Your previous message was saved. Please retry that same follow-up to continue.",409);
   if(!existingFollowup){
-   const reply=authoredCommitment(selected,words);
+   const reply=authoredCommitment(selected,words,{episode:room.episode,role:person.role,phase:room.phase_index});
    const paired=await db("rpc/anthos_jj4_store_private_question",{},
     {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
      p_question:words,p_reply:reply,p_key:requestKey},"POST");
