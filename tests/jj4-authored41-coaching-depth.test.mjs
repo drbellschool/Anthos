@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
  buildAuthored41,authoredOptions,selectedAuthoredChoice,
- authoredObjection,authoredCommitment,authoredScene,authoredSignals
+ authoredObjection,authoredCommitment,authoredScene,authoredSignals,classifyAuthoredFollowup
 } from "../api/jj4-authored41.mjs";
 
 const ep=()=>buildAuthored41({title:"The Four-Hundred-Dollar Surprise",pilotMode:"shared"});
@@ -121,4 +121,11 @@ test("cooperative, defensive, mixed, and unclear six-scene stories meet pacing t
    }
   }
  }
+});
+
+test("negative planning commands are not misread as constructive collaboration",()=>{
+ assert.equal(classifyAuthoredFollowup("Never invite him to decide."),"resist");
+ assert.equal(classifyAuthoredFollowup("Don't offer to check the options; just blame her."),"resist");
+ assert.equal(classifyAuthoredFollowup("Offer to check the options together."),"engage");
+ assert.equal(classifyAuthoredFollowup("Invite him to decide tomorrow."),"engage");
 });
