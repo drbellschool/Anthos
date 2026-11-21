@@ -105,8 +105,8 @@ export const MICROWAVE_SOURCE_VOICES={
   },
   2:{
    own:{ack:"I will follow through on the repair question. I won't use my failure as an excuse to abandon the savings discussion.",
-    action:"Jack pulls his SATURDAY note from the dead microwave. 'Tomorrow I'll check whether this one is repairable. I owe you a real answer, not another Saturday. Then we decide together about the new one.'",
-    resist:"Jack crumples his old repair note and says he will get to it someday. Jill points at the new box: 'That's exactly why I bought it.'"},
+    action:"Jack reads the SATURDAY note still taped to the dead microwave. 'Tomorrow I'll check whether this one is repairable. I owe you an answer, not another Saturday. Then we decide together about the new one.'",
+    resist:"Jack points at his old repair note but says he will get to it someday. Jill taps the new box: 'That's exactly why I bought it.'"},
    explain:{ack:"I'll be plain about the financial boundary and the repair I missed. Both are still real.",
     action:"Jack says, 'The savings are our safety net. I should've fixed this thing, and I didn't. But neither of us gets to make a four-hundred-dollar decision alone.'",
     resist:"Jack repeats the bank balance without acknowledging Jill's ruined dinners. She moves away from him."},
