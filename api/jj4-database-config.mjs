@@ -14,6 +14,12 @@ function configuredUrl(env={}){
 }
 export function storySupabaseBase(env=process.env){
  const origin=configuredUrl(env);
+ // The experimental 4.1 preview is never allowed to silently use the paying
+ // customers' database, even when Vercel branch-scoped variables are missing.
+ if(env.VERCEL_GIT_COMMIT_REF==="deep-dive/4.1-authored-coaching"&&
+    env.VERCEL_ENV==="preview"&&(!String(env.SUPABASE_URL||"").trim()||origin===PRODUCTION_URL||
+    env.ANTHOS_QA_STRICT_ISOLATION!=="1"))
+  throw new Error("Deep Dive 4.1 preview requires Quality Lab URL and strict isolation.");
  if(env.ANTHOS_QA_STRICT_ISOLATION==="1"){
   if(env.VERCEL_ENV==="production")
    throw new Error("QA isolation cannot be enabled on a production deployment.");
