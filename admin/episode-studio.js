@@ -386,7 +386,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   const snapshot=collect();
   if(pilotVersion==="4.1.0")plan.append(node("li","episode-pilot-plan-item","4.1 uses four authored coaching checkpoints with separate Jack/Jill choices and follow-ups; the published 4.0 draft is unchanged."));
   if(pilotVersion==="4.2.0"){
-   plan.append(node("li","episode-pilot-plan-item","4.2: Monday Jill → wife, Tuesday Jack → husband, Wednesday Jill, Thursday Jack, Friday Jill, Saturday Sophia. One shared factual event ledger; no narrator, no Sophia during the week. QA fast-forward is enabled; NO SMS."));
+   plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
