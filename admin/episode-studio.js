@@ -354,7 +354,7 @@ function closePilot(clearRoom=false){
  if(clearRoom)pilot=null;
  const board=$("episodePilotBoard");if(board)board.hidden=true;
 }
-async function pilotEpisode(reset=false,pilotVersion="4.0.0"){
+async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
  if(!current||busy)return;
  if(current.dirty||!current.hasSaved){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
@@ -833,9 +833,9 @@ function setup(){
   current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==current.studio.primarySkill);
   markDirty();paintSkills();paintSupports();
  });
- $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false));
+ $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false,"4.0.0"));
  $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
- $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.0.0"));
+ $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0"));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
