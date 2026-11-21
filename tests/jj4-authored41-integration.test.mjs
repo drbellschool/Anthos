@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import api from "../api/jack-jill-v4.mjs";
-import {buildAuthored41} from "../api/jj4-authored41.mjs";
+import {buildAuthored41,AUTHORED_TITLES} from "../api/jj4-authored41.mjs";
 
 // Two-role integration against the ACTUAL JJ4 HTTP handler, with an in-memory
 // stand-in for the 4.0 Supabase RPC semantics. No customer records, API tokens,
@@ -10,10 +10,10 @@ import {buildAuthored41} from "../api/jj4-authored41.mjs";
 const url="https://anthos.test/api/jack-jill-v4";
 const roomId="99000000-0000-4000-8000-000000000001";
 const sha=x=>createHash("sha256").update(x).digest("hex");
-function makeFixture({failSubmitOnce=false}={}){
+function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise"}={}){
  const tokens={jack:"J".repeat(43),jill:"L".repeat(43)};
  const episode=buildAuthored41({
-  title:"The Four-Hundred-Dollar Surprise",pilotMode:"shared",
+  title,pilotMode:"shared",
   sophiaIntro:"Sophia welcomes the husband and wife and explains how shared decisions and attentive listening are different skills."
  });
  const room={id:roomId,scenario_id:randomUUID(),title:episode.title,episode,
@@ -225,5 +225,61 @@ test("transient submission failure does not permanently strand a 4.1 private fol
  }finally{
   globalThis.fetch=oldFetch;
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
+ }
+});
+
+
+test("all five authored episodes complete through the actual JJ4 two-coach HTTP API",async()=>{
+ const perEpisode={
+  "The Four-Hundred-Dollar Surprise":["Own the forgotten repair and acknowledge the concern.","Acknowledge spending savings and listen to the concern."],
+  "Can We Talk Later?":["Own that later wasn't a time and offer a realistic check-in.","Explain the uncertainty and ask when he can genuinely return."],
+  "A Fight on Vacation":["Ask what Jill needs before blaming the GPS.","Explain the disappointment without accusing Jack."],
+  "One of Us Loves Mountains":["Ask what kind of rest she'd enjoy.","Explain why rest means so much after a busy week."],
+  "Changing Seasons of Desire":["Respect her no and ask what closeness feels possible.","Explain your exhaustion and decline unwanted physical contact."]
+ };
+ const oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ process.env.SUPABASE_SECRET_KEY="synthetic-test-key";
+ delete process.env.OPENAI_API_KEY;
+ try{
+  for(const title of AUTHORED_TITLES){
+   const fx=makeFixture({title});
+   globalThis.fetch=fx.fakeFetch;
+   await fx.request("jack","join",{name:"QA Jack"});
+   await fx.request("jill","join",{name:"QA Jill"});
+   await fx.request("jack","advance");
+   const words=perEpisode[title];
+   for(let phase=0;phase<4;phase++){
+    assert.equal(fx.room.stage,"awaiting",title+" phase "+phase);
+    const jack=await fx.request("jack");
+    const jill=await fx.request("jill");
+    for(const [i,role] of ["jack","jill"].entries()){
+     const status=i?jill:jack;
+     const choice=status.coachChoices[(phase+i)%3];
+     assert.ok(choice,title+" phase "+phase+" "+role);
+     await fx.request(role,"choice",{optionId:choice.id,requestKey:randomUUID()});
+    }
+    const jackAdvice=words[0],jillAdvice=words[1];
+    await fx.request("jack","coach",{message:jackAdvice,requestKey:randomUUID()});
+    assert.equal((await fx.request("jill")).messages.some(m=>m.body===jackAdvice),false);
+    await fx.request("jill","coach",{message:jillAdvice,requestKey:randomUUID()});
+    assert.equal(fx.room.stage,"flow");
+    await fx.request("jack","advance");
+   }
+   await fx.request("jill","advance");
+   const summary=await fx.request("jack","closure");
+   assert.equal(summary.hasSophia,true,title);
+   assert.equal(fx.room.stage,"complete");
+   assert.equal(fx.messages.filter(x=>x.kind==="scene").length,6,title);
+   assert.equal(fx.messages.filter(x=>x.kind==="coach").length,8,title);
+   const shared=fx.messages.filter(x=>x.role==="shared").map(x=>x.body).join("\n");
+   for(const advice of words)assert.equal(shared.includes(advice),false,title+" leaked a private coach message");
+   assert.equal(fx.getExternalCalls(),0,"all scenes authored without external text generation");
+   const sophia=fx.messages.find(x=>x.kind==="sophia").body;
+   assert.match(sophia,/not a grade on your marriage/i,title);
+  }
+ }finally{
+  globalThis.fetch=oldFetch;
+  if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
+  if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;
  }
 });
