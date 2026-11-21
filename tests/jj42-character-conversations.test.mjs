@@ -215,3 +215,29 @@ test("bounded semantic classifier honors 'do not call, buy' without disclosing a
  });
  assert.equal(fallback,"consult");
 });
+
+
+test("natural negated aside does not reverse Jill's explicit buy advice",()=>{
+ const ep=create(),first=renderConversation42(ep,0,[]);
+ const history=[
+  {role:"shared",kind:"scene",phase_index:0,body:first.scene},
+  {role:"jill",kind:"coach",phase_index:0,
+   body:"Buy it today. Jack has had three Saturdays, and you've had enough. But don't pretend that spending from savings without calling is harmless."}
+ ];
+ const tuesday=renderConversation42(ep,1,history);
+ assert.equal(parseLedger42(tuesday.scene).state.purchase,"bought_unannounced");
+ assert.match(tuesday.jackPrompt,/Jill bought a \$400 replacement/);
+ const alternatives=[
+  ["Do not buy it without talking to him first.","wait"],
+  ["Call Jack first. Discuss the price before buying.","consult"],
+  ["Don't call Jack. Buy it today.","buy"],
+  ["Buy it now and don't blame him for your choice.","buy"]
+ ];
+ for(const [advice,expected] of alternatives){
+  history[1].body=advice;
+  const result=renderConversation42(ep,1,history);
+  const purchase=parseLedger42(result.scene).state.purchase;
+  assert.equal(purchase,expected==="buy"?"bought_unannounced":
+   expected==="consult"?"consulted":"waiting",advice);
+ }
+});
