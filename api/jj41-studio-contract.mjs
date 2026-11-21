@@ -98,7 +98,7 @@ export const MICROWAVE_SOURCE_VOICES={
     resist:"Jack points at the charge and ignores his own old repair note. Jill says, 'You're leaving out the Saturdays again.'"},
    explain:{ack:"I'll tell Jill why the emergency money matters, without pretending I kept my repair promise.",
     action:"Jack says, 'That's our emergency fund, Jill. I don't want either of us spending four hundred dollars without talking first. And I know I should've fixed the old one.'",
-    resist:"Jack says, 'It's my money too,' and Jill answers, 'And it was my broken appliance every night.'"},
+    resist:"Jack says, 'You took four hundred dollars from savings without calling.' Jill answers, 'And you left the old microwave broken every night.'"},
    ask:{ack:"I'll ask what finally pushed her to buy it, and I'll listen before deciding what to do.",
     action:"Jack sets the phone down. 'Tell me what made tonight the breaking point. I'm not fine with the charge, but I know I've put that repair off.'",
     resist:"Jack asks why she bought it but interrupts as soon as she starts explaining. Jill stops talking."}
@@ -140,11 +140,15 @@ export const MICROWAVE_SOURCE_VOICES={
   }
  }
 };
+export function wantsMicrowaveOpened(value){
+ const text=String(value||"").toLowerCase();
+ return /\b(?:open|unbox|install|use|set up)\s+(?:the\s+|our\s+|new\s+)*microwave\b/.test(text)&&
+  !/\b(?:don't|do not|never)\s+(?:open|unbox|install|use|set up)\b|\b(?:keep|leave)\s+(?:it\s+)?sealed\b|\bnot yet\b/.test(text);
+}
 export function sourceMicrowaveOutcome(episode,phase,history,outcome){
  const advise=(role,at)=>String((history||[]).find(x=>x.role===role&&x.kind==="coach"&&x.phase_index===at)?.body||"").toLowerCase();
  const lastJill=advise("jill",3);
- const openRequest=/\b(?:open|unbox|install|use|set up)\s+(?:the\s+|our\s+|new\s+)*microwave\b/.test(lastJill)&&
-   !/\b(?:don't|do not|not yet|wait|before opening|leave it sealed|keep it sealed)\b/.test(lastJill);
+ const openRequest=wantsMicrowaveOpened(lastJill);
  if(phase===4){
   if(openRequest)return "Jill pulls the tape from the new box. Jack steps back. 'I asked you to make this decision with me.' She says, 'I know. I'm making it anyway.' The tape is broken, and the disagreement gets sharper.";
   if(outcome==="mutual")return "Jack says, 'I'll check the repair tomorrow. Then we'll look at the numbers together.' Jill takes her hand off the tape. 'All right. But I need you to do what you said this time.' The box stays sealed.";
