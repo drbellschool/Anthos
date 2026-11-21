@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {
- JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,
+ JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,validCharacterMessage42,
  parseLedger42,sophiaConversation42,nextWeekSchedule,due42,weeklyRehearsal42
 } from "../api/jj42-conversations.mjs";
 
@@ -132,4 +132,59 @@ test("one-function fast-forward rehearsal returns all five coaching turns and Sa
  assert.equal(p.rounds.length,5);
  assert.equal(p.ledger.length,6);
  assert.match(p.sophia,/Gentle startup/);
+});
+
+
+test("model-generated private Jack/Jill text is fact-checked before sending",async()=>{
+ const ep=create(),history=[];
+ const first=renderConversation42(ep,0,history);
+ history.push({role:"shared",kind:"scene",phase_index:0,body:first.scene},
+  {role:"jill",kind:"coach",phase_index:0,body:"Call Jack before buying it."});
+ const legitimate="Man, Jill called me before buying a microwave today. I have to give her credit for that. But she has had to live with a dead appliance for three weeks while I kept saying Saturday. I still want our savings protected, and I need to own my part. What would you say first?";
+ const makeFetch=message=>async(_url,options)=>({
+  ok:true,async json(){return {output:[{content:[{type:"output_text",text:JSON.stringify({message})}]}]}}
+ });
+ const approved=await renderCharacterMessage42(ep,1,history,{
+  apiKey:"test-key-not-real",fetchImpl:makeFetch(legitimate)
+ });
+ assert.equal(approved.jackPrompt,legitimate);
+ assert.equal(approved.jillPrompt,"");
+ const hallucinated=legitimate.replace("Jill called me before buying a microwave today",
+  "Jill bought the microwave and the charge hit our savings today");
+ const rejected=await renderCharacterMessage42(ep,1,history,{
+  apiKey:"test-key-not-real",fetchImpl:makeFetch(hallucinated)
+ });
+ assert.notEqual(rejected.jackPrompt,hallucinated);
+ assert.match(rejected.jackPrompt,/Jill called about a \$400 microwave/);
+ assert.equal(validCharacterMessage42(hallucinated,parseLedger42(rejected.scene).state,1),false);
+});
+test("LLM sees the current character's advice, not the other coach's private words",async()=>{
+ const ep=create(),history=[];
+ const first=renderConversation42(ep,0,history);
+ history.push({role:"shared",kind:"scene",phase_index:0,body:first.scene},
+  {role:"jill",kind:"prompt",phase_index:0,body:first.jillPrompt},
+  {role:"jill",kind:"coach",phase_index:0,body:"MY PRIVATE JILL COACHING SENTENCE"},
+  {role:"jack",kind:"coach",phase_index:0,body:"PREVIOUS PRIVATE JACK ADVICE"});
+ let request;
+ await renderCharacterMessage42(ep,1,history,{
+  apiKey:"test-key-not-real",fetchImpl:async(_,options)=>{request=JSON.parse(options.body);return {ok:false}}
+ });
+ const context=JSON.parse(request.input);
+ assert.equal(context.character,"Jack");
+ assert.doesNotMatch(request.input,/MY PRIVATE JILL COACHING SENTENCE/);
+ assert.match(request.input,/PREVIOUS PRIVATE JACK ADVICE/);
+ assert.equal(request.store,false);
+});
+test("model failures, bad facts or too-short texts fall back to verified check-in",async()=>{
+ const ep=create();
+ const out=await renderCharacterMessage42(ep,0,[],{
+  apiKey:"test-key-not-real",fetchImpl:async()=>{throw Error("provider unavailable")}
+ });
+ assert.match(out.jillPrompt,/Would you buy it/);
+ const tooShort=await renderCharacterMessage42(ep,0,[],{
+  apiKey:"test-key-not-real",fetchImpl:async()=>({
+   ok:true,async json(){return {output:[{content:[{type:"output_text",text:JSON.stringify({message:"Buy it?"})}]}]}}
+  })
+ });
+ assert.equal(tooShort.jillPrompt,out.jillPrompt);
 });
