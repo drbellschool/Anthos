@@ -2,7 +2,7 @@
 alter table public.anthos_jj41_sms_participants
  rename column join_consent_at to signup_consent_at;
 alter table public.anthos_jj41_sms_participants
- add column if not exists customer_id uuid references public.anthos_customer_directory(id),
+ add column if not exists customer_id uuid,
  add column if not exists welcome_sent_at timestamptz,
  add column if not exists superseded_at timestamptz;
 create index if not exists jj41_sms_active_phone
