@@ -361,17 +361,21 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   return;
  }
  const approved41=new Set(["the four-hundred-dollar surprise","can we talk later?","a fight on vacation","one of us loves mountains","changing seasons of desire"]);
+ if(pilotVersion==="4.2.0"&&String(current.studio?.title||current.title||"").trim().toLowerCase()!=="the four-hundred-dollar surprise"){
+  note("4.2 initially pilots The Four-Hundred-Dollar Surprise. We will extend to other Episode Studio scenarios after quality testing.",true);return;
+ }
  if(pilotVersion==="4.1.0"&&!approved41.has(String(current.studio?.title||current.title||"").trim().toLowerCase())){
   note("4.1 currently supports five approved episodes. Select one of the five authored pilots.",true);return;
  }
  if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
  if(pilot&&(!confirm("Start a fresh "+pilotVersion+" test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
- setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodePilotReset").disabled=true;
+ setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodeLaunchPilot42").disabled=true;$("episodePilotReset").disabled=true;
  note("Creating a new, private "+pilotVersion+" episode rehearsal…");
  try{
   const previousRoomId=pilot?.roomId||null;
   const room=await request("episode-studio-pilot-v4",{
-   scenarioId:current.id,previousRoomId,pilotVersion
+   scenarioId:current.id,previousRoomId,pilotVersion,
+   fastForward:pilotVersion==="4.2.0"
   });
   closePilot();
   pilot=room;
@@ -381,6 +385,9 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   plan.replaceChildren();
   const snapshot=collect();
   if(pilotVersion==="4.1.0")plan.append(node("li","episode-pilot-plan-item","4.1 uses four authored coaching checkpoints with separate Jack/Jill choices and follow-ups; the published 4.0 draft is unchanged."));
+  if(pilotVersion==="4.2.0"){
+   plan.append(node("li","episode-pilot-plan-item","4.2: Monday Jill → wife, Tuesday Jack → husband, Wednesday Jill, Thursday Jack, Friday Jill, Saturday Sophia. One shared factual event ledger; no narrator, no Sophia during the week. QA fast-forward is enabled; NO SMS."));
+  }
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
    row.append(node("strong","",phase.title+" — "));
@@ -399,7 +406,11 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
   $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
-  $("episodePilotSmsStatus").textContent="Checking existing registered couple consent for private texting…";
+  $("episodePilotSmsStatus").textContent=pilotVersion==="4.2.0"?
+   "4.2 is a browser-only fast-forward quality pilot. Real 4.2 texting is disabled until the delivery/scheduling tests pass.":
+   "Checking existing registered couple consent for private texting…";
+  $("episodePilotSmsCouple").disabled=pilotVersion==="4.2.0";
+  $("episodePilotSmsSetup").disabled=pilotVersion==="4.2.0";
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
    "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
@@ -413,7 +424,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
   if(room.engine==="4.1.0")await loadSmsEligible();
  }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodePilotReset").disabled=false}
+ finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodePilotReset").disabled=false}
 }
 async function loadSmsEligible(){
  const box=$("episodePilotSmsStatus"),select=$("episodePilotSmsCouple"),
@@ -880,6 +891,7 @@ function setup(){
  });
  $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false,"4.0.0"));
  $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
+ $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
  $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0"));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
