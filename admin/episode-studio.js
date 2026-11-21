@@ -360,8 +360,9 @@ async function pilotEpisode(reset=false,pilotVersion="4.0.0"){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
   return;
  }
- if(pilotVersion==="4.1.0"&&String(current.studio?.title||"").trim().toLowerCase()!=="the four-hundred-dollar surprise"){
-  note("4.1 is currently authored for The Four-Hundred-Dollar Surprise only.",true);return;
+ const approved41=new Set(["the four-hundred-dollar surprise","can we talk later?","a fight on vacation","one of us loves mountains","changing seasons of desire"]);
+ if(pilotVersion==="4.1.0"&&!approved41.has(String(current.studio?.title||current.title||"").trim().toLowerCase())){
+  note("4.1 currently supports five approved episodes. Select one of the five authored pilots.",true);return;
  }
  if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
  if(pilot&&(!confirm("Start a fresh "+pilotVersion+" test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
