@@ -4,6 +4,7 @@ import {createHash,randomUUID} from "node:crypto";
 import api from "../api/jack-jill-v4.mjs";
 import {buildAuthored41,AUTHORED_TITLES} from "../api/jj4-authored41.mjs";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
+import {buildConversation42} from "../api/jj42-conversations.mjs";
 
 // Two-role integration against the ACTUAL JJ4 HTTP handler, with an in-memory
 // stand-in for the 4.0 Supabase RPC semantics. No customer records, API tokens,
@@ -11,12 +12,14 @@ import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 const url="https://anthos.test/api/jack-jill-v4";
 const roomId="99000000-0000-4000-8000-000000000001";
 const sha=x=>createHash("sha256").update(x).digest("hex");
-function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null}={}){
+function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null,version42=false}={}){
  const tokens={jack:"J".repeat(43),jill:"L".repeat(43)};
- const episode=buildAuthored41(studio?{...structuredClone(studio),title,pilotMode:"shared"}:{
-  title,pilotMode:"shared",
-  sophiaIntro:"Sophia welcomes the husband and wife and explains how shared decisions and attentive listening are different skills."
- });
+ const episode=version42?
+  buildConversation42({...structuredClone(studio||savedMicrowaveStudio),title,pilotMode:"shared"},{fastForward:true}):
+  buildAuthored41(studio?{...structuredClone(studio),title,pilotMode:"shared"}:{
+   title,pilotMode:"shared",
+   sophiaIntro:"Sophia welcomes the husband and wife and explains how shared decisions and attentive listening are different skills."
+  });
  const room={id:roomId,scenario_id:randomUUID(),title:episode.title,episode,
   stage:"needs_scene",phase_index:0,expires_at:"2099-01-01T00:00:00.000Z",
   created_at:"2026-11-20T15:00:00.000Z",processing_token:null,simulation_state:null};
@@ -70,7 +73,7 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
    assert.equal(room.phase_index,body.p_phase);
    assert.equal(room.processing_token,body.p_claim);
    add("shared","scene",room.phase_index,body.p_story);
-   if(room.phase_index<4){
+   if(room.phase_index<(version42?5:4)){
     if(body.p_jack)add("jack","prompt",room.phase_index,body.p_jack);
     if(body.p_jill)add("jill","prompt",room.phase_index,body.p_jill);
     room.stage="awaiting";
@@ -331,6 +334,69 @@ test("real JJ4 HTTP lifecycle honors the saved microwave Jack/Jill/Jack/Jill gat
   const shared=fx.messages.filter(x=>x.role==="shared").map(x=>x.body).join(" ");
   for(const advice of lines)assert.equal(shared.includes(advice),false,"private coaching must not leak");
   assert.equal(fx.getExternalCalls(),0,"no external model or SMS required for this rehearsal");
+ }finally{
+  globalThis.fetch=oldFetch;
+  if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
+  if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;
+ }
+});
+
+
+test("4.2 actual JJ4 HTTP flow: five private days, event ledger hidden, Sophia only Saturday",async()=>{
+ const fx=makeFixture({version42:true});
+ const oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ globalThis.fetch=fx.fakeFetch;
+ process.env.SUPABASE_SECRET_KEY="synthetic-test-key";delete process.env.OPENAI_API_KEY;
+ const roles=["jill","jack","jill","jack","jill"];
+ const messages=[
+  "Buy the new microwave, but understand the emergency savings issue.",
+  "Own the three missed Saturdays and explain why savings matter.",
+  "Acknowledge buying it without calling him first.",
+  "Find the model number and a shop to call tomorrow.",
+  "Wait and leave the new microwave sealed until a real repair quote comes back."
+ ];
+ try{
+  await fx.request("jack","join",{name:"Husband"});
+  await fx.request("jill","join",{name:"Wife"});
+  for(let day=0;day<6;day++){
+   const updated=await fx.request("jack","advance");
+   assert.equal(updated.phaseIndex,day);
+   assert.equal(updated.version,"4.2.0");
+   assert.deepEqual(updated.scenes.filter(x=>x.kind==="scene"),[]);
+   const husband=await fx.request("jack"),wife=await fx.request("jill");
+   assert.equal(husband.messages.some(x=>x.role==="jill"),false);
+   assert.equal(wife.messages.some(x=>x.role==="jack"),false);
+   assert.equal(husband.scenes.some(x=>x.kind==="introduction"),false);
+   assert.equal(wife.scenes.some(x=>x.kind==="introduction"),false);
+   if(day===5){
+    assert.equal(fx.room.stage,"complete");
+    assert.equal(updated.hasSophia,false);
+    break;
+   }
+   const role=roles[day],other=role==="jack"?"jill":"jack";
+   const current=role==="jack"?husband:wife;
+   const otherStatus=other==="jack"?husband:wife;
+   assert.equal(current.needsReply,true);
+   assert.equal(otherStatus.needsReply,false);
+   assert.equal(current.coachChoices.length,0);
+   assert.equal(current.messages.filter(x=>x.kind==="prompt").length,
+    roles.slice(0,day+1).filter(x=>x===role).length);
+   assert.equal(otherStatus.messages.some(x=>x.kind==="prompt"&&x.phase_index===day),false);
+   assert.equal(current.messages.some(x=>x.body.includes("SOPHIA")),false);
+   await fx.request(role,"coach",{message:messages[day],requestKey:randomUUID()});
+   assert.equal(fx.room.stage,"flow");
+   const hidden=(await fx.request(other)).scenes.map(x=>x.body).join(" ");
+   assert.equal(hidden.includes(messages[day]),false);
+  }
+  const final=await fx.request("jack","closure");
+  assert.equal(final.hasSophia,true);
+  assert.equal(final.scenes.filter(x=>x.kind==="sophia").length,1);
+  assert.match(final.scenes[0].body,/SOPHIA · SATURDAY/);
+  assert.equal(fx.messages.filter(x=>x.role==="shared"&&x.kind==="scene").length,6);
+  assert.equal(fx.messages.filter(x=>x.kind==="prompt").length,5);
+  assert.equal(fx.messages.filter(x=>x.kind==="coach").length,5);
+  assert.equal(fx.messages.filter(x=>x.kind==="question").length,0);
+  assert.equal(fx.getExternalCalls(),0);
  }finally{
   globalThis.fetch=oldFetch;
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
