@@ -101,7 +101,8 @@ function mount(root,invite,options={}){
  function render(state){
   current=state;
   title.textContent=(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
-  phase.textContent=state.phase+" · "+(state.phaseIndex+1)+"/6";
+  phase.textContent=state.version==="4.2.0"?state.weekDay+" · Day "+(state.phaseIndex+1)+"/6":
+   state.phase+" · "+(state.phaseIndex+1)+"/6";
   transcript(state);
   // A background status poll can return every five seconds while a participant
   // is typing. Only rebuild controls when their *meaningful* state changes;
@@ -150,11 +151,13 @@ function mount(root,invite,options={}){
     oneAction("Pause episode",async()=>act("pause"));
     return;
    }
-   message(state.version==="4.1.0"?
-    "Respond to your character's concern. Their reply and your coaching will shape the next scene.":
+   message(state.version==="4.2.0"?
+    "Text "+(state.character||"your character")+" privately. Your advice will shape what happens next.":
+    state.version==="4.1.0"?"Respond to your character's concern. Their reply and your coaching will shape the next scene.":
     (state.character||"Your character")+" needs your advice before the next phase.");
    const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;
    field.placeholder=state.version==="4.1.0"?"What would you say after that objection?":
+    state.version==="4.2.0"?"Text "+(state.character||"your character")+" like a friend. What should they do next?":
     "Reply privately to "+(state.character||"your character")+
     ". Your advice can change what happens next.";
    field.setAttribute("aria-label","Private coaching advice");
@@ -167,12 +170,12 @@ function mount(root,invite,options={}){
     if(words.length<2){message("Write a suggestion or question to your character.",true);return}
     await act("coach",{message:words,requestKey:crypto.randomUUID()});
    },true);
-   if(state.version!=="4.1.0")oneAction("Ask "+(state.character||"character"),async()=>{
+   if(state.version!=="4.1.0"&&state.version!=="4.2.0")oneAction("Ask "+(state.character||"character"),async()=>{
     const words=field.value.trim();
     if(words.length<2){message("Enter a private question first.",true);return}
     await act("ask",{message:words,requestKey:crypto.randomUUID()});
    });
-   if(state.version!=="4.1.0")oneAction("No advice this time",async()=>
+   if(state.version!=="4.1.0"&&state.version!=="4.2.0")oneAction("No advice this time",async()=>
     act("coach",{message:"I have no advice right now.",requestKey:crypto.randomUUID()}));
    oneAction("Pause episode",async()=>act("pause"));
    field.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();send.click()}});
@@ -180,7 +183,10 @@ function mount(root,invite,options={}){
   }
   if(state.stage==="awaiting"){
    if(state.submitted&&draftPhase===state.phaseIndex)draftAdvice="";
-   message(state.submitted?"Your advice is recorded. Waiting for the other coach.":"Waiting for "+state.waitingFor.join(" and ")+" to advise their character.");
+   message(state.version==="4.2.0"?
+    (state.submitted?"Your advice is recorded. The next private check-in will follow.":"Waiting for the current day's private coaching."):
+    state.submitted?"Your advice is recorded. Waiting for the other coach.":
+    "Waiting for "+state.waitingFor.join(" and ")+" to advise their character.");
    oneAction("Refresh",refresh);return;
   }
   if(state.pausedBy?.length&&!state.needsReply){
@@ -189,9 +195,12 @@ function mount(root,invite,options={}){
    oneAction("Pause episode",async()=>act("pause"));return;
   }
   if(state.canContinue){
-   message(autoFailed?"Story needs a retry. Click to continue.":
+   message(state.version==="4.2.0"?
+    (autoFailed?"The next private check-in needs a retry.":"Fast-forwarding to "+state.weekDay+"…"):
+    autoFailed?"Story needs a retry. Click to continue.":
     state.scenes.length?"The next scene begins automatically…":"Both coaches joined. Starting the episode…");
-   oneAction(state.scenes.length?"Continue / retry scene":"Start episode",async()=>{
+   oneAction(state.version==="4.2.0"?(state.phaseIndex?"Continue to "+state.weekDay:"Start Monday"):
+    state.scenes.length?"Continue / retry scene":"Start episode",async()=>{
     autoFailed=false;await act("advance");
    },true);
    oneAction("Pause episode",async()=>act("pause"));
@@ -199,6 +208,10 @@ function mount(root,invite,options={}){
     autoTimer=null;if(!inFlight&&!destroyed&&current?.canContinue)act("advance");
    },1200);
    return;
+  }
+  if(state.version==="4.2.0"&&state.nextAvailableAt&&state.stage==="flow"){
+   message("Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
+   oneAction("Refresh",refresh);return;
   }
   message("Updating the episode…");
  }
