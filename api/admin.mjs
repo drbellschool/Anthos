@@ -5,7 +5,7 @@ import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./revi
 import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
 import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
 import { createRoom as createV4PilotRoom } from "./jj4-core.mjs";
-import {registerPilotSms,pilotSmsReady} from "./jj41-sms-core.mjs";
+import {registerPilotSms,listEligiblePilotSmsCouples,pilotSmsReady} from "./jj41-sms-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {getAdminHomeMetrics} from "./admin-home-metrics.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
@@ -291,11 +291,15 @@ export default {
       try{return json(await createV4PilotRoom(new URL(request.url).origin,body.scenarioId,body.previousRoomId||null,body.pilotVersion||"4.1.0"))}
       catch(e){return json({error:e.message||"Could not create 4.1 pilot.",},e.status||502)}
     }
+    if(action==="episode-studio-sms-eligible"){
+      try{return json(await listEligiblePilotSmsCouples());}
+      catch(e){return json({error:"Verified registration lookup unavailable."},e.status||502)}
+    }
     if(action==="episode-studio-sms-setup"){
       try{return json(await registerPilotSms({
        origin:new URL(request.url).origin,
-       roomId:body.roomId,husbandPhone:body.husbandPhone,wifePhone:body.wifePhone,
-       invitations:body.invitations,adultsConfirmed:body.adultsConfirmed
+       roomId:body.roomId,husbandCustomerId:body.husbandCustomerId,
+       invitations:body.invitations
       }));}
       catch(e){return json({error:e.message||"SMS pilot setup unavailable."},e.status||502)}
     }
