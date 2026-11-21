@@ -76,7 +76,7 @@ export function checkAuthoredStudioScene(episode,phase,text){
     reason("microwave scene contradicts saved time or physical object");
   if(/(?:the store confirmed|refund (?:was|is) guaranteed|the technician fixed|microwave was repaired)/i.test(scene))
     reason("fiction invented external repair or refund confirmations");
-  if(phase===1&&(!/Jack/.test(scene)||!/Jill/.test(scene)||!/savings/i.test(scene)))
+  if(phase===1&&(!/Jack/.test(scene)||!/Jill/.test(scene)||!/savings|emergency fund/i.test(scene)))
     reason("Jack's conflict did not cover the actual shared financial decision");
   if(phase===2&&(!/Jill/.test(scene)||!/Jack/.test(scene)||!/Saturday|repair/i.test(scene)))
     reason("Jill's discovery did not confront the delayed repairs");
