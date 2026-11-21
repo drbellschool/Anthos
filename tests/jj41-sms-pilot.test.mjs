@@ -52,12 +52,12 @@ test("private invite tokens are authenticated encrypted at rest",()=>{
 test("a missing carrier approval, public key, or production setting fails closed",async()=>{
  makeEnv();
  try{
-  process.env.THREEFOLD_10DLC_APPROVED="false";
+  process.env.TELNYX_PILOT_MESSAGING_ENABLED="false";
   assert.equal(pilotSmsReady(),false);
   let r=await smsWebhook.fetch(new Request("https://anthos.love/api/jj41-sms-webhook",
    {method:"POST",body:"{}"}));
   assert.equal(r.status,503);
-  process.env.THREEFOLD_10DLC_APPROVED="true";
+  process.env.TELNYX_PILOT_MESSAGING_ENABLED="true";
   delete process.env.TELNYX_PUBLIC_KEY;
   assert.equal(pilotSmsReady(),false);
   process.env.TELNYX_PUBLIC_KEY="A".repeat(44);
@@ -67,38 +67,22 @@ test("a missing carrier approval, public key, or production setting fails closed
    {method:"GET"}))).status,405);
  }finally{restore()}
 });
-test("SMS setup validates room and participant links without sending either spouse an unsolicited text",async()=>{
+test("SMS setup refuses anyone without verified signup consent; no JOIN or new checkbox",async()=>{
  makeEnv();
  const {publicKey}=generateKeyPairSync("ed25519");
  process.env.TELNYX_PUBLIC_KEY=publicKey.export({type:"spki",format:"der"}).subarray(-32).toString("base64");
  const oldFetch=globalThis.fetch;
- const roomId=randomUUID(),jToken="J".repeat(43),lToken="L".repeat(43);
- const links={jack:"https://anthos.love/pilot-v4/?invite="+jToken,
-  jill:"https://anthos.love/pilot-v4/?invite="+lToken};
- let sent=0,writes=0;
- globalThis.fetch=async (url,init={})=>{
+ let sent=0,records=0;
+ globalThis.fetch=async url=>{
   const u=new URL(String(url));
-  assert.equal(u.hostname,"kstluxwgrrgdbjyloscb.supabase.co");
-  if(u.pathname.includes("anthos_jj4_rooms"))
-   return new Response(JSON.stringify([{id:roomId,stage:"needs_scene",expires_at:"2099-01-01T00:00:00Z",
-    episode:{authored41:{version:"4.1.0"},pilotMode:"shared"}}]),{status:200});
-  if(u.pathname.includes("anthos_jj4_participants")){
-   const role=u.searchParams.get("role")?.slice(3);
-   assert.equal(u.searchParams.get("token_hash")?.slice(3),
-    createHash("sha256").update(role==="jack"?jToken:lToken).digest("hex"));
-   return new Response(JSON.stringify([{id:randomUUID()}]),{status:200});
-  }
-  if(u.pathname.includes("anthos_jj41_sms_participants")){writes++;return new Response(JSON.stringify([{id:randomUUID()}]),{status:201})}
-  if(u.hostname.includes("telnyx"))sent++;
-  throw Error("Unexpected request path "+u.pathname);
+  if(u.hostname==="api.telnyx.com")sent++;
+  if(u.pathname.includes("anthos_customer_directory")){records++;return new Response(JSON.stringify([]),{status:200})}
+  throw Error("Unexpected request: "+u.pathname);
  };
  try{
-  const result=await registerPilotSms({origin:"https://anthos.love",roomId,
-   husbandPhone:"+12125550124",wifePhone:"+12125550125",invitations:links,adultsConfirmed:true});
-  assert.equal(result.registered,true);
-  assert.equal(writes,1);
-  assert.equal(sent,0,"No SMS sent before each adult sends JOIN");
-  await assert.rejects(registerPilotSms({origin:"https://anthos.love",roomId,
-   husbandPhone:"+12125550124",wifePhone:"+12125550124",invitations:links,adultsConfirmed:true}),/distinct/);
+  await assert.rejects(registerPilotSms({origin:"https://anthos.love",roomId:randomUUID(),
+   husbandCustomerId:randomUUID(),invitations:{}}),/verified phone numbers|SMS consent/);
+  assert.equal(records,1);
+  assert.equal(sent,0,"An unverified person must never receive pilot messages.");
  }finally{globalThis.fetch=oldFetch;restore()}
 });
