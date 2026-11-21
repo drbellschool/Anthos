@@ -351,11 +351,13 @@ export function weeklyRehearsal42(episode,adviceByDay){
   const role=ROLES[day];
   if(role){
    const message=role==="jack"?out.jackPrompt:out.jillPrompt;
-   rounds.push({day:JJ42_DAYS[day],role,message,coach:adviceByDay[day]});
+   rounds.push({day:JJ42_DAYS[day],role,message,coach:adviceByDay[day],
+    reaction:reactionConversation42(episode,day,adviceByDay[day])});
    history.push({role,kind:"coach",phase_index:day,body:adviceByDay[day]});
   }
  }
- return {rounds,ledger:history.filter(x=>x.role==="shared").map(x=>parseLedger42(x.body)),
+ return {orientation:sophiaOrientation42(episode),
+  rounds,ledger:history.filter(x=>x.role==="shared").map(x=>parseLedger42(x.body)),
   sophia:sophiaConversation42(episode,history.filter(x=>x.role==="shared"))};
 }
 
