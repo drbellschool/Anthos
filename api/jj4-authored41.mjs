@@ -361,36 +361,45 @@ export function selectedAuthoredChoice(episode,role,phase,history=[]){
 }
 export function classifyAuthoredFollowup(text){
  const s=String(text||"").toLowerCase().replace(/[’]/g,"'");
- // A warning AGAINST intimidation is not itself coercive advice.
- const withoutProhibitions=s.replace(/\b(?:don't|do not|never|please don't|avoid|stop|shouldn't|must not)\s+(?:try to\s+)?(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/g,"[prohibited harm]");
- if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(withoutProhibitions))return "unsafe";
- if(/\b(?:don't|do not|never|shouldn't|not going to)\s+(?:try to\s+)?(?:apolog\w*|listen|acknowledg\w*|ask|own)\b/.test(s))return "resist";
- if(/\b(?:never admit|do not admit|don't admit|no need to apologize|none of this is your fault)\b/.test(s))return "resist";
- if(/\b(?:don't|do not|never|refuse to|stop)\s+(?:try to\s+)?(?:offer|invite|propose|plan|review|check|decide|collaborate|make a plan)\b/.test(s))
+ // Negative instructions to avoid coercion are constructive, not threats.
+ const noThreats=s.replace(/\b(?:don't|do not|never|avoid|stop|shouldn't|must not)\s+(?:try to\s+)?(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/g,"[avoid harm]");
+ if(/\b(?:hit|slap|punch|force|threaten|blackmail|coerce)\b/.test(noThreats))return "unsafe";
+ // An apology used as a tool for silence is NOT meaningful accountability.
+ if(/\b(?:pretend|fake|feign)\s+(?:to\s+)?(?:apolog\w*|care|listen|agree|be sorry)\b/.test(s)||
+    /\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\s+(?:stop|end|shut|silence|make|he|she|they)\b/.test(s)||
+    /\b(?:say|tell (?:him|her|them)|offer)\s+(?:you(?:'re| are)\s+)?sorry\s+just\s+to\s+(?:stop|end|shut|silence)\b/.test(s)||
+    /\bsorry\s+(?:just to|only to)\s+(?:end|stop|shut|silence)\b/.test(s)||
+    /\b(?:to|so)\s+(?:he|she|they)\s+(?:stops?|shuts?|will stop)\s+(?:asking|complaining|talking)\b/.test(s))
   return "resist";
- if(/\b(?:apolog|acknowledg|listen|understand|respect|ask|explain|hear|own|care|validat|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat|plan|review|check|decide together|work together|come up with|follow through)\w*/.test(s))return "engage";
- if(/\b(?:it's all (?:his|her|their) fault|blame|punish|teach (?:him|her) a lesson)\b/.test(s))return "resist";
+ if(/\b(?:don't|do not|never|shouldn't|not going to)\s+(?:ever\s+|try to\s+)?(?:apolog\w*|listen|acknowledg\w*|ask|own|say sorry)\b/.test(s)||
+    /\b(?:never admit|do not admit|don't admit|no need to apologize|none of this is your fault)\b/.test(s)||
+    /\b(?:don't|do not|never|refuse to|stop)\s+(?:ever\s+|try to\s+)?(?:offer|invite|propose|plan|review|check|decide|collaborate|make a plan)\b/.test(s)||
+    /\b(?:make (?:him|her|them) feel guilty|teach (?:him|her|them) a lesson)\b/.test(s))
+  return "resist";
+ if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
+  return "engage";
+ if(/\b(?:it's all (?:his|her|their) fault|blame|punish)\b/.test(s))return "resist";
  return "unclear";
 }
-// A bounded, deterministic interpretation of the coach's own words. This does
-// not generate narrative, infer personal traits, or transmit private coaching.
-// Explicit, positive first-step instructions may redirect the initial choice.
+// A bounded deterministic fallback. A small model can provide a more nuanced
+// private classification, but all shared outcomes remain scripted.
 export function interpretAuthoredFollowup(text){
- const kind=classifyAuthoredFollowup(text);
- const original=String(text||"").toLowerCase().replace(/[’]/g,"'");
- const motive=/\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\s+(?:she|he|they|we|you|stop|end|get|shut)\b|\b(?:shut (?:her|him|them) up|make (?:her|him|them) stop complaining|just to end (?:the|this) (?:fight|argument)|get this over with)\b/.test(original)?"avoidance":
-  /\b(?:before (?:she|he|they) can hear|feel heard|feels heard|listen to (?:how|what)|because (?:she|he|they) (?:feels?|felt)|understand (?:how|what|why)|validate (?:her|his|their)|respect (?:her|his|their) feelings)\b/.test(original)?"empathy":
-  /\b(?:without (?:agreeing|surrendering|giving in|pretending)|can (?:still|also) disagree|still (?:need|want)|separate (?:issues|things)|doesn't mean (?:you|i) agree|respect (?:her|his|their) boundary)\b/.test(original)?"differentiation":
-  /\b(?:follow through|make (?:a|the) plan|set (?:a|the) time|actually do|concrete next step|return (?:when|at)|check (?:the|our|your|his|her) (?:calendar|option|schedule))\b/.test(original)?"followthrough":"none";
+ const s=String(text||"").toLowerCase().replace(/[’]/g,"'");
+ const kind=classifyAuthoredFollowup(s);
+ const motive=
+  /\b(?:pretend|fake|feign)\b.*\b(?:apolog|care|listen|agree|sorry)\b|\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\b|\bsorry\s+just to\b|\b(?:so|to)\s+(?:he|she|they)\s+stops?\s+(?:asking|complaining|talking)\b/.test(s)?"avoidance":
+  /\b(?:without (?:agree\w*|surrender\w*|giv\w* in|pretend\w*|demand\w*|requir\w*|book\w*|touch\w*)|doesn't mean|don't have to agree|still hold (?:your|a) boundary|respect (?:her|his|their) (?:no|wish|boundary|decision)|let (?:her|him|them) decline|even if (?:you|he|she|they) (?:feel|feels)|say no to touching|no physical affection)\b/.test(s)?"differentiation":
+  /\b(?:ask (?:what|which) (?:kind|part|rest|she|he|they)|what rest means|how (?:she|he|they) (?:feels?|felt)|feel heard|feels heard|listen to (?:the|what|how|her|his|their)|hear (?:her|his|their) (?:worr|concern|side)|understand (?:how|what|why)|validate (?:her|his|their)|may feel like pressure|may feel (?:hurt|ignored)|before (?:she|he|they) can hear)\b/.test(s)?"empathy":
+  /\b(?:offer to (?:check|review|verify|schedule|bring)|commit to (?:check|review|follow|look)|make (?:a|the) plan|set (?:a|the) time|actually do|concrete next step|return (?:when|at)|check (?:the|our|your|his|her) (?:calendar|option|schedule)|review(?:ing)? (?:your|the) calendar)\b/.test(s)?"followthrough":"none";
  if(kind!=="engage")return {kind,focus:null,motive};
  if(motive==="avoidance")return {kind:"resist",focus:null,motive};
- const first=original.replace(/^(?:well|actually|instead|i think|please)[,\s]*/g,"");
- const options=[
-  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my)|take responsibility|say (?:you|i)(?:'re| am| was) sorry|offer to (?:check|review|handle|take care)|commit to (?:check|review|follow))\b/g},
-  {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak)|invite (?:him|her|them)|decide together|work together|collaborat\w*)\b/g},
-  {id:"explain",re:/\b(?:explain|share (?:your|his|her) (?:concern|worr|fear)|say why|tell (?:him|her) why|state (?:your|a) boundary|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan)\b/g}
+ const first=s.replace(/^(?:well|actually|instead|i think|please)[,\s]*/g,"");
+ const choices=[
+  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my|that)\b|take responsibility|say (?:you(?:'re| are)|i(?:'m| am)) sorry|offer to (?:check|review|handle|take care|bring|finish)|commit to (?:check|review|follow)|agree (?:you|i|that)\s+(?:dropped|failed|made|forgot)|respect (?:her|his|their) (?:no|wish|boundary|decision))\b/g},
+  {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak)|invite (?:him|her|them)|decide together|work together|collaborat\w*|joint decision|shared decision|genuine joint decision)\b/g},
+  {id:"explain",re:/\b(?:explain|tell (?:him|her|them)\s+(?:you|i|why|that)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
  ];
- const matches=options.map(x=>({id:x.id,index:first.search(x.re)})).filter(x=>x.index>=0);
+ const matches=choices.map(({id,re})=>({id,index:first.search(re)})).filter(x=>x.index>=0);
  matches.sort((a,b)=>a.index-b.index);
  return {kind,focus:matches[0]?.id||null,motive};
 }
