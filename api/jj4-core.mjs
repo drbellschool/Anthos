@@ -73,12 +73,13 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
   if(!previous||previous.scenario_id!==scenario.id)
    error("Previous test does not belong to this saved episode.",409);
  }
- if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
-  if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
-  error("Finish the primary objective and all six phase summaries before piloting.",409);
  const authored=pilotVersion==="4.1.0";
  if(!authored&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
  if(authored)Object.assign(draft,buildAuthored41(draft));
+ if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)
+  error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
+ if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
+  error("Finish the primary objective and all six phase summaries before piloting.",409);
  // All NEW v4 pilots pin the existing actor, object, and event state.
  // Previously created rooms retain their recorded engine version.
  const seed=scenario.episode_studio?.simulationSeed;
