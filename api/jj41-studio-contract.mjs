@@ -85,3 +85,81 @@ export function checkAuthoredStudioScene(episode,phase,text){
   if(phase===4&&!/Jill/.test(scene))reason("Jill must own the final action");
  }
 }
+
+
+// Each approved line exercises the selected skill in the fictional disagreement.
+// Strength here means direct accountability, independent judgment and follow-through,
+// never intimidation, caricature, or automatic surrender.
+export const MICROWAVE_SOURCE_VOICES={
+ jack:{
+  0:{
+   own:{ack:"I'll own the missed Saturdays. I won't pretend that means we agreed to spend four hundred dollars.",
+    action:"Jack says, 'I should have fixed the old one three Saturdays ago. I didn't. But four hundred dollars from savings without a call? We have to talk about that.'",
+    resist:"Jack points at the charge and ignores his own old repair note. Jill says, 'You're leaving out the Saturdays again.'"},
+   explain:{ack:"I'll tell Jill why the emergency money matters, without pretending I kept my repair promise.",
+    action:"Jack says, 'That's our emergency fund, Jill. I don't want either of us spending four hundred dollars without talking first. And I know I should've fixed the old one.'",
+    resist:"Jack says, 'It's my money too,' and Jill answers, 'And it was my broken appliance every night.'"},
+   ask:{ack:"I'll ask what finally pushed her to buy it, and I'll listen before deciding what to do.",
+    action:"Jack sets the phone down. 'Tell me what made tonight the breaking point. I'm not fine with the charge, but I know I've put that repair off.'",
+    resist:"Jack asks why she bought it but interrupts as soon as she starts explaining. Jill stops talking."}
+  },
+  2:{
+   own:{ack:"I will follow through on the repair question. I won't use my failure as an excuse to abandon the savings discussion.",
+    action:"Jack pulls his SATURDAY note from the dead microwave. 'Tomorrow I'll check whether this one is repairable. I owe you a real answer, not another Saturday. Then we decide together about the new one.'",
+    resist:"Jack crumples his old repair note and says he will get to it someday. Jill points at the new box: 'That's exactly why I bought it.'"},
+   explain:{ack:"I'll be plain about the financial boundary and the repair I missed. Both are still real.",
+    action:"Jack says, 'The savings are our safety net. I should've fixed this thing, and I didn't. But neither of us gets to make a four-hundred-dollar decision alone.'",
+    resist:"Jack repeats the bank balance without acknowledging Jill's ruined dinners. She moves away from him."},
+   ask:{ack:"I'll ask Jill to help weigh repair against replacement without treating my question as her agreement.",
+    action:"Jack asks, 'If I get a real answer on repairing the old one tomorrow, would you look at both options with me? You can say no. I just don't want us making this call angry.'",
+    resist:"Jack asks Jill to choose but rejects her answer before she finishes. She puts her hand on the new box."}
+  }
+ },
+ jill:{
+  1:{
+   own:{ack:"I'll own buying the replacement without a call. Jack still needs to answer for the three missed repairs.",
+    action:"Jill says, 'I should have called you first. That was my choice. But I heard Saturday three times, and I'm still heating dinner on the stove.'",
+    resist:"Jill refuses to discuss the withdrawal until Jack admits his delay. Jack looks back at the $400 charge."},
+   explain:{ack:"I'll tell him why the appliance mattered every day and why I ran out of patience.",
+    action:"Jill points toward the stove. 'I've been making do for three weeks. Every Saturday you said you'd handle it. You didn't, Jack. That's why I finally bought one.'",
+    resist:"Jill lists every missed Saturday as proof Jack shouldn't have a say about the money. He stiffens."},
+   ask:{ack:"I'll ask Jack what happened during those missed Saturdays and let him answer.",
+    action:"Jill asks, 'What happened those three Saturdays? I kept waiting for you to fix it. I need something more than another promise.'",
+    resist:"Jill asks about the missed repairs but keeps interrupting Jack. He stops trying to answer."}
+  },
+  3:{
+   own:{ack:"I'll take responsibility for the purchase and name the practical decision we still have to make.",
+    action:"Jill keeps her hand off the tape. 'I should've called before spending it. I'll own that. But I need to know we're actually going to handle this appliance, not just talk all night.'",
+    resist:"Jill insists Jack accept the purchase before she discusses the bank account. He refuses."},
+   explain:{ack:"I'll state what I need: a working microwave and decisions we both have a voice in.",
+    action:"Jill says, 'I need a working microwave. I also hear you about the savings. Let's find out whether the old one can be fixed before we decide about this box.'",
+    resist:"Jill lays down a timetable Jack never agreed to. He says, 'You don't get to decide for both of us again.'"},
+   ask:{ack:"I'll invite Jack to make the actual decision with me; I won't call a proposal an agreement.",
+    action:"Jill asks, 'Will you actually check the old one tomorrow? If you will, I'll hold off on opening this. I want us to decide, not just win an argument.'",
+    resist:"Jill says she wants Jack's input but starts tearing at the tape while he is answering."}
+  }
+ }
+};
+export function sourceMicrowaveOutcome(episode,phase,history,outcome){
+ const advise=(role,at)=>String((history||[]).find(x=>x.role===role&&x.kind==="coach"&&x.phase_index===at)?.body||"").toLowerCase();
+ const lastJill=advise("jill",3);
+ const openRequest=/\b(?:open|unbox|install|use|set up)\s+(?:the\s+|our\s+|new\s+)*microwave\b/.test(lastJill)&&
+   !/\b(?:don't|do not|not yet|wait|before opening|leave it sealed|keep it sealed)\b/.test(lastJill);
+ if(phase===4){
+  if(openRequest)return "Jill pulls the tape from the new box. Jack steps back. 'I asked you to make this decision with me.' She says, 'I know. I'm making it anyway.' The tape is broken, and the disagreement gets sharper.";
+  if(outcome==="mutual")return "Jack says, 'I'll check the repair tomorrow. Then we'll look at the numbers together.' Jill takes her hand off the tape. 'All right. But I need you to do what you said this time.' The box stays sealed.";
+  if(outcome==="jack_ready")return "Jack offers to check the repair tomorrow. Jill says, 'I've heard tomorrow before.' She leaves the tape untouched but accepts no plan.";
+  if(outcome==="jill_ready")return "Jill offers to check the options. Jack says he isn't ready to agree after the surprise withdrawal. The box stays sealed.";
+  if(outcome==="partial")return "Jack hears that Jill needs an answer about the repair. Jill hears that Jack needs consultation about savings. Neither agrees on what to do tomorrow. The box stays sealed.";
+  return "Jill leaves her hand on the unopened box. Jack still wants a say in the savings; she still wants a working appliance. Neither accepts the other's proposed next step.";
+ }
+ if(phase===5){
+  if(openRequest)return "The tape hangs loose from the box. Jack puts his cracked phone face down. Jill doesn't take back her choice. Neither can pretend the unopened-box decision is still available.";
+  if(outcome==="mutual")return "Jack folds his old SATURDAY note into his pocket rather than leaving it on the broken unit. Jill moves the receipt next to his phone. Neither smiles, but both leave the tape untouched.";
+  if(outcome==="jack_ready")return "Jack keeps his repair note instead of hiding it. Jill turns back toward the stove. The box stays sealed, but his proposed next step is still unaccepted.";
+  if(outcome==="jill_ready")return "Jill leaves the receipt where Jack can see it. He doesn't touch the box. Her offer stands without his agreement.";
+  if(outcome==="partial")return "Jill clears a plate from the stove. Jack folds the Saturday note without putting it back. The box stays sealed; they have not reached a shared decision.";
+  return "Jack keeps the old SATURDAY note in his hand. Jill sets down the dish towel. The new microwave stays sealed, and neither pretends the argument is over.";
+ }
+ return "";
+}
