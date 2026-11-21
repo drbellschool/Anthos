@@ -3,7 +3,7 @@
 // Only fictional character actions enter shared scenes; private advice stays private.
 export const AUTHORED_VERSION="4.1.0";
 import {authored41Additional} from "./jj4-authored41-library.mjs";
-import {studioContractFor41,activeAuthoredCoaches,checkAuthoredStudioScene,MICROWAVE_SOURCE_VOICES,sourceMicrowaveOutcome} from "./jj41-studio-contract.mjs";
+import {studioContractFor41,activeAuthoredCoaches,checkAuthoredStudioScene,MICROWAVE_SOURCE_VOICES,sourceMicrowaveOutcome,wantsMicrowaveOpened} from "./jj41-studio-contract.mjs";
 export const AUTHORED_TITLE="The Four-Hundred-Dollar Surprise";
 export const AUTHORED_TITLES=Object.freeze([AUTHORED_TITLE,...authored41Additional.map(x=>x.title)]);
 const LIBRARY_BY_TITLE=new Map(authored41Additional.map(x=>[x.title.toLowerCase(),x]));
@@ -538,8 +538,7 @@ function storyOutcome(episode,history=[]){
   const text=(role,phase)=>String(history.find(x=>x.role===role&&x.phase_index===phase&&x.kind==="coach")?.body||"").toLowerCase();
   const jackPlan=/\b(?:check|repair|review|compare|look at|decide together|both options)\b/.test(text("jack",2));
   const jillPlan=/\b(?:check|review|wait|hold off|look at|decide together|both options)\b/.test(text("jill",3));
-  const unilateral=/\b(?:open|install|use now|unbox)\b/.test(text("jill",3))&&
-   !/\b(?:don't open|do not open|not yet|wait)\b/.test(text("jill",3));
+  const unilateral=wantsMicrowaveOpened(text("jill",3));
   if(unilateral)return "stalemate";
   if(j.engaged===2&&l.engaged===2&&jackPlan&&jillPlan&&j.opposed===0&&l.opposed===0)return "mutual";
   if(j.engaged===2&&l.engaged<2)return "jack_ready";
@@ -602,7 +601,11 @@ export function authoredScene(episode,phase,history=[]){
    const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===effective.id);
    const practicalMicrowave=episode.title===AUTHORED_TITLE&&phase===(script.studioContract?3:2)&&role==="jack"&&
     /\b(?:fix|repair|install|set up)\b.*\b(?:microwave|old one|new one)\b/i.test(reply.body);
-   const action=practicalMicrowave?
+   const unilateralOpen=script.studioContract&&script.template==="microwave-authored-1"&&
+    phase===4&&role==="jill"&&wantsMicrowaveOpened(reply.body);
+   const action=unilateralOpen?
+    "Jill puts a finger under the tape. 'I bought it because I need it working. I'm not waiting until another Saturday,' she says, and starts opening the box.":
+    practicalMicrowave?
     "Jack says, 'I'll get a real answer about repairing the old one tomorrow. Then we can look at this new box together. And we need to agree before either of us spends four hundred dollars from savings again.'":
     beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
@@ -610,7 +613,7 @@ export function authoredScene(episode,phase,history=[]){
    const name=role==="jack"?"Jack":"Jill";
    const focus=selected.id==="own"?"taking responsibility for a mistake":
     selected.id==="explain"?"explaining the concrete concern":"asking a real question";
-   const fallback=attitude==="unsafe"?
+   const fallback=unilateralOpen?action:attitude==="unsafe"?
     name+" refuses intimidation and says "+focus+" still deserves a respectful conversation.":
     attitude==="resist"?
     (beat?.resisted||name+" stays defensive about "+focus+", and the other person grows more frustrated."):
