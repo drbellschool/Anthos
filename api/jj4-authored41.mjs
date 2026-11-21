@@ -339,8 +339,16 @@ export function buildAuthored41(episode){
   for(const role of ["jack","jill"])
    for(const [phase,types] of Object.entries(MICROWAVE_SOURCE_VOICES[role])){
     const options=pinned.coachingCheckpoints[role][Number(phase)].options;
-    for(const [id,data] of Object.entries(types))
-     Object.assign(options.find(x=>x.id===id),data);
+    for(const [id,data] of Object.entries(types)){
+     const option=options.find(x=>x.id===id);
+     // The private resistance is spoken AS the character. The resulting
+     // visible resistance is a separate, third-person acted consequence.
+     Object.assign(option,{...data,
+      resist:role==="jack"?
+       "I want to stay on the four hundred dollars and avoid talking about those missed Saturdays. I know Jill won't just let that go.":
+       "I'm tempted to make Jack's delay the entire argument. But spending the money without a call was my decision.",
+      resisted:data.resist});
+    }
    }
   pinned.studioContract=sourceContract;
  }
