@@ -510,6 +510,15 @@ function storyOutcome(episode,history=[]){
   else counts[event.role].opposed++;
  }
  const j=counts.jack,l=counts.jill;
+ // Consent and personal boundaries override the engagement score. A friendly
+ // refusal is still a refusal; active listening cannot manufacture agreement.
+ if(episode?.title==="Changing Seasons of Desire"){
+  const last=role=>String((history||[]).find(x=>x.kind==="coach"&&x.role===role&&x.phase_index===3)?.body||"").toLowerCase();
+  const jillNo=/\b(?:decline (?:company|the offer|quiet company)|need to sleep|want to sleep|prefer to (?:sleep|rest|be alone)|rather (?:sleep|rest|be alone)|rest alone|sleep alone|no company|no thanks|not tonight|don't want (?:company|to talk|tea)|do not want (?:company|to talk|tea))\b/.test(last("jill"));
+  const jackNo=/\b(?:decline (?:company|the offer)|not ready to talk|don't want (?:company|to talk|tea)|do not want (?:company|to talk|tea))\b/.test(last("jack"));
+  if(jillNo)return j.engaged>=2?"jack_ready":"partial";
+  if(jackNo)return l.engaged>=2?"jill_ready":"partial";
+ }
  if(j.engaged>=3&&l.engaged>=3&&j.opposed===0&&l.opposed===0)return "mutual";
  if(j.engaged>=2&&l.engaged<2)return "jack_ready";
  if(l.engaged>=2&&j.engaged<2)return "jill_ready";
