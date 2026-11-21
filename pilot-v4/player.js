@@ -209,7 +209,7 @@ function mount(root,invite,options={}){
    },1200);
    return;
   }
-  if(state.version==="4.2.0"&&state.nextAvailableAt&&state.stage==="flow"){
+  if(state.version==="4.2.0"&&state.nextAvailableAt&&["flow","needs_scene"].includes(state.stage)){
    message("Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
    oneAction("Refresh",refresh);return;
   }
