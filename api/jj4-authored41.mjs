@@ -3,7 +3,7 @@
 // Only fictional character actions enter shared scenes; private advice stays private.
 export const AUTHORED_VERSION="4.1.0";
 import {authored41Additional} from "./jj4-authored41-library.mjs";
-import {studioContractFor41,activeAuthoredCoaches,checkAuthoredStudioScene,MICROWAVE_SOURCE_VOICES,sourceMicrowaveOutcome,wantsMicrowaveOpened} from "./jj41-studio-contract.mjs";
+import {studioContractFor41,activeAuthoredCoaches,checkAuthoredStudioScene,MICROWAVE_SOURCE_VOICES,MICROWAVE_SOURCE_SCENES,sourceMicrowaveOutcome,wantsMicrowaveOpened} from "./jj41-studio-contract.mjs";
 export const AUTHORED_TITLE="The Four-Hundred-Dollar Surprise";
 export const AUTHORED_TITLES=Object.freeze([AUTHORED_TITLE,...authored41Additional.map(x=>x.title)]);
 const LIBRARY_BY_TITLE=new Map(authored41Additional.map(x=>[x.title.toLowerCase(),x]));
@@ -14,12 +14,12 @@ const microwave={
  version:AUTHORED_VERSION, template:"microwave-authored-1",
  facts:{buyer:"Jill",purchase:400,payment:"shared emergency savings",box:"sealed",location:"kitchen"},
  scenes:[
-  "Thursday at 7:15 p.m., Jack checks the emergency savings on his cracked phone as Jill enters their kitchen carrying a boxed $400 over-the-range microwave. The old one has been dead for three weeks, and his handwritten 'I'LL FIX IT SATURDAY' note is still stuck to it. Jill sets the sealed box on the counter. 'Four hundred dollars?' Jack says. 'Three Saturdays,' Jill answers. 'I'm tired of reheating dinner on the stove.' He looks from his phone to the note. Neither has heard the other's full reasoning.",
-  "At 7:17, Jack sets his cracked phone beside the new box. 'You saw the charge,' Jill says. 'Did you also see your note on the old microwave?' Jack looks at the three-week-old SATURDAY promise. The new box is still sealed. He faces Jill rather than walking away.",
-  "At 7:20, Jill slides the receipt toward Jack and points to the stove, where she has reheated meals for three weeks. 'That's how we've been managing,' she says. Jack has not moved the new box. The SATURDAY note remains on the old microwave, and Jill waits for him to acknowledge that it was his promise.",
-  "At 7:25, Jack stands beside the dead over-the-range microwave and rereads the SATURDAY note. Jill is by the unopened replacement. 'I don't need a speech,' she says. 'I need an answer about what you will actually do.' Jack looks at the note, then directly at her.",
-  "At 7:30, the sealed $400 box sits on the same kitchen counter. Jill rests her hand near its tape. Jack stays beside the broken old microwave, waiting for her response.",
-  "At 7:33, Jack's cracked phone rests beside the old microwave's SATURDAY note. Jill is still in the kitchen. The purchase already happened, the repair was neglected, and neither can erase either fact now. What they do with the new appliance must follow from their actual choices tonight."
+  "At six ten, Jill sets a sealed microwave box on the kitchen counter. Jack reads the receipt. 'Four hundred dollars? From our emergency savings?' Jill meets his eyes. 'The old one has been broken for three weeks. You said you'd fix it.' 'I did. I also thought we'd discuss four hundred dollars.' 'And I thought I'd have a working microwave by now.' Neither looks away. The unopened box sits between them.",
+  "At six fifteen, Jill taps the reminder under the smiling tomato magnet: 'Saturday — fix microwave.' Jack reads his own handwriting. 'Which Saturday?' she asks. 'All right. I missed it. More than once.' 'That's what I've been saying.' The box stays sealed beside the $400 receipt.",
+  "At six twenty-two, Jill points to the saucepan. 'That's my microwave now.' Jack laughs once. 'Not funny,' she says. 'I know. I was laughing at how ridiculous this has gotten, not at you.' She doesn't smile. The box stays sealed.",
+  "At six thirty, Jill opens the budget notebook beside the receipt. 'I don't need another speech about being irresponsible,' she says. Jack looks at the notebook. 'And I don't want our emergency fund treated like spare change.' 'Then let's talk about the repair too.' The box remains unopened, and neither has agreed on its fate.",
+  "At six thirty-five, the sealed box sits beside the budget notebook. No one has checked store policies.",
+  "By six forty-two, the new microwave remains sealed. Jack's missed repair promise and Jill's unannounced $400 withdrawal remain true. Neither a single apology nor a clever remark can undo them. The conversation has changed what they might do next, but cannot create a refund or a repaired microwave out of thin air."
  ],
  roles:{
   jack:{
@@ -336,6 +336,7 @@ export function buildAuthored41(episode){
  const sourceContract=studioContractFor41(episode,script);
  const pinned=structuredClone(script);
  if(sourceContract&&pinned.template==="microwave-authored-1"){
+  pinned.scenes=[...MICROWAVE_SOURCE_SCENES];
   for(const role of ["jack","jill"])
    for(const [phase,types] of Object.entries(MICROWAVE_SOURCE_VOICES[role])){
     const options=pinned.coachingCheckpoints[role][Number(phase)].options;
@@ -614,7 +615,9 @@ export function authoredScene(episode,phase,history=[]){
    const action=unilateralOpen?
     "Jill puts a finger under the tape. 'I bought it because I need it working. I'm not waiting until another Saturday,' she says, and starts opening the box.":
     practicalMicrowave?
-    "Jack says, 'I'll get a real answer about repairing the old one tomorrow. Then we can look at this new box together. And we need to agree before either of us spends four hundred dollars from savings again.'":
+    (script.studioContract?
+     "Jack says, 'I'll get a real answer about repairing the old one tomorrow. Then we can look at this new box together. And we need to agree before either of us spends four hundred dollars from savings again.'":
+     "Jack puts down the receipt. 'I'll check whether the old microwave can be repaired tomorrow. Then we can decide what to do with this new one. But we need a conversation before another $400 comes out of savings.'"):
     beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
    const attitude=recordedAuthoredDecision(episode,role,phase-1,selected,reply.body,history).kind;
