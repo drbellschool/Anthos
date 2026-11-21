@@ -214,7 +214,7 @@ export function sophiaConversation42(episode,scenes=[]){
   "Jack identified a repair shop, but had not called it yet.":
   "Jack still had not taken a verifiable repair step.";
  const box=s.box==="opened"?
-  "The new box was opened; that choice cannot be rewritten as if it stayed sealed.":
+  "The new box was opened; that decision cannot be undone.":
   "No one has opened the replacement.";
  return "SOPHIA · SATURDAY\n\nJack and Jill lived with the same problem but saw it differently. "+
   purchase+" "+repair+" "+box+
