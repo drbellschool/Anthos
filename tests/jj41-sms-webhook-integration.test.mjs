@@ -17,7 +17,17 @@ function fixture(){
   {id:randomUUID(),room_id:roomId,role:"jack",token_hash:sha(tokenJack),first_name:null,joined_at:null,paused_at:null,submitted_phase:-1},
   {id:randomUUID(),room_id:roomId,role:"jill",token_hash:sha(tokenJill),first_name:null,joined_at:null,paused_at:null,submitted_phase:-1}
  ];
+ const groupId=randomUUID(),now="2026-11-20T00:00:00.000Z";
+ const customers=[
+  {id:randomUUID(),display_name:"Test Husband",phone_e164:phoneJack,
+   spouse_phone_e164:phoneJill,group_id:groupId,program:"standard",record_status:"pending",
+   phone_verified_at:now,sms_consent_at:now,sms_disclosure_version:"anthos-sms-2026-11-v1"},
+  {id:randomUUID(),display_name:"Test Wife",phone_e164:phoneJill,
+   spouse_phone_e164:phoneJack,group_id:groupId,program:"standard",record_status:"pending",
+   phone_verified_at:now,sms_consent_at:now,sms_disclosure_version:"anthos-sms-2026-11-v1"}
+ ];
  const lists={anthos_jj4_rooms:[room],anthos_jj4_participants:people,
+  anthos_customer_directory:customers,anthos_jj41_sms_suppression:[],
   anthos_jj4_messages:[],anthos_jj41_sms_participants:[],anthos_jj41_sms_webhook_events:[]};
  const outbox=[],keypair=generateKeyPairSync("ed25519");let counter=0;
  const previous={};
@@ -145,22 +155,21 @@ function fixture(){
    "telnyx-timestamp":stamp,"telnyx-signature-ed25519":signature})});
  }
  return {configure,restore,mockFetch,inbound,roomId,phoneJack,phoneJill,
-  tokenJack,tokenJill,lists,outbox,sender};
+  tokenJack,tokenJill,lists,outbox,sender,husbandCustomerId:customers[0].id};
 }
-test("real SMS route mechanics: independent JOIN, two private coaches, distinct replies, next shared scene, dedupe and STOP",async()=>{
+test("verified signup consent starts independent private SMS coaches automatically, including reply/dedupe/STOP",async()=>{
  const fx=fixture(),fetchBefore=globalThis.fetch;
  fx.configure();globalThis.fetch=fx.mockFetch;
  try{
   const result=await registerPilotSms({origin:"https://anthos.love",roomId:fx.roomId,
-   husbandPhone:fx.phoneJack,wifePhone:fx.phoneJill,
+   husbandCustomerId:fx.husbandCustomerId,
    invitations:{jack:"https://anthos.love/pilot-v4/?invite="+fx.tokenJack,
-    jill:"https://anthos.love/pilot-v4/?invite="+fx.tokenJill},adultsConfirmed:true});
+    jill:"https://anthos.love/pilot-v4/?invite="+fx.tokenJill}});
   assert.equal(result.registered,true);
-  assert.equal(fx.outbox.length,0,"setup must not text recipients before handset JOIN");
-  await fx.inbound(fx.phoneJack,"JOIN");
-  assert.equal(fx.outbox.some(m=>m.to===fx.phoneJill),false,"wife hasn't opted in");
-  await fx.inbound(fx.phoneJill,"JOIN");
-  assert.equal(fx.roomId.length,36);
+  assert.equal(result.messagesInitiated,true);
+  assert.equal(fx.lists.anthos_jj4_participants.every(x=>!!x.joined_at),true);
+  assert.equal(fx.outbox.some(m=>m.to===fx.phoneJack&&m.text.includes("opted in during registration")),true);
+  assert.equal(fx.outbox.some(m=>m.to===fx.phoneJill&&m.text.includes("opted in during registration")),true);
   assert.equal(fx.lists.anthos_jj4_messages.filter(x=>x.kind==="scene").length,1);
   assert.equal(fx.outbox.some(m=>m.to===fx.phoneJack&&m.text.includes("Scene 1/6")),true);
   assert.equal(fx.outbox.some(m=>m.to===fx.phoneJill&&m.text.includes("Scene 1/6")),true);
