@@ -2,7 +2,10 @@
 // No generative scene-writing calls. The episode script is snapshotted in room.episode.
 // Only fictional character actions enter shared scenes; private advice stays private.
 export const AUTHORED_VERSION="4.1.0";
+import {authored41Additional} from "./jj4-authored41-library.mjs";
 export const AUTHORED_TITLE="The Four-Hundred-Dollar Surprise";
+export const AUTHORED_TITLES=Object.freeze([AUTHORED_TITLE,...authored41Additional.map(x=>x.title)]);
+const LIBRARY_BY_TITLE=new Map(authored41Additional.map(x=>[x.title.toLowerCase(),x]));
 const PHASES=["hook","conflict","discovery","reattempt","outcome","reflection"];
 const limit=(x,min,max)=>Math.max(min,Math.min(max,x));
 
@@ -323,11 +326,14 @@ microwave.coachingCheckpoints={
 };
 
 export function buildAuthored41(episode){
- if(String(episode?.title||"").trim().toLowerCase()!==AUTHORED_TITLE.toLowerCase())
-  throw new Error("4.1 authored pilot currently supports only The Four-Hundred-Dollar Surprise.");
+ const title=String(episode?.title||"").trim();
+ const script=title.toLowerCase()===AUTHORED_TITLE.toLowerCase()?microwave:
+  LIBRARY_BY_TITLE.get(title.toLowerCase());
+ if(!script)throw new Error("4.1 authored pilot supports only its five approved episodes.");
  if(episode?.pilotMode!=="shared")
   throw new Error("4.1 authored pilot requires two private coaches.");
- return {...episode,authored41:structuredClone(microwave),
+ return {...episode,authored41:structuredClone(script),
+  sophiaIntro:episode.sophiaIntro?.trim()||script.defaultIntro||"",
   checkpoints:["hook","conflict","discovery","reattempt","outcome"].map((afterPhase,i)=>({
    afterPhase,audience:i<4?"both":"none",waitForReply:i<4,
    purpose:i<4?"Help the character make a choice under tension.":"",humorCue:""
@@ -501,7 +507,12 @@ export function authoredScene(episode,phase,history=[]){
   }
  }
  const fictionalSignals=authoredSignals(episode,history);
- if(phase===2||phase===4||phase===5)parts.push(authoredOutcomeBeat(storyOutcome(history),phase));
+ if(phase===2||phase===4||phase===5){
+  const outcome=storyOutcome(history);
+  const beat=script.outcomeBeats?.[phase]?.[outcome]||
+   authoredOutcomeBeat(outcome,phase);
+  if(beat)parts.push(beat);
+ }
  const scene=parts.join(" ");
  if(/\b(?:30.days? to return|return policy is|refund guaranteed)\b/i.test(scene))
   throw new Error("Unverified external return policy in authored scene.");
@@ -518,6 +529,26 @@ export function composeAuthored41Closure(episode,sharedScenes=[]){
  const outcome=sharedScenes.find(x=>Number(x.phase_index)===4)?.body||"";
  const ending=sharedScenes.find(x=>Number(x.phase_index)===5)?.body||"";
  const proof=outcome+" "+ending;
+ const script=episode?.authored41;
+ if(script?.outcomeBeats){
+  const candidates=["mutual","jack_ready","jill_ready","partial","stalemate"];
+  const result=candidates.find(k=>script.outcomeBeats[4]?.[k]&&
+   outcome.includes(script.outcomeBeats[4][k]))||"unknown";
+  const observation=result==="mutual"?
+   "Jack and Jill both accepted a specific next step, but that step does not erase their disagreement.":
+   result==="jack_ready"?
+   "Jack offered a next step that Jill did not yet accept; willingness cannot be mistaken for mutual agreement.":
+   result==="jill_ready"?
+   "Jill proposed a next step Jack did not yet accept; one person's effort cannot settle both people's needs.":
+   result==="partial"?
+   "Both made some room for the other's experience, but their next action remains undecided.":
+   "The ending did not show a mutually accepted plan. Respecting that uncertainty is part of the lesson.";
+  return "SOPHIA · A CLOSING THOUGHT\n\nWhat happened: "+observation+
+   " "+(script.outcomeBeats[5]?.[result]||"")+
+   "\n\nThe skill connection: "+(script.closureFocus||"A considerate conversation gives both people a real choice.")+
+   "\n\nOne thing to try: Name what you hope for, ask what your partner needs, and accept that the next step requires both people's agreement."+
+   "\n\nJack and Jill are fictional. Their choices are not a grade on your marriage.";
+ }
  const type=/Jack and Jill agree to keep the box sealed/.test(proof)?"mutual":
   /Jack proposes leaving the box sealed/.test(proof)?"jack_ready":
   /Jill proposes checking options/.test(proof)?"jill_ready":
