@@ -7,16 +7,21 @@ import {
 import {composeSophiaClosure} from "../api/jj4-closure.mjs";
 const core=readFileSync(new URL("../api/jj4-core.mjs",import.meta.url),"utf8");
 const named={title:"The Four-Hundred-Dollar Surprise"};
-test("Only this pilot gets the strict length and continuity review",()=>{
+test("Strict quality mode and simulation receive guarded continuity/word limits",()=>{
  assert.equal(isContinuityPilot({scenario_id:TARGET_SCENARIO_ID}),true);
  assert.equal(isContinuityPilot({scenario_id:"a different scenario"}),false);
- assert.match(core,/const attempts=simulate\?3:focusedPilot\?2:1/);
+ assert.match(core,/const attempts=qualityGate\?5:simulate\?3:focusedPilot\?2:influence\?2:1/);
  assert.match(core,/const words=wordCount\(story\)/);
- assert.match(core,/words<60\|\|words>145/);
+ assert.match(core,/words<70\|\|words>115/);
  assert.match(core,/anthos_jj4_scene_quality_gate/);
- assert.match(core,/if\(!story&&lastUsable\)/);
- assert.match(core,/if\(phaseIndex===0\)break/);
- assert.match(core,/if\(reviewPass\(review\)\|\|attempt===attempts-1\)break/);
+ assert.match(core,/if\(!story&&lastUsable&&!qualityGate\)/);
+ assert.match(core,/if\(phaseIndex===0&&!qualityGate\)break/);
+ assert.match(core,/authoredPhaseDirection:storyDirection/);
+ assert.match(core,/reject premature agreement/);
+ assert.match(core,/unsupportedExternalPolicyClaims\(story,validFacts\)/);
+ assert.match(core,/groundCoachingEvidence\(story,result.coachingTrace/);
+ assert.match(core,/checkCoachingTrace\(story,groundedTrace/);
+ assert.match(core,/if\(reviewPass\(review\)\)break/);
  assert.doesNotMatch(core,/The story repeated or contradicted an earlier scene/);
 });
 test("Continuity ledger retains who made the purchase and completed history",()=>{
@@ -46,7 +51,39 @@ test("Sophia's edited ending never truncates sentences or cites irrelevant Aron 
  assert.ok(result.includes("\n\n"));
  const broken=composeSophiaClosure(named,{observation:"A long unfinished thought ".repeat(70),practice:"unfinished phrase"});
  assert.doesNotMatch(broken,/unfinished thought.*$/);
- assert.match(broken,/Jack acknowledged his delayed repair/);
+ assert.match(broken,/Jill bought a \$400 microwave from shared savings/);
  const old=composeSophiaClosure({title:"Some other story"},{observation:"A complete sentence.",practice:"Try a small action."});
- assert.match(old,/Aron/);
+ assert.match(old,/Gottman/);
+ assert.doesNotMatch(old,/Aron|novel activities/i);
+});
+
+
+test("strict QA brevity and review can run on a non-microwave episode",()=>{
+ assert.match(core,/const qualityGate=room\.episode\?\.qualityMode==="strict"/);
+ assert.match(core,/const conciseScenes=simulate\|\|focusedPilot\|\|qualityGate/);
+ assert.match(core,/const maxWords=qualityGate\?145:125/);
+ assert.match(core,/qualityGate&&size\.words>110&&attempt<attempts-1/);
+ assert.match(core,/jj4-strict-qa-exhausted/);
+ assert.match(core,/Use ONLY this episode's authored premise/);
+ assert.match(core,/if\(qualityGate\)\{story=null;lastGateReason="review_timeout";reviewFeedback=/);
+});
+
+
+test("long scenes go through structured copy editing before causal and world-state checks",()=>{
+ const editor=core.indexOf('name:"anthos_jj4_scene_compact_edit"');
+ const trace=core.indexOf('const trace=checkCoachingTrace(story,');
+ const world=core.indexOf('checkSimulationTransition(simulationBefore,');
+ assert.ok(editor>0&&trace>editor&&world>trace);
+ assert.match(core,/Every coachingTrace and simulation evidence quotation MUST come directly/);
+ assert.match(core,/desiredLength:"80 to 105 TOTAL narrative words"/);
+ assert.match(core,/if\(checkSceneLength\(compact\)\.words<checkSceneLength\(story\)\.words\)/);
+});
+
+
+test("a missing humor annotation is scored instead of blocking a coherent scene",()=>{
+ assert.match(core,/jj4-strict-qa-soft-warning/);
+ assert.match(core,/humor_not_verified_in_world_state/);
+ assert.doesNotMatch(core,/missing_comic_effect/);
+ assert.match(core,/const speaker=wrongSpeakerForQuotedCoaching/);
+ assert.match(core,/unsupportedExternalPolicyClaims\(story,validFacts\)/);
 });

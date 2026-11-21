@@ -8,9 +8,70 @@ export const RESEARCH_SOURCES=Object.freeze([
 ]);
 const clean=(value,max)=>typeof value==="string"?value.trim().slice(0,max):"";
 const EPILOGUE_SCHEMA={type:"object",additionalProperties:false,
- properties:{observation:{type:"string"},practice:{type:"string"}},
- required:["observation","practice"]};
+ properties:{observation:{type:"string"},practice:{type:"string"},evidence:{type:"string"}},
+ required:["observation","practice","evidence"]};
 const targetedEpisode=episode=>episode?.title==="The Four-Hundred-Dollar Surprise";
+
+const norm=s=>String(s||"").normalize("NFKC").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/\s+/g," ").trim().toLowerCase();
+export function validateClosureEvidence(generated,sharedScenes=[]){
+ const evidence=norm(generated?.evidence);
+ if(evidence.length<18)return {ok:false,reason:"missing ending evidence"};
+ // Evidence from Outcome / Reflection is essential: an earlier proposed compromise
+ // may have been reversed and is not a valid description of the actual ending.
+ const finalScenes=sharedScenes.filter(s=>s.phase_index>=4).slice(-2);
+ if(!finalScenes.some(s=>norm(s.body).includes(evidence)))
+  return {ok:false,reason:"closing evidence not in actual ending"};
+ const ending=norm(finalScenes.map(s=>s.body).join(" "));
+ const claim=norm(generated?.observation);
+ if(!claim)return {ok:false,reason:"empty observation"};
+ // The narrator may describe an offer or unilateral decision, but cannot
+ // upgrade it to mutual consent without a visible two-person acceptance.
+ const consensus=/\b(?:they agreed|both agreed|mutually agreed|jointly decided|they decided together)\b/;
+ const groundedAgreement=/\b(?:they agreed|both agreed|jack agreed and jill agreed|jill agreed and jack agreed|both said yes)\b/;
+ if(consensus.test(claim)&&!groundedAgreement.test(ending))
+  return {ok:false,reason:"unearned mutual agreement in closure"};
+ if(/\b(?:unopened|still sealed|remains sealed|sealed box)\b/.test(claim)&&
+  /\b(?:opened the box|broke the seal|lifted the lid|snapped the tape|unboxed)\b/.test(ending)&&
+  !/\b(?:resealed|taped the box shut)\b/.test(ending))
+  return {ok:false,reason:"closure reverses the opened box state"};
+ return {ok:true};
+}
+
+/**
+ * Conservative factual fallback when the AI closure cannot be verified.
+ * Copy short, COMPLETE observable sentences from the actual outcome and
+ * reflection; never substitute generic intimacy content for another petal.
+ */
+export function groundedClosureFallback(episode,sharedScenes=[]){
+ const final=Array.isArray(sharedScenes)?sharedScenes
+  .filter(x=>typeof x?.body==="string"&&x.body.trim()&&Number(x.phase_index)>=4)
+  .sort((a,b)=>a.phase_index-b.phase_index).slice(-2):[];
+ const sentences=final.flatMap(scene=>(String(scene.body).replace(/\s+/g," ").trim()
+  .match(/[^.!?]+(?:[.!?]+(?:[”"']|$)?|$)/g)||[])
+  .map(x=>({text:x.trim(),phase:scene.phase_index}))).filter(x=>{
+   if(x.text.length<28||x.text.length>235)return false;
+   const ascii=(x.text.match(/"/g)||[]).length;
+   const left=(x.text.match(/“/g)||[]).length,right=(x.text.match(/”/g)||[]).length;
+   return ascii%2===0&&left===right;
+  });
+ const action=/\b(?:said|says|asked|asks|texted|texts|replied|replies|answered|answers|called|calls|dialed|dials|agreed|agrees|accepted|accepts|refused|refuses|set|sent|opened|chose|chooses|decided|explained|apologized)\b/i;
+ const trivial=/\b(?:buzzed|buzzes|glanced|stared|sat|shrieked|stood|watched)\b/i;
+ const pick=role=>sentences.filter(x=>new RegExp("\\b"+role+"\\b","i").test(x.text))
+  .map(x=>({...x,score:(x.phase>=5?6:0)+(action.test(x.text)?5:0)+
+   (new RegExp("^"+role+"\\b","i").test(x.text)?2:0)-
+   (trivial.test(x.text)&&!action.test(x.text)?8:0)}))
+  .sort((a,b)=>b.score-a.score)[0]?.text;
+ const jack=pick("Jack"),jill=pick("Jill");
+ const distinct=[jack,jill].filter((x,i,arr)=>x&&arr.indexOf(x)===i);
+ if(distinct.length){
+  return "The ending showed these moments: "+distinct.join(" ")+
+   " Only the choices actually spoken or shown are established; a larger agreement cannot be assumed.";
+ }
+ const topic=clean(episode?.title,110)||"this disagreement";
+ return "Jack and Jill faced the choices in "+topic+
+  ". Their next steps must depend on what they actually say and do, not an assumed agreement.";
+}
+
 function completeSentence(text,max,fallback){
  const source=String(text||"").trim();
  if(!source)return fallback;
@@ -20,28 +81,34 @@ function completeSentence(text,max,fallback){
  const last=matches.at(-1);
  return last&&last.index>30?clipped.slice(0,last.index+1):fallback;
 }
-function specificClosing(episode,generated){
+function specificClosing(episode,generated,sharedScenes=[]){
  const observation=completeSentence(generated.observation,430,
-  "Jack acknowledged his delayed repair, while Jill acknowledged buying the microwave without consulting him. They still need to follow through on the practical decision.");
+  sharedScenes.length?groundedClosureFallback(episode,sharedScenes):
+  "Jill bought a $400 microwave from shared savings after Jack repeatedly delayed a repair. Their choices exposed a disagreement about urgency and shared decisions; any resolution must come from what they actually did.");
  const practice=completeSentence(generated.practice,250,
-  "Ask each other what action would rebuild trust after a difficult financial decision, then choose one specific next step.");
+  "Ask what both of you need after a significant shared purchase, then identify one concrete next step without presuming consent.");
  return "SOPHIA · A CLOSING THOUGHT\n\n"+
   "What happened: "+observation+"\n\n"+
   "The skill connection: Facing a hard decision means owning your part without controlling the other person. A gentle startup raises a concern without blame; accepting influence means considering a partner's actual reasons.\n\n"+
   "One thing to try: "+practice+"\n\n"+
   "The story is fictional and its ending is not a grade on your marriage.";
 }
-export function composeSophiaClosure(episode,generated={}){
- if(targetedEpisode(episode))return specificClosing(episode,generated);
+export function composeSophiaClosure(episode,generated={},sharedScenes=[]){
+ if(targetedEpisode(episode))return specificClosing(episode,generated,sharedScenes);
  const observation=clean(generated.observation,460)||
-  "Jack and Jill's story showed how assumptions about affection can get in the way of understanding what each person needs now.";
+  groundedClosureFallback(episode,sharedScenes);
+ const lens=String(episode?.primarySkill||"");
  const practice=clean(generated.practice,320)||
-  "Try asking each other: “What kind of closeness would feel good and welcome this week?” Listen without pressure to agree to anything immediately.";
- const science=[
-  "Gottman's observational work describes small bids for attention or connection and the importance of how partners respond to them [1].",
-  "Schnarch's differentiation framework emphasizes being able to stay connected while speaking honestly about your own needs and boundaries; this is a clinical model, not a score from this story [2].",
-  "In experimental work, Aron and colleagues found that doing novel activities together can improve short-term reports of relationship quality [3]."
- ].join(" ");
+  (lens.startsWith("a-")?
+   "Ask what each of you would enjoy about an optional new shared experience, including what you would rather not do.":
+   lens==="g-repair"||lens==="g-start"?
+   "Name one repair that was actually attempted, and ask what small concrete step each person could voluntarily try next.":
+   "Ask what changed in each person's interpretation, then invite one specific next action without assuming agreement.");
+ const science=lens.startsWith("a-")?
+  "Aron and colleagues studied how mutually welcome novel shared activities can influence short-term reports of relationship quality [3].":
+  lens.startsWith("s-")?
+  "Schnarch's differentiation framework describes staying connected while expressing distinct needs; this is a theoretical clinical framework, not a score [2].":
+  "Gottman's observational work discusses bids for connection and the importance of how partners respond to them [1].";
  const result="SOPHIA · A CLOSING THOUGHT\n\n"+
   "What I noticed: "+observation+"\n\n"+
   "The research connection: "+science+"\n\n"+
@@ -51,7 +118,7 @@ export function composeSophiaClosure(episode,generated={}){
 }
 export async function draftSophiaClosure(episode,sharedScenes){
  const key=process.env.OPENAI_API_KEY?.trim();
- if(!key)return composeSophiaClosure(episode);
+ if(!key)return composeSophiaClosure(episode,{},sharedScenes);
  const input={
   title:episode.title,
   learningObjective:episode.learningObjective,
@@ -64,27 +131,41 @@ export async function draftSophiaClosure(episode,sharedScenes){
   "You write Sophia's warm, human closing reflection for an Anthos marriage-enrichment FICTIONAL episode.",
   "The six authored stages are over. You are not another narrator, not Jack, not Jill, and not a therapist.",
   "Summarize one specific observable learning moment from the supplied fictional shared scenes. Do not invent additional events, achievements, coaching messages, motives or a perfect relationship outcome.",
+  "Choose one short verbatim excerpt from the last two scenes (Outcome or Reflection) that proves the consequence you describe. Return it as evidence. If they reversed an earlier plan, describe the final action, not the earlier plan. Never infer agreement from calm words or claim a closed box after it was opened.",
   "Only Jack and Jill are story characters; never describe the real husband or wife as if they were characters.",
   "Offer one realistic, consent-respecting, low-pressure practice for two people to discuss in real life. Respect autonomy and the ability to say no. No quizzes or relationship scores.",
   "Do not write research claims or bibliographies; the application adds accurately attributed educational research context itself.",
   targetedEpisode(episode)?"Return two complete concise fields: observation 30–55 words about the NEW consequences and the actual ending, and practice one practical invitation of 15–30 words. Do not recap all six scenes or promise a happy resolution.":"Return two short fields: observation (45–80 words grounded in the story) and practice (one concrete invitation, 20–45 words).",
   "Avoid empty praise, glib humor, cheesy metaphors, shaming, overpromises, and diagnosing a couple."
  ].join(" ");
- try{
-  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
-  const res=await fetch("https://api.openai.com/v1/responses",{
-   method:"POST",
-   headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
-   body:JSON.stringify({model,store:false,instructions,input:JSON.stringify(input),
-    max_output_tokens:550,
-    text:{format:{type:"json_schema",name:"jj4_sophia_closure",strict:true,schema:EPILOGUE_SCHEMA}}}),
-   signal:AbortSignal.timeout(35000)
-  });
-  if(!res.ok)return composeSophiaClosure(episode);
-  const data=await res.json();
-  const output=(data.output||[]).flatMap(x=>x.content||[])
-   .filter(x=>x.type==="output_text").map(x=>x.text).join("");
-  const parsed=JSON.parse(output);
-  return composeSophiaClosure(episode,parsed);
- }catch{return composeSophiaClosure(episode)}
+ const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
+ let failedReason="",failedDraft=null;
+ // At most one targeted evidence repair. Never accept invented closure facts
+ // simply to avoid a second provider call; the final fallback is grounded.
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   const nextInput=attempt===0?input:{
+    ...input,priorRejectedDraft:failedDraft,reasonRejected:failedReason,
+    realFinalActions:sharedScenes.filter(x=>x.phase_index>=4).slice(-2)
+     .map(x=>({phase:x.phase_index,body:x.body}))
+   };
+   const res=await fetch("https://api.openai.com/v1/responses",{
+    method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+    body:JSON.stringify({model,store:false,
+     instructions:instructions+(attempt===0?"":" EVIDENCE REPAIR: Your previous observation was rejected. This time anchor the central claim to a VERBATIM 18+ character excerpt from Outcome or Reflection and make that exact excerpt the evidence field. Do not paraphrase the evidence, invent a new event, or imply mutual agreement not visibly accepted."),
+     input:JSON.stringify(nextInput),max_output_tokens:650,
+     text:{format:{type:"json_schema",name:"jj4_sophia_closure",strict:true,schema:EPILOGUE_SCHEMA}}}),
+    signal:AbortSignal.timeout(30000)
+   });
+   if(!res.ok)break;
+   const data=await res.json();
+   const raw=(data.output||[]).flatMap(x=>x.content||[])
+    .filter(x=>x.type==="output_text").map(x=>x.text).join("");
+   const parsed=JSON.parse(raw);
+   const verdict=validateClosureEvidence(parsed,sharedScenes);
+   if(verdict.ok)return composeSophiaClosure(episode,parsed,sharedScenes);
+   failedDraft=parsed;failedReason=verdict.reason;
+  }catch{break}
+ }
+ return composeSophiaClosure(episode,{},sharedScenes);
 }

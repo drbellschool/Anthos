@@ -3,16 +3,24 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
+import {buildAuthored41,isAuthored41,authoredOptions,authoredObjection,selectedAuthoredChoice,authoredCommitment,interpretAuthoredFollowup,authoredScene,composeAuthored41Closure} from "./jj4-authored41.mjs";
+import {classifyAuthoredAdviceWithModel} from "./jj4-authored41-intent.mjs";
+import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
+import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence,recoverCoachingEvidence} from "./jj4-quality-guards.mjs";
+import {committedTimelineViolation} from "./jj4-timeline-guards.mjs";
+import {enforcePhaseContract} from "./jj4-phase-contract.mjs";
 import {RESEARCH_SOURCES,draftSophiaClosure} from "./jj4-closure.mjs";
-import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene} from "./jj4-causality.mjs";
+import {adviceForNextScene,IMPACT_SCHEMA,validateImpactPlan,publicBehaviorPlan,DIRECTED_SCENE_SCHEMA,assembleDirectedScene,unsupportedExternalPolicyClaims,checkCoachingTrace,checkSceneLength,asksForHumor} from "./jj4-causality.mjs";
 import {validatePrivateCheckin,fallbackPrivateCheckin,checkinContract} from "./jj4-private-voice.mjs";
 import {isContinuityPilot,continuityInput,SCENE_REVIEW_SCHEMA,reviewPass,wordCount} from "./jj4-continuity.mjs";
 import {LEDGER_SCHEMA,emptyLedger,sanitizeLedger,storyLedgerInstructions,ledgerPrompt} from "./jj4-story-ledger.mjs";
 import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulationTransition,simulationInstructions} from "./jj4-character-simulation.mjs";
+import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
+import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
 
-const BASE="https://kstluxwgrrgdbjyloscb.supabase.co/rest/v1/";
+
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
 const ROLE=["jack","jill"];
 const PHASES4=PHASES.map(x=>x.id);
@@ -24,11 +32,9 @@ const error=(message,status=400)=>{throw Object.assign(new Error(message),{statu
 async function db(resource,query={},body,method="GET"){
  const key=process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
  if(!key)error("Pilot database credentials are unavailable.",503);
- const url=new URL(BASE+resource);
+ const url=new URL(storySupabaseBase()+resource);
  for(const [k,v] of Object.entries(query))url.searchParams.set(k,String(v));
- let res;try{res=await fetch(url,{method,headers:{
-  apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",
-  Prefer:"return=representation"},
+ let res;try{res=await fetch(url,{method,headers:storySupabaseHeaders(key),
   ...(body===undefined?{}:{body:JSON.stringify(body)}),
   signal:AbortSignal.timeout(15000)
  });}catch{error("Pilot database could not be reached.",502)}
@@ -54,7 +60,7 @@ function targetRoles(room){
  const allowed=activeRoles(room);
  return (audience==="both"?ROLE:audience==="jack"?["jack"]:audience==="jill"?["jill"]:[]).filter(role=>allowed.includes(role));
 }
-export async function createRoom(origin,scenarioId,previousRoomId=null){
+export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVersion="4.0.0"){
  if(!UUID.test(scenarioId||""))error("Choose a saved 4.0 episode first.");
  const scenario=await getScenario(scenarioId);
  if(!["shared","individual"].includes(scenario.mode))error("Unsupported episode mode.");
@@ -68,16 +74,20 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
   if(!previous||previous.scenario_id!==scenario.id)
    error("Previous test does not belong to this saved episode.",409);
  }
- if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
-  if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
+ const authored=pilotVersion==="4.1.0";
+ if(!authored&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
+ if(authored)Object.assign(draft,buildAuthored41(draft));
+ if(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80)
+  error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
+ if(!draft.primarySkill||!PHASES4.every(p=>draft.phases[p]?.trim().length>=30))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
- // Simulation is pinned at room creation. Old pilots retain their v4 behavior.
+ // All NEW v4 pilots pin the existing actor, object, and event state.
+ // Previously created rooms retain their recorded engine version.
  const seed=scenario.episode_studio?.simulationSeed;
- if(seed?.enabled===true)draft.simulationSeed=seed;
- const simulate=isContinuityPilot({scenario_id:scenario.id})||seed?.enabled===true;
+ if(seed&&typeof seed==="object")draft.simulationSeed=seed;
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0,
-  ...(simulate?{simulation_state:initialSimulation(draft)}:{})
+  ...(authored?{}:{simulation_state:initialSimulation(draft)})
  },"POST"))?.[0];
  if(!created?.id)error("Could not create the pilot room.",502);
  const invitations={};
@@ -99,7 +109,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null){
    previousRetired=Array.isArray(affected)&&affected.length===1;
   }catch{previousRetired=false}
  }
- return {ok:true,engine:"4.0.0",title:draft.title,roomId:created.id,
+ return {ok:true,engine:authored?"4.1.0":"4.0.0",title:draft.title,roomId:created.id,
   invitations,mode:scenario.mode,soloCoach:draft.soloCoach,expiresAt:created.expires_at,previousRetired,
   note:"Private browser pilot. No actual text messages will be sent."};
 }
@@ -133,16 +143,21 @@ export async function status(token){
   // A negative ID guarantees it precedes the first generated scene.
   const opening=room.episode?.sophiaIntro?.trim();
   if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",body:personalizeIntroduction(opening,people),phase_index:-1,created_at:room.created_at});
- return {ok:true,version:"4.0.0",title:room.title,role:person.role,
+ const authored41=isAuthored41(room);
+ const selected41=authored41?selectedAuthoredChoice(room.episode,person.role,room.phase_index,
+  mine.map(x=>({...x,role:person.role}))):null;
+ return {ok:true,version:authored41?"4.1.0":"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
   stage:room.stage,needsReply,submitted:person.submitted_phase===room.phase_index,
+  coachChoices:authored41&&needsReply&&!selected41?authoredOptions(room.episode,person.role,room.phase_index):[],
+  selectedOption:selected41?.id||null,
   paused,pausedBy,
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage),
   scenes,messages:mine,finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
-  researchSources:hasSophia?RESEARCH_SOURCES:[],
+  researchSources:hasSophia?(authored41?RESEARCH_SOURCES.filter(x=>/Gottman/.test(x.label)):RESEARCH_SOURCES):[],
   info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
 }
 export async function join(token,name){
@@ -178,6 +193,11 @@ async function generateStructured({model,key,name,schema,input,instructions,maxT
  return value;
 }
 async function directScene(room,phaseIndex){
+ if(isAuthored41(room)){
+  const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
+   select:"role,kind,phase_index,body"});
+  return authoredScene(room.episode,phaseIndex,history||[]);
+ }
  const key=process.env.OPENAI_API_KEY?.trim();
  if(!key)error("OpenAI is not configured for this pilot.",503);
  const [history,people]=await Promise.all([
@@ -207,17 +227,25 @@ async function directScene(room,phaseIndex){
   phase:PHASES4[m.phase_index],body:scrub(m.body)
  }));
  const influence=adviceForNextScene(phaseIndex,room.episode,ordered);
+ const humorRequested=Boolean(influence&&Object.values(influence.advice).some(asksForHumor));
  const focusedPilot=isContinuityPilot(room);
  const simulate=simulationEnabled(room);
+ // Only explicit synthetic QA rooms block completion for soft editorial faults.
+ // All simulated rooms get the objective fact/visible-coaching safeguards.
+ // An explicit synthetic QA room can enforce strict factual review even when
+ // the older episode has not yet opted into persistent character simulation.
+ const qualityGate=room.episode?.qualityMode==="strict";
+ const conciseScenes=simulate||focusedPilot||qualityGate;
  const simulationBefore=simulate?room.simulation_state:null;
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
- let eventLedger=emptyLedger();
- if(focusedPilot&&sharedHistory.length){
+ let eventLedger=emptyLedger(room.episode,simulationBefore);
+ if((focusedPilot||qualityGate)&&sharedHistory.length){
   try{
    const extracted=await generateStructured({model,key,name:"anthos_jj4_event_ledger",
-    schema:LEDGER_SCHEMA,input:{canonicalFacts:eventLedger.confirmedFacts,committedScenes:sharedHistory},
-    instructions:storyLedgerInstructions(),maxTokens:1150,timeout:20000});
-   eventLedger=sanitizeLedger(extracted);
+    schema:LEDGER_SCHEMA,input:{canonicalFacts:eventLedger.confirmedFacts,committedScenes:sharedHistory,
+     characterState:simulationBefore?.characters,worldObjects:simulationBefore?.objects},
+    instructions:storyLedgerInstructions(),maxTokens:1850,timeout:23000});
+   eventLedger=sanitizeLedger(extracted,room.episode,simulationBefore,sharedHistory);
   }catch{
    eventLedger={...eventLedger,unresolved:[...eventLedger.unresolved,
     "Before writing, inspect supplied scenes for previously completed actions."]};
@@ -241,8 +269,12 @@ async function directScene(room,phaseIndex){
    "The two characters retain agency: they can follow, challenge, misinterpret, partly accept or reject their own advice. Even rejection must be a visibly consequential choice.",
    "Produce actions and consequences that implement the NEXT authored phase's educational purpose, without replacing that phase, inventing a separate relationship problem, or preemptively resolving future phases.",
    "Keep uncertainty unresolved where appropriate. Do not turn every conflict into instant repair. Do not insert a new therapist, scripted advice session, or moral lecture.",
+   "The output comedicBeat must distinguish an actual attempted in-world joke/visual gag from a mere smile or symbol. If humorRequested is true and the submitted coaching includes a safe comic idea, preserve its concrete target through a character's behavior and another character's distinct reaction. The response may be irritation, not laughter. Never repeat or attribute the real coach's private words verbatim.",
+   "If a coach suggests an attack or a counterproductive move, characters may reject it, but the rejection MUST be an on-screen decision about THAT proposed behavior (not an unrelated generic kind gesture). Show the cost of resisting or following the impulse.",
    "No quotations or attributions from private coaches appear in the shared story. No real participant names ever become Jack or Jill.",
    "Return concreteAction and personalConsequence for BOTH characters, sharedFallout and tensionToCarry. These will be mandatory constraints for the story narrator.",
+   "For OUTCOME and REFLECTION, a repeated promise, apology, or statement that the box will stay closed is NOT a new event. Produce an on-stage decision with a practical observable cost or immediate step that has not occurred in establishedFiction. The other partner must react independently. Do not invent retailer policies, repair quotes, or additional financial agreements.",
+   "Treat freshnessConstraints as a list of spent images and past actions. Never repeat the previous agreement as a fresh choice. Distinguish a plan made from that plan being carried out.",
   ].join(" ");
   const planInput={
    title:room.title,authoredPremise:room.episode.premise,
@@ -255,15 +287,20 @@ async function directScene(room,phaseIndex){
    fictionalCharacterMotivations:{jack:room.episode.jackMotivation,jill:room.episode.jillMotivation},
    authorBoundaries:room.episode.boundaries,
    establishedFiction:sharedHistory.slice(-5),
+   freshnessConstraints:sceneProgressionHints(sharedHistory),
    responseKinds:influence.responseKinds||{},
-   ...(simulate?{charactersAndWorld:simulationBefore}:{}),
-   ...(focusedPilot?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
+   humorRequested,
+   authoredHumorCue:room.episode.humorNotes||"",
+   checkpointHumorCue:room.episode.checkpoints?.find(c=>c.afterPhase===influence.afterPhase)?.humorCue||"",
+   ...(simulate?{charactersAndWorld:simulationBefore,continuityFacts:sceneFactsForAI(simulationBefore)}:{}),
+   ...((focusedPilot||qualityGate)?{eventLedger:ledgerPrompt(eventLedger,phase)}:{})
   };
   const plan=await generateStructured({model,key,name:"anthos_jj4_consequence_plan",
    schema:IMPACT_SCHEMA,input:planInput,instructions:planInstructions,
    maxTokens:950,timeout:25000});
   if(!validateImpactPlan(plan))error("The story did not account for your coaching. Retry the scene.",502);
   coachingImpact=publicBehaviorPlan(plan);
+  coachingImpact.humorRequested=humorRequested;
  }
  // Second call: enact those decisions as real character action and fallout.
  // Advice is never simply pasted into a message or retold to the other coach.
@@ -271,7 +308,7 @@ async function directScene(room,phaseIndex){
  const input={
   title:room.title,primaryObjective:room.episode.primarySkill,
    participantMode:room.episode.pilotMode||"shared",participatingCoaches:activeRoles(room),
-   sceneSetting:room.episode.sceneSetting,sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
+   sceneSetting:phaseIndex===0?room.episode.sceneSetting:"",sceneStress:room.episode.sceneStress,sceneTrigger:room.episode.sceneTrigger,
    jackExample:room.episode.jackExample,jillExample:room.episode.jillExample,
    toneApproach:room.episode.toneApproach,toneIntensity:room.episode.toneIntensity,toneElement:room.episode.toneElement,
   supportingSkills:room.episode.supportingSkills,researchNotes:room.episode.researchNotes,
@@ -285,14 +322,26 @@ async function directScene(room,phaseIndex){
   personalHumor:room.episode.humorNotes,runningGags:room.episode.runningGags,
   checkpoint:cp,fictionalCharacters:fictionalNames,
   history:sharedHistory.map(m=>({role:"shared",kind:"scene",phase:m.phase,body:scrub(m.body)})),
+  freshnessConstraints:sceneProgressionHints(sharedHistory),
   coachingImpact,
+  coachedRoles:influence?Object.keys(influence.advice):[],
+  humorRequested,
   ...(focusedPilot?{continuity,eventLedger:ledgerPrompt(eventLedger,phase)}:{}),
-  ...(simulate?{characterSimulation:simulationBefore}:{})
+  ...(simulate?{characterSimulation:simulationBefore,
+   actorWorldPosition:simulationBefore?.actorLocations||null,
+   continuityFacts:sceneFactsForAI(simulationBefore)}:{} )
  };
  const instructions=[
   "You are the fictional shared-story director for Anthos Deep Dive 4.0, an educational marriage-growth adventure. NOT therapy.",
   "The administrator-authored Six-Phase Story Flow is a FIXED episode plan: preserve its issue, phase purpose and order, character facts, locked text, and earned closure target. It is not six fixed speeches, an inevitable smooth journey, or an excuse to fabricate a happy ending when coaching has worsened the situation.",
+  "During HOOK, honor the authored initial dilemma literally. If it says a partner defers with vague 'later' and no return time, do not introduce a jointly accepted time before the first private checkpoint. An agreed time is earned through actual later choices, not a narrator improvement.",
   "The field coachingImpact is a MANDATORY causal plan from the private coaching. It is not a suggestion. Write a fresh scene in which Jack visibly does jack.action, Jill visibly does jill.action, and their actions produce coachingImpact.sharedFallout plus personal consequences.",
+  "Carry the private, evidence-grounded continuityFacts forward: who acted, what changed, each character's last known location, the ACTUAL scene time versus future plans, why each acted, and the current object registry. These facts are not user-facing narration. Never move or alter a tracked object without a visible scene action.",
+  "Treat eventLedger.alreadyCompletedDoNotReplay as immutable previous ACTIONS, not optional inspiration. A character who left for work cannot perform their first kitchen departure again, and a couple already on a porch cannot travel there again without a visible return. ProposalsNotYetAccepted are NOT agreements.",
+  "If coachedRoles includes Jack or Jill, the next scene MUST demonstrate how that character chose to follow, resist, partly accept or misinterpret the specific advised behavior; an unexplained switch to polite compromise does NOT count. Rejecting harsh advice is permitted only if the tension and rejection are explicit in dialogue or action.",
+  "After writing the narrative, copy exact 18+ character quotations from the VISIBLE scene into coachingTrace.jackEvidence and/or coachingTrace.jillEvidence for the actual coachedRoles, and coachingTrace.falloutEvidence for the character consequence. These fields are verification references, never private coach quotations. Uncoached roles use empty evidence strings.",
+  "Do not claim a verified real-world fact such as return deadlines, refund eligibility, warranty terms, policy requirements, appointment confirmations or external prices merely by inventing a phone call, receipt, label or store employee. Unless explicitly in author-controlled facts, characters must remain uncertain and can check later.",
+  "If coachingImpact.comedicBeat.attempted and the comic idea is safe, enact a short character-specific comic observation or mishap and a visible partner reaction, including a negative reaction if it lands poorly. Enter both literal verbatim story excerpts in simulation.humor evidence when using simulation. Avoid jokes that erase the genuine dispute.",
   ...(simulate?[simulationInstructions]:[]),
   "Do not give the couple an effortless insight or polite resolution simply because the learning objective involves connection. Poor advice can worsen tension; rejecting poor advice also has a meaningful consequence.",
   "Show what each character actually DID rather than explaining to readers that a coach advised them. Never quote or attribute private messages, do not reveal either coach's text to the other, and do not include the real coaches in the fictional world.",
@@ -300,6 +349,16 @@ async function directScene(room,phaseIndex){
   "For the current phase, ONLY dramatize the saved phaseStoryDirection, incorporating previous fictional events and the consequential plan. Do not invent a new core conflict, change setting without explanation, or jump to a later phase. The reader must be able to tell that a different coach suggestion would have led to different behavior.",
   "You are allowed to show anger, defensiveness, distrust, embarrassment, or resistance without endorsing the underlying claim. Never establish infidelity or wrongdoing as fact based solely on a coach's speculation.",
   "Use humor cues when earned and welcome, but avoid cheesy punchlines, repetitive couch reconciliations, idealized lectures or physical-intimacy pressure. Respect individual needs and boundaries.",
+  "Open with a new event in the present, do not summarize the argument or repeat metaphors about an object representing their feelings. Give one small choice a cost in a changed object, a clear refusal, a request answered or a new practical obstacle.",
+  "The freshnessConstraints include specific rhetorical images already used. Retire every spent metaphor or running joke unless a repetition causes a visibly different consequence; do not reuse it as comic filler. Preserve factual details but do not repeat prior dialogue as a supposedly new event.",
+  "Ending a scene with 'the box symbolizes their impasse', 'trust remains fragile', or any narrator commentary is not a consequence. End on a concrete change in the situation: a real refusal, commitment with follow-through, new information, an earned physical action, or a hard obstacle. The coach's advice must visibly matter.",
+  "During REFLECTION, the visible outcome must be different from the prior scene: show what the most recent choice causes now, or one partner exercising a new boundary. Repeating the argument, removing a symbolic note, or touching an unchanged prop is not enough.",
+  "For OUTCOME and REFLECTION, do not narrate any previous agreement as if it were an event. Show an ON-STAGE action performed now: a refusal with a tangible effect, a practical step actually taken, a deliberate boundary exercised, or a fresh obstacle discovered. A character saying 'I will call' without actually calling is NOT follow-through. The next character must react in a distinct way.",
+  "The narrator is a camera, NOT a marriage counselor. Never write that an object 'symbolizes' feelings, that trust 'remains fragile', that tension 'hangs in the air', or that someone 'seeks connection'. If a sentence does not reveal a character's action, spoken words, setting evidence, or consequence, cut it.",
+  "Treat every scene as an irreversible next step. Repeating setting and props are context, not developments. Each phase needs one NEW, observable action, refusal, obstacle, decision, or discovery which is not a paraphrase of the preceding scene. Metaphorical sealed boxes and mutual nods do NOT count as consequences.",
+  "Sixth Reflection: show a visible earned after-effect of the last choice without adding a new agreement, negotiation or compromise. Do not end on another description of the same untouched prop.",
+  "Humor means a specific attempted visual or conversational gag with a visible, individual reaction. A label of tentative humor does not count.",
+  "HumorRequested is true when a private coach specifically asked for humor. Translate the underlying safe fictional comedy into action without leaking that coach's literal text.",
   "Keep HOOK, CONFLICT and DISCOVERY sufficiently unsettled for a genuine REATTEMPT. OUTCOME can be imperfect but should close the original dilemma. REFLECTION should be grounded, and Sophia provides the research debrief afterward.",
   "Follow EXACTLY the author-configured checkpoint audience, purpose, and wait setting. Ask only those coaches authorized by the checkpoint, privately. Never substitute a generic educational quiz for a consequential decision.",
   "VOICE CONTRACT: jackPrompt is a message JACK HIMSELF sends IN FIRST PERSON to the real husband who advises him. jillPrompt is a message JILL HERSELF sends IN FIRST PERSON to the real wife who advises her. The coaches are recipients, NOT Jack or Jill, and are not characters in the story.",
@@ -307,80 +366,244 @@ async function directScene(room,phaseIndex){
   "NEVER begin a private message 'Jack, ...' or 'Jill, ...', never say 'Jill, consider...', 'How could Jill...', 'Tell Jack what to do', or 'How do you feel about Jill'. Those are narrator instructions aimed at the character or coach, NOT a character texting a friend.",
   "Do not insert names or private advice from the real husband or wife into the message. Speak ONLY as the fictional sender and don't ask the user to roleplay that sender.",
   "Jack and Jill are always the fictional characters; the real husband and wife are private coaches, never characters.",
-  focusedPilot?"Write only 75–110 words TOTAL across all four beats. Begin where the last scene ended. The eventLedger is authoritative for completed actions and unverified claims. Never repeat a completed call, prior apology or policy lookup as new. Show exactly one NEW observable consequence; do not recap or use summary metaphors. Do not invent return fees or dates.":"The opening, jackBeat, jillBeat and fallout should total about 130–200 words, including several concrete physical or verbal actions and realistic fallout.",
-  "Return JSON only: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt.",
+  conciseScenes?"Write 75–110 words TOTAL across all four narrative beats, with one specific NEW observable action and meaningful consequence. Begin where the last scene ended. The scene must not read like a summary or symbolic meditation; do not invent return fees, policies or dates.": "The four narrative beats should be concise, concrete and consequential. Do not pad with emotional narration or invented external facts.",
+  "Return JSON only with all specified schema fields: opening, jackBeat, jillBeat, fallout, jackPrompt, jillPrompt, coachingTrace and simulation where required.",
   "If checkpoint audience is none or the phase is Reflection, return empty strings for both prompts. If Jack-only, Jill's prompt is empty; if Jill-only, Jack's is empty. If both, two different private prompts. Each must respond to what just happened, not repeat a canned question about the theoretical skill."
  ].join(" ");
  let result,story,simulationUpdate;
- const attempts=simulate?3:focusedPilot?2:1;
+ const attempts=qualityGate?5:simulate?3:focusedPilot?2:influence?2:1;
+ const maxAttempts=simulate&&phaseIndex>=4?Math.max(attempts,5):attempts;
  let reviewFeedback="";
+ let lastGateReason="none";
  let lastUsable=null;
- for(let attempt=0;attempt<attempts;attempt++){
+ for(let attempt=0;attempt<maxAttempts;attempt++){
   const draftInput=reviewFeedback?{...input,requiredCorrectionsFromPriorAttempt:reviewFeedback}:input;
   try{
    result=await generateStructured({model,key,name:"anthos_jj4_consequential_scene",
     schema:simulate?SIMULATION_SCENE_SCHEMA:DIRECTED_SCENE_SCHEMA,input:draftInput,instructions,
     maxTokens:simulate?1900:focusedPilot?1100:1600,timeout:35000});
   }catch(err){
-   if(lastUsable){({result,story,simulationUpdate}=lastUsable);break}
+   if(lastUsable&&!qualityGate){({result,story,simulationUpdate}=lastUsable);break}
    throw err;
   }
   try{story=assembleDirectedScene(result,!!coachingImpact)}
   catch{
-   story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
+   lastGateReason="incomplete_beats";story=null;reviewFeedback="The draft omitted concrete actions or consequences; create four short complete beats.";
+   continue;
+  }
+  // A compacting pass repairs excessive prose without changing the scene's
+  // actions. The editor returns the SAME structured scene contract, so every
+  // coaching-evidence and world-state claim is checked against the new text.
+  if((qualityGate||simulate)&&checkSceneLength(story).words>110){
+   try{
+    const edited=await generateStructured({model,key,name:"anthos_jj4_scene_compact_edit",
+     schema:simulate?SIMULATION_SCENE_SCHEMA:DIRECTED_SCENE_SCHEMA,
+     input:{draft:result,priorStory:sharedHistory.at(-1)?.body||"",
+      priorWorld:simulationBefore,phase,requiredCoachConsequences:coachingImpact,
+      desiredLength:"80 to 105 TOTAL narrative words"},
+     instructions:[
+      "You are a COPY EDITOR, not another narrator. Keep the same decisions, attributed dialogue, object states, location, tension, and consequences while compressing opening, jackBeat, jillBeat and fallout to 80-105 words TOTAL.",
+      "Remove repetition, speculation, therapy lectures, metaphors and recap. Keep each character's key spoken line or physical choice and the observable fallout. Never invent a fact, retailer term, new action, agreement, or promise.",
+      "Preserve jackPrompt and jillPrompt purpose, audience and voice. Every coachingTrace and simulation evidence quotation MUST come directly from your NEW condensed story text, not the previous long draft.",
+      "If a world-state change no longer appears in the shortened scene, remove that change from simulation. Keep speaker identities and the existing location unless movement is explicitly narrated.",
+      "Update simulation.sceneMetadata.when and objectsIntroduced to quote only the FINAL compacted scene. Do not invent time or props, and never turn a mentioned future appointment into the scene's present time.",
+      "Return the exact same JSON field names and all required schema fields. Prefer 20-28 words per narrative beat, with 105 narrative words maximum."
+     ].join(" "),maxTokens:simulate?1700:1200,timeout:30000});
+    const compact=assembleDirectedScene(edited,!!coachingImpact);
+    if(checkSceneLength(compact).words<checkSceneLength(story).words){
+     result=edited;story=compact;
+    }
+   }catch{
+    lastGateReason="copy_editor_failed";
+   }
+  }
+  if(coachingImpact){
+   const modelTrace=groundCoachingEvidence(story,result.coachingTrace,Object.keys(influence.advice));
+   const groundedTrace=recoverCoachingEvidence(story,result,modelTrace,Object.keys(influence.advice));
+   const trace=checkCoachingTrace(story,groundedTrace,Object.keys(influence.advice),result);
+   if(trace.ok)result.coachingTrace=groundedTrace;
+   if(!trace.ok){
+    // This is a fixed validator reason, not private coaching text.
+    console.warn("jj4-coaching-trace-rejected",JSON.stringify({
+     phase:phaseIndex,reason:trace.reason}));
+    lastGateReason="coaching_trace";story=null;reviewFeedback=trace.reason+
+     " Include a literal observable decision (including explicit refusal if rejecting the coach) and visible fallout.";
+    continue;
+   }
+  }
+  // Enforce privacy of specifically quoted coaching as actual dialogue,
+  // without exposing raw private messages to the shared scene narrator.
+  const speaker=wrongSpeakerForQuotedCoaching(story,influence?.advice||{});
+  if(!speaker.ok){
+   story=null;lastGateReason="wrong_coached_speaker";
+   reviewFeedback=speaker.reason+" Rewrite the next scene with the quoted line spoken ONLY by its coached owner, or omit the quote and show a consequence of rejecting it.";
+   continue;
+  }
+  // The author's actual Hook is a contract. Some stories require the
+  // opening conflict to remain unresolved until private coaching begins.
+  // A polished early resolution is still a phase failure.
+  if(qualityGate){
+   const contract=enforcePhaseContract(room.episode,phaseIndex,story);
+   if(!contract.ok){
+    story=null;lastGateReason=contract.code;
+    reviewFeedback=contract.reason+" Follow the saved Hook without preempting a later checkpoint.";
+    continue;
+   }
+  }
+  // Synthetic QA must not accept a reset of completed physical actions,
+  // an unexplained return to a departed location, or unsupported consensus.
+  // Compare against committed story, never against untrusted coach wishes.
+  if(qualityGate||simulate){
+   const chronology=committedTimelineViolation(sharedHistory,story);
+   if(!chronology.ok){
+    story=null;lastGateReason=chronology.code;
+    reviewFeedback=chronology.reason+" Continue from the actual last on-stage action without repeating it.";
+    continue;
+   }
+  }
+  // Review observable narrative progress, not just chronology or locations.
+  if(simulate||qualityGate){
+   const progress=checkSceneProgression(sharedHistory,story,phaseIndex);
+   if(!progress.ok){
+    // Editorial quality gets two real correction attempts, but cannot
+    // indefinitely 502 a customer's scene. Factual duplicate scenes remain
+    // a hard block; softer literary repetition warns on the final attempt.
+    if(progress.severity==="hard"||attempt<maxAttempts-1){
+     story=null;lastGateReason="stalled_progression_"+(progress.code||"generic");
+     reviewFeedback=progress.reason+" Keep the committed story facts; advance with a new concrete behavior.";
+     continue;
+    }
+    console.warn("jj4-progress-soft-warning",JSON.stringify({
+     phase:phaseIndex,code:progress.code||"generic"}));
+   }
+  }
+  // Physical scenes must not move the same people between rooms without an
+  // observable walk, exit or other transition. Strict synthetic QA only.
+  if(qualityGate&&sharedHistory.length){
+   const place=abruptLocationJump(sharedHistory.at(-1)?.body,story);
+   if(!place.ok){
+    story=null;lastGateReason="unearned_location";reviewFeedback=place.reason+" Show an on-stage transition or keep the scene in the prior location.";
+    continue;
+   }
+  }
+  const validFacts=[...(Array.isArray(room.episode.knownFacts)?room.episode.knownFacts:[]),
+   ...(Array.isArray(room.episode.simulationSeed?.knownFacts)?room.episode.simulationSeed.knownFacts:[]),
+   ...(Array.isArray(simulationBefore?.knownFacts)?simulationBefore.knownFacts:[])];
+  const unsupportedPolicies=unsupportedExternalPolicyClaims(story,validFacts);
+  if(unsupportedPolicies.length){
+   story=null;lastGateReason="invented_policy";reviewFeedback="Unsupported external policy or return terms: "+
+    unsupportedPolicies.slice(0,2).join(" / ")+
+    ". No actual retailer policy is known. Replace with explicit uncertainty or a plan to check later.";
+   continue;
+  }
+  if(unearnedMicrowaveActivation(story,sharedHistory)){
+   story=null;lastGateReason="unearned_appliance";reviewFeedback="A microwave cannot hum, beep or cook until the story first shows safe power connection and setup. Preserve the physical sequence; do not invent a completed installation.";
+   continue;
+  }
+  const size=checkSceneLength(story);
+  // First seek 75–110 words. A high-quality 111–145-word scene is
+  // preferable to a 502 after multiple honest editing attempts. Never admit
+  // an unverified physical or causal fact merely to meet a style budget.
+  const maxWords=qualityGate?145:125;
+  if(conciseScenes&&(size.words>maxWords||(qualityGate&&size.words<70)||
+      (qualityGate&&size.words>110&&attempt<attempts-1))){
+   lastGateReason="word_budget_"+size.words;
+   story=null;reviewFeedback="The scene is "+size.words+
+    " words; target 75–110, hard ceiling "+maxWords+". Cut repeated interpretation and metaphors, but preserve the coached action, both reactions, and irreversible events.";
    continue;
   }
   if(simulate){
    // The database supports the full validated story up to 2,500 characters.
    // A soft stylistic target must not create a customer-visible 502.
-   const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex);
+   const verified=checkSimulationTransition(simulationBefore,result.simulation,story,phaseIndex,{
+    coachedRoles:influence?Object.keys(influence.advice):[],coachingTrace:result.coachingTrace||{}});
    if(!verified.ok){
-    story=null;
+    story=null;lastGateReason="invalid_world_state";
     console.warn("jj4-simulation-draft-rejected",JSON.stringify({phase:phaseIndex,reason:verified.reason}));
     reviewFeedback="The character simulation rejected this scene: "+verified.reason+
      " Preserve each character's recorded position and physical object state. Quote exact story evidence for new decisions.";
     continue;
    }
    simulationUpdate=verified;
+   if(qualityGate&&coachingImpact?.humorRequested&&coachingImpact?.comedicBeat?.attempted&&
+      verified.state.humorBeats.length<=simulationBefore.humorBeats.length){
+    // Humor is an editorial quality dimension, not a physical or safety fact.
+    // Do not fail a completed scene merely because the AI failed to annotate
+    // the joke in simulation metadata. The independent critic still reviews
+    // coached behavior; the pilot grader records the missed humor separately.
+    console.warn("jj4-strict-qa-soft-warning",JSON.stringify({
+     phase,code:"humor_not_verified_in_world_state"}));
+   }
   }
   lastUsable={result,story,simulationUpdate};
-  if(!focusedPilot)break; // General simulation is validated without the pilot-specific critic.
+  if(!focusedPilot&&!qualityGate)break; // General simulation still gets deterministic guards.
   const words=wordCount(story);
-  if(attempt===0&&(words<60||words>145)){
+  if(attempt===0&&(words<70||words>115)){
    reviewFeedback="This was "+words+" words. Target 75–110 words, only what happens NEXT. Avoid recapping previous scenes.";
    continue;
   }
   // The first (Hook) has no earlier scenes to contradict. Do not use an
   // independent reviewer to block the introductory action.
-  if(phaseIndex===0)break;
+  if(phaseIndex===0&&!qualityGate)break;
   let review;
   try{
    review=await generateStructured({model,key,name:"anthos_jj4_scene_quality_gate",
     schema:SCENE_REVIEW_SCHEMA,
-    input:{canonicalFacts:continuity.canonicalFacts,previouslyShownScenes:sharedHistory,
-     phaseIndex,scene:story,requiredNewDevelopment:continuity.nextSceneRule,
-     completedEventLedger:ledgerPrompt(eventLedger,phase),
-     expectedObservableCoachEffect:coachingImpact},
+    input:{canonicalFacts:continuity?.canonicalFacts||validFacts,
+     authoredPhaseDirection:storyDirection,authoredPremise:room.episode.premise,
+     earlierAndLaterPhaseNames:PHASES4,previouslyShownScenes:sharedHistory,
+     phaseIndex,scene:story,requiredNewDevelopment:continuity?.nextSceneRule||
+      "Only one new action and its consequence; previous actions are not replayed.",
+     completedEventLedger:(focusedPilot||qualityGate)?ledgerPrompt(eventLedger,phase):{
+      completedEvents:simulationBefore?.events||[],currentState:simulationBefore?.characters,
+      objects:simulationBefore?.objects,openThreads:simulationBefore?.openThreads},
+     expectedObservableCoachEffect:coachingImpact,
+     coachedRoles:influence?Object.keys(influence.advice):[]},
     instructions:[
-     "Evaluate chronology and concrete events, not literary preferences. A callback to an established fact is allowed; replaying it as a new event is not.",
+     "Evaluate chronology, factual actions, and the AUTHOR'S specific current-phase direction, not literary preferences. A callback to a past fact is allowed; replaying it as new is not.",
+     "On the HOOK, check authoredPhaseDirection. If it establishes an unresolved opening, reject premature agreement, invented appointments or decisions that solve the conflict before any coaching. Flag this as continuityError.",
+     "At any phase, a scene that preempts the authored Outcome or Reflection violates phase order even when the dialogue is plausible. Return approved=false with a specific continuityError grounded in the text.",
      "A character acknowledging an existing promise is not a duplicated action if another new event occurs.",
-     "Jill made the $400 purchase. Jack postponed the old microwave repair.",
+     focusedPilot?"Jill made the $400 purchase. Jack postponed the old microwave repair.":
+      "Use ONLY this episode's authored premise, boundaries, story events and factual state. Do not import facts or relationship problems from other episodes.",
      "Compare already completed events to actions happening NOW; never duplicate a completed phone call or decision.",
-     "Coached behavior must follow the coachingImpact or visibly refuse it and suffer an actual consequence.",
+     "The completedEventLedger is derived from ACTUAL prior scenes with verbatim citations. If it says Jack already left for the meeting, reject a scene putting him back at the front door without an on-stage return. If a couple already reached the porch, reject another first departure there.",
+     "Never promote a proposed or in-progress action to completed merely because the narrator says both agreed; look for explicit accepted behavior.",
+     "Coached behavior must follow the coachingImpact or visibly refuse its SPECIFIC proposed behavior and suffer a distinct consequence. Flag generic evasion or boilerplate compromise.",
      "Flag an actual contradiction or repeated completed event; avoid rejecting simply because the same physical object remains present.",
      "Return short corrective notes only for factual defects. If there is a genuine new event, approve."
     ].join(" "),maxTokens:400,timeout:14000});
   }catch{
-   // Reviewer infrastructure failures must not make an otherwise usable pilot
-   // scene disappear. No raw private coaching is ever sent to the reviewer.
+   // Unavailable reviewers do not certify strict QA sessions. Customer sessions
+   // still retain the last deterministically validated, privately safe scene.
+   if(qualityGate){story=null;lastGateReason="review_timeout";reviewFeedback="The independent quality review did not finish. Retry.";continue}
    break;
   }
-  if(reviewPass(review)||attempt===attempts-1)break;
+  if(reviewPass(review))break;
+  if(qualityGate){
+   story=null;
+   reviewFeedback=["continuityError","repetitionError","responsibilityError","coachingError"].map(k=>review[k]).filter(Boolean).join(" ")||
+    "The scene did not add a distinct new event. Retry with a visibly different consequence.";
+   continue;
+  }
+  if(attempt===attempts-1)break;
   reviewFeedback=["continuityError","repetitionError","responsibilityError","coachingError"].map(k=>review[k]).filter(Boolean).join(" ")||
    "Keep the character ledger stable and move the story forward with a specific new action.";
  }
- if(!story&&lastUsable)({result,story,simulationUpdate}=lastUsable);
- if(!story)error("The scene could not be written completely. Retry this scene.",502);
+ if(!story&&lastUsable&&!qualityGate)({result,story,simulationUpdate}=lastUsable);
+ if(!story){
+  // Stable reason codes support production reliability telemetry without
+  // logging real coaches' private messages or model transcripts.
+  console.warn("jj4-generation-exhausted",JSON.stringify({
+   phase,attempts,lastGateReason,simulated:simulate,strict:qualityGate}));
+  if(qualityGate)console.warn("jj4-strict-qa-exhausted",JSON.stringify({
+   phase,attempts,lastGateReason}));
+  // Explicitly synthetic internal QA rooms can see the reason code. Regular
+  // customers still receive only the generic retry notice.
+  const qaReason=room.title?.startsWith("QA STAGED ")?
+   " [QA: "+lastGateReason+"]":"";
+  error("The scene could not be written completely."+qaReason+" Retry this scene.",502);
+ }
  const audience=cp?.audience||"none";
  // Validate the speaker, not just the correct delivery audience. Some earlier
  // pilot prompts incorrectly addressed "Jill" as if the wife coach *were* Jill.
@@ -475,7 +698,8 @@ export async function sophia(token){
    }
    return {...scene,body};
   });
-  const closure=await draftSophiaClosure(room.episode,sanitized);
+  const closure=isAuthored41(room)?composeAuthored41Closure(room.episode,sanitized):
+   await draftSophiaClosure(room.episode,sanitized);
   const committed=await db("rpc/anthos_jj4_commit_closure",{},
    {p_room:room.id,p_claim:claim,p_message:closure},"POST");
   if(committed!==true)error("Sophia's closing reflection could not be saved. Retry.",502);
@@ -543,6 +767,27 @@ export async function ask(token,body,requestKey){
  return status(token);
 }
 
+export async function choose(token,optionId,requestKey){
+ const {person,room}=await participant(token);
+ if(!person.joined_at)error("Join before coaching your character.",403);
+ if(!isAuthored41(room))error("This room does not use the 4.1 coaching format.",409);
+ if(room.stage!=="awaiting"||!targetRoles(room).includes(person.role)||
+  person.submitted_phase===room.phase_index||person.paused_at)return status(token);
+ if(!UUID.test(requestKey||""))error("Invalid coaching request.");
+ const option=authoredOptions(room.episode,person.role,room.phase_index).find(x=>x.id===optionId);
+ if(!option||room.phase_index>=4)error("That choice is not available for this scene.",409);
+ const history=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
+  phase_index:"eq."+room.phase_index,order:"id.asc",select:"role,kind,phase_index,body"});
+ if(selectedAuthoredChoice(room.episode,person.role,room.phase_index,history||[]))return status(token);
+ const saved=await db("rpc/anthos_jj4_store_private_question",{},
+  {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+   p_question:option.label,
+   p_reply:authoredObjection(room.episode,person.role,room.phase_index,option.id),
+   p_key:requestKey},"POST");
+ if(saved==="limit"||saved==="invalid")error("Your coaching choice could not be saved. Refresh and retry.",409);
+ return status(token);
+}
+
 export async function coach(token,body,requestKey){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join before advising your character.",403);
@@ -554,6 +799,47 @@ export async function coach(token,body,requestKey){
  if(routing.kind==="safety"){
   const state=await pause(token);
   return {...state,safetyNotice:"Your episode is paused. Your safety comes before the story. If you are in immediate danger, contact local emergency services. In the U.S., call or text 988 for a mental-health crisis, or call 800-799-7233 / text START to 88788 for domestic-abuse support."};
+ }
+ if(isAuthored41(room)){
+  if(person.paused_at)return status(token);
+  if(!UUID.test(requestKey||""))error("Invalid message request.");
+  const prior=await db(M,{room_id:"eq."+room.id,role:"eq."+person.role,
+   phase_index:"eq."+room.phase_index,order:"id.asc",select:"role,kind,phase_index,body"});
+  const selected=selectedAuthoredChoice(room.episode,person.role,room.phase_index,prior||[]);
+  if(!selected)error("Choose an approach before replying to your character.",409);
+  if((prior||[]).some(x=>x.kind==="coach"))return status(token);
+  // The private reply and phase submission are two existing RPCs. If the reply
+  // was committed but phase submission failed, retry the SAME message without
+  // consuming a third (disallowed) question slot or duplicating character text.
+  const existingFollowup=(prior||[]).filter(x=>x.kind==="question")[1];
+  if(existingFollowup&&existingFollowup.body!==words)
+   error("Your previous message was saved. Please retry that same follow-up to continue.",409);
+  if(!existingFollowup){
+   const interpretation=await classifyAuthoredAdviceWithModel({
+    episode:room.episode,role:person.role,phase:room.phase_index,
+    selected,text:words,fallback:interpretAuthoredFollowup(words)
+   });
+   const reply=authoredCommitment(selected,words,{
+    episode:room.episode,role:person.role,phase:room.phase_index,interpretation
+   });
+   const paired=await db("rpc/anthos_jj4_store_private_question",{},
+    {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+     p_question:words,p_reply:reply,p_key:requestKey},"POST");
+   if(paired==="limit"||paired==="invalid")
+    error("Your follow-up could not be recorded. Refresh and retry.",409);
+   if(paired==="unavailable")return status(token);
+  }
+  // Separate deterministic idempotency key: question + reply and coach are distinct rows.
+  const hex=sha(requestKey+"-authored41-coach");
+  const coachKey=hex.slice(0,8)+"-"+hex.slice(8,12)+"-4"+hex.slice(13,16)+"-a"+
+   hex.slice(17,20)+"-"+hex.slice(20,32);
+  const submitted=await db("rpc/anthos_jj4_submit_coaching",{},
+   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
+    p_message:words,p_key:coachKey},"POST");
+  const state=await status(token);
+  if(submitted!==true&&!state.submitted)
+   error("Your advice was saved but final submission did not complete. Retry to continue.",502);
+  return state;
  }
  if(routing.kind==="question"||routing.kind==="correction")return ask(token,words,requestKey);
  if(person.paused_at)return status(token);

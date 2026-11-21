@@ -21,9 +21,8 @@ test("Sophia gives a separate researched closing reflection after the six fictio
  assert.match(text,/SOPHIA · A CLOSING THOUGHT/);
  assert.match(text,/What I noticed:/);
  assert.match(text,/Gottman/);
- assert.match(text,/Schnarch/);
- assert.match(text,/Aron/);
- assert.match(text,/clinical model, not a score/);
+ assert.doesNotMatch(text,/Schnarch|Aron/);
+ assert.match(text,/Gottman/);
  assert.match(text,/One small thing to try:/);
  assert.match(text,/Jack and Jill are fictional/);
  assert.ok(text.length<2500);
@@ -51,7 +50,9 @@ test("Already-complete 4.0 rooms can generate Sophia using their old invitation"
  assert.match(core,/rpc\/anthos_jj4_commit_closure/);
  assert.match(core,/kind:"eq.scene"/);
  assert.match(core,/hasSophia/);
- assert.match(core,/researchSources:hasSophia\?RESEARCH_SOURCES/);
+ assert.match(core,/researchSources:hasSophia\?/);
+ assert.match(core,/authored41\?RESEARCH_SOURCES\.filter/);
+ assert.match(core,/:RESEARCH_SOURCES\):\[\]/);
 });
 test("Fictional characters are Jack and Jill, not the real coaches",()=>{
  assert.match(core,/fictionalNames=\{jack:"Jack",jill:"Jill"\}/);

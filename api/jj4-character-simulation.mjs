@@ -3,22 +3,33 @@
 // choices and facts rather than numerical "relationship health" scores.
 // State records only fictional behavior, never private real-couple data.
 import {DIRECTED_SCENE_SCHEMA} from "./jj4-causality.mjs";
+import {initialActorLocations,validateActorLocations} from "./jj4-actor-state.mjs";
+import {SCENE_METADATA_SCHEMA,saveSceneFacts} from "./jj4-scene-facts.mjs";
 
 export const SIMULATION_VERSION="character-simulation-v1";
 export const SIMULATION_SCHEMA={
  type:"object",additionalProperties:false,properties:{
   jack:{type:"object",additionalProperties:false,
    properties:{position:{type:"string",enum:["favor","oppose","conditional","undecided"]},
-    emotion:{type:"string"},decisionEvidence:{type:"string"}},
-   required:["position","emotion","decisionEvidence"]},
+    emotion:{type:"string"},decisionEvidence:{type:"string"},
+    belief:{type:"string"},beliefEvidence:{type:"string"},
+    feltCost:{type:"string"},costEvidence:{type:"string"}},
+   required:["position","emotion","decisionEvidence","belief","beliefEvidence","feltCost","costEvidence"]},
   jill:{type:"object",additionalProperties:false,
    properties:{position:{type:"string",enum:["favor","oppose","conditional","undecided"]},
-    emotion:{type:"string"},decisionEvidence:{type:"string"}},
-   required:["position","emotion","decisionEvidence"]},
+    emotion:{type:"string"},decisionEvidence:{type:"string"},
+    belief:{type:"string"},beliefEvidence:{type:"string"},
+    feltCost:{type:"string"},costEvidence:{type:"string"}},
+   required:["position","emotion","decisionEvidence","belief","beliefEvidence","feltCost","costEvidence"]},
+  sceneMetadata:SCENE_METADATA_SCHEMA,
   objectChanges:{type:"array",items:{type:"object",additionalProperties:false,
    properties:{id:{type:"string"},condition:{type:"string"},location:{type:"string"},
     actionEvidence:{type:"string"}},
    required:["id","condition","location","actionEvidence"]}},
+  actorMoves:{type:"array",items:{type:"object",additionalProperties:false,
+   properties:{role:{type:"string",enum:["jack","jill"]},from:{type:"string"},
+    to:{type:"string"},evidence:{type:"string"}},
+   required:["role","from","to","evidence"]}},
   newEvent:{type:"object",additionalProperties:false,
    properties:{actor:{type:"string"},action:{type:"string"},evidence:{type:"string"}},
    required:["actor","action","evidence"]},
@@ -26,7 +37,7 @@ export const SIMULATION_SCHEMA={
    properties:{attempted:{type:"boolean"},actionEvidence:{type:"string"},reactionEvidence:{type:"string"}},
    required:["attempted","actionEvidence","reactionEvidence"]},
   openThreads:{type:"array",items:{type:"string"}}
- },required:["jack","jill","objectChanges","newEvent","humor","openThreads"]
+ },required:["jack","jill","sceneMetadata","objectChanges","actorMoves","newEvent","humor","openThreads"]
 };
 export const SIMULATION_SCENE_SCHEMA={
  type:"object",additionalProperties:false,
@@ -66,9 +77,19 @@ export function initialSimulation(episode={}){
  const position=(v,fallback)=>["favor","oppose","conditional","undecided"].includes(v)?v:fallback;
  const characters={
   jack:{want:limit(authored.jackWant||episode.jackMotivation||"To be understood",240),
-   position:position(authored.jackPosition,"undecided"),emotion:"guarded"},
+   position:position(authored.jackPosition,"undecided"),emotion:"guarded",
+   belief:limit(authored.jackBelief||(isMicrowave?
+    "Unannounced spending may endanger our shared savings":"My interpretation of this conflict may be incomplete"),220),
+   fear:limit(authored.jackFear||(isMicrowave?
+    "Losing financial security or a voice in joint decisions":"Not being heard"),180),
+   feltCost:""},
   jill:{want:limit(authored.jillWant||episode.jillMotivation||"To be understood",240),
-   position:position(authored.jillPosition,isMicrowave?"favor":"undecided"),emotion:"guarded"}
+   position:position(authored.jillPosition,isMicrowave?"favor":"undecided"),emotion:"guarded",
+   belief:limit(authored.jillBelief||(isMicrowave?
+    "Jack's missed repair promises leave me to solve daily problems":"My need may not be understood"),220),
+   fear:limit(authored.jillFear||(isMicrowave?
+    "Another missed promise or being dismissed":"Having my needs dismissed"),180),
+   feltCost:""}
  };
  const initialObjects=isMicrowave?[{id:"replacement_box",condition:"sealed",location:"kitchen counter"}]:
    (Array.isArray(authored.objects)?authored.objects:[]).slice(0,8).map(x=>({
@@ -78,18 +99,54 @@ export function initialSimulation(episode={}){
   centralChoice:limit(authored.centralChoice||(isMicrowave?
    "Whether to keep the $400 replacement microwave bought from emergency savings":
    episode.learningObjective||episode.premise||"The unresolved choice"),260),
-  characters,objects:initialObjects,
-  events:[],humorBeats:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
+  characters,objects:initialObjects,actorLocations:initialActorLocations(episode),
+  events:[],sceneFacts:[],humorBeats:[],openThreads:(Array.isArray(authored.openThreads)?authored.openThreads:
    isMicrowave?["Decide whether to keep the replacement","Address the unconsulted withdrawal and overdue repair"]:
    ["Explore the central conflict"]).slice(0,8).map(x=>limit(x,200)),
   knownFacts:isMicrowave?[
    "Jill made the $400 purchase using shared emergency savings, without Jack's consent.",
    "Jack postponed repairing the original microwave for three weeks.",
    "A store's return policy, exact purchase date and professional repair cost are not yet known."
-  ]:[]
+  ]:Array.isArray(authored.knownFacts)?authored.knownFacts.slice(0,12).map(x=>limit(x,260)).filter(Boolean):[]
  };
 }
-export function checkSimulationTransition(previous,proposal,story,phase){
+// Object-state claims need evidence about THIS object, not any action.
+// When two different objects share a noun, a vague reference is insufficient.
+const objectNamedIn=(old,all,evidence)=>{
+ const words=x=>normalize(x).replace(/[^a-z0-9]+/g," ").trim();
+ const text=" "+words(evidence)+" ";
+ const full=words(old.label||old.id);
+ if(full&&text.includes(" "+full+" "))return true;
+ const noun=full.split(/\s+/).at(-1);
+ if(!noun)return false;
+ const collisions=all.filter(x=>words(x.label||x.id).split(/\s+/).at(-1)===noun);
+ if(collisions.length===1&&text.includes(" "+noun+" "))return true;
+ // Historical microwave box: lid, tape or packaging can mean this box.
+ if(old.id==="replacement_box"&&
+    !all.some(x=>x.id!==old.id&&/box|packaging|tape|lid/i.test(x.label||x.id)))
+  return /\b(?:box|packaging|lid|packing tape|sealing tape)\b/i.test(text);
+ return false;
+};
+const conditionWitnessed=(condition,evidence)=>{
+ const value=normalize(condition),text=normalize(evidence);
+ if(!value)return false;
+ if(text.includes(value))return true;
+ const synonyms={
+  opened:/\b(?:opens?|opened|opening|unseal(?:ed|ing)?|peeled|cut open)\b/i,
+  sealed:/\b(?:seal(?:ed|ing)?|taped? shut|closed?)\b/i,
+  resealed:/\b(?:reseal(?:ed|ing)?|retaped|taped? (?:the )?box shut)\b/i,
+  broken:/\b(?:broke|broken|breaks?|snapped|shattered)\b/i,
+  cracked:/\b(?:crack(?:ed|ing|s)?)\b/i,
+  folded:/\b(?:fold(?:ed|s|ing)?)\b/i,
+  empty:/\b(?:empt(?:y|ied)|drained|finished)\b/i,
+  full:/\b(?:filled|full|refilled)\b/i,
+  charged:/\b(?:charg(?:ed|ing)|plugged in)\b/i,
+  lost:/\b(?:lost|missing|misplaced)\b/i,
+  found:/\b(?:found|discovered|recovered)\b/i
+ };
+ return Boolean(synonyms[value]?.test(text));
+};
+export function checkSimulationTransition(previous,proposal,story,phase,options={}){
  if(!previous||previous.version!==SIMULATION_VERSION||
     !Number.isInteger(phase)||previous.lastPhase!==phase-1)
   return {ok:false,reason:"The previous committed character-state version or phase is invalid."};
@@ -106,9 +163,31 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    matchesEvidence(story,after.decisionEvidence)&&choiceWords.test(after.decisionEvidence);
   if(after.position!==before.position&&!acceptedChange)
    adjustments.push(role+" retained prior stance; claimed change lacked explicit scene evidence");
+  // Keep each fictional person's interpretations and interpersonal costs
+  // independent. The shared narrator may update a belief only with observable,
+  // actor-attributed evidence; the other character's coaching is not evidence.
+  const attributed=(excerpt)=>{
+   if(!matchesEvidence(story,excerpt))return false;
+   const quote=normalize(excerpt),other=role==="jack"?"jill":"jack";
+   if(quote.includes(other)&&!quote.includes(role))return false;
+   const scene=normalize(story),at=scene.indexOf(quote);
+   const prefix=scene.slice(Math.max(0,at-100),at);
+   const mentions=[...prefix.matchAll(/\b(jack|jill)\b/g)];
+   return quote.includes(role)||mentions.at(-1)?.[1]===role;
+  };
+  const newBelief=limit(after.belief,220);
+  const changedBelief=Boolean(newBelief)&&newBelief!==before.belief;
+  const beliefAllowed=changedBelief&&attributed(after.beliefEvidence);
+  const newCost=limit(after.feltCost,180);
+  const costAllowed=Boolean(newCost)&&attributed(after.costEvidence);
+  if(changedBelief&&!beliefAllowed)adjustments.push(role+" belief retained: no visible attribution");
+  if(newCost&&!costAllowed)adjustments.push(role+" felt cost retained: no visible attribution");
   next.characters[role]={...before,
    position:acceptedChange?after.position:before.position,
-   emotion:limit(after.emotion||before.emotion,100)};
+   emotion:limit(after.emotion||before.emotion,100),
+   belief:beliefAllowed?newBelief:before.belief,
+   fear:before.fear,
+   feltCost:costAllowed?newCost:before.feltCost};
  }
  if(proposal.humor?.attempted&&
     matchesEvidence(story,proposal.humor.actionEvidence)&&
@@ -119,7 +198,22 @@ export function checkSimulationTransition(previous,proposal,story,phase){
  // The 'box's return-policy pamphlet' is not the box itself being opened.
  // Peeling a label's tape corner to read it does not break the box's seal.
  // Only clear, completed unsealing actions can transition it to "opened".
- const opened=/\b(?:cut open|open(?:ed|s)? (?:the )?(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box)\b/i;
+ // Only AFFIRMATIVE, completed physical actions may open the box. Bare
+ // "open the box" often appears in a suggestion or "let's NOT open the box".
+ // It must never silently mutate the world state, even if the model proposes
+ // an unsupported physical transition.
+ const unsealing=/\b(?:cut open|open(?:ed|s) (?:the )?(?:\w+\s+){0,2}(?:box|packaging|cardboard)(?![’']s)|broke (?:the )?seal|unboxed|pulled out the receipt from the box|removed (?:the )?(?:sealing )?tape (?:and|to) open (?:the )?box|(?:breaks?|broke|peels?|peeled|tears?|tore|cuts?|cut) (?:back )?(?:the )?(?:packing |sealing )?tape (?:on|off|of|sealing) (?:the )?(?:\w+\s+){0,2}box|(?:lifts?|lifted|opens?|opened) (?:the )?(?:box lid|lid of (?:the )?box)|(?:peels?|peeled|removes?|removed|tears?|tore) (?:back )?(?:the )?(?:packing |sealing )?tape from (?:the )?(?:new )?(?:microwave )?box|(?:box[’']s |the )?seal breaks?|(?:opened|opens) (?:the )?flaps of (?:the )?box|(?:cracks?|cracked|breaks?|broke) (?:the )?(?:packing |sealing )?tape(?: (?:on|of) (?:the )?box)?|(?:lifts?|lifted|raises?|raised) (?:the )?lid (?:a crack|slightly|partly)|lid (?:stays|is|remains) (?:a crack |slightly |partly )?open)\b/gi;
+ const didUnseal=(text)=>{
+  const source=String(text||"");
+  for(const match of source.matchAll(unsealing)){
+   const before=source.slice(Math.max(0,match.index-110),match.index)
+    .split(/[.!?;:\n“”"]/).at(-1)||"";
+   const negated=/\b(?:not|never|without|didn't|don't|won't|wouldn't|couldn't|can't|cannot|avoid(?:ed|ing)?|refus(?:ed|ing)?|should|could|might|may|will|if|unless|whether|consider(?:ed|ing)?|planned? to|intend(?:ed)? to|wanted? to|asked? to)\b[^.!?;:\n]*$/i;
+   if(negated.test(before))continue;
+   return true;
+  }
+  return false;
+ };
  const explicitlySealed=/\b(?:without (?:breaking|removing) (?:the )?seal|without unsealing|without breaking the seal fully|box (?:stays|remains|is|was) (?:still |firmly |tightly )?sealed|box stayed sealed|sealed box)\b/i;
  const updates=Array.isArray(proposal.objectChanges)?proposal.objectChanges.slice(0,8):[];
  for(const update of updates){
@@ -128,30 +222,68 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    adjustments.push("ignored unsupported object-state proposal");
    continue;
   }
+  if(!objectNamedIn(old,next.objects,update.actionEvidence)){
+   adjustments.push("ignored wrong object: change evidence did not name its object");
+   continue;
+  }
   if(old.id==="replacement_box"){
    if(!["sealed","opened","resealed"].includes(update.condition)||
      (old.condition==="sealed"&&update.condition==="resealed")){
     adjustments.push("ignored impossible box-state transition");continue;
    }
-   if(update.condition==="opened"&&!opened.test(update.actionEvidence)){
+   if(update.condition==="opened"&&!didUnseal(update.actionEvidence)){
     adjustments.push("ignored unproven box opening");continue;
    }
+   // Once the original seal is broken, the prior "sealed" state must not
+   // reappear. A model cannot erase an irreversible action by proposing a
+   // different object state, even if it copies a contradicting phrase.
+   if(old.condition==="opened"&&update.condition==="sealed")
+    return {ok:false,reason:"An opened box cannot return to sealed without a narrated resealing action."};
   }
-  old.condition=limit(update.condition,100);
-  old.location=limit(update.location,120);
+  const proposedCondition=limit(update.condition,100);
+  if(proposedCondition&&proposedCondition!==old.condition){
+   if(conditionWitnessed(proposedCondition,update.actionEvidence)){
+    old.condition=proposedCondition;old.lastChangedPhase=phase;
+   }else adjustments.push("ignored unsupported object condition without visible evidence");
+  }
+  const proposedLocation=limit(update.location,120);
+  if(proposedLocation&&proposedLocation!==old.location){
+   // Object relocation needs a visible destination, not an invented position
+   // silently inserted by the scene model.
+   if(normalize(update.actionEvidence).includes(normalize(proposedLocation))){
+    old.location=proposedLocation;
+    old.lastChangedPhase=phase;
+   }else adjustments.push("ignored object relocation without a visible destination");
+  }
  }
  const priorBox=previous.objects.find(x=>x.id==="replacement_box");
  const afterBox=next.objects.find(x=>x.id==="replacement_box");
  const resealed=/\b(?:resealed|sealed (?:the )?box (?:again|back)|retaped|taped (?:the )?box shut)\b/i;
- const claimsUnopened=/\b(?:unopened(?:\s+\w+){0,3}\s+box|box\s+(?:is|remains|stays)\s+(?:tightly\s+)?(?:sealed|unopened|closed)|still[- ]sealed(?:\s+\$?\d+)?\s+box|sealed box|box stays (?:tightly )?sealed)\b/i;
+ const claimsUnopened=/\b(?:unopened(?:\s+\w+){0,3}\s+box|box\s+(?:is|remains|stays)\s+(?:tightly\s+)?(?:sealed|unopened|closed)|still[- ]sealed(?:\s+\w+){0,3}\s+box|sealed(?:\s+\w+){0,3}\s+box|box stays (?:tightly )?sealed)\b/i;
  if(priorBox&&afterBox){
+  // A seal that visibly breaks is an irreversible world event, regardless
+  // of whether the AI remembered to include an objectChanges entry.
+  if(priorBox.condition==="sealed"&&didUnseal(story)){
+   const lastAction=[...String(story).matchAll(unsealing)]
+    .filter(m=>m.index!==undefined).at(-1);
+   const after=lastAction?String(story).slice(lastAction.index+lastAction[0].length):"";
+   if(claimsUnopened.test(after)&&!resealed.test(after))
+    return {ok:false,reason:"The scene opened the box, then incorrectly described it as unopened."};
+   afterBox.condition="opened";
+   afterBox.lastChangedPhase=phase;
+  }
   if(priorBox.condition==="opened"&&claimsUnopened.test(story)&&!resealed.test(story))
    return {ok:false,reason:"An opened box was described as unopened without being resealed."};
+  // A new, present-tense opening is impossible once the seal is already broken.
+  // A narrator can recall the past opening, but may not stage it anew.
+  const newOpening=/\b(?:(?:Jack|Jill) (?:opens?|unboxes?) (?:the )?(?:new )?(?:microwave )?box|watches? (?:Jack|Jill) open (?:the )?(?:new )?(?:microwave )?box|(?:Jack|Jill) (?:peels?|tears?) (?:the )?tape from (?:the )?(?:new )?(?:microwave )?box)\b/i;
+  if(priorBox.condition==="opened"&&newOpening.test(story)&&!resealed.test(story))
+   return {ok:false,reason:"The box was already opened; the scene cannot replay its opening."};
   // An observable physical event outranks model-generated state labels.
-  if(opened.test(story)&&afterBox.condition==="sealed"){
+  if(didUnseal(story)&&afterBox.condition==="sealed"){
    afterBox.condition="opened";
    adjustments.push("visible box opening reconciled into world state");
-  }else if(priorBox.condition==="sealed"&&!opened.test(story)&&claimsUnopened.test(story)){
+  }else if(priorBox.condition==="sealed"&&!didUnseal(story)&&claimsUnopened.test(story)){
    // Explicitly sealed in the visible prose outranks a proposed opening
    // based on a misleading reference to paperwork, a calendar or a receipt.
    afterBox.condition="sealed";
@@ -160,7 +292,7 @@ export function checkSimulationTransition(previous,proposal,story,phase){
    afterBox.condition="resealed";
    adjustments.push("visible resealing reconciled into world state");
   }
-  if(priorBox.condition==="sealed"&&!opened.test(story)&&explicitlySealed.test(story)){
+  if(priorBox.condition==="sealed"&&!didUnseal(story)&&explicitlySealed.test(story)){
    // Explicit visible evidence that the box was NOT unsealed overrides
    // a speculative AI objectChange, including a peeled label corner.
    if(afterBox.condition!=="sealed")adjustments.push("restored sealed box: no actual unsealing occurred");
@@ -177,11 +309,30 @@ export function checkSimulationTransition(previous,proposal,story,phase){
     limit(String(story||"").replace(/\s+/g," ").trim(),180):"");
  if(eventEvidence.length<12)
   return {ok:false,reason:"The generated scene contains no usable visible event."};
+ // The event ledger must not credit Jack for Jill's visible actions (or vice versa).
+ // Only correct a model's actor tag when the exact observed evidence names ONE
+ // fictional actor. A two-name dialogue or pronoun-only excerpt is ambiguous;
+ // preserve its actor tag rather than guessing from unrelated narrative.
+ const proposedEventActor=limit(proposal.newEvent.actor,50);
+ const namedEvidenceActors=[...new Set((eventEvidence.match(/\b(?:Jack|Jill)\b/gi)||[])
+  .map(name=>name.toLowerCase()))];
+ const observedActor=namedEvidenceActors.length===1?
+  (namedEvidenceActors[0]==="jack"?"Jack":"Jill"):proposedEventActor;
+ if(observedActor.toLowerCase()!==proposedEventActor.toLowerCase())
+  adjustments.push("corrected event actor to match the visible named character");
+ // Cross-scene actor location is a committed world fact, not a stylistic
+ // detail. Accept only on-stage departures and ground-truth movement evidence.
+ // Older v1 rooms lacking actorLocations are still supported as unknown.
+ const locations=validateActorLocations(previous,story,phase,proposal.actorMoves||[]);
+ if(!locations.ok)return {ok:false,reason:locations.reason};
+ next.actorLocations=locations.locations;
+ adjustments.push(...locations.adjustments);
  next.lastPhase=phase;
  next.events=[...(previous.events||[]).slice(-17),{
-  phase,actor:limit(proposal.newEvent.actor,50),
-  action:matchesEvidence(story,proposal.newEvent.evidence)?
-   limit(proposal.newEvent.action,300):eventEvidence,
+  phase,actor:observedActor,
+  action:observedActor.toLowerCase()!==proposedEventActor.toLowerCase()?eventEvidence:
+   matchesEvidence(story,proposal.newEvent.evidence)?
+    limit(proposal.newEvent.action,300):eventEvidence,
   evidence:eventEvidence}];
  // An unresolved question never disappears merely because the narrator wants a
  // smooth ending. An eventual resolution needs an explicit confirmed choice.
@@ -202,14 +353,24 @@ export function checkSimulationTransition(previous,proposal,story,phase){
   next.openThreads.push(t);
   if(next.openThreads.length>=8)break;
  }
+ const savedFacts=saveSceneFacts(next,proposal.sceneMetadata,story,phase,options);
+ adjustments.push(...savedFacts.adjustments);
  return {ok:true,state:next,event:next.events.at(-1),adjustments};
 }
 export const simulationInstructions=[
  "The simulation state is authoritative. Jack and Jill are independent fictional people with distinct persistent wants, beliefs, preferences and boundaries.",
  "The six-phase storyboard determines pacing, NOT whether their disagreement resolves. A final scene may end unresolved.",
  "The position values describe each character's stance on the centralChoice: favor, oppose, conditional, undecided. Never infer agreement from calmness, budgeting or willingness to listen.",
+ "Jack and Jill each have an independent want, fear, interpretation (belief) and most recent felt interpersonal cost. Neither reads the other's internal state or privately received coaching. Only something spoken or acted out in the shared world can change what the other knows.",
+ "Propose a new belief only when the same character clearly reveals that interpretation in a narrated act or spoken response; cite the exact excerpt in beliefEvidence. Otherwise repeat their existing belief and return empty beliefEvidence.",
+ "Propose feltCost only when the same character visibly experiences a new consequence or names a personal cost, with exact attributable costEvidence; otherwise repeat previous feltCost with empty costEvidence.",
+ "Character agency means believable imperfect choices, not automatic alignment. Harsh coaching may be followed, partially followed, or explicitly refused with believable fallout. Never quietly substitute a generic polite response.",
+
  "If a character's position changes, include a short EXACT excerpt of the visible scene containing an explicit decision; if unchanged use decisionEvidence as an empty string.",
  "objectChanges includes ONLY objects whose physical condition or location visibly changed. Use one exact evidence excerpt per changed object. If none changed, return [].",
+ "For EVERY scene supply simulation.sceneMetadata.when: label, verbatim 12+ character evidence, and kind=current if this is the scene's ACTUAL present time, kind=future_reference if a character is only mentioning a planned future appointment, or kind=unspecified with empty strings when no time is stated. Never confuse Sunday's scheduled conversation with the clock still being Friday morning. Include every newly introduced physical prop that can be moved, handled, altered, lost, or referenced later (e.g. keys, watch, calendar, receipt, mug, phone), not only the central prop, in sceneMetadata.objectsIntroduced: stable snake_case id, visible label, location and condition only when explicitly witnessed, and exact 12+ character scene evidence. Do not invent objects or time; objects already in state must not be introduced twice. These are private metadata fields, never user-facing dialogue.",
+  "actorMoves includes ONLY actual on-stage moves by Jack or Jill. Include role, from (the prior committed actorLocations place), to (the new place), and a verbatim excerpt describing movement. When there is no travel, return []. Do not invent a travel step or relocate someone because of a phone conversation.",
+ "actorLocations are durable facts. Jack cannot reappear in the kitchen after leaving for work without a visible return. The previous person's location is authoritative, even when the narrative voice is tempted to reset the scene.",
  "Object changes must be earned: if the box is opened, it stays opened unless somebody visibly reseals it. Never say 'unopened' about an already opened box.",
  "newEvent must have an exact verbatim excerpt from the visible scene showing what happened THIS SCENE; do not replay previously completed calls.",
  "No outside pricing, refund deadlines, fees or retailer policies become facts without an actual credible in-story interaction. Unverified claims remain uncertainty.",

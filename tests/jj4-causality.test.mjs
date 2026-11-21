@@ -66,7 +66,7 @@ test("Concrete actions, personal consequences, shared fallout and tension must a
  assert.equal(validateImpactPlan(impact),true);
  assert.equal(validateImpactPlan({...impact,jack:{...impact.jack,concreteAction:"Listen."}}),false);
  assert.equal(validateImpactPlan({...impact,sharedFallout:"Nothing happened."}),false);
- assert.deepEqual(Object.keys(IMPACT_SCHEMA.properties),["jack","jill","sharedFallout","tensionToCarry"]);
+ assert.deepEqual(Object.keys(IMPACT_SCHEMA.properties),["jack","jill","sharedFallout","tensionToCarry","comedicBeat"]);
 });
 test("The narrator receives decisions without raw private messages or real coach names",()=>{
  const raw={...impact,privateAdvice:{jack:"She's cheating",jill:"He's cheating"},
@@ -78,11 +78,13 @@ test("The narrator receives decisions without raw private messages or real coach
  assert.match(publicPlan.sharedFallout,/distrustful/);
  assert.match(core,/coachingImpact=publicBehaviorPlan\(plan\)/);
  assert.match(core,/Only this call receives raw private advice/);
+ assert.equal(publicPlan.comedicBeat.attempted,false);
+ assert.equal("privateAdvice" in publicPlan,false);
  assert.match(core,/history:sharedHistory\.map/);
 });
 test("A generic scene without character actions and fallout is rejected, even if it reads smoothly",()=>{
  assert.deepEqual(Object.keys(DIRECTED_SCENE_SCHEMA.properties),
-  ["opening","jackBeat","jillBeat","fallout","jackPrompt","jillPrompt"]);
+  ["opening","jackBeat","jillBeat","fallout","jackPrompt","jillPrompt","coachingTrace"]);
  assert.throws(()=>assembleDirectedScene({
   opening:"They were sitting comfortably in a quiet living room.",
   jackBeat:"Jack smiled.",
