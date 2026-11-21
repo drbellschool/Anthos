@@ -1,6 +1,6 @@
 // Anthos 4.1 private two-person SMS pilot.
 // Enabled only after an approved carrier use case, signed Telnyx inbound
-// webhooks and independent JOIN from each registered adult handset.
+// webhooks and existing separately verified, voluntary registration SMS consent.
 import {createHash,randomBytes,createCipheriv,createDecipheriv,createPublicKey,verify,randomUUID} from "node:crypto";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {status,join,advance,choose,coach,sophia,pause,resume} from "./jj4-core.mjs";
@@ -10,7 +10,6 @@ const SESS="anthos_jj41_sms_participants",EVENTS="anthos_jj41_sms_webhook_events
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const hash=value=>createHash("sha256").update(value).digest("hex");
 const enabled=()=>process.env.TELNYX_PILOT_MESSAGING_ENABLED==="true"&&
- process.env.THREEFOLD_10DLC_APPROVED==="true"&&
  !!process.env.TELNYX_API_KEY&&PHONE.test(process.env.TELNYX_FROM_NUMBER||"")&&
  !!process.env.TELNYX_PUBLIC_KEY&&!!process.env.THREEFOLD_SESSION_SECRET;
 export function pilotSmsReady(){return enabled()&&process.env.VERCEL_ENV==="production"}
@@ -62,30 +61,89 @@ function parseInvite(url,origin){
  if(!/^[A-Za-z0-9_-]{40,100}$/.test(token||""))throw new Error("Invalid role invitation.");
  return token;
 }
-export async function registerPilotSms({origin,roomId,husbandPhone,wifePhone,invitations,adultsConfirmed}){
+// Source of truth: the existing account's optional SMS consent + verified mobile.
+// A paid subscription by itself is never treated as SMS consent.
+async function eligiblePairs(){
+ const rows=await sql("anthos_customer_directory",{
+  select:"id,display_name,phone_e164,spouse_phone_e164,group_id,program,record_status,phone_verified_at,sms_consent_at,sms_disclosure_version",
+  program:"eq.standard",record_status:"neq.archived",limit:"1000"
+ })||[];
+ const eligible=rows.filter(x=>UUID.test(x.id||"")&&UUID.test(x.group_id||"")&&
+  PHONE.test(x.phone_e164||"")&&x.phone_verified_at&&x.sms_consent_at&&
+  String(x.sms_disclosure_version||"").startsWith("anthos-sms-2026-"));
+ const choices=[];
+ for(const husband of eligible){
+  const wife=eligible.find(x=>x.id!==husband.id&&x.group_id===husband.group_id&&
+   x.phone_e164===husband.spouse_phone_e164&&
+   husband.phone_e164===x.spouse_phone_e164);
+  if(!wife)continue;
+  const cleanName=x=>String(x.display_name||"Registered spouse").slice(0,60).replace(/[<>]/g,"");
+  const last4=x=>String(x.phone_e164).slice(-4);
+  choices.push({husbandCustomerId:husband.id,
+   label:cleanName(husband)+" (••"+last4(husband)+") coaches Jack · "+
+    cleanName(wife)+" (••"+last4(wife)+") coaches Jill",
+   husband,wife});
+ }
+ return choices;
+}
+export async function listEligiblePilotSmsCouples(){
+ // Showing verified contacts in an administrator-only dropdown is independent
+ // of whether the provider is currently enabled.
+ const choices=await eligiblePairs();
+ return {ok:true,enabled:pilotSmsReady(),couples:choices.map(x=>({
+  husbandCustomerId:x.husbandCustomerId,label:x.label
+ }))};
+}
+export async function registerPilotSms({origin,roomId,husbandCustomerId,invitations}){
  needConfig();
- if(!adultsConfirmed)throw Object.assign(new Error(
-  "Both adults must know about the pilot and each must separately text JOIN to begin."),{status:400});
- if(!UUID.test(roomId||"")||!PHONE.test(husbandPhone||"")||!PHONE.test(wifePhone||"")||
-    husbandPhone===wifePhone)throw Object.assign(new Error("Two distinct valid international mobile numbers are required."),{status:400});
- const records=(await sql("anthos_jj4_rooms",{id:"eq."+roomId,select:"id,stage,expires_at,episode",limit:"1"}))||[];
+ if(!UUID.test(roomId||"")||!UUID.test(husbandCustomerId||""))
+  throw Object.assign(new Error("Select a valid private episode and a verified couple."),{status:400});
+ const choice=(await eligiblePairs()).find(x=>x.husbandCustomerId===husbandCustomerId);
+ if(!choice)throw Object.assign(new Error(
+  "Both spouses must have verified phone numbers and their own existing Anthos SMS consent."),{status:403});
+ const records=await sql("anthos_jj4_rooms",
+  {id:"eq."+roomId,select:"id,stage,expires_at,episode",limit:"1"})||[];
  const room=records[0];
  if(!room||room.stage==="retired"||Date.parse(room.expires_at)<=Date.now()||
     room.episode?.authored41?.version!=="4.1.0"||room.episode?.pilotMode!=="shared")
-  throw Object.assign(new Error("Select a currently active two-person Deep Dive 4.1 pilot."),{status:409});
+  throw Object.assign(new Error("Select an active two-person Deep Dive 4.1 pilot."),{status:409});
  const values=[];
- for(const [role,phone] of [["jack",husbandPhone],["jill",wifePhone]]){
+ for(const [role,person] of [["jack",choice.husband],["jill",choice.wife]]){
+  const denied=await sql("anthos_jj41_sms_suppression",
+   {phone_e164:"eq."+person.phone_e164,select:"phone_e164",limit:"1"})||[];
+  if(denied.length)throw Object.assign(new Error(
+   "A spouse has previously opted out of SMS. Update their account-level consent before restarting."),{status:409});
   const token=parseInvite(invitations?.[role],origin);
-  const found=await sql("anthos_jj4_participants",
-   {room_id:"eq."+roomId,role:"eq."+role,token_hash:"eq."+hash(token),select:"id",limit:"1"});
-  if(!found?.length)throw Object.assign(new Error("One pilot invitation does not belong to this room."),{status:403});
-  values.push({room_id:roomId,role,phone_e164:phone,encrypted_token:protectSmsToken(token),
-   join_consent_at:null,stopped_at:null,last_sent_scene:-1,last_sent_sophia:false,last_choice_phase:-1});
+  const found=await sql("anthos_jj4_participants",{
+   room_id:"eq."+roomId,role:"eq."+role,
+   token_hash:"eq."+hash(token),select:"id",limit:"1"
+  });
+  if(!found?.length)throw Object.assign(new Error(
+   "One private coaching invitation does not belong to this episode."),{status:403});
+  values.push({room_id:roomId,role,customer_id:person.id,
+   phone_e164:person.phone_e164,encrypted_token:protectSmsToken(token),
+   signup_consent_at:person.sms_consent_at,stopped_at:null,superseded_at:null,
+   welcome_sent_at:null,last_sent_scene:-1,last_sent_sophia:false,last_choice_phase:-1});
  }
- // Nothing is sent to either number yet. Each recipient must originate JOIN.
- await sql(SESS,{on_conflict:"room_id,role"},values,"POST","resolution=merge-duplicates,return=representation");
- return {ok:true,registered:true,sender:process.env.TELNYX_FROM_NUMBER,
-  instruction:"Each adult should independently send JOIN to Anthos from their own registered phone. The fictional conversations remain private. Reply STOP to opt out."};
+ // One active SMS episode per phone. Older rooms remain archived and can
+ // still be viewed with their browser invitation, but no longer send texts.
+ for(const person of [choice.husband,choice.wife]){
+  await sql(SESS,{phone_e164:"eq."+person.phone_e164,
+   room_id:"neq."+roomId,superseded_at:"is.null"},
+   {superseded_at:new Date().toISOString(),updated_at:new Date().toISOString()},"PATCH");
+ }
+ await sql(SESS,{on_conflict:"room_id,role"},values,
+  "POST","resolution=merge-duplicates,return=representation");
+ // Authentication of both existing phone numbers happened at signup.
+ // No new JOIN, consent checkbox, or verification code is required.
+ const names=[choice.husband,choice.wife].map(x=>
+  String(x.display_name||"Spouse").trim().split(/\s+/)[0].slice(0,32));
+ for(let index=0;index<values.length;index++)
+  await join(unprotectSmsToken(values[index].encrypted_token),names[index]||"Spouse");
+ await progressRoom(roomId);
+ return {ok:true,registered:true,messagesInitiated:true,
+  sender:process.env.TELNYX_FROM_NUMBER,
+  message:"The verified couple's private Deep Dive 4.1 texts were submitted to Telnyx. STOP remains available at any time; provider acceptance is not proof of handset delivery."};
 }
 async function sendSms(phone,text){
  needConfig();
