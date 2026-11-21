@@ -387,7 +387,7 @@ export function interpretAuthoredFollowup(text){
  const s=String(text||"").toLowerCase().replace(/[’]/g,"'");
  const kind=classifyAuthoredFollowup(s);
  const motive=
-  /\b(?:pretend|fake|feign)\b.*\b(?:apolog|care|listen|agree|sorry)\b|\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\b|\bsorry\s+just to\b|\b(?:so|to)\s+(?:he|she|they)\s+stops?\s+(?:asking|complaining|talking)\b/.test(s)?"avoidance":
+  /\b(?:pretend|fake|feign)\b.*\b(?:apolog\w*|care|listen|agree|sorry)\b|\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\b|\bsorry\s+just to\b|\b(?:so|to)\s+(?:he|she|they)\s+stops?\s+(?:asking|complaining|talking)\b/.test(s)?"avoidance":
   /\b(?:without (?:agree\w*|surrender\w*|giv\w* in|pretend\w*|demand\w*|requir\w*|book\w*|touch\w*)|doesn't mean|don't have to agree|still hold (?:your|a) boundary|respect (?:her|his|their) (?:no|wish|boundary|decision)|let (?:her|him|them) decline|even if (?:you|he|she|they) (?:feel|feels)|say no to touching|no physical affection)\b/.test(s)?"differentiation":
   /\b(?:ask (?:what|which) (?:kind|part|rest|she|he|they)|what rest means|how (?:she|he|they) (?:feels?|felt)|feel heard|feels heard|listen to (?:the|what|how|her|his|their)|hear (?:her|his|their) (?:worr|concern|side)|understand (?:how|what|why)|validate (?:her|his|their)|may feel like pressure|may feel (?:hurt|ignored)|before (?:she|he|they) can hear)\b/.test(s)?"empathy":
   /\b(?:offer to (?:check|review|verify|schedule|bring)|commit to (?:check|review|follow|look)|make (?:a|the) plan|set (?:a|the) time|actually do|concrete next step|return (?:when|at)|check (?:the|our|your|his|her) (?:calendar|option|schedule)|review(?:ing)? (?:your|the) calendar)\b/.test(s)?"followthrough":"none";
@@ -395,9 +395,9 @@ export function interpretAuthoredFollowup(text){
  if(motive==="avoidance")return {kind:"resist",focus:null,motive};
  const first=s.replace(/^(?:well|actually|instead|i think|please)[,\s]*/g,"");
  const choices=[
-  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my|that)\b|take responsibility|say (?:you(?:'re| are)|i(?:'m| am)) sorry|offer to (?:check|review|handle|take care|bring|finish)|commit to (?:check|review|follow)|agree (?:you|i|that)\s+(?:dropped|failed|made|forgot)|respect (?:her|his|their) (?:no|wish|boundary|decision))\b/g},
+  {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my|that)\b|take responsibility|say (?:you(?:'re| are)|i(?:'m| am)) sorry|offer to (?:check|review|handle|take care|bring|finish)|commit to (?:check\w*|review\w*|follow\w*)|agree (?:you|i|that)\s+(?:dropped|failed|made|forgot)|respect (?:her|his|their) (?:no|wish|boundary|decision))\b/g},
   {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak)|invite (?:him|her|them)|decide together|work together|collaborat\w*|joint decision|shared decision|genuine joint decision)\b/g},
-  {id:"explain",re:/\b(?:explain|tell (?:him|her|them)\s+(?:you|i|why|that)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
+  {id:"explain",re:/\b(?:explain|tell (?:him|her|them)\s+(?:you|i|why|that|the)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
  ];
  const matches=choices.map(({id,re})=>({id,index:first.search(re)})).filter(x=>x.index>=0);
  matches.sort((a,b)=>a.index-b.index);
