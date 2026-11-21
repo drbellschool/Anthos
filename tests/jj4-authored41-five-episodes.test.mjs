@@ -18,7 +18,7 @@ const patterns=[
  ["Actually, ask them what they need first.","Instead, acknowledge your role before explaining."],
  ["Say you're sorry to end the argument, not because you agree.","Try to help them understand why it mattered."],
 ];
-const episode=title=>buildAuthored41({title,pilotMode:"shared",primarySkill:"g-repair",sophiaIntro:"Generic saved intro for test.",phases:{}});
+const episode=title=>buildAuthored41({title,pilotMode:"shared",primarySkill:"g-repair",sophiaIntro:"Jack and Jill need your private coaching. Notice how their choices affect the very next fictional scene without pretending either person agrees by default. Both people retain their own decisions and are allowed to decline.",phases:{}});
 function run(title,profile){
  const ep=episode(title),history=[],scenes=[],coaching=[];
  const texts=patterns[profile%patterns.length];
