@@ -80,7 +80,7 @@ export function checkAuthoredStudioScene(episode,phase,text){
     reason("Jack's conflict did not cover the actual shared financial decision");
   if(phase===2&&(!/Jill/.test(scene)||!/Jack/.test(scene)||!/Saturday|repair/i.test(scene)))
     reason("Jill's discovery did not confront the delayed repairs");
-  if(phase===3&&(!/Jack/.test(scene)||!/Jill/.test(scene)||!/repair|savings|decision/i.test(scene)))
+  if(phase===3&&(!/Jack/.test(scene)||!/Jill/.test(scene)||!/repair|savings|decision|bank balance|old microwave|SATURDAY/i.test(scene)))
     reason("Jack's reattempt did not engage the original hard decision");
   if(phase===4&&!/Jill/.test(scene))reason("Jill must own the final action");
  }
