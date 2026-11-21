@@ -366,8 +366,14 @@ test("4.2 actual JJ4 HTTP flow: five private days, event ledger hidden, Sophia o
    const husband=await fx.request("jack"),wife=await fx.request("jill");
    assert.equal(husband.messages.some(x=>x.role==="jill"),false);
    assert.equal(wife.messages.some(x=>x.role==="jack"),false);
-   assert.equal(husband.scenes.some(x=>x.kind==="introduction"),false);
-   assert.equal(wife.scenes.some(x=>x.kind==="introduction"),false);
+   for(const participant of [husband,wife]){
+    const opening=participant.scenes.filter(x=>x.kind==="introduction");
+    assert.equal(opening.length,1,"Sophia should open exactly once before Monday");
+    assert.match(opening[0].body,/SOPHIA · BEFORE MONDAY/);
+    assert.match(opening[0].body,/FACE HARD DECISIONS/);
+    assert.equal(participant.scenes.some(x=>x.kind==="sophia"),false,
+     "Sophia's closing must not appear before Saturday");
+   }
    if(day===5){
     assert.equal(fx.room.stage,"complete");
     assert.equal(updated.hasSophia,false);
@@ -385,13 +391,23 @@ test("4.2 actual JJ4 HTTP flow: five private days, event ledger hidden, Sophia o
    assert.equal(current.messages.some(x=>x.body.includes("SOPHIA")),false);
    await fx.request(role,"coach",{message:messages[day],requestKey:randomUUID()});
    assert.equal(fx.room.stage,"flow");
-   const hidden=(await fx.request(other)).scenes.map(x=>x.body).join(" ");
+   const afterCoach=await fx.request(role);
+   const replies=afterCoach.messages.filter(x=>x.kind==="reply"&&x.phase_index===day);
+   assert.equal(replies.length,1,"the character should immediately react to their friend");
+   assert.equal(replies[0].ephemeral,true);
+   assert.ok(replies[0].body.length>45);
+   assert.ok(replies[0].id>afterCoach.messages.find(x=>x.kind==="coach"&&x.phase_index===day).id);
+   const otherAfter=await fx.request(other);
+   assert.equal(otherAfter.messages.some(x=>x.body===replies[0].body),false);
+   const hidden=otherAfter.scenes.map(x=>x.body).join(" ");
    assert.equal(hidden.includes(messages[day]),false);
   }
   const final=await fx.request("jack","closure");
   assert.equal(final.hasSophia,true);
   assert.equal(final.scenes.filter(x=>x.kind==="sophia").length,1);
-  assert.match(final.scenes[0].body,/SOPHIA · SATURDAY/);
+  assert.match(final.scenes.find(x=>x.kind==="sophia").body,/SOPHIA · SATURDAY/);
+  assert.match(final.scenes.find(x=>x.kind==="sophia").body,/FACE HARD DECISIONS/);
+  assert.equal(final.researchSources.length,3);
   assert.equal(fx.messages.filter(x=>x.role==="shared"&&x.kind==="scene").length,6);
   assert.equal(fx.messages.filter(x=>x.kind==="prompt").length,5);
   assert.equal(fx.messages.filter(x=>x.kind==="coach").length,5);
