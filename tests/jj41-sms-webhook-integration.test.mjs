@@ -183,12 +183,34 @@ test("verified signup consent starts independent private SMS coaches automatical
   assert.match(privateJack,/Jack/);
   assert.match(privateJill,/Jill/);
   assert.notEqual(privateJack,privateJill);
+  // Carrier may deliver an option list without the original scene.
+  // A non-choice message and RECAP must restore scene + Jill's private
+  // question without moving the room forward or exposing Jack's messages.
+  const beforeRecovery=fx.outbox.length;
+  const phaseBeforeRecovery=fx.lists.anthos_jj4_rooms[0].phase_index;
+  await fx.inbound(fx.phoneJill,"Hello?");
+  const recovered=fx.outbox.slice(beforeRecovery);
+  assert.equal(recovered.length,2);
+  assert.ok(recovered.every(x=>x.to===fx.phoneJill));
+  assert.match(recovered[0].text,/Scene 1\/6 \(recap\)/);
+  assert.match(recovered[1].text,/Jill \(PRIVATE\):/);
+  assert.doesNotMatch(recovered[1].text,/Jack \(PRIVATE\):/);
+  assert.equal(fx.lists.anthos_jj4_rooms[0].phase_index,phaseBeforeRecovery);
+  await fx.inbound(fx.phoneJill,"RECAP");
+  assert.match(fx.outbox.at(-2).text,/Scene 1\/6 \(recap\)/);
+  assert.match(fx.outbox.at(-1).text,/Reply 1, 2, or 3/);
   const key=randomUUID();
   await fx.inbound(fx.phoneJack,"1",key);
   const afterChoose=fx.outbox.length;
   await fx.inbound(fx.phoneJack,"1",key);
   assert.equal(fx.outbox.length,afterChoose,"duplicate Telnyx delivery must not re-send coaching");
   await fx.inbound(fx.phoneJill,"2");
+  const messagesBeforeSelectedRecap=fx.lists.anthos_jj4_messages.length;
+  await fx.inbound(fx.phoneJill,"RECAP");
+  assert.match(fx.outbox.at(-2).text,/Scene 1\/6 \(recap\)/);
+  assert.match(fx.outbox.at(-1).text,/What should|Reply with your own coaching advice/i);
+  assert.doesNotMatch(fx.outbox.at(-1).text,/Reply 1, 2, or 3/);
+  assert.equal(fx.lists.anthos_jj4_messages.length,messagesBeforeSelectedRecap);
   await fx.inbound(fx.phoneJack,"Ask her what kind of rest helps her recharge.");
   assert.equal(fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.includes("Ask her what kind of rest helps her recharge.")),false,
    "Jack's raw private text must never be sent to Jill");
