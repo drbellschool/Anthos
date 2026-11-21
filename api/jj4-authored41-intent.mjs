@@ -11,6 +11,10 @@ const FOCI=new Set(SCHEMA.properties.focus.enum);
 const MOTIVES=new Set(SCHEMA.properties.motive.enum);
 export async function classifyAuthoredAdviceWithModel({episode,role,phase,selected,text,fallback}){
  const safeFallback=fallback||{kind:"unclear",focus:null,motive:"none"};
+ // Explicit confirmations inherit the selected choice, even when the model is available.
+ // Do not let a short "Yep, tell her" create a contradictory semantic pivot.
+ if(/^(?:yep|yes|yeah|right|exactly|okay|ok|sure|do it|go ahead)(?:[,.! ]*(?:tell|say|ask) (?:jack|jill|him|her|them))?[,.! ]*$/i.test(String(text||"").trim()))
+  return {kind:"engage",focus:null,motive:"none"};
  const key=process.env.OPENAI_API_KEY?.trim();
  if(!key||safeFallback.kind==="unsafe")return safeFallback;
  try{

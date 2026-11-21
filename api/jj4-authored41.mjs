@@ -13,12 +13,12 @@ const microwave={
  version:AUTHORED_VERSION, template:"microwave-authored-1",
  facts:{buyer:"Jill",purchase:400,payment:"shared emergency savings",box:"sealed",location:"kitchen"},
  scenes:[
-  "At six ten, Jill sets a sealed microwave box on the kitchen counter. Jack stares at the price printed on the receipt: four hundred dollars, taken from their shared emergency savings. Jill says she finally replaced the old microwave after waiting three weeks for Jack to arrange its repair. Jack says that was not permission to spend the money. Neither is entirely wrong about the frustration. Neither sounds particularly interested in admitting it. The box sits between them like a very expensive third person at dinner.",
-  "At six fifteen, the new microwave is still sealed. Jill points to a note beneath the smiling tomato magnet: in Jack's handwriting, 'Saturday — fix microwave.' Three Saturdays have passed. Jack studies it as if handwriting analysis might establish an alibi. Jill says the reminder made her expect a repair. The receipt remains beside the box. Neither has conceded the emergency-savings argument.",
-  "At six twenty-two, Jill describes reheating dinner in a saucepan. Jack laughs; Jill goes quiet. 'Glad my inconvenience is entertaining,' she says. Jack's smile fades. The receipt, unopened box, and forgotten fridge reminder stay where they were. Neither has explained the laughter.",
-  "At six thirty, Jill puts the budget notebook beside the receipt. Jack wants major withdrawals discussed first; Jill wants promised repairs completed. Jack starts a sentence with 'but.' Jill lifts an eyebrow, and he stops. The microwave is still unopened. They have another chance to propose a next step without pretending the disagreement is settled.",
-  "At six thirty-five, nobody has checked the store's return policy. The microwave box remains sealed. Tomorrow's decision depends on what Jack and Jill actually accept.",
-  "By six forty-two, the replacement microwave remains sealed in the kitchen. The original repair delay and the surprise withdrawal still happened, regardless of how the conversation went. Tomorrow's possibilities depend on what Jack and Jill actually managed to say and hear tonight."
+  "At six ten, Jill sets a sealed microwave box on the kitchen counter. Jack reads the receipt. 'Four hundred dollars? From our emergency savings?' Jill meets his eyes. 'The old one has been broken for three weeks. You said you'd fix it.' 'I did. I also thought we'd discuss four hundred dollars.' 'And I thought I'd have a working microwave by now.' Neither looks away. The unopened box sits between them.",
+  "At six fifteen, Jill taps the reminder under the smiling tomato magnet: 'Saturday — fix microwave.' Jack reads his own handwriting. 'Which Saturday?' she asks. 'All right. I missed it. More than once.' 'That's what I've been saying.' The box stays sealed beside the $400 receipt.",
+  "At six twenty-two, Jill points to the saucepan. 'That's my microwave now.' Jack laughs once. 'Not funny,' she says. 'I know. I was laughing at how ridiculous this has gotten, not at you.' She doesn't smile. The box stays sealed.",
+  "At six thirty, Jill opens the budget notebook beside the receipt. 'I don't need another speech about being irresponsible,' she says. Jack looks at the notebook. 'And I don't want our emergency fund treated like spare change.' 'Then let's talk about the repair too.' The box remains unopened, and neither has agreed on its fate.",
+  "At six thirty-five, the sealed box sits beside the budget notebook. No one has checked store policies.",
+  "By six forty-two, the new microwave remains sealed. Jack's missed repair promise and Jill's unannounced $400 withdrawal remain true. Neither a single apology nor a clever remark can undo them. The conversation has changed what they might do next, but cannot create a refund or a repaired microwave out of thin air."
  ],
  roles:{
   jack:{
@@ -80,9 +80,9 @@ microwave.coachingCheckpoints={
      "id": "explain",
      "label": "Explain why emergency savings scared you",
      "objection": "The money part matters. But if I open with 'you spent our emergency fund,' I may as well begin with 'Ladies and gentlemen of the jury.'",
-     "ack": "I'll describe why that account makes me feel safe, and I'll keep the accusation out of it.",
+     "ack": "I'll be straight with her: spending $400 from savings without talking was not okay. I also owed her a working appliance.",
      "resist": "I can feel the speech turning into a prosecution. I am not ready to get past that.",
-     "action": "Jack says that dipping into the emergency savings frightened him, without calling Jill careless.",
+     "action": "Jack says, 'I'm not okay with that money leaving savings without a conversation. I should've fixed the old microwave. That part is on me.'",
      "resisted": "Jack accuses Jill of ignoring his financial concerns; she crosses her arms."
     },
     {
@@ -144,9 +144,9 @@ microwave.coachingCheckpoints={
      "id": "explain",
      "label": "Share the fear beneath your budget argument",
      "objection": "I want to say 'it's emergency savings' for the fifth time. Maybe the important bit is that I remember what being short on money felt like.",
-     "ack": "I'll say the withdrawal frightened me, not that she is irresponsible.",
+     "ack": "I'll tell her why those savings matter. I can stand my ground without making her the villain.",
      "resist": "I can hear myself counting dollars instead of explaining what they meant to me.",
-     "action": "Jack explains that losing the financial cushion frightened him, instead of repeating the dollar amount as an accusation.",
+     "action": "Jack says, 'That emergency fund is what lets me sleep. We need to talk before we touch it again.'",
      "resisted": "Jack repeats the number four hundred until Jill says she already knows the price."
     },
     {
@@ -167,9 +167,9 @@ microwave.coachingCheckpoints={
      "id": "own",
      "label": "Offer a concrete next step you can own",
      "objection": "I could actually do something instead of promising to 'look into it.' That phrase has had a terrible month in our house.",
-     "ack": "I'll offer to check the real purchase options tomorrow, without asking her to agree tonight.",
+     "ack": "I'll check the real purchase options tomorrow, but I won't promise a refund or pretend Jill has agreed.",
      "resist": "I want to promise a fix in five minutes, but I know where that got us.",
-     "action": "Jack offers to check the actual purchase options the next day without pretending Jill has already agreed.",
+     "action": "Jack says, 'Tomorrow I'll check what our options are. Tonight I'm not promising a refund or deciding for both of us.'",
      "resisted": "Jack promises an instant solution without checking what is possible; Jill looks skeptical."
     },
     {
@@ -210,9 +210,9 @@ microwave.coachingCheckpoints={
      "id": "explain",
      "label": "Explain why the delay wore you down",
      "objection": "I had to reheat leftovers in a saucepan. I'm one step away from inventing stove-top popcorn for the office. How do I tell him I'm tired without filing a complaint?",
-     "ack": "I'll explain how the broken appliance affected our days without making a list of all his failures.",
+     "ack": "I'll tell him why I stopped believing another Saturday promise. That doesn't excuse spending without a call.",
      "resist": "I want to count the dinners I reheated. It's hard not to make this a scoreboard.",
-     "action": "Jill describes what the weeks without a working microwave were like without attacking Jack's character.",
+     "action": "Jill says, 'I got tired of asking. By the third Saturday, I stopped believing you would fix it.'",
      "resisted": "Jill recites every delayed dinner as an accusation; Jack retreats to the receipt."
     },
     {
@@ -251,9 +251,9 @@ microwave.coachingCheckpoints={
      "id": "ask",
      "label": "Ask why the repair kept slipping",
      "objection": "If I ask why he didn't follow through, I'm afraid the answer will be 'I forgot.' I can already feel my eyebrow filing an appeal.",
-     "ack": "I'll ask what kept happening on Saturdays instead of supplying his excuse myself.",
+     "ack": "I'll ask what actually happened those Saturdays. I want an answer, not another 'soon.'",
      "resist": "I want to know the answer but also want to win. Those are competing projects.",
-     "action": "Jill asks what made the repair difficult to complete and listens without excusing the delay.",
+     "action": "Jill asks, 'What happened those three Saturdays? Because I waited for you to fix it.'",
      "resisted": "Jill asks why he forgot and then mocks the first explanation."
     }
    ]
@@ -267,7 +267,7 @@ microwave.coachingCheckpoints={
      "objection": "I want him to understand my frustration. But he saw four hundred dollars disappear without warning. Maybe I can acknowledge the shock without defending the joke.",
      "ack": "I'll tell him I get why seeing that withdrawal surprised him, even though the repair still mattered.",
      "resist": "I feel like I'm apologizing for needing a working appliance. That's hard.",
-     "action": "Jill acknowledges that finding the withdrawal on a receipt was upsetting for Jack.",
+     "action": "Jill says, 'I should've called first. But I was tired of waiting for you to act.'",
      "resisted": "Jill dismisses the surprise because she believes the purchase was necessary."
     },
     {
@@ -317,7 +317,7 @@ microwave.coachingCheckpoints={
      "objection": "I know what I want: a working microwave and no more three-week promises. But asking him to help decide might be better than announcing the verdict.",
      "ack": "I'll ask which options he is willing to review tomorrow, without requiring him to agree now.",
      "resist": "I want to call it a joint decision while already deciding the outcome. That's not quite joint.",
-     "action": "Jill invites Jack to consider real options for the unopened appliance before making a final decision.",
+     "action": "Jill replies, 'Fine. Let's check the options before either of us decides what happens to this box.'",
      "resisted": "Jill asks for his opinion but treats disagreement as proof he isn't listening."
     }
    ]
@@ -367,7 +367,7 @@ export function classifyAuthoredFollowup(text){
  // An apology used as a tool for silence is NOT meaningful accountability.
  if(/\b(?:pretend|fake|feign)\s+(?:to\s+)?(?:apolog\w*|care|listen|agree|be sorry)\b/.test(s)||
     /\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\s+(?:stop|end|shut|silence|make|he|she|they)\b/.test(s)||
-    /\b(?:say|tell (?:him|her|them)|offer)\s+(?:you(?:'re| are)\s+)?sorry\s+just\s+to\s+(?:stop|end|shut|silence)\b/.test(s)||
+    /\b(?:say|tell (?:jack|jill|him|her|them)|offer)\s+(?:you(?:'re| are)\s+)?sorry\s+just\s+to\s+(?:stop|end|shut|silence)\b/.test(s)||
     /\bsorry\s+(?:just to|only to)\s+(?:end|stop|shut|silence)\b/.test(s)||
     /\b(?:to|so)\s+(?:he|she|they)\s+(?:stops?|shuts?|will stop)\s+(?:asking|complaining|talking)\b/.test(s))
   return "resist";
@@ -376,7 +376,9 @@ export function classifyAuthoredFollowup(text){
     /\b(?:don't|do not|never|refuse to|stop)\s+(?:ever\s+|try to\s+)?(?:offer|invite|propose|plan|review|check|decide|collaborate|make a plan)\b/.test(s)||
     /\b(?:make (?:him|her|them) feel guilty|teach (?:him|her|them) a lesson)\b/.test(s))
   return "resist";
- if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
+ if(/^(?:yep|yes|yeah|right|exactly|okay|ok|sure|do it|go ahead)(?:[,.! ]*(?:tell|say|ask) (?:him|her|them))?[,.! ]*$/i.test(s.trim()))return "engage";
+ if(/\b(?:fix|repair|install|set up)\s+(?:the\s+|our\s+)?(?:old\s+|new\s+)?microwave\b/.test(s))return "engage";
+ if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:jack|jill|him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
   return "engage";
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish)\b/.test(s))return "resist";
  return "unclear";
@@ -386,6 +388,8 @@ export function classifyAuthoredFollowup(text){
 export function interpretAuthoredFollowup(text){
  const s=String(text||"").toLowerCase().replace(/[’]/g,"'");
  const kind=classifyAuthoredFollowup(s);
+ if(/^(?:yep|yes|yeah|right|exactly|okay|ok|sure|do it|go ahead)(?:[,.! ]*(?:tell|say|ask) (?:him|her|them))?[,.! ]*$/i.test(s.trim()))
+  return {kind:"engage",focus:null,motive:"none"};
  const motive=
   /\b(?:pretend|fake|feign)\b.*\b(?:apolog\w*|care|listen|agree|sorry)\b|\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\b|\bsorry\s+just to\b|\b(?:so|to)\s+(?:he|she|they)\s+stops?\s+(?:asking|complaining|talking)\b/.test(s)?"avoidance":
   /\b(?:without (?:agree\w*|surrender\w*|giv\w* in|pretend\w*|demand\w*|requir\w*|book\w*|touch\w*)|doesn't mean|don't have to agree|still hold (?:your|a) boundary|respect (?:her|his|their) (?:no|wish|boundary|decision)|let (?:her|him|them) decline|even if (?:you|he|she|they) (?:feel|feels)|say no to touching|no physical affection)\b/.test(s)?"differentiation":
@@ -397,7 +401,7 @@ export function interpretAuthoredFollowup(text){
  const choices=[
   {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my|that)\b|take responsibility|say (?:you(?:'re| are)|i(?:'m| am)) sorry|offer to (?:check|review|handle|take care|bring|finish)|commit to (?:check\w*|review\w*|follow\w*)|agree (?:you|i|that)\s+(?:dropped|failed|made|forgot)|respect (?:her|his|their) (?:no|wish|boundary|decision))\b/g},
   {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak)|invite (?:him|her|them)|decide together|work together|collaborat\w*|joint decision|shared decision|genuine joint decision)\b/g},
-  {id:"explain",re:/\b(?:explain|tell (?:him|her|them)\s+(?:you|i|why|that|the)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
+  {id:"explain",re:/\b(?:explain|tell (?:jack|jill|him|her|them)\s+(?:you|i|why|that|the)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
  ];
  const matches=choices.map(({id,re})=>({id,index:first.search(re)})).filter(x=>x.index>=0);
  matches.sort((a,b)=>a.index-b.index);
@@ -421,6 +425,9 @@ export function authoredCommitment(choice,text,context={}){
   (role==="jack"?"I could say sorry just to make this stop, but that would dodge what Jill actually said.":
    "A quick apology to end the argument wouldn't address what Jack or I really need."):
   choice.resist;
+ if(kind==="engage"&&role==="jack"&&phase===1&&context.episode?.title===AUTHORED_TITLE&&
+  /\b(?:fix|repair|install|set up)\b.*\b(?:microwave|old one|new one)\b/i.test(text))
+  return "Fair. I said I would deal with it, and I didn't. Tomorrow I'll check whether the old one can be repaired. Then Jill and I decide what happens to this unopened box. I'm still not okay with spending $400 from savings without talking.";
  if(kind==="engage"){
   const allowed=context.episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options||
    context.episode?.authored41?.roles?.[role]?.options||[];
@@ -563,7 +570,11 @@ export function authoredScene(episode,phase,history=[]){
    const effective=effectiveRecordedAuthoredChoice(episode,role,phase-1,selected,reply.body,history);
    const index=(script.roles[role].options||[]).findIndex(x=>x.id===effective.id);
    const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===effective.id);
-   const action=beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
+   const practicalMicrowave=episode.title===AUTHORED_TITLE&&phase===2&&role==="jack"&&
+    /\b(?:fix|repair|install|set up)\b.*\b(?:microwave|old one|new one)\b/i.test(reply.body);
+   const action=practicalMicrowave?
+    "Jack puts down the receipt. 'I'll check whether the old microwave can be repaired tomorrow. Then we can decide what to do with this new one. But we need a conversation before another $400 comes out of savings.'":
+    beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
    const attitude=recordedAuthoredDecision(episode,role,phase-1,selected,reply.body,history).kind;
    const name=role==="jack"?"Jack":"Jill";
