@@ -84,7 +84,12 @@ function fixture(){
   if(Object.hasOwn(lists,name)){
    const arr=lists[name];
    if(method==="GET")return respond(filter(arr,u));
-   if(method==="PATCH"){const hit=filter(arr,u);for(const hitItem of hit)Object.assign(arr.find(x=>x.id===hitItem.id||x.provider_event_id===hitItem.provider_event_id),body);return respond(hit)}
+   if(method==="PATCH"){const hit=filter(arr,u);for(const hitItem of hit){
+    const target=arr.find(x=>(hitItem.id!==undefined&&x.id===hitItem.id)||
+     (hitItem.provider_event_id!==undefined&&x.provider_event_id===hitItem.provider_event_id));
+    assert.ok(target,"Mock PATCH must target an exact record");
+    Object.assign(target,body);
+   }return respond(hit)}
    if(method==="POST"){
     const values=Array.isArray(body)?body:[body],inserted=[];
     for(const value of values){
