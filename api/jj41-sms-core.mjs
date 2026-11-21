@@ -174,8 +174,8 @@ export function verifyTelnyxWebhook({body,headers,now=Date.now()}){
  catch{return false}
 }
 function lastShared(st){
- const all=(st.scenes||[]).filter(x=>x.kind==="scene");
- return all.at(-1)||null;
+ const scenes=(st.scenes||[]).filter(x=>x.kind==="scene");
+ return scenes.reduce((latest,scene)=>!latest||scene.phase_index>latest.phase_index?scene:latest,null);
 }
 function latestCharacterReply(st){
  return (st.messages||[]).filter(x=>x.kind==="reply"&&x.phase_index===st.phaseIndex).at(-1)?.body||"";
