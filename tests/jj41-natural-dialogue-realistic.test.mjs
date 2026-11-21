@@ -7,6 +7,23 @@ import {
 } from "../api/jj4-authored41.mjs";
 
 const episode=()=>buildAuthored41({title:"The Four-Hundred-Dollar Surprise",pilotMode:"shared"});
+test("short affirmation bypasses the model and retains selected approach",async()=>{
+ const {classifyAuthoredAdviceWithModel}=await import("../api/jj4-authored41-intent.mjs");
+ const old=process.env.OPENAI_API_KEY,oldFetch=globalThis.fetch;
+ process.env.OPENAI_API_KEY="fake-model-test-key";
+ globalThis.fetch=async()=>{throw new Error("A confirmation must not call the model")};
+ try{
+  const choice=authoredOptions(episode(),"jack",2).find(x=>x.id==="explain");
+  const result=await classifyAuthoredAdviceWithModel({
+   episode:episode(),role:"jack",phase:2,selected:choice,text:"Yep tell her.",
+   fallback:{kind:"unclear",focus:null,motive:"none"}
+  });
+  assert.deepEqual(result,{kind:"engage",focus:null,motive:"none"});
+ }finally{
+  globalThis.fetch=oldFetch;
+  if(old===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=old;
+ }
+});
 const coachScript=[
  {jack:["explain","Tell her plainly you are angry about using savings, while owning the delayed repair."],
   jill:["explain","Tell Jack you needed a working appliance and were tired of waiting."]},
