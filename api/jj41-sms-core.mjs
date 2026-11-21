@@ -161,8 +161,18 @@ async function progressRoom(roomId){
  const jt=unprotectSmsToken(jack.encrypted_token),lt=unprotectSmsToken(jill.encrypted_token);
  for(let i=0;i<4;i++){
   const state=await status(jt);
-  if(state.canContinue){await advance(jt);continue}
-  if(state.finished&&!state.hasSophia){await sophia(jt);continue}
+  if(state.canContinue){
+   await advance(jt);
+   await deliverShared(jack,await status(jt));
+   await deliverShared(jill,await status(lt));
+   continue;
+  }
+  if(state.finished&&!state.hasSophia){
+   await sophia(jt);
+   await deliverShared(jack,await status(jt));
+   await deliverShared(jill,await status(lt));
+   continue;
+  }
   break;
  }
  await deliverShared(jack,await status(jt));
