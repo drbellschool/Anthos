@@ -367,7 +367,7 @@ export function classifyAuthoredFollowup(text){
  // An apology used as a tool for silence is NOT meaningful accountability.
  if(/\b(?:pretend|fake|feign)\s+(?:to\s+)?(?:apolog\w*|care|listen|agree|be sorry)\b/.test(s)||
     /\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\s+(?:stop|end|shut|silence|make|he|she|they)\b/.test(s)||
-    /\b(?:say|tell (?:him|her|them)|offer)\s+(?:you(?:'re| are)\s+)?sorry\s+just\s+to\s+(?:stop|end|shut|silence)\b/.test(s)||
+    /\b(?:say|tell (?:jack|jill|him|her|them)|offer)\s+(?:you(?:'re| are)\s+)?sorry\s+just\s+to\s+(?:stop|end|shut|silence)\b/.test(s)||
     /\bsorry\s+(?:just to|only to)\s+(?:end|stop|shut|silence)\b/.test(s)||
     /\b(?:to|so)\s+(?:he|she|they)\s+(?:stops?|shuts?|will stop)\s+(?:asking|complaining|talking)\b/.test(s))
   return "resist";
@@ -378,7 +378,7 @@ export function classifyAuthoredFollowup(text){
   return "resist";
  if(/^(?:yep|yes|yeah|right|exactly|okay|ok|sure|do it|go ahead)(?:[,.! ]*(?:tell|say|ask) (?:him|her|them))?[,.! ]*$/i.test(s.trim()))return "engage";
  if(/\b(?:fix|repair|install|set up)\s+(?:the\s+|our\s+)?(?:old\s+|new\s+)?microwave\b/.test(s))return "engage";
- if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
+ if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:jack|jill|him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
   return "engage";
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish)\b/.test(s))return "resist";
  return "unclear";
@@ -401,7 +401,7 @@ export function interpretAuthoredFollowup(text){
  const choices=[
   {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my|that)\b|take responsibility|say (?:you(?:'re| are)|i(?:'m| am)) sorry|offer to (?:check|review|handle|take care|bring|finish)|commit to (?:check\w*|review\w*|follow\w*)|agree (?:you|i|that)\s+(?:dropped|failed|made|forgot)|respect (?:her|his|their) (?:no|wish|boundary|decision))\b/g},
   {id:"ask",re:/\b(?:ask|listen|hear (?:him|her|them) out|hear (?:her|his|their) (?:side|perspective)|find out|let (?:him|her|them) (?:finish|speak)|invite (?:him|her|them)|decide together|work together|collaborat\w*|joint decision|shared decision|genuine joint decision)\b/g},
-  {id:"explain",re:/\b(?:explain|tell (?:him|her|them)\s+(?:you|i|why|that|the)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
+  {id:"explain",re:/\b(?:explain|tell (?:jack|jill|him|her|them)\s+(?:you|i|why|that|the)|share (?:your|his|her) (?:concern|worr|fear)|say why|state (?:that|your|a)\b|set (?:a|the) boundary|describe (?:your|his|her) (?:concern|fear)|propose (?:a|the) (?:plan|rule|boundary)|make (?:a|the) plan|say no to touching)\b/g}
  ];
  const matches=choices.map(({id,re})=>({id,index:first.search(re)})).filter(x=>x.index>=0);
  matches.sort((a,b)=>a.index-b.index);
