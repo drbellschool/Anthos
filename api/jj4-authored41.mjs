@@ -3,6 +3,7 @@
 // Only fictional character actions enter shared scenes; private advice stays private.
 export const AUTHORED_VERSION="4.1.0";
 import {authored41Additional} from "./jj4-authored41-library.mjs";
+import {studioContractFor41,activeAuthoredCoaches,checkAuthoredStudioScene,MICROWAVE_SOURCE_VOICES,MICROWAVE_SOURCE_SCENES,sourceMicrowaveOutcome,wantsMicrowaveOpened} from "./jj41-studio-contract.mjs";
 export const AUTHORED_TITLE="The Four-Hundred-Dollar Surprise";
 export const AUTHORED_TITLES=Object.freeze([AUTHORED_TITLE,...authored41Additional.map(x=>x.title)]);
 const LIBRARY_BY_TITLE=new Map(authored41Additional.map(x=>[x.title.toLowerCase(),x]));
@@ -332,16 +333,38 @@ export function buildAuthored41(episode){
  if(!script)throw new Error("4.1 authored pilot supports only its five approved episodes.");
  if(episode?.pilotMode!=="shared")
   throw new Error("4.1 authored pilot requires two private coaches.");
- return {...episode,authored41:structuredClone(script),
+ const sourceContract=studioContractFor41(episode,script);
+ const pinned=structuredClone(script);
+ if(sourceContract&&pinned.template==="microwave-authored-1"){
+  pinned.scenes=[...MICROWAVE_SOURCE_SCENES];
+  for(const role of ["jack","jill"])
+   for(const [phase,types] of Object.entries(MICROWAVE_SOURCE_VOICES[role])){
+    const options=pinned.coachingCheckpoints[role][Number(phase)].options;
+    for(const [id,data] of Object.entries(types)){
+     const option=options.find(x=>x.id===id);
+     // The private resistance is spoken AS the character. The resulting
+     // visible resistance is a separate, third-person acted consequence.
+     Object.assign(option,{...data,
+      resist:role==="jack"?
+       "I want to stay on the four hundred dollars and avoid talking about those missed Saturdays. I know Jill won't just let that go.":
+       "I'm tempted to make Jack's delay the entire argument. But spending the money without a call was my decision.",
+      resisted:data.resist});
+    }
+   }
+  pinned.studioContract=sourceContract;
+ }
+ return {...episode,authored41:pinned,
   sophiaIntro:episode.sophiaIntro?.trim()||script.defaultIntro||"",
-  checkpoints:["hook","conflict","discovery","reattempt","outcome"].map((afterPhase,i)=>({
-   afterPhase,audience:i<4?"both":"none",waitForReply:i<4,
-   purpose:i<4?"Help the character make a choice under tension.":"",humorCue:""
-  }))};
+  checkpoints:sourceContract?sourceContract.checkpoints:
+   ["hook","conflict","discovery","reattempt","outcome"].map((afterPhase,i)=>({
+    afterPhase,audience:i<4?"both":"none",waitForReply:i<4,
+    purpose:i<4?"Help the character make a choice under tension.":"",humorCue:""
+   }))};
 }
 export const isAuthored41=room=>room?.episode?.authored41?.version===AUTHORED_VERSION;
 export function authoredOptions(episode,role,phase){
  if(phase>3||phase<0||!["jack","jill"].includes(role))return [];
+ if(episode?.authored41?.studioContract&&!activeAuthoredCoaches(episode,phase).includes(role))return [];
  const entries=episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options;
  return (entries||episode?.authored41?.roles?.[role]?.options||[]).map(({id,label})=>({id,label}));
 }
@@ -380,6 +403,7 @@ export function classifyAuthoredFollowup(text){
  if(/\b(?:fix|repair|install|set up)\s+(?:the\s+|our\s+)?(?:old\s+|new\s+)?microwave\b/.test(s))return "engage";
  if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:jack|jill|him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
   return "engage";
+ if(/^(?:ignore|accuse|blame|dismiss)\b/.test(s.trim()))return "resist";
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish)\b/.test(s))return "resist";
  return "unclear";
 }
@@ -425,7 +449,8 @@ export function authoredCommitment(choice,text,context={}){
   (role==="jack"?"I could say sorry just to make this stop, but that would dodge what Jill actually said.":
    "A quick apology to end the argument wouldn't address what Jack or I really need."):
   choice.resist;
- if(kind==="engage"&&role==="jack"&&phase===1&&context.episode?.title===AUTHORED_TITLE&&
+ if(kind==="engage"&&role==="jack"&&phase===1&&
+  !context.episode?.authored41?.studioContract&&context.episode?.title===AUTHORED_TITLE&&
   /\b(?:fix|repair|install|set up)\b.*\b(?:microwave|old one|new one)\b/i.test(text))
   return "Fair. I said I would deal with it, and I didn't. Tomorrow I'll check whether the old one can be repaired. Then Jill and I decide what happens to this unopened box. I'm still not okay with spending $400 from savings without talking.";
  if(kind==="engage"){
@@ -434,6 +459,8 @@ export function authoredCommitment(choice,text,context={}){
   const effective=interpretation.focus&&context.episode?
    allowed.find(x=>x.id===interpretation.focus)||choice:
    context.episode?effectiveAuthoredChoice(context.episode,role,phase,choice,text):choice;
+  if(context.episode?.authored41?.studioContract&&context.episode?.authored41?.template==="microwave-authored-1")
+   return effective.ack||choice.ack;
   const pivot=effective.id!==choice.id&&context.episode?.title===AUTHORED_TITLE?(role==="jack"?
    ["You're changing my approach. I thought I should explain, but okay. ",
     "I was ready to use the reminder as my defense. You're giving me a different first step. ",
@@ -517,6 +544,18 @@ function storyOutcome(episode,history=[]){
   else counts[event.role].opposed++;
  }
  const j=counts.jack,l=counts.jill;
+ if(episode?.authored41?.studioContract&&episode?.authored41?.template==="microwave-authored-1"){
+  const text=(role,phase)=>String(history.find(x=>x.role===role&&x.phase_index===phase&&x.kind==="coach")?.body||"").toLowerCase();
+  const jackPlan=/\b(?:check|repair|review|compare|look at|decide together|both options)\b/.test(text("jack",2));
+  const jillPlan=/\b(?:check|review|wait|hold off|look at|decide together|both options)\b/.test(text("jill",3));
+  const unilateral=wantsMicrowaveOpened(text("jill",3));
+  if(unilateral)return "stalemate";
+  if(j.engaged===2&&l.engaged===2&&jackPlan&&jillPlan&&j.opposed===0&&l.opposed===0)return "mutual";
+  if(j.engaged===2&&l.engaged<2)return "jack_ready";
+  if(l.engaged===2&&j.engaged<2)return "jill_ready";
+  if(j.engaged>0&&l.engaged>0)return "partial";
+  return "stalemate";
+ }
  // Consent and personal boundaries override the engagement score. A friendly
  // refusal is still a refusal; active listening cannot manufacture agreement.
  if(episode?.title==="Changing Seasons of Desire"){
@@ -563,24 +602,30 @@ export function authoredScene(episode,phase,history=[]){
  if(typeof base!=="string"||base.length<80)throw new Error("Missing authored scene.");
  const parts=[base];
  if(phase>0&&phase<5){
-  for(const role of ["jack","jill"]){
+  for(const role of activeAuthoredCoaches(episode,phase-1)){
    const selected=selectedAuthoredChoice(episode,role,phase-1,history);
    const reply=(history||[]).find(x=>x.role===role&&x.phase_index===phase-1&&x.kind==="coach");
-   if(!selected||!reply)throw new Error("Cannot advance without both completed private coaching exchanges.");
+   if(!selected||!reply)throw new Error("Cannot advance without the saved checkpoint's completed private coaching exchange.");
    const effective=effectiveRecordedAuthoredChoice(episode,role,phase-1,selected,reply.body,history);
    const index=(script.roles[role].options||[]).findIndex(x=>x.id===effective.id);
    const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===effective.id);
-   const practicalMicrowave=episode.title===AUTHORED_TITLE&&phase===2&&role==="jack"&&
+   const practicalMicrowave=episode.title===AUTHORED_TITLE&&phase===(script.studioContract?3:2)&&role==="jack"&&
     /\b(?:fix|repair|install|set up)\b.*\b(?:microwave|old one|new one)\b/i.test(reply.body);
-   const action=practicalMicrowave?
-    "Jack puts down the receipt. 'I'll check whether the old microwave can be repaired tomorrow. Then we can decide what to do with this new one. But we need a conversation before another $400 comes out of savings.'":
+   const unilateralOpen=script.studioContract&&script.template==="microwave-authored-1"&&
+    phase===4&&role==="jill"&&wantsMicrowaveOpened(reply.body);
+   const action=unilateralOpen?
+    "Jill puts a finger under the tape. 'I bought it because I need it working. I'm not waiting until another Saturday,' she says, and starts opening the box.":
+    practicalMicrowave?
+    (script.studioContract?
+     "Jack says, 'I'll get a real answer about repairing the old one tomorrow. Then we can look at this new box together. And we need to agree before either of us spends four hundred dollars from savings again.'":
+     "Jack puts down the receipt. 'I'll check whether the old microwave can be repaired tomorrow. Then we can decide what to do with this new one. But we need a conversation before another $400 comes out of savings.'"):
     beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
    const attitude=recordedAuthoredDecision(episode,role,phase-1,selected,reply.body,history).kind;
    const name=role==="jack"?"Jack":"Jill";
    const focus=selected.id==="own"?"taking responsibility for a mistake":
     selected.id==="explain"?"explaining the concrete concern":"asking a real question";
-   const fallback=attitude==="unsafe"?
+   const fallback=unilateralOpen?action:attitude==="unsafe"?
     name+" refuses intimidation and says "+focus+" still deserves a respectful conversation.":
     attitude==="resist"?
     (beat?.resisted||name+" stays defensive about "+focus+", and the other person grows more frustrated."):
@@ -592,18 +637,25 @@ export function authoredScene(episode,phase,history=[]){
  }
  const fictionalSignals=authoredSignals(episode,history);
  if(phase===2||phase===4||phase===5){
-  const outcome=storyOutcome(episode,history);
-  const beat=script.outcomeBeats?.[phase]?.[outcome]||
-   authoredOutcomeBeat(outcome,phase);
-  if(beat)parts.push(beat);
+  if(!(script.studioContract&&phase===2)){
+   const outcome=storyOutcome(episode,history);
+   const beat=script.studioContract&&script.template==="microwave-authored-1"?
+    sourceMicrowaveOutcome(episode,phase,history,outcome):
+    script.outcomeBeats?.[phase]?.[outcome]||authoredOutcomeBeat(outcome,phase);
+   if(beat)parts.push(beat);
+  }
  }
  const scene=parts.join(" ");
+ checkAuthoredStudioScene(episode,phase,scene);
  if(/\b(?:30.days? to return|return policy is|refund guaranteed)\b/i.test(scene))
   throw new Error("Unverified external return policy in authored scene.");
  return {scene,
-  jackPrompt:phase<4?(script.coachingCheckpoints?.jack?.[phase]?.prompt||script.roles.jack.prompts[phase]):"",
-  jillPrompt:phase<4?(script.coachingCheckpoints?.jill?.[phase]?.prompt||script.roles.jill.prompts[phase]):"",
-  fictionalSignals};
+  jackPrompt:phase<4&&activeAuthoredCoaches(episode,phase).includes("jack")?
+   (script.coachingCheckpoints?.jack?.[phase]?.prompt||script.roles.jack.prompts[phase]):"",
+  jillPrompt:phase<4&&activeAuthoredCoaches(episode,phase).includes("jill")?
+   (script.coachingCheckpoints?.jill?.[phase]?.prompt||script.roles.jill.prompts[phase]):"",
+  fictionalSignals,
+  ...(script.studioContract?{skillChallenge:script.studioContract.skillChallenges[PHASES[phase]]}:{})};
 }
 
 
@@ -614,6 +666,22 @@ export function composeAuthored41Closure(episode,sharedScenes=[]){
  const ending=sharedScenes.find(x=>Number(x.phase_index)===5)?.body||"";
  const proof=outcome+" "+ending;
  const script=episode?.authored41;
+ if(script?.studioContract&&script.template==="microwave-authored-1"){
+  const tapeOpened=/tape is broken|tape hangs loose|pulls the tape/.test(proof);
+  const mutuallyAgreed=/All right\. But I need you to do what you said/.test(outcome);
+  const facts=tapeOpened?
+   "Jill opened the box while Jack objected; that is a real action, not agreement.":
+   mutuallyAgreed?
+   "Both accepted a specific check of the old microwave before deciding what to do with the sealed replacement.":
+   "Their disagreement remained open. The sealed box is not proof that both agreed.";
+  return "SOPHIA · A CLOSING THOUGHT\n\nWhat happened: "+facts+
+   " Jack missed three repair Saturdays; Jill spent $400 of shared emergency savings without consulting him."+
+   "\n\nSkills: Face hard decisions (Schnarch); use a gentle startup and accept influence (Gottman)."+
+   " Accepting influence means actually considering the other person's reason, not surrendering your own position."+
+   "\n\nTry this: name the decision you own, the cost you are worried about, and one practical step you can truly carry out."+
+   "\n\nThis fictional story is not a grade on your marriage.";
+ }
+ 
  if(script?.outcomeBeats){
   const candidates=["mutual","jack_ready","jill_ready","partial","stalemate"];
   const result=candidates.find(k=>script.outcomeBeats[4]?.[k]&&
