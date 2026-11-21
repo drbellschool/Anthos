@@ -1,6 +1,6 @@
 // Hand-authored 4.1 content for four actual Anthos Episode Studio records.
 // Fictional canon/choices are pinned into each room. No narrative model calls.
-const e=(label,objection,ack,action,resisted)=>({label,objection,ack,action,resisted});
+const e=(label,objection,ack,action,resisted)=>({label,objection,ack,action,resisted,resist:"I hear why "+label.toLowerCase()+" could help, but I am still upset and I may resist that step."});
 const checkpoint=(prompt,own,explain,ask)=>({prompt,options:[
  {id:"own",...own},{id:"explain",...explain},{id:"ask",...ask}
 ]});
