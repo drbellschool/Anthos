@@ -378,7 +378,12 @@ export function classifyAuthoredFollowup(text){
 export function interpretAuthoredFollowup(text){
  const kind=classifyAuthoredFollowup(text);
  const original=String(text||"").toLowerCase().replace(/[’]/g,"'");
- if(kind!=="engage")return {kind,focus:null};
+ const motive=/\b(?:just|only|simply)\s+(?:apolog\w*|say sorry)\s+(?:so|to)\s+(?:she|he|they|we|you|stop|end|get|shut)\b|\b(?:shut (?:her|him|them) up|make (?:her|him|them) stop complaining|just to end (?:the|this) (?:fight|argument)|get this over with)\b/.test(original)?"avoidance":
+  /\b(?:before (?:she|he|they) can hear|feel heard|feels heard|listen to (?:how|what)|because (?:she|he|they) (?:feels?|felt)|understand (?:how|what|why)|validate (?:her|his|their)|respect (?:her|his|their) feelings)\b/.test(original)?"empathy":
+  /\b(?:without (?:agreeing|surrendering|giving in|pretending)|can (?:still|also) disagree|still (?:need|want)|separate (?:issues|things)|doesn't mean (?:you|i) agree|respect (?:her|his|their) boundary)\b/.test(original)?"differentiation":
+  /\b(?:follow through|make (?:a|the) plan|set (?:a|the) time|actually do|concrete next step|return (?:when|at)|check (?:the|our|your|his|her) (?:calendar|option|schedule))\b/.test(original)?"followthrough":"none";
+ if(kind!=="engage")return {kind,focus:null,motive};
+ if(motive==="avoidance")return {kind:"resist",focus:null,motive};
  const first=original.replace(/^(?:well|actually|instead|i think|please)[,\s]*/g,"");
  const options=[
   {id:"own",re:/\b(?:apolog\w*|acknowledg\w*|admit|own (?:your|the|my)|take responsibility|say (?:you|i)(?:'re| am| was) sorry|offer to (?:check|review|handle|take care)|commit to (?:check|review|follow))\b/g},
@@ -387,7 +392,7 @@ export function interpretAuthoredFollowup(text){
  ];
  const matches=options.map(x=>({id:x.id,index:first.search(x.re)})).filter(x=>x.index>=0);
  matches.sort((a,b)=>a.index-b.index);
- return {kind,focus:matches[0]?.id||null};
+ return {kind,focus:matches[0]?.id||null,motive};
 }
 export function effectiveAuthoredChoice(episode,role,phase,selected,text){
  const {kind,focus}=interpretAuthoredFollowup(text);
@@ -396,17 +401,21 @@ export function effectiveAuthoredChoice(episode,role,phase,selected,text){
   episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===focus)||selected;
 }
 export function authoredCommitment(choice,text,context={}){
- const kind=classifyAuthoredFollowup(text);
+ const interpretation=interpretAuthoredFollowup(text);
+ const kind=interpretation.kind;
  const role=context.role==="jill"?"jill":"jack";
  const phase=Number.isInteger(context.phase)?context.phase:0;
  if(kind==="unsafe")return role==="jack"?
   "I'm angry, but I'm not threatening Jill. That wouldn't repair anything between us.":
   "I'm frustrated, but I won't intimidate Jack. We need a conversation, not fear.";
- if(kind==="resist")return choice.resist;
+ if(kind==="resist")return interpretation.motive==="avoidance"?
+  (role==="jack"?"I could say sorry just to make this stop, but that would dodge what Jill actually said.":
+   "A quick apology to end the argument wouldn't address what Jack or I really need."):
+  choice.resist;
  if(kind==="engage"){
   const effective=context.episode?
    effectiveAuthoredChoice(context.episode,role,phase,choice,text):choice;
-  const pivot=effective.id!==choice.id?(role==="jack"?
+  const pivot=effective.id!==choice.id&&context.episode?.title===AUTHORED_TITLE?(role==="jack"?
    ["You're changing my approach. I thought I should explain, but okay. ",
     "I was ready to use the reminder as my defense. You're giving me a different first step. ",
     "All right, I hear a different direction than I expected. ",
@@ -415,11 +424,25 @@ export function authoredCommitment(choice,text,context={}){
     "That shifts what I was going to say about that tomato magnet. ",
     "You're asking me to try something different with Jack's reaction. ",
     "That is not the speech I had planned, but it might be better. "][phase]||"All right. "):"";
-  return pivot+(effective.ack||choice.ack);
+  const reason=interpretation.motive;
+  const script=context.episode?.authored41;
+  const reasonAcknowledgment=script?.reasoningAcknowledgments?.[role]?.[reason]||
+   (reason==="empathy"?
+    "I see why being heard matters before I make my point. ":
+    reason==="differentiation"?
+    "So I can respect their experience without pretending my concern vanished. ":
+    reason==="followthrough"?
+    "You're asking for an action I can really take, not another speech. ":"");
+  return pivot+reasonAcknowledgment+(effective.ack||choice.ack);
  }
+ const topic=context.episode?.title===AUTHORED_TITLE?"the money worry":
+  context.episode?.title==="Can We Talk Later?"?"the return time":
+  context.episode?.title==="A Fight on Vacation"?"the reservation uncertainty":
+  context.episode?.title==="One of Us Loves Mountains"?"our different weekend hopes":
+  "what closeness feels possible";
  return role==="jack"?
-  "I'm not sure what action you're suggesting. Are you asking me to own something, explain the money worry, or ask Jill a question?":
-  "I'm missing the advice part. Should I acknowledge my decision, explain my frustration, or ask Jack something?";
+  "I'm not sure what action you're suggesting. Should I own my part, explain "+topic+", or ask Jill a question?":
+  "I'm missing the advice part. Should I acknowledge my part, explain "+topic+", or ask Jack a question?";
 }
 export function authoredSignals(episode,history=[]){
  const state={jack:{accountability:3,defensiveness:7},jill:{accountability:3,defensiveness:7}};
@@ -428,7 +451,7 @@ export function authoredSignals(episode,history=[]){
   const submitted=(history||[]).find(x=>x.role===role&&x.phase_index===phase&&x.kind==="coach");
   if(!option||!submitted)continue;
   const effective=effectiveAuthoredChoice(episode,role,phase,option,submitted.body);
-  const factor=classifyAuthoredFollowup(submitted.body)==="engage"?1:0;
+  const factor=interpretAuthoredFollowup(submitted.body).kind==="engage"?1:0;
   const deltas=episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===effective.id)?.deltas||option.deltas||{};
   for(const [k,delta] of Object.entries(deltas))
    state[role][k]=limit(state[role][k]+factor*delta,0,10);
@@ -441,7 +464,7 @@ function storyOutcome(history=[]){
  const counts={jack:{engaged:0,opposed:0},jill:{engaged:0,opposed:0}};
  for(const event of history){
   if(event.kind!=="coach"||event.phase_index<0||event.phase_index>3||!counts[event.role])continue;
-  const kind=classifyAuthoredFollowup(event.body);
+  const kind=interpretAuthoredFollowup(event.body).kind;
   if(kind==="engage")counts[event.role].engaged++;
   else counts[event.role].opposed++;
  }
@@ -492,7 +515,7 @@ export function authoredScene(episode,phase,history=[]){
    const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===effective.id);
    const action=beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
-   const attitude=classifyAuthoredFollowup(reply.body);
+   const attitude=interpretAuthoredFollowup(reply.body).kind;
    const name=role==="jack"?"Jack":"Jill";
    const focus=selected.id==="own"?"taking responsibility for a mistake":
     selected.id==="explain"?"explaining the concrete concern":"asking a real question";
