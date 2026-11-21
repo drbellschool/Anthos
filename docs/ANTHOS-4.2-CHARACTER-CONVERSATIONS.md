@@ -12,6 +12,13 @@ This is a **versioned delivery strategy on the existing JJ4 room and privacy sys
 
 The story is **not** a public narrator or shared transcript. Jack and Jill talk in first person to their own coaches. Each coach's message is stored under that participant's role and never inserted into the shared event ledger.
 
+## Sophia's skill-centered bookends
+Sophia's pre-week introduction names the **actual saved primary skill and two supports**: *Face hard decisions* (Schnarch), *Gentle startup* and *Accept influence* (Gottman). It explains what coaches should watch for without disclosing the story's outcome. The introduction is shared once per participant through the already-authenticated read-only `status` view.
+
+Saturday's review reads all six committed event-ledger days and reports **what helped, what stayed difficult, and where observation is limited** for **each** selected skill. It explicitly distinguishes planning a repair-shop call from actually completing it. It never certifies a gentle startup from event summaries that do not contain verbatim dialogue; nor does it treat an acknowledgment as proof of changed behavior. The research references are narrowed to the relevant Schnarch and Gottman sources, excluding unrelated novelty research.
+
+For the browser-only pilot, each submitted coaching text receives an **immediate, private, role-specific reaction**, created as an ephemeral view of the existing coach row. The reply is not an event, is not sent by SMS, and must not claim the character has completed a future action. Existing JJ4 persistence and role separation remain unchanged.
+
 ## Canonical state
 The existing JJ4 `shared` scene record contains a private-to-the-server JSON event ledger for the day. It is hidden from both client views. The ledger tracks whether the replacement was bought, consulted about, or postponed; whether the box was opened; which positions were acknowledged; and which repair steps were planned versus actually completed.
 

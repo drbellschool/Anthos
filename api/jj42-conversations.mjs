@@ -213,25 +213,136 @@ export function renderConversation42(episode,phase,history=[],decisionOverride=n
  return {scene,jackPrompt:recipient==="jack"?prompt(state,phase):"",
   jillPrompt:recipient==="jill"?prompt(state,phase):""};
 }
-export function sophiaConversation42(episode,scenes=[]){
- const last=scenes.map(x=>parseLedger42(x.body)).find(x=>x?.day===5);
- if(!last)throw new Error("Cannot close 4.2 without the Saturday ledger.");
- const s=last.state;
- const purchase=s.purchase==="bought_unannounced"?
-  "Jill bought the microwave without asking first.":"Jill did not make an unannounced purchase.";
- const repair=s.repairPlan?
-  "Jack identified a repair shop, but had not called it yet.":
-  "Jack still had not taken a verifiable repair step.";
- const box=s.box==="opened"?
-  "The new box was opened; that decision cannot be undone.":
-  "No one has opened the replacement.";
- return "SOPHIA · SATURDAY\n\nJack and Jill lived with the same problem but saw it differently. "+
-  purchase+" "+repair+" "+box+
-  "\n\nTheir primary skill was facing a hard decision without forcing a surrender. Gentle startup and accepting influence were opportunities, not grades."+
-  "\n\nYour private advice shaped their choices, but neither of you was responsible for controlling a fictional person's behavior."+
-  "\n\nTry asking your spouse: What is one promise we could actually follow through on this week?"+
-  "\n\nThis is fiction, not a diagnosis or grade on your marriage.";
+// 4.2 opens with a short shared skill orientation, then Sophia goes quiet
+// until Saturday. These are editorial descriptions of saved Episode Studio
+// tags, not private coaching hints or spoilers about a predetermined ending.
+export const JJ42_RESEARCH_SOURCES=Object.freeze([
+ {label:"Schnarch · differentiation and self-definition",url:"https://www.soundstrue.com/a/resources/transcript/emotional-commitment-and-great-sex/"},
+ {label:"Gottman · softened startup",url:"https://www.gottman.com/blog/conflict-normal-natural-part-happily-ever/"},
+ {label:"Gottman · accepting influence",url:"https://www.gottman.com/blog/accepting-influence-find-ways-to-say-yes/"}
+]);
+export function sophiaOrientation42(episode){
+ const main=episode?.authored42?.primarySkill;
+ const supports=episode?.authored42?.supportingSkills||[];
+ if(main!=="s-decisions"||!["g-start","g-influence"].every(x=>supports.includes(x)))
+  throw new Error("4.2 orientation requires the saved three marriage skills.");
+ return "SOPHIA · BEFORE MONDAY\n\n"+
+  "This week, you'll each hear from a different fictional friend. Jill will ask the wife for advice; Jack will ask the husband. You will receive only your own conversation. Different information, different perspectives, one shared problem. There are no right-answer buttons.\n\n"+
+  "Here are the three skills to watch for:\n"+
+  "1. FACE HARD DECISIONS (Schnarch): Stay grounded in your values and take responsibility for your own choices without forcing the other person to surrender.\n"+
+  "2. GENTLE STARTUP (Gottman): Raise a real concern directly without opening with blame or contempt.\n"+
+  "3. ACCEPT INFLUENCE (Gottman): Let a partner's perspective genuinely matter. Listening does not mean automatic agreement.\n\n"+
+  "You aren't being graded. Notice when Jack or Jill uses a skill well, misses an opportunity, or gives advice that backfires. The story can change with your suggestions. I'll return on Saturday to look at what actually happened through those three lenses.";
 }
+// These messages are private reactions, not committed events. This is
+// intentionally a deterministic fallback for the current browser-only QA
+// pilot. It does not claim an action happened before the next day's ledger.
+export function reactionConversation42(episode,phase,advice){
+ if(!episode?.authored42||!Number.isInteger(phase)||phase<0||phase>=5)
+  throw new Error("Invalid 4.2 private reaction.");
+ const decision=action42(phase,advice);
+ const responses=[
+  {buy:"You're telling me to go ahead. Part of me wants to grab my keys right now. But I know spending from savings without a call isn't a small thing. Whatever I choose, I'll have to own it.",
+   consult:"I don't love having to start another microwave conversation. But I see your point: I can't complain that Jack isn't listening while leaving him out of the decision myself.",
+   wait:"Another day of saucepan dinners? You're testing my patience more than the broken microwave. But I get why another surprise decision might create a bigger fight."},
+  {accountable:"That's fair. I'm not going to act like I kept my word, because I didn't. Still, our emergency savings matter, and I'm not going to pretend otherwise.",
+   firm:"I hear you. I can be clear about what that money is for without putting Jill on trial. I also know that Saturday note is going to come up.",
+   defensive:"I hear you saying I should push back hard. Believe me, I'm angry about the money. The trouble is, that old repair note has my handwriting on it."},
+  {own:"I can own spending the money without pretending those three missed Saturdays didn't happen. I want Jack to understand how long I waited, not just hear another apology from me.",
+   open:"You'd really open it now? I won't pretend breaking that tape would be a neutral move. I'm irritated enough to consider it, and that's exactly what makes me nervous.",
+   hear:"I can hear why Jack wants an emergency fund. I need him to hear why an appliance can't stay broken indefinitely. Listening isn't the same as giving up.",
+   defend:"You're telling me to hold my ground. I will. But if all I do is defend the purchase, we won't talk about either the money or his promise."},
+  {concrete:"That's practical. A model number and a shop I can actually call. I won't promise a repair before I know what I'm dealing with. I can promise to take the problem seriously.",
+   talk:"You're right that I need to talk with Jill. I also know a speech about my intentions won't heat dinner. I have to find a next step I can really follow through on.",
+   defensive:"Part of me wants to make this entirely about the money. But I'm the one who wrote SATURDAY on that note. I'm not proud of how this has gone."},
+  {wait:"Leaving it sealed isn't the same as agreeing to return it. I can live with checking the options first, but I need Jack to follow through rather than giving me another vague Saturday.",
+   open:"I could open it and be done with the argument about the box. But then I've made another choice without us talking. That would be on me.",
+   unsettled:"I don't have a tidy answer. I want a working microwave and I want Jack to take this seriously. I'm not going to say we agreed when we haven't."}
+ ];
+ return responses[phase][decision];
+}
+function skillEvidence42(last){
+ const s=last.state,events=s.events||[];
+ const hasEvent=text=>events.some(e=>e.includes(text));
+ const money=s.purchase==="bought_unannounced";
+ const opened=s.box==="opened";
+ const consult=s.purchase==="consulted"||s.consulted;
+ const ownsPurchase=s.jillOwnsPurchase;
+ const ownsDelay=s.jackOwnsDelay;
+ const finalWait=hasEvent("Jill agreed to leave the purchased replacement sealed");
+ const heard=hasEvent("Jill agreed to hear Jack's concern");
+ const defensiveJack=hasEvent("Jack defensively focused on the financial dispute");
+ const primaryGood=[
+  ownsDelay?"Jack acknowledged three missed repair promises rather than denying them.":null,
+  ownsPurchase?"Jill acknowledged her unannounced withdrawal rather than justifying it away.":null,
+  consult?"Jill contacted Jack before buying and kept the spending decision open.":null,
+  s.repairPlan?"Jack recorded the model number and found a shop as a concrete preparatory step.":null
+ ].filter(Boolean);
+ const primaryHard=[
+  money?"Jill spent $400 of emergency savings without consulting Jack.":null,
+  !ownsDelay?"Jack never recorded an explicit acknowledgment of his three missed repair promises.":null,
+  s.repairPlan&&!s.repairCalled?"The repair-shop call was still not completed; a plan is not follow-through.":null,
+  !s.repairPlan?"No concrete repair step was recorded for Jack.":null,
+  opened?"The new box was opened before a shared decision, leaving fewer options.":null
+ ].filter(Boolean);
+ const gentlePositive=consult?
+  "Jill initiated consultation before a purchase; that offered a chance for a less confrontational opening.":
+  ownsDelay?"Jack's acknowledgment of his delay could support a softer opening, although the precise words weren't recorded.":
+  "The event ledger does not establish a softened opening from either spouse.";
+ const gentleLimit=money?
+  "The surprise withdrawal created a more difficult starting point for discussing money. The actual tone of Jack and Jill's exchange was not recorded.":
+  "The event ledger does not preserve the exact words or tone of their first conversation, so we cannot certify a gentle startup.";
+ const influenceGood=[
+  ownsDelay?"Jack took responsibility for the impact of his delay.":null,
+  ownsPurchase?"Jill acknowledged Jack's concern about the unannounced purchase.":null,
+  heard?"Jill explicitly agreed to hear Jack's concern.":null,
+  finalWait?"Jill kept the box sealed pending more information.":null
+ ].filter(Boolean);
+ const influenceHard=[
+  money?"Jill initially made the savings decision without Jack's input.":null,
+  opened?"Jill later opened the box without a joint decision.":null,
+  defensiveJack?"Jack responded defensively and did not acknowledge the repair delay at that point.":null,
+  !influenceGood.length?"No observable instance of a character considering the other perspective was recorded.":null
+ ].filter(Boolean);
+ return {primaryGood,primaryHard,gentlePositive,gentleLimit,
+  influenceGood,influenceHard,
+  progress:s.repairCalled?"A repair call was recorded.":s.repairPlan?
+   "Jack found a repair shop, but no actual call or completed repair was recorded.":
+   "No repair call or completed repair was recorded."};
+}
+export function sophiaConversation42(episode,scenes=[]){
+ const days=scenes.map(x=>parseLedger42(x.body)).filter(Boolean);
+ const last=days.find(x=>x.day===5);
+ if(!last||![0,1,2,3,4,5].every(day=>days.some(x=>x.day===day)))
+  throw new Error("Cannot close 4.2 without the six committed days.");
+ const s=last.state;
+ const ev=skillEvidence42(last);
+ const join=items=>items.length?items.join(" "):"No clear example was recorded.";
+ const purchase=s.purchase==="bought_unannounced"?
+  "Jill bought the replacement using savings without discussing it first.":
+  s.purchase==="consulted"?"Jill consulted Jack before buying; no purchase was recorded.":
+  "Jill waited rather than purchasing the microwave.";
+ const box=s.box==="opened"?"The new box was opened.":s.box==="sealed"?
+  "The purchased box remained sealed.":"No replacement box was purchased.";
+ return "SOPHIA · SATURDAY | WHAT THE SKILLS SHOWED\n\n"+
+  "THE WEEK: "+purchase+" "+box+" "+ev.progress+"\n\n"+
+  "1. FACE HARD DECISIONS — Schnarch's differentiation framework\n"+
+  "What helped: "+join(ev.primaryGood)+"\n"+
+  "What stayed difficult: "+join(ev.primaryHard)+"\n"+
+  "Research lens: Self-definition means holding a considered position and taking responsibility while staying engaged; it isn't winning or making the other spouse surrender.\n\n"+
+  "2. GENTLE STARTUP — Gottman\n"+
+  "What may have helped: "+ev.gentlePositive+"\n"+
+  "Where caution is needed: "+ev.gentleLimit+"\n"+
+  "Research lens: How a difficult topic begins matters; a concern can be direct without starting with criticism. These records don't establish the exact words used.\n\n"+
+  "3. ACCEPT INFLUENCE — Gottman\n"+
+  "What helped: "+join(ev.influenceGood)+"\n"+
+  "What resisted influence: "+join(ev.influenceHard)+"\n"+
+  "Research lens: Considering your partner's viewpoint is not the same as automatic agreement. An acknowledgment is a beginning, not proof of lasting behavior change.\n\n"+
+  "WHAT IS STILL OPEN: Their financial decision and repair outcome should not be called resolved without a completed next step. "+
+  "Ask each other: 'Where could I acknowledge your point without giving up mine—and what small promise can I actually keep this week?'\n\n"+
+  "These are evidence-limited observations of fictional characters, not scores or diagnoses of your marriage.";
+}
+
 export function weeklyRehearsal42(episode,adviceByDay){
  const history=[],rounds=[];
  for(let day=0;day<6;day++){
@@ -240,11 +351,13 @@ export function weeklyRehearsal42(episode,adviceByDay){
   const role=ROLES[day];
   if(role){
    const message=role==="jack"?out.jackPrompt:out.jillPrompt;
-   rounds.push({day:JJ42_DAYS[day],role,message,coach:adviceByDay[day]});
+   rounds.push({day:JJ42_DAYS[day],role,message,coach:adviceByDay[day],
+    reaction:reactionConversation42(episode,day,adviceByDay[day])});
    history.push({role,kind:"coach",phase_index:day,body:adviceByDay[day]});
   }
  }
- return {rounds,ledger:history.filter(x=>x.role==="shared").map(x=>parseLedger42(x.body)),
+ return {orientation:sophiaOrientation42(episode),
+  rounds,ledger:history.filter(x=>x.role==="shared").map(x=>parseLedger42(x.body)),
   sophia:sophiaConversation42(episode,history.filter(x=>x.role==="shared"))};
 }
 

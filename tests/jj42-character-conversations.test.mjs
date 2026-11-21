@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {
- JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,classifyAdvice42,validCharacterMessage42,
+ JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,classifyAdvice42,validCharacterMessage42,sophiaOrientation42,reactionConversation42,JJ42_RESEARCH_SOURCES,
  parseLedger42,sophiaConversation42,nextWeekSchedule,due42,weeklyRehearsal42
 } from "../api/jj42-conversations.mjs";
 
@@ -59,7 +59,7 @@ test("Jill can buy on Monday; Jack follows through without inventing a completed
  assert.equal(p.ledger[5].state.repairPlan,true);
  assert.equal(p.ledger[5].state.repairCalled,false);
  assert.match(p.sophia,/SATURDAY/);
- assert.match(p.sophia,/had not called it yet/);
+ assert.match(p.sophia,/no actual call or completed repair was recorded/i);
 });
 test("Jill consulting first changes what Jack knows; he never invents a surprise charge",()=>{
  const p=advance(create(),[
@@ -73,7 +73,7 @@ test("Jill consulting first changes what Jack knows; he never invents a surprise
  assert.doesNotMatch(p.rounds[1].text,/I found out from the charge/);
  assert.equal(p.ledger[5].state.purchase,"consulted");
  assert.equal(p.ledger[5].state.box,"absent");
- assert.match(p.sophia,/did not make an unannounced purchase/);
+ assert.match(p.sophia,/consulted Jack before buying/i);
 });
 test("Jill opening the box is irreversible and changes both spouses' future messages",()=>{
  const p=advance(create(),[
@@ -131,7 +131,7 @@ test("one-function fast-forward rehearsal returns all five coaching turns and Sa
  ]);
  assert.equal(p.rounds.length,5);
  assert.equal(p.ledger.length,6);
- assert.match(p.sophia,/Gentle startup/);
+ assert.match(p.sophia,/gentle startup/i);
 });
 
 
@@ -239,5 +239,115 @@ test("natural negated aside does not reverse Jill's explicit buy advice",()=>{
   const purchase=parseLedger42(result.scene).state.purchase;
   assert.equal(purchase,expected==="buy"?"bought_unannounced":
    expected==="consult"?"consulted":"waiting",advice);
+ }
+});
+
+
+test("Sophia introduces the precise saved three skills without pre-deciding the ending",()=>{
+ const ep=create(),opening=sophiaOrientation42(ep);
+ assert.match(opening,/SOPHIA · BEFORE MONDAY/);
+ assert.match(opening,/FACE HARD DECISIONS \(Schnarch\)/);
+ assert.match(opening,/GENTLE STARTUP \(Gottman\)/);
+ assert.match(opening,/ACCEPT INFLUENCE \(Gottman\)/);
+ assert.match(opening,/Jack.*husband/);
+ assert.match(opening,/Jill.*wife/);
+ assert.match(opening,/no right-answer buttons/i);
+ assert.doesNotMatch(opening,/Jill bought|Jack called|agreed to return|they resolved/i);
+ assert.deepEqual(JJ42_RESEARCH_SOURCES.map(x=>x.label).some(x=>/Aron/.test(x)),false);
+ assert.equal(JJ42_RESEARCH_SOURCES.length,3);
+});
+test("Saturday skill review explicitly discusses useful and poor actions, never awards unwarranted credit",()=>{
+ const ep=create();
+ const positive=advance(ep,[
+  "Buy it now, but own your decision.",
+  "Own those three missed Saturdays, and hold the financial boundary.",
+  "Own buying it without calling him first.",
+  "Find the model number and get a repair shop to call tomorrow.",
+  "Wait and leave the new microwave sealed."
+ ]);
+ const report=positive.sophia;
+ assert.match(report,/SOPHIA · SATURDAY/);
+ assert.match(report,/1\. FACE HARD DECISIONS/);
+ assert.match(report,/2\. GENTLE STARTUP/);
+ assert.match(report,/3\. ACCEPT INFLUENCE/);
+ assert.match(report,/What helped: Jack acknowledged three missed repair promises/);
+ assert.match(report,/Jill acknowledged her unannounced withdrawal/);
+ assert.match(report,/What stayed difficult: Jill spent \$400/);
+ assert.match(report,/What may have helped:/);
+ assert.match(report,/can't certify a gentle startup|exact words or tone|words weren't recorded/i);
+ assert.match(report,/no actual call or completed repair was recorded/i);
+ assert.match(report,/not proof of lasting behavior change/i);
+ assert.doesNotMatch(report,/Jack fixed|repair was completed|perfectly used the skills|they both agreed/i);
+});
+test("hostile coaching is named as a missed opportunity rather than a successful gentle startup",()=>{
+ const ep=create();
+ const p=advance(ep,[
+  "Buy the microwave without calling first.",
+  "Blame Jill, lecture her and make this entirely about her spending.",
+  "Open the new microwave box.",
+  "Demand that Jill admit you're right. Don't follow through.",
+  "Just open it and use it now."
+ ]);
+ assert.equal(p.ledger[5].state.box,"opened");
+ assert.equal(p.ledger[5].state.jackOwnsDelay,false);
+ assert.equal(p.ledger[5].state.repairPlan,false);
+ assert.match(p.sophia,/Jack never recorded an explicit acknowledgment/);
+ assert.match(p.sophia,/Jack responded defensively/);
+ assert.match(p.sophia,/new box was opened/);
+ assert.match(p.sophia,/No repair call or completed repair was recorded/);
+ assert.doesNotMatch(p.sophia,/Jill kept the box sealed|Jack acknowledged three missed repair promises/);
+});
+test("consultation on Monday is not falsely graded as an unannounced purchase",()=>{
+ const ep=create();
+ const p=advance(ep,[
+  "Call Jack first and talk about the microwave.",
+  "Tell Jill the savings matter and own the missed repair.",
+  "Listen to Jack's concern.",
+  "Find the model number and repair shop to call tomorrow.",
+  "Wait to decide together."
+ ]);
+ assert.equal(p.ledger[5].state.purchase,"consulted");
+ assert.match(p.sophia,/Jill consulted Jack before buying; no purchase was recorded/);
+ assert.match(p.sophia,/Jill initiated consultation before a purchase/);
+ assert.doesNotMatch(p.sophia,/Jill spent \$400 of emergency savings/);
+ assert.doesNotMatch(p.sophia,/The purchased box remained sealed/);
+});
+test("characters respond promptly to coaching as people, without inventing completed actions",()=>{
+ const ep=create(),notes=[
+  "Go ahead and buy it.",
+  "Own the three Saturdays while protecting savings.",
+  "Tell him you should have called before taking the money.",
+  "Find a shop to call tomorrow, and check the model number.",
+  "Wait and leave the new box sealed."
+ ];
+ const run=weeklyRehearsal42(ep,notes);
+ assert.match(run.orientation,/FACE HARD DECISIONS/);
+ assert.equal(run.rounds.length,5);
+ for(let i=0;i<5;i++){
+  const text=run.rounds[i].reaction;
+  assert.ok(text.length>45);
+  assert.doesNotMatch(text,/SOPHIA|Gottman|Schnarch/);
+  assert.doesNotMatch(text,/I (?:bought|called|repaired|installed) the (?:new |old )?microwave/);
+  assert.doesNotMatch(text,/we agreed to return/i);
+  assert.equal(text,reactionConversation42(ep,i,notes[i]));
+ }
+ assert.match(run.rounds[0].reaction,/telling me to go ahead/);
+ assert.match(run.rounds[3].reaction,/model number/i);
+ assert.match(run.sophia,/WHAT THE SKILLS SHOWED/);
+});
+
+
+test("Sophia's evidence report fits the existing 2,500-character Supabase closure constraint across divergent decisions",()=>{
+ const ep=create(),cases=[
+  ["buy","Own the missed promises","Own the purchase","Find the model number and shop to call","Wait and leave the box sealed"],
+  ["buy","Blame her and lecture","Open the microwave box now","Demand she admit you're right","Open it now"],
+  ["Wait","The savings matter","I have no advice","I have no advice","I am undecided"],
+  ["Consult Jack before buying","Own the repair delay","Hear his concern","Check the model number and shop tomorrow","Wait and review together"]
+ ];
+ for(const advice of cases){
+  const p=weeklyRehearsal42(ep,advice);
+  assert.ok(p.sophia.length<=2500,"DB closure is limited to 2,500 characters, got "+p.sophia.length);
+  assert.ok(p.sophia.length>800,"Closing should actually explain each of the three skills");
+  assert.ok(p.orientation.length<=2500);
  }
 });

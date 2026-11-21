@@ -19,7 +19,7 @@ import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulat
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
 import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
-import {JJ42_DAYS,buildConversation42,isConversation42,due42,renderCharacterMessage42,sophiaConversation42} from "./jj42-conversations.mjs";
+import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,due42,renderCharacterMessage42,sophiaOrientation42,reactionConversation42,sophiaConversation42} from "./jj42-conversations.mjs";
 
 
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -146,11 +146,22 @@ export async function status(token){
   // The opening is a read-only, room-snapshot editorial message. It is not the
   // research-based closing and never needs an extra DB row or outbound SMS.
   // A negative ID guarantees it precedes the first generated scene.
-  const opening=room.episode?.sophiaIntro?.trim();
-  if(joined&&opening&&!weekly)scenes.unshift({id:-1,kind:"introduction",body:personalizeIntroduction(opening,people),phase_index:-1,created_at:room.created_at});
- // A canonical 4.2 ledger is server-only. Neither spouse sees the shared
- // record nor the other coach's messages. Sophia appears only after completion.
- const visibleScenes=weekly?scenes.filter(x=>x.kind==="sophia"):scenes;
+  const opening=weekly?sophiaOrientation42(room.episode):room.episode?.sophiaIntro?.trim();
+  if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",
+   body:weekly?opening:personalizeIntroduction(opening,people),
+   phase_index:-1,created_at:room.created_at});
+ // 4.2's intro and final Sophia closing are the ONLY shared customer-facing
+ // messages; the canonical "scene" JSON is never shown to either partner.
+ const visibleScenes=weekly?scenes.filter(x=>x.kind==="sophia"||x.kind==="introduction"):scenes;
+ // An immediate character-to-friend reaction follows the private advice in
+ // the browser. It expresses uncertainty, NOT a completed fictional action.
+ // Existing JJ4 coach rows remain the only source of event transitions.
+ const visiblePrivate=weekly?mine.flatMap(msg=>{
+  if(msg.kind!=="coach"||!Number.isSafeInteger(Number(msg.id)))return [msg];
+  const reaction=reactionConversation42(room.episode,msg.phase_index,msg.body);
+  return [msg,{id:Number(msg.id)+0.5,kind:"reply",phase_index:msg.phase_index,
+   role:person.role,body:reaction,ephemeral:true,created_at:msg.created_at}];
+ }):mine;
  const authored41=isAuthored41(room);
  const selected41=authored41?selectedAuthoredChoice(room.episode,person.role,room.phase_index,
   mine.map(x=>({...x,role:person.role}))):null;
@@ -166,9 +177,10 @@ export async function status(token){
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage)&&
    (!weekly||due42(room.episode,room.phase_index)),
-  scenes:visibleScenes,messages:mine,finished:room.stage==="complete",
+  scenes:visibleScenes,messages:visiblePrivate,finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
-  researchSources:hasSophia?(authored41?RESEARCH_SOURCES.filter(x=>/Gottman/.test(x.label)):RESEARCH_SOURCES):[],
+  researchSources:hasSophia?(weekly?JJ42_RESEARCH_SOURCES:
+   authored41?RESEARCH_SOURCES.filter(x=>/Gottman/.test(x.label)):RESEARCH_SOURCES):[],
   info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
 }
 export async function join(token,name){
