@@ -303,6 +303,21 @@
                       <button type="button" id="episodeCopyWife" class="button">Copy link</button>
                     </div>
                   </div>
+                  <div class="episode-pilot-sms" id="episodePilotSmsPanel" style="margin-top:16px;padding:16px;border:1px solid #bfcabe;border-radius:12px">
+                    <strong>Two-way SMS pilot · individual phone opt-in</strong>
+                    <p>Use this only after Anthos's approved messaging use case and signed Telnyx webhook have been enabled. No invitation text is sent by this setup. Each spouse must independently send JOIN from their own mobile phone to start. Message frequency varies; message and data rates may apply. STOP cancels and HELP provides assistance.</p>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap">
+                      <label>Husband's mobile (Jack's coach)
+                        <input type="tel" id="episodePilotHusbandPhone" placeholder="+1XXXXXXXXXX" inputmode="tel" autocomplete="off">
+                      </label>
+                      <label>Wife's mobile (Jill's coach)
+                        <input type="tel" id="episodePilotWifePhone" placeholder="+1XXXXXXXXXX" inputmode="tel" autocomplete="off">
+                      </label>
+                    </div>
+                    <label style="display:block;margin:12px 0"><input type="checkbox" id="episodePilotSmsAdults"> Both participants are adults and know about this voluntary test. Each will opt in separately from their phone.</label>
+                    <button type="button" id="episodePilotSmsSetup" class="button">Prepare two-way text pilot</button>
+                    <p id="episodePilotSmsStatus" role="status" class="episode-notice">Texting remains inactive until carrier and webhook verification is complete. Browser coaching works without SMS.</p>
+                  </div>
                   <div class="episode-pilot-players">
                     <div id="episodeHusbandPlayer"></div>
                     <div id="episodeWifePlayer"></div>
