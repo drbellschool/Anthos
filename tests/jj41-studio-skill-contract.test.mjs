@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
+import {normalizeStudio} from "../api/episode-studio.mjs";
 import {buildAuthored41,authoredScene,authoredOptions,authoredObjection,
  selectedAuthoredChoice,authoredCommitment,composeAuthored41Closure} from "../api/jj4-authored41.mjs";
 
@@ -53,6 +54,14 @@ function runScenario(tone="cooperative"){
  return {ep,scenes,turns,history,closing:composeAuthored41Closure(ep,
   scenes.map((x,phase_index)=>({phase_index,body:x.scene})))};
 }
+test("actual saved Episode Studio data survives production normalization and creates its contract",()=>{
+ const saved=source();
+ const normalized=normalizeStudio(saved,{title:saved.title,mode:"shared",opening_scene:saved.premise,learning_objective:saved.learningObjective});
+ const episode=buildAuthored41({...normalized,pilotMode:"shared"});
+ assert.equal(episode.authored41.studioContract.problemStatement,saved.premise);
+ assert.equal(episode.authored41.studioContract.primarySkill,"s-decisions");
+ assert.deepEqual(episode.checkpoints.map(x=>x.audience),["jack","jill","jack","jill","none"]);
+});
 test("saved Studio data controls the one-arrival scene, named skills, and precise alternating roles",()=>{
  const p=runScenario();
  assert.equal(p.ep.authored41.studioContract.primarySkill,"s-decisions");
