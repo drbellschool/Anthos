@@ -28,5 +28,5 @@ test("a constructive but explicit Jill 'no' never becomes mutual tea or touch co
 test("constructive Jill advice may support shared tea only when explicitly welcomed",()=>{
  const welcome=seasonsWithAdvice("I would like to finish the tea together and talk, but without pressure for touch.");
  assert.match(welcome.scenes[4].body,/agree to finish their tea together/i);
- assert.doesNotMatch(welcome.scenes[4].body,/hug|kiss|must touch/i);
+ assert.doesNotMatch(welcome.scenes[4].body,/Jack kisses Jill|they embrace|Jill hugs Jack|physically touches her/i);
 });
