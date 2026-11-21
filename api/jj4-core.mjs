@@ -3,7 +3,8 @@
 // messages are returned only to that role. Nothing sends an SMS.
 import {createHash,randomBytes,randomUUID} from "node:crypto";
 import {getScenario} from "./jj2-library.mjs";
-import {buildAuthored41,isAuthored41,authoredOptions,authoredObjection,selectedAuthoredChoice,authoredCommitment,authoredScene,composeAuthored41Closure} from "./jj4-authored41.mjs";
+import {buildAuthored41,isAuthored41,authoredOptions,authoredObjection,selectedAuthoredChoice,authoredCommitment,interpretAuthoredFollowup,authoredScene,composeAuthored41Closure} from "./jj4-authored41.mjs";
+import {classifyAuthoredAdviceWithModel} from "./jj4-authored41-intent.mjs";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {normalizeStudio,PHASES} from "./episode-studio.mjs";
 import {unearnedMicrowaveActivation,abruptLocationJump,wrongSpeakerForQuotedCoaching,groundCoachingEvidence,recoverCoachingEvidence} from "./jj4-quality-guards.mjs";
@@ -814,7 +815,13 @@ export async function coach(token,body,requestKey){
   if(existingFollowup&&existingFollowup.body!==words)
    error("Your previous message was saved. Please retry that same follow-up to continue.",409);
   if(!existingFollowup){
-   const reply=authoredCommitment(selected,words,{episode:room.episode,role:person.role,phase:room.phase_index});
+   const interpretation=await classifyAuthoredAdviceWithModel({
+    episode:room.episode,role:person.role,phase:room.phase_index,
+    selected,text:words,fallback:interpretAuthoredFollowup(words)
+   });
+   const reply=authoredCommitment(selected,words,{
+    episode:room.episode,role:person.role,phase:room.phase_index,interpretation
+   });
    const paired=await db("rpc/anthos_jj4_store_private_question",{},
     {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,
      p_question:words,p_reply:reply,p_key:requestKey},"POST");
