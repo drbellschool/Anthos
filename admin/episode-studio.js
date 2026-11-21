@@ -399,6 +399,8 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
   $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
+  $("episodePilotSmsAdults").checked=false;
+  $("episodePilotSmsStatus").textContent="Two-way SMS requires an approved carrier use case, verified Telnyx webhook and each spouse texting JOIN. Browser coaching works now.";
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
    "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
@@ -412,6 +414,36 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
  }catch(e){note(e.message,true)}
  finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodePilotReset").disabled=false}
+}
+async function setupPilotSms(){
+ const statusBox=$("episodePilotSmsStatus");
+ if(!pilot?.roomId||pilot.engine!=="4.1.0"||!pilot.invitations?.jack||!pilot.invitations?.jill){
+  statusBox.textContent="Launch one of the five two-person 4.1 pilots first.";
+  return;
+ }
+ const husbandPhone=$("episodePilotHusbandPhone").value.trim();
+ const wifePhone=$("episodePilotWifePhone").value.trim();
+ const valid=/^\+[1-9]\d{7,14}$/;
+ if(!valid.test(husbandPhone)||!valid.test(wifePhone)||husbandPhone===wifePhone){
+  statusBox.textContent="Enter two different full international mobile numbers, for example +1XXXXXXXXXX.";
+  return;
+ }
+ if(!$("episodePilotSmsAdults").checked){
+  statusBox.textContent="Confirm both people are adults and understand that they must independently text JOIN.";
+  return;
+ }
+ const button=$("episodePilotSmsSetup");button.disabled=true;
+ try{
+  const r=await request("episode-studio-sms-setup",{
+   roomId:pilot.roomId,husbandPhone,wifePhone,invitations:pilot.invitations,
+   adultsConfirmed:true
+  });
+  statusBox.textContent="Ready for independent opt-in. Each person texts JOIN to "+r.sender+
+   " from the number just registered. The system sends no coaching messages until both opt in. STOP cancels, HELP provides help. Message and data rates may apply.";
+  $("episodePilotHusbandPhone").value="";$("episodePilotWifePhone").value="";
+ }catch(e){
+  statusBox.textContent=e.message||"SMS pilot setup is unavailable. Use the private browser links meanwhile.";
+ }finally{button.disabled=false}
 }
 async function copyPilot(which){
  const url=pilot?.invitations?.[which];
@@ -839,6 +871,7 @@ function setup(){
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
+ $("episodePilotSmsSetup").addEventListener("click",setupPilotSms);
  $("episodeGenerate").addEventListener("click",generate);
  $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Write a lively, SHORT Sophia message to the actual clients using literal <<husband>> and <<wife>> tokens in shared episodes (only the applicable token in solo episodes). This message is delivered after scene preparation but before Jack or Jill contacts their coach. Introduce Jack and Jill as characters, describe a vivid awkward moment, and define emotional bid plainly as a little attempt to connect, such as asking to sit together. Avoid academic jargon and bullet points."));
  $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Write short, distinct, believable Jack and Jill examples as lived moments: physical action, specific household detail, an awkward misunderstanding and a consequential reaction. No therapy-speak, no skill names, no academic descriptions. Respect boundaries and original premise."));
