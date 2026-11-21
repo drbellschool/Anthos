@@ -19,7 +19,7 @@ import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulat
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
 import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
-import {JJ42_DAYS,buildConversation42,isConversation42,due42,renderConversation42,sophiaConversation42} from "./jj42-conversations.mjs";
+import {JJ42_DAYS,buildConversation42,isConversation42,due42,renderCharacterMessage42,sophiaConversation42} from "./jj42-conversations.mjs";
 
 
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -207,7 +207,10 @@ async function directScene(room,phaseIndex){
  if(isConversation42(room)){
   const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
    select:"role,kind,phase_index,body"});
-  return renderConversation42(room.episode,phaseIndex,history||[]);
+  return renderCharacterMessage42(room.episode,phaseIndex,history||[],{
+   apiKey:process.env.OPENAI_API_KEY?.trim(),
+   model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini"
+  });
  }
  if(isAuthored41(room)){
   const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
