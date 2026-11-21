@@ -403,6 +403,7 @@ export function classifyAuthoredFollowup(text){
  if(/\b(?:fix|repair|install|set up)\s+(?:the\s+|our\s+)?(?:old\s+|new\s+)?microwave\b/.test(s))return "engage";
  if(/\b(?:apolog\w*|acknowledg\w*|listen\w*|understand\w*|respect\w*|ask\w*|explain\w*|hear\w*|own\w*|care|validat\w*|honest|calm|talk|speak|take responsibility|offer|propose|invite|collaborat\w*|plan|review|check|decide together|work together|joint decision|shared decision|come up with|follow through|commit to|tell (?:jack|jill|him|her|them)|state that|agree (?:you|i|that)|say (?:you(?:'re| are)|i(?:'m| am)) sorry)\b/.test(s))
   return "engage";
+ if(/^(?:ignore|accuse|blame|dismiss)\b/.test(s.trim()))return "resist";
  if(/\b(?:it's all (?:his|her|their) fault|blame|punish)\b/.test(s))return "resist";
  return "unclear";
 }
