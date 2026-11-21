@@ -49,7 +49,7 @@ test("Jill can buy on Monday; Jack follows through without inventing a completed
   "Keep the new microwave sealed until you both know the real repair options."
  ]);
  assert.equal(p.rounds[0].role,"jill");
- assert.match(p.rounds[0].text,/thinking about buying/i);
+ assert.match(p.rounds[0].text,/Would you buy it/);
  assert.match(p.rounds[1].text,/Jill bought a \$400 replacement/);
  assert.match(p.rounds[2].text,/Jack actually owned/);
  assert.match(p.rounds[3].text,/Jill said she should.ve called/i);
