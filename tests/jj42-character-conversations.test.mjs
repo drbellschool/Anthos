@@ -335,3 +335,19 @@ test("characters respond promptly to coaching as people, without inventing compl
  assert.match(run.rounds[3].reaction,/model number/i);
  assert.match(run.sophia,/WHAT THE SKILLS SHOWED/);
 });
+
+
+test("Sophia's evidence report fits the existing 2,500-character Supabase closure constraint across divergent decisions",()=>{
+ const ep=create(),cases=[
+  ["buy","Own the missed promises","Own the purchase","Find the model number and shop to call","Wait and leave the box sealed"],
+  ["buy","Blame her and lecture","Open the microwave box now","Demand she admit you're right","Open it now"],
+  ["Wait","The savings matter","I have no advice","I have no advice","I am undecided"],
+  ["Consult Jack before buying","Own the repair delay","Hear his concern","Check the model number and shop tomorrow","Wait and review together"]
+ ];
+ for(const advice of cases){
+  const p=weeklyRehearsal42(ep,advice);
+  assert.ok(p.sophia.length<=2500,"DB closure is limited to 2,500 characters, got "+p.sophia.length);
+  assert.ok(p.sophia.length>800,"Closing should actually explain each of the three skills");
+  assert.ok(p.orientation.length<=2500);
+ }
+});
