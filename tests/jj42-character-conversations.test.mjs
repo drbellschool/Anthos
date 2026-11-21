@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {
- JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,classifyAdvice42,validCharacterMessage42,sophiaOrientation42,reactionConversation42,JJ42_RESEARCH_SOURCES,
+ JJ42_DAYS,JJ42_WEEK_FRAMING,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,classifyAdvice42,validCharacterMessage42,sophiaOrientation42,reactionConversation42,JJ42_RESEARCH_SOURCES,
  parseLedger42,sophiaConversation42,nextWeekSchedule,due42,weeklyRehearsal42
 } from "../api/jj42-conversations.mjs";
 
@@ -350,4 +350,28 @@ test("Sophia's evidence report fits the existing 2,500-character Supabase closur
   assert.ok(p.sophia.length>800,"Closing should actually explain each of the three skills");
   assert.ok(p.orientation.length<=2500);
  }
+});
+
+
+test("4.2 AI is never given 4.1's predetermined Thursday purchase as Monday fact",async()=>{
+ const ep=create();
+ assert.match(ep.authored42.sourcePremise,/Thursday at 7:15/);
+ assert.match(ep.authored42.weekFraming,/starts on Monday/);
+ assert.match(ep.authored42.weekFraming,/has not yet decided/);
+ assert.equal(ep.authored42.weekFraming,JJ42_WEEK_FRAMING);
+ // A previously-created 4.2 room without weekFraming must also be safe.
+ delete ep.authored42.weekFraming;
+ let submitted;
+ await renderCharacterMessage42(ep,0,[],{
+  apiKey:"fake-test-only",
+  fetchImpl:async(_,options)=>{submitted=JSON.parse(options.body);return {ok:false}}
+ });
+ const ctx=JSON.parse(submitted.input);
+ assert.match(ctx.problemStatement,/The story starts on Monday/);
+ assert.match(ctx.problemStatement,/Jill has not yet decided/);
+ assert.doesNotMatch(ctx.problemStatement,/Thursday at 7:15/);
+ assert.doesNotMatch(ctx.problemStatement,/walks into their kitchen carrying a boxed/);
+ assert.doesNotMatch(ctx.problemStatement,/one uninterrupted evening/);
+ assert.equal(ctx.canonicalFacts.purchase,"not_bought");
+ assert.equal(ctx.canonicalFacts.box,"absent");
 });

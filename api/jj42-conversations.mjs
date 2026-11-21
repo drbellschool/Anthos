@@ -5,6 +5,20 @@
 // NEVER shown as a shared story or sent to either SMS recipient.
 export const JJ42_VERSION="4.2.0";
 export const JJ42_DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+// The original saved 4.1 premiere is a Thursday POST-purchase scene. This
+// different 4.2 week starts BEFORE Jill decides whether to purchase. Keep
+// the original editor source for provenance, but never send that predetermined
+// ending to the 4.2 language model as if it already occurred.
+export const JJ42_WEEK_FRAMING=[
+ "The story starts on Monday, before a microwave purchase has happened.",
+ "Their old over-the-range microwave has been broken for three weeks.",
+ "Jack wrote 'I'LL FIX IT SATURDAY' but missed three repair promises.",
+ "Jill found a $400 replacement she could buy with shared emergency savings.",
+ "Jill has not yet decided whether to buy it, consult Jack first or wait.",
+ "Jack values protecting family emergency savings and joint decisions, and knows he missed the repairs.",
+ "Jill wants a working appliance and is weary of reheating dinner on the stove.",
+ "Neither a repair nor a retailer policy has been confirmed. Later events must come only from the canonical ledger."
+].join(" ");
 const ROLES=["jill","jack","jill","jack","jill"];
 const PHASES=["hook","conflict","discovery","reattempt","outcome"];
 const INITIAL=()=>({
@@ -88,7 +102,7 @@ export function buildConversation42(draft,{fastForward=false,now=new Date()}={})
  return {...draft,authored42:{
   version:JJ42_VERSION,mode:"character-conversations",fastForward:fastForward===true,
   schedule:nextWeekSchedule(now),narrator:false,
-  sourcePremise:draft.premise,primarySkill:draft.primarySkill,
+  sourcePremise:draft.premise,weekFraming:JJ42_WEEK_FRAMING,primarySkill:draft.primarySkill,
   supportingSkills:[...draft.supportingSkills],intent:"two private coaches; one shared event ledger"
  },sophiaIntro:"",checkpoints:PHASES.map((afterPhase,i)=>({
   afterPhase,audience:ROLES[i],waitForReply:true,purpose:"One character asks their own coach privately.",
@@ -445,7 +459,8 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
  const ownHistory=history.filter(x=>x.role===role&&["prompt","coach"].includes(x.kind))
   .slice(-6).map(x=>({kind:x.kind,body:x.body.slice(0,900)}));
  const context={
-  character,day:JJ42_DAYS[phase],problemStatement:episode.authored42.sourcePremise,
+  character,day:JJ42_DAYS[phase],
+  problemStatement:episode.authored42.weekFraming||JJ42_WEEK_FRAMING,
   skills:episode.authored42.primarySkill==="s-decisions"?
    ["Face hard decisions","Use a gentle startup","Accept influence"]:[],
   canonicalFacts:prior.state,verifiedLatestEvent:prior.event,
