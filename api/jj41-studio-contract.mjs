@@ -167,3 +167,12 @@ export function sourceMicrowaveOutcome(episode,phase,history,outcome){
  }
  return "";
 }
+
+export const MICROWAVE_SOURCE_SCENES=Object.freeze([
+  "Thursday at 7:15 p.m., Jack checks the emergency savings on his cracked phone as Jill enters their kitchen carrying a boxed $400 over-the-range microwave. The old one has been dead for three weeks, and his handwritten 'I'LL FIX IT SATURDAY' note is still stuck to it. Jill sets the sealed box on the counter. 'Four hundred dollars?' Jack says. 'Three Saturdays,' Jill answers. 'I'm tired of reheating dinner on the stove.' He looks from his phone to the note. Neither has heard the other's full reasoning.",
+  "At 7:17, Jack sets his cracked phone beside the new box. 'You saw the charge,' Jill says. 'Did you also see your note on the old microwave?' Jack looks at the three-week-old SATURDAY promise. The new box is still sealed. He faces Jill rather than walking away.",
+  "At 7:20, Jill slides the receipt toward Jack and points to the stove, where she has reheated meals for three weeks. 'That's how we've been managing,' she says. Jack has not moved the new box. The SATURDAY note remains on the old microwave, and Jill waits for him to acknowledge that it was his promise.",
+  "At 7:25, Jack stands beside the dead over-the-range microwave and rereads the SATURDAY note. Jill is by the unopened replacement. 'I don't need a speech,' she says. 'I need an answer about what you will actually do.' Jack looks at the note, then directly at her.",
+  "At 7:30, the sealed $400 box sits on the same kitchen counter. Jill rests her hand near its tape. Jack stays beside the broken old microwave, waiting for her response.",
+  "At 7:33, Jack's cracked phone rests beside the old microwave's SATURDAY note. Jill is still in the kitchen. The purchase already happened, the repair was neglected, and neither can erase either fact now. What they do with the new appliance must follow from their actual choices tonight."
+]);
