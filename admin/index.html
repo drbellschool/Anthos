@@ -303,6 +303,15 @@
                       <button type="button" id="episodeCopyWife" class="button">Copy link</button>
                     </div>
                   </div>
+                  <div class="episode-pilot-sms" id="episodePilotSmsPanel" style="margin-top:16px;padding:16px;border:1px solid #bfcabe;border-radius:12px">
+                    <strong>Deep Dive 4.1 · Text the registered couple</strong>
+                    <p>Anthos uses each adult's existing, separately verified mobile number and voluntary SMS consent from registration. No second JOIN, verification code, or new consent is required. Texts are private to each character coach. Reply STOP to cancel or HELP for help; message and data rates may apply.</p>
+                    <label>Choose the verified couple and who coaches Jack
+                      <select id="episodePilotSmsCouple" style="display:block;min-width:220px;width:100%;margin:10px 0"><option value="">Loading registered couples…</option></select>
+                    </label>
+                    <button type="button" id="episodePilotSmsSetup" class="button" disabled>Start private SMS coaching</button>
+                    <p id="episodePilotSmsStatus" role="status" class="episode-notice">Texting starts only after you choose a registered couple and press Start. The Telnyx messaging connection must be enabled.</p>
+                  </div>
                   <div class="episode-pilot-players">
                     <div id="episodeHusbandPlayer"></div>
                     <div id="episodeWifePlayer"></div>

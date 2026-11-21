@@ -399,6 +399,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
   $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
+  $("episodePilotSmsStatus").textContent="Checking existing registered couple consent for private texting…";
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
    "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
@@ -410,8 +411,52 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jill)pilotPlayers.push(window.Anthos4Player.mount(wifePanel,new URL(room.invitations.jill).searchParams.get("invite")));
   board.scrollIntoView({behavior:"smooth",block:"start"});
   note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
+  if(room.engine==="4.1.0")await loadSmsEligible();
  }catch(e){note(e.message,true)}
  finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodePilotReset").disabled=false}
+}
+async function loadSmsEligible(){
+ const box=$("episodePilotSmsStatus"),select=$("episodePilotSmsCouple"),
+  button=$("episodePilotSmsSetup");
+ button.disabled=true;
+ select.replaceChildren();
+ const initial=document.createElement("option");initial.value="";initial.textContent="Select a verified registered couple";
+ select.append(initial);
+ try{
+  const result=await request("episode-studio-sms-eligible");
+  for(const couple of result.couples||[]){
+   const option=document.createElement("option");
+   option.value=couple.husbandCustomerId;option.textContent=couple.label;
+   select.append(option);
+  }
+  box.textContent=result.enabled?
+   "Select the couple to text from their existing Anthos registration consent. This is a real SMS test; carrier message rates may apply.":
+   "SMS pilot sending is not enabled in Vercel yet. The registered couples are listed, but no texts will be sent until the Telnyx connection is active.";
+  button.disabled=!result.enabled||!result.couples?.length;
+ }catch(e){
+  box.textContent="Could not read eligible registered couples: "+(e.message||"Service unavailable.");
+ }
+}
+async function setupPilotSms(){
+ const statusBox=$("episodePilotSmsStatus");
+ if(!pilot?.roomId||pilot.engine!=="4.1.0"||!pilot.invitations?.jack||!pilot.invitations?.jill){
+  statusBox.textContent="Launch one of the five two-person 4.1 pilots first.";
+  return;
+ }
+ const husbandCustomerId=$("episodePilotSmsCouple").value;
+ if(!/^[0-9a-f-]{36}$/i.test(husbandCustomerId)){
+  statusBox.textContent="Select the registered couple and assign Jack's coach.";
+  return;
+ }
+ const button=$("episodePilotSmsSetup");button.disabled=true;
+ try{
+  const result=await request("episode-studio-sms-setup",{
+   roomId:pilot.roomId,husbandCustomerId,invitations:pilot.invitations
+  });
+  statusBox.textContent=result.message||"SMS launch submitted to Telnyx.";
+ }catch(e){
+  statusBox.textContent=e.message||"SMS pilot sending is unavailable; the browser links remain usable.";
+ }finally{button.disabled=false}
 }
 async function copyPilot(which){
  const url=pilot?.invitations?.[which];
@@ -839,6 +884,7 @@ function setup(){
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
+ $("episodePilotSmsSetup").addEventListener("click",setupPilotSms);
  $("episodeGenerate").addEventListener("click",generate);
  $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Write a lively, SHORT Sophia message to the actual clients using literal <<husband>> and <<wife>> tokens in shared episodes (only the applicable token in solo episodes). This message is delivered after scene preparation but before Jack or Jill contacts their coach. Introduce Jack and Jill as characters, describe a vivid awkward moment, and define emotional bid plainly as a little attempt to connect, such as asking to sit together. Avoid academic jargon and bullet points."));
  $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Write short, distinct, believable Jack and Jill examples as lived moments: physical action, specific household detail, an awkward misunderstanding and a consequential reaction. No therapy-speak, no skill names, no academic descriptions. Respect boundaries and original premise."));
