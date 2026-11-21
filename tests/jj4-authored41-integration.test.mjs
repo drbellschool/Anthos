@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import api from "../api/jack-jill-v4.mjs";
 import {buildAuthored41,AUTHORED_TITLES} from "../api/jj4-authored41.mjs";
+import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 
 // Two-role integration against the ACTUAL JJ4 HTTP handler, with an in-memory
 // stand-in for the 4.0 Supabase RPC semantics. No customer records, API tokens,
@@ -10,9 +11,9 @@ import {buildAuthored41,AUTHORED_TITLES} from "../api/jj4-authored41.mjs";
 const url="https://anthos.test/api/jack-jill-v4";
 const roomId="99000000-0000-4000-8000-000000000001";
 const sha=x=>createHash("sha256").update(x).digest("hex");
-function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise"}={}){
+function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null}={}){
  const tokens={jack:"J".repeat(43),jill:"L".repeat(43)};
- const episode=buildAuthored41({
+ const episode=buildAuthored41(studio?{...structuredClone(studio),title,pilotMode:"shared"}:{
   title,pilotMode:"shared",
   sophiaIntro:"Sophia welcomes the husband and wife and explains how shared decisions and attentive listening are different skills."
  });
@@ -70,8 +71,8 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
    assert.equal(room.processing_token,body.p_claim);
    add("shared","scene",room.phase_index,body.p_story);
    if(room.phase_index<4){
-    add("jack","prompt",room.phase_index,body.p_jack);
-    add("jill","prompt",room.phase_index,body.p_jill);
+    if(body.p_jack)add("jack","prompt",room.phase_index,body.p_jack);
+    if(body.p_jill)add("jill","prompt",room.phase_index,body.p_jill);
     room.stage="awaiting";
    }else room.stage=room.phase_index===5?"complete":"flow";
    room.processing_token=null;return respond(true);
@@ -91,7 +92,10 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
    if(room.stage!=="awaiting"||!p||p.joined_at===null||p.submitted_phase===room.phase_index)return respond(false);
    add(p.role,"coach",room.phase_index,body.p_message,body.p_key);
    p.submitted_phase=room.phase_index;
-   if(people.every(x=>x.submitted_phase===room.phase_index))room.stage="flow";
+   const audience=room.episode.checkpoints?.[room.phase_index]?.audience||"both";
+   const needed=audience==="both"?["jack","jill"]:[audience];
+   if(needed.every(role=>people.find(x=>x.role===role)?.submitted_phase===room.phase_index))
+    room.stage="flow";
    return respond(true);
   }
   if(name==="rpc/anthos_jj4_claim_closure"){
@@ -277,6 +281,56 @@ test("all five authored episodes complete through the actual JJ4 two-coach HTTP 
    const sophia=fx.messages.find(x=>x.kind==="sophia").body;
    assert.match(sophia,/not a grade on your marriage/i,title);
   }
+ }finally{
+  globalThis.fetch=oldFetch;
+  if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
+  if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;
+ }
+});
+
+
+test("real JJ4 HTTP lifecycle honors the saved microwave Jack/Jill/Jack/Jill gates",async()=>{
+ const fx=makeFixture({studio:savedMicrowaveStudio});
+ const oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ globalThis.fetch=fx.fakeFetch;process.env.SUPABASE_SECRET_KEY="synthetic-test-key";delete process.env.OPENAI_API_KEY;
+ const sequence=["jack","jill","jack","jill"];
+ const lines=[
+  "Explain why the savings are important, and own the repair you neglected.",
+  "Tell Jack why three weeks of reheating food made a purchase feel necessary.",
+  "Ask Jill to hold the box sealed while you get a real repair answer tomorrow.",
+  "Ask Jack if he can actually check the repair tomorrow, and agree to leave it sealed tonight."
+ ];
+ try{
+  await fx.request("jack","join",{name:"Husband"});
+  await fx.request("jill","join",{name:"Wife"});
+  await fx.request("jack","advance");
+  for(let phase=0;phase<4;phase++){
+   const role=sequence[phase],other=role==="jack"?"jill":"jack";
+   const state=await fx.request(role);
+   const otherState=await fx.request(other);
+   assert.equal(state.needsReply,true,"required "+role+" at phase "+phase);
+   assert.equal(otherState.needsReply,false,"wrong recipient must not be coached in same phase");
+   assert.ok(state.coachChoices.length===3);
+   assert.equal(otherState.coachChoices.length,0);
+   const option=state.coachChoices[phase%3];
+   await fx.request(role,"choice",{optionId:option.id,requestKey:randomUUID()});
+   await fx.request(role,"coach",{message:lines[phase],requestKey:randomUUID()});
+   assert.equal(fx.room.stage,"flow","one source-authorized coach must advance the phase");
+   await fx.request(other,"advance");
+   assert.equal(fx.room.phase_index,phase+1);
+  }
+  await fx.request("jack","advance");
+  assert.equal(fx.room.stage,"complete");
+  const final=await fx.request("jill","closure");
+  assert.equal(final.hasSophia,true);
+  assert.match(final.scenes.find(x=>x.kind==="sophia").body,/Face hard decisions/);
+  assert.equal(fx.messages.filter(x=>x.kind==="scene").length,6);
+  assert.equal(fx.messages.filter(x=>x.kind==="coach").length,4);
+  assert.equal(fx.messages.filter(x=>x.kind==="prompt").length,4);
+  assert.equal(fx.messages.filter(x=>x.kind==="question").length,8);
+  const shared=fx.messages.filter(x=>x.role==="shared").map(x=>x.body).join(" ");
+  for(const advice of lines)assert.equal(shared.includes(advice),false,"private coaching must not leak");
+  assert.equal(fx.getExternalCalls(),0,"no external model or SMS required for this rehearsal");
  }finally{
   globalThis.fetch=oldFetch;
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
