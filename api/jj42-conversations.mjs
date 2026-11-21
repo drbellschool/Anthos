@@ -20,9 +20,14 @@ function has(s,re){return re.test(s)}
 function action42(phase,text){
  const s=words(text);
  if(phase===0){
-  if(has(s,/\b(?:don't|do not|not yet|wait|hold off|sleep on|leave it|postpone)\b/)&&
-     !has(s,/\b(?:don't wait|do not wait)\b/))return "wait";
-  if(has(s,/\b(?:call|ask|talk|discuss|check with|text)\b/))return "consult";
+  // Negations apply to the action they modify, not every clause. "Buy it,
+  // but don't pretend the budget is fine" must NOT become "wait".
+  const noBuy=/\b(?:don't|do not|never|shouldn't)\s+(?:just\s+)?(?:buy|purchase|order|get it)\b/.test(s);
+  const noCall=/\b(?:don't|do not|never|shouldn't)\s+(?:just\s+)?(?:call|ask|text|consult|talk to|discuss)\b/.test(s);
+  const explicitWait=/\b(?:wait|hold off|sleep on|postpone|not yet|leave it for now)\b/.test(s)&&
+    !/\b(?:don't|do not|never|shouldn't)\s+wait\b/.test(s);
+  if(noBuy||explicitWait)return "wait";
+  if(!noCall&&has(s,/\b(?:call|ask|talk|discuss|check with|text)\b/))return "consult";
   if(has(s,/\b(?:buy|purchase|go ahead|get it|order|just do it)\b/))return "buy";
   return "wait";
  }
