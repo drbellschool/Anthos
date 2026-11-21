@@ -17,7 +17,7 @@ const microwave={
   "At six fifteen, Jill taps the reminder under the smiling tomato magnet: 'Saturday — fix microwave.' Jack reads his own handwriting. 'Which Saturday?' she asks. 'All right. I missed it. More than once.' 'That's what I've been saying.' The box stays sealed beside the $400 receipt.",
   "At six twenty-two, Jill points to a saucepan. 'I've been reheating dinner in that.' Jack laughs once. Jill's face changes. 'Glad it's funny to you.' 'It isn't,' Jack says. The sealed box and receipt remain between them. Neither has explained the laugh yet.",
   "At six thirty, Jill opens the budget notebook beside the receipt. 'I don't need another speech about being irresponsible,' she says. Jack looks at the notebook. 'And I don't want our emergency fund treated like spare change.' 'Then let's talk about the repair too.' The box remains unopened, and neither has agreed on its fate.",
-  "At six thirty-five, the budget notebook lies open next to the sealed microwave box. Nobody has checked the store's policies or repaired the old appliance. What happens tomorrow depends on what both of them actually agree to, not on a promise the other one never accepted.",
+  "At six thirty-five, the sealed box sits beside the budget notebook. No one has checked store policies.",
   "By six forty-two, the new microwave remains sealed. Jack's missed repair promise and Jill's unannounced $400 withdrawal remain true. Neither a single apology nor a clever remark can undo them. The conversation has changed what they might do next, but cannot create a refund or a repaired microwave out of thin air."
  ],
  roles:{
@@ -167,7 +167,7 @@ microwave.coachingCheckpoints={
      "id": "own",
      "label": "Offer a concrete next step you can own",
      "objection": "I could actually do something instead of promising to 'look into it.' That phrase has had a terrible month in our house.",
-     "ack": "I'll check our real options tomorrow, but I won't promise a refund or pretend Jill has agreed.",
+     "ack": "I'll check the real purchase options tomorrow, but I won't promise a refund or pretend Jill has agreed.",
      "resist": "I want to promise a fix in five minutes, but I know where that got us.",
      "action": "Jack says, 'Tomorrow I'll check what our options are. Tonight I'm not promising a refund or deciding for both of us.'",
      "resisted": "Jack promises an instant solution without checking what is possible; Jill looks skeptical."
