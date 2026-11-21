@@ -250,6 +250,36 @@ async function findActivePhone(phone){
   superseded_at:"is.null",order:"created_at.desc",limit:"1",select:"*"})||[];
  return matches[0]||null;
 }
+// Re-send the *current* scene and this recipient's own coaching context when
+// carrier delivery drops the original texts. Does not move the episode forward
+// or expose the other person's private coaching.
+export async function smsRecoveryMessages(st){
+ const scene=lastShared(st);
+ const out=[];
+ if(scene)out.push("Anthos 4.1 · Scene "+(scene.phase_index+1)+"/6 (recap)\n"+scene.body);
+ if(st.finished){
+  out.push("This Deep Dive has finished. Your previous scene is above.");
+ }else if(st.stage==="awaiting"&&st.needsReply){
+  if(st.coachChoices?.length){
+   out.push((st.character||"Your character")+" (PRIVATE): "+
+    (latestPrompt(st)||"How would you coach this character?")+smsOptions(st));
+  }else{
+   const reply=latestCharacterReply(st);
+   out.push((st.character||"Your character")+" (PRIVATE): "+
+    (reply||"Your approach was recorded.")+
+    "\nReply with your own coaching advice to continue.");
+  }
+ }else if(st.stage==="flow"){
+  out.push("Your coaching is saved. Waiting for the next shared scene.");
+ }else{
+  out.push("Your episode is still preparing this scene. Please check again shortly.");
+ }
+ return out;
+}
+async function resendCurrentSmsContext(row,st){
+ for(const message of await smsRecoveryMessages(st))
+  await sendSms(row.phone_e164,message);
+}
 async function handleReply(row,txt,eventId){
  const token=unprotectSmsToken(row.encrypted_token),st=await status(token);
  if(st.paused){
@@ -261,11 +291,18 @@ async function handleReply(row,txt,eventId){
   await pause(token);await sendSms(row.phone_e164,"Your Anthos 4.1 pilot is paused. Reply RESUME to continue or STOP to opt out.");
   return;
  }
+ if(/^(?:RECAP|STORY|CONTEXT)$/i.test(txt.trim())){
+  await resendCurrentSmsContext(row,st);
+  return;
+ }
  if(st.finished){await sendSms(row.phone_e164,"This Deep Dive is complete. Your private pilot link remains available in your original invitation.");return}
  if(!st.needsReply){await progressRoom(row.room_id);return}
  if(st.coachChoices.length){
   const match=/^\s*([1-3])\s*$/.exec(txt);
-  if(!match){await sendSms(row.phone_e164,"Choose how to coach "+st.character+":"+smsOptions(st));return}
+  if(!match){
+   await resendCurrentSmsContext(row,st);
+   return;
+  }
   const selected=st.coachChoices[Number(match[1])-1];
   const result=await choose(token,selected.id,stableUuid(eventId+"-choice"));
   await sendSms(row.phone_e164,st.character+" (PRIVATE): "+latestCharacterReply(result)+
@@ -311,7 +348,7 @@ export async function receivePilotSms({event,raw,headers}){
     {stopped_at:new Date().toISOString(),updated_at:new Date().toISOString()},"PATCH");
    await sendSms(phone,"Anthos: You're opted out of Deep Dive texts. To restore texts, update your consent through your Anthos account. No more coaching texts will be sent.");
   }else if(/^HELP$/i.test(message)){
-   await sendSms(phone,"Anthos Deep Dive 4.1: Help at anthos.love. Your texts are private coaching. Reply PAUSE to pause, RESUME to continue, or STOP to opt out. Message/data rates may apply.");
+   await sendSms(phone,"Anthos Deep Dive 4.1: Help at anthos.love. Reply RECAP to repeat your current scene and private coaching instructions, PAUSE/RESUME to control your experience, or STOP to opt out. Message/data rates may apply.");
   }else if(!row.signup_consent_at||row.stopped_at||row.superseded_at){
    // Never use texting as a back door around verified registration or STOP.
    return {ok:true,blocked:true};
