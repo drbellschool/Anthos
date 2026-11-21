@@ -10,6 +10,7 @@ const SESS="anthos_jj41_sms_participants",EVENTS="anthos_jj41_sms_webhook_events
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const hash=value=>createHash("sha256").update(value).digest("hex");
 const enabled=()=>process.env.TELNYX_PILOT_MESSAGING_ENABLED==="true"&&
+ process.env.THREEFOLD_10DLC_APPROVED==="true"&&
  !!process.env.TELNYX_API_KEY&&PHONE.test(process.env.TELNYX_FROM_NUMBER||"")&&
  !!process.env.TELNYX_PUBLIC_KEY&&!!process.env.THREEFOLD_SESSION_SECRET;
 export function pilotSmsReady(){return enabled()&&process.env.VERCEL_ENV==="production"}
