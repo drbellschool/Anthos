@@ -305,7 +305,7 @@ export default {
     }
     if(action==="episode-studio-sms-status"){
       return json({ok:true,enabled:pilotSmsReady(),
-       requiresIndividualJoin:true,registeredCampaignRequired:true});
+       requiresIndividualJoin:false,usesExistingSignupConsent:true,registeredCampaignRequired:true});
     }
     if(action==="episode-studio-generate"){
       try{return json(await generateEpisodeStudio(body))}
