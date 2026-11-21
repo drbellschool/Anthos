@@ -210,9 +210,9 @@ microwave.coachingCheckpoints={
      "id": "explain",
      "label": "Explain why the delay wore you down",
      "objection": "I had to reheat leftovers in a saucepan. I'm one step away from inventing stove-top popcorn for the office. How do I tell him I'm tired without filing a complaint?",
-     "ack": "I'll explain how the broken appliance affected our days without making a list of all his failures.",
+     "ack": "I'll tell him why I stopped believing another Saturday promise. That doesn't excuse spending without a call.",
      "resist": "I want to count the dinners I reheated. It's hard not to make this a scoreboard.",
-     "action": "Jill describes what the weeks without a working microwave were like without attacking Jack's character.",
+     "action": "Jill says, 'I got tired of asking. By the third Saturday, I stopped believing you would fix it.'",
      "resisted": "Jill recites every delayed dinner as an accusation; Jack retreats to the receipt."
     },
     {
@@ -251,9 +251,9 @@ microwave.coachingCheckpoints={
      "id": "ask",
      "label": "Ask why the repair kept slipping",
      "objection": "If I ask why he didn't follow through, I'm afraid the answer will be 'I forgot.' I can already feel my eyebrow filing an appeal.",
-     "ack": "I'll ask what kept happening on Saturdays instead of supplying his excuse myself.",
+     "ack": "I'll ask what actually happened those Saturdays. I want an answer, not another 'soon.'",
      "resist": "I want to know the answer but also want to win. Those are competing projects.",
-     "action": "Jill asks what made the repair difficult to complete and listens without excusing the delay.",
+     "action": "Jill asks, 'What happened those three Saturdays? Because I waited for you to fix it.'",
      "resisted": "Jill asks why he forgot and then mocks the first explanation."
     }
    ]
@@ -267,7 +267,7 @@ microwave.coachingCheckpoints={
      "objection": "I want him to understand my frustration. But he saw four hundred dollars disappear without warning. Maybe I can acknowledge the shock without defending the joke.",
      "ack": "I'll tell him I get why seeing that withdrawal surprised him, even though the repair still mattered.",
      "resist": "I feel like I'm apologizing for needing a working appliance. That's hard.",
-     "action": "Jill acknowledges that finding the withdrawal on a receipt was upsetting for Jack.",
+     "action": "Jill says, 'I should've called first. But I was tired of waiting for you to act.'",
      "resisted": "Jill dismisses the surprise because she believes the purchase was necessary."
     },
     {
@@ -317,7 +317,7 @@ microwave.coachingCheckpoints={
      "objection": "I know what I want: a working microwave and no more three-week promises. But asking him to help decide might be better than announcing the verdict.",
      "ack": "I'll ask which options he is willing to review tomorrow, without requiring him to agree now.",
      "resist": "I want to call it a joint decision while already deciding the outcome. That's not quite joint.",
-     "action": "Jill invites Jack to consider real options for the unopened appliance before making a final decision.",
+     "action": "Jill replies, 'Fine. Let's check the options before either of us decides what happens to this box.'",
      "resisted": "Jill asks for his opinion but treats disagreement as proof he isn't listening."
     }
    ]
