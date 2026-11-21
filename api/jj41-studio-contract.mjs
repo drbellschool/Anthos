@@ -6,6 +6,10 @@ const CORE_SKILLS=["s-decisions","g-start","g-influence"];
 const namedRoles=new Set(["jack","jill","both","none"]);
 const reason=(message)=>{throw new Error("4.1 Episode Studio contract: "+message)};
 export function studioContractFor41(episode,script){
+ // Source contracts are approved episode by episode. Do not reinterpret
+ // the other four 4.1 pilots' audience routing or pacing until their own
+ // source-specific contracts and real JJ4 tests have been verified.
+ if(script?.template!=="microwave-authored-1")return null;
  const sourcePresent=typeof episode?.premise==="string"&&episode.premise.trim().length>75&&
   typeof episode?.learningObjective==="string"&&episode.learningObjective.trim().length>12&&
   typeof episode?.primarySkill==="string"&&
