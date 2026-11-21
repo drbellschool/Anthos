@@ -401,7 +401,7 @@ export function effectiveAuthoredChoice(episode,role,phase,selected,text){
   episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===focus)||selected;
 }
 export function authoredCommitment(choice,text,context={}){
- const interpretation=interpretAuthoredFollowup(text);
+ const interpretation=context.interpretation||interpretAuthoredFollowup(text);
  const kind=interpretation.kind;
  const role=context.role==="jill"?"jill":"jack";
  const phase=Number.isInteger(context.phase)?context.phase:0;
@@ -413,8 +413,11 @@ export function authoredCommitment(choice,text,context={}){
    "A quick apology to end the argument wouldn't address what Jack or I really need."):
   choice.resist;
  if(kind==="engage"){
-  const effective=context.episode?
-   effectiveAuthoredChoice(context.episode,role,phase,choice,text):choice;
+  const allowed=context.episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options||
+   context.episode?.authored41?.roles?.[role]?.options||[];
+  const effective=interpretation.focus&&context.episode?
+   allowed.find(x=>x.id===interpretation.focus)||choice:
+   context.episode?effectiveAuthoredChoice(context.episode,role,phase,choice,text):choice;
   const pivot=effective.id!==choice.id&&context.episode?.title===AUTHORED_TITLE?(role==="jack"?
    ["You're changing my approach. I thought I should explain, but okay. ",
     "I was ready to use the reminder as my defense. You're giving me a different first step. ",
@@ -444,14 +447,42 @@ export function authoredCommitment(choice,text,context={}){
   "I'm not sure what action you're suggesting. Should I own my part, explain "+topic+", or ask Jill a question?":
   "I'm missing the advice part. Should I acknowledge my part, explain "+topic+", or ask Jack a question?";
 }
+// The approved in-character reply is already persisted by the existing private
+// question RPC. Its exact authored text is durable evidence of the chosen intent
+// without adding metadata to the user's words, modifying schema, or leaking it
+// into the shared narrative. Offline tests with only coach text use deterministic
+// fallback.
+export function recordedAuthoredDecision(episode,role,phase,selected,rawText,history=[]){
+ const fallback=interpretAuthoredFollowup(rawText);
+ const replies=(history||[]).filter(x=>x.role===role&&x.phase_index===phase&&x.kind==="reply");
+ if(replies.length<2)return fallback;
+ const body=String(replies.at(-1)?.body||"");
+ const choices=episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options||
+  episode?.authored41?.roles?.[role]?.options||[];
+ if(/\b(?:not threatening|won't intimidate)\b/i.test(body))
+  return {kind:"unsafe",focus:null,motive:"none"};
+ if(/\b(?:quick apology to end|say sorry just to make this stop)\b/i.test(body))
+  return {kind:"resist",focus:null,motive:"avoidance"};
+ const approved=choices.find(x=>x.ack&&body.endsWith(x.ack));
+ if(approved)return {kind:"engage",focus:approved.id,motive:"none"};
+ if(choices.some(x=>x.resist===body)||/\b(?:I'm not sure what action|I'm missing the advice part)\b/.test(body))
+  return {kind:choices.some(x=>x.resist===body)?"resist":"unclear",focus:null,motive:"none"};
+ return fallback;
+}
+export function effectiveRecordedAuthoredChoice(episode,role,phase,selected,rawText,history=[]){
+ const interpret=recordedAuthoredDecision(episode,role,phase,selected,rawText,history);
+ if(interpret.kind!=="engage"||!interpret.focus)return selected;
+ return episode?.authored41?.coachingCheckpoints?.[role]?.[phase]?.options?.find(x=>x.id===interpret.focus)||
+  episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===interpret.focus)||selected;
+}
 export function authoredSignals(episode,history=[]){
  const state={jack:{accountability:3,defensiveness:7},jill:{accountability:3,defensiveness:7}};
  for(let phase=0;phase<4;phase++)for(const role of ["jack","jill"]){
   const option=selectedAuthoredChoice(episode,role,phase,history);
   const submitted=(history||[]).find(x=>x.role===role&&x.phase_index===phase&&x.kind==="coach");
   if(!option||!submitted)continue;
-  const effective=effectiveAuthoredChoice(episode,role,phase,option,submitted.body);
-  const factor=interpretAuthoredFollowup(submitted.body).kind==="engage"?1:0;
+  const effective=effectiveRecordedAuthoredChoice(episode,role,phase,option,submitted.body,history);
+  const factor=recordedAuthoredDecision(episode,role,phase,option,submitted.body,history).kind==="engage"?1:0;
   const deltas=episode?.authored41?.roles?.[role]?.options?.find(x=>x.id===effective.id)?.deltas||option.deltas||{};
   for(const [k,delta] of Object.entries(deltas))
    state[role][k]=limit(state[role][k]+factor*delta,0,10);
@@ -460,11 +491,12 @@ export function authoredSignals(episode,history=[]){
 }
 // Applies only to fiction: derived from the actual saved private coaching acts.
 // Do not convert scores into assessments of the participating real couple.
-function storyOutcome(history=[]){
+function storyOutcome(episode,history=[]){
  const counts={jack:{engaged:0,opposed:0},jill:{engaged:0,opposed:0}};
  for(const event of history){
   if(event.kind!=="coach"||event.phase_index<0||event.phase_index>3||!counts[event.role])continue;
-  const kind=interpretAuthoredFollowup(event.body).kind;
+  const selected=selectedAuthoredChoice(episode,event.role,event.phase_index,history);
+  const kind=recordedAuthoredDecision(episode,event.role,event.phase_index,selected,event.body,history).kind;
   if(kind==="engage")counts[event.role].engaged++;
   else counts[event.role].opposed++;
  }
@@ -510,12 +542,12 @@ export function authoredScene(episode,phase,history=[]){
    const selected=selectedAuthoredChoice(episode,role,phase-1,history);
    const reply=(history||[]).find(x=>x.role===role&&x.phase_index===phase-1&&x.kind==="coach");
    if(!selected||!reply)throw new Error("Cannot advance without both completed private coaching exchanges.");
-   const effective=effectiveAuthoredChoice(episode,role,phase-1,selected,reply.body);
+   const effective=effectiveRecordedAuthoredChoice(episode,role,phase-1,selected,reply.body,history);
    const index=(script.roles[role].options||[]).findIndex(x=>x.id===effective.id);
    const beat=script.coachingCheckpoints?.[role]?.[phase-1]?.options?.find(x=>x.id===effective.id);
    const action=beat?.action||script.roles[role].actions[index]?.[phase-1]||"";
    if(action.length<20)throw new Error("Missing authored consequence.");
-   const attitude=interpretAuthoredFollowup(reply.body).kind;
+   const attitude=recordedAuthoredDecision(episode,role,phase-1,selected,reply.body,history).kind;
    const name=role==="jack"?"Jack":"Jill";
    const focus=selected.id==="own"?"taking responsibility for a mistake":
     selected.id==="explain"?"explaining the concrete concern":"asking a real question";
@@ -531,7 +563,7 @@ export function authoredScene(episode,phase,history=[]){
  }
  const fictionalSignals=authoredSignals(episode,history);
  if(phase===2||phase===4||phase===5){
-  const outcome=storyOutcome(history);
+  const outcome=storyOutcome(episode,history);
   const beat=script.outcomeBeats?.[phase]?.[outcome]||
    authoredOutcomeBeat(outcome,phase);
   if(beat)parts.push(beat);
