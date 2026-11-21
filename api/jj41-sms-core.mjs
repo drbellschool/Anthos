@@ -191,6 +191,13 @@ async function currentSessions(roomId){
  return await sql(SESS,{room_id:"eq."+roomId,select:"*",order:"role.asc"})||[];
 }
 async function deliverShared(row,st){
+ if(row.stopped_at||row.superseded_at||!row.signup_consent_at)return;
+ if(!row.welcome_sent_at){
+  const now=new Date().toISOString();
+  await sql(SESS,{id:"eq."+row.id},{welcome_sent_at:now,updated_at:now},"PATCH");
+  await sendSms(row.phone_e164,"Anthos Deep Dive 4.1: Your private Jack/Jill coaching adventure is beginning. You opted in during registration. There are 6 story scenes and 4 private coaching choices. Reply STOP to cancel or HELP for help. Frequency varies; message/data rates may apply.");
+  row.welcome_sent_at=now;
+ }
  const scene=lastShared(st);
  if(scene&&row.last_sent_scene<scene.phase_index){
   // Claim before sending; delivery is at-most-once per phase for this small pilot.
@@ -214,7 +221,7 @@ async function deliverShared(row,st){
 }
 async function progressRoom(roomId){
  const list=await currentSessions(roomId);
- if(list.length!==2||list.some(x=>!x.join_consent_at||x.stopped_at))return false;
+ if(list.length!==2||list.some(x=>!x.signup_consent_at||x.stopped_at||x.superseded_at))return false;
  const jack=list.find(x=>x.role==="jack"),jill=list.find(x=>x.role==="jill");
  if(!jack||!jill)return false;
  const jt=unprotectSmsToken(jack.encrypted_token),lt=unprotectSmsToken(jill.encrypted_token);
@@ -239,7 +246,8 @@ async function progressRoom(roomId){
  return true;
 }
 async function findActivePhone(phone){
- const matches=await sql(SESS,{phone_e164:"eq."+phone,order:"created_at.desc",limit:"1",select:"*"})||[];
+ const matches=await sql(SESS,{phone_e164:"eq."+phone,stopped_at:"is.null",
+  superseded_at:"is.null",order:"created_at.desc",limit:"1",select:"*"})||[];
  return matches[0]||null;
 }
 async function handleReply(row,txt,eventId){
@@ -296,19 +304,17 @@ export async function receivePilotSms({event,raw,headers}){
    return {ok:true,unknown:true};
   }
   if(/^STOP(?:ALL)?$/i.test(message)){
-   await sql(SESS,{phone_e164:"eq."+phone},{stopped_at:new Date().toISOString(),join_consent_at:null},"PATCH");
-   await sendSms(phone,"Anthos: You are opted out of this SMS pilot. No further coaching texts will be sent. Reply JOIN to start again.");
+   await sql("anthos_jj41_sms_suppression",{on_conflict:"phone_e164"},
+    {phone_e164:phone,stopped_at:new Date().toISOString()},"POST",
+    "resolution=merge-duplicates,return=representation");
+   await sql(SESS,{phone_e164:"eq."+phone},
+    {stopped_at:new Date().toISOString(),updated_at:new Date().toISOString()},"PATCH");
+   await sendSms(phone,"Anthos: You're opted out of Deep Dive texts. To restore texts, update your consent through your Anthos account. No more coaching texts will be sent.");
   }else if(/^HELP$/i.test(message)){
-   await sendSms(phone,"Anthos 4.1 pilot support: anthos.love. Reply JOIN to start, PAUSE to pause, or STOP to opt out. Message and data rates may apply.");
-  }else if(/^JOIN$/i.test(message)){
-   await sql(SESS,{id:"eq."+row.id},{join_consent_at:new Date().toISOString(),stopped_at:null},"PATCH");
-   const token=unprotectSmsToken(row.encrypted_token);
-   await join(token,row.role==="jack"?"Husband":"Wife");
-   await sendSms(phone,"Anthos Deep Dive 4.1: You're opted in to private fictional character coaching. 6 shared scenes and 4 private coaching turns. Frequency varies, msg & data rates may apply. STOP to cancel, HELP for help.");
-   const progressed=await progressRoom(row.room_id);
-   if(!progressed)await sendSms(phone,"Waiting for your spouse to text JOIN from their registered phone.");
-  }else if(!row.join_consent_at||row.stopped_at){
-   await sendSms(phone,"To join the private Anthos Deep Dive 4.1 pilot, reply JOIN. Reply STOP to decline.");
+   await sendSms(phone,"Anthos Deep Dive 4.1: Help at anthos.love. Your texts are private coaching. Reply PAUSE to pause, RESUME to continue, or STOP to opt out. Message/data rates may apply.");
+  }else if(!row.signup_consent_at||row.stopped_at||row.superseded_at){
+   // Never use texting as a back door around verified registration or STOP.
+   return {ok:true,blocked:true};
   }else await handleReply(row,message,eventId);
   await sql(EVENTS,{provider_event_id:"eq."+eventId},{processing_state:"complete",updated_at:new Date().toISOString()},"PATCH");
  }catch(e){
