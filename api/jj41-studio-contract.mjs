@@ -111,7 +111,7 @@ export const MICROWAVE_SOURCE_VOICES={
     action:"Jack says, 'The savings are our safety net. I should've fixed this thing, and I didn't. But neither of us gets to make a four-hundred-dollar decision alone.'",
     resist:"Jack repeats the bank balance without acknowledging Jill's ruined dinners. She moves away from him."},
    ask:{ack:"I'll ask Jill to help weigh repair against replacement without treating my question as her agreement.",
-    action:"Jack asks, 'If I get a real answer on repairing the old one tomorrow, would you look at both options with me? You can say no. I just don't want us making this call angry.'",
+    action:"Jack says, 'Tomorrow I'll find out if the old one is repairable. Will you leave this box sealed until we know? Neither of us should make this decision alone.'",
     resist:"Jack asks Jill to choose but rejects her answer before she finishes. She puts her hand on the new box."}
   }
  },
@@ -135,7 +135,7 @@ export const MICROWAVE_SOURCE_VOICES={
     action:"Jill says, 'I need a working microwave. I also hear you about the savings. Let's find out whether the old one can be fixed before we decide about this box.'",
     resist:"Jill lays down a timetable Jack never agreed to. He says, 'You don't get to decide for both of us again.'"},
    ask:{ack:"I'll invite Jack to make the actual decision with me; I won't call a proposal an agreement.",
-    action:"Jill asks, 'Will you actually check the old one tomorrow? If you will, I'll hold off on opening this. I want us to decide, not just win an argument.'",
+    action:"Jill says, 'I'll leave it sealed tonight if you'll actually check the old one tomorrow. Will you do that? Not another Saturday.'",
     resist:"Jill says she wants Jack's input but starts tearing at the tape while he is answering."}
   }
  }
@@ -171,8 +171,8 @@ export function sourceMicrowaveOutcome(episode,phase,history,outcome){
 export const MICROWAVE_SOURCE_SCENES=Object.freeze([
   "Thursday at 7:15 p.m., Jack checks the emergency savings on his cracked phone as Jill enters their kitchen carrying a boxed $400 over-the-range microwave. The old one has been dead for three weeks, and his handwritten 'I'LL FIX IT SATURDAY' note is still stuck to it. Jill sets the sealed box on the counter. 'Four hundred dollars?' Jack says. 'Three Saturdays,' Jill answers. 'I'm tired of reheating dinner on the stove.' He looks from his phone to the note. Neither has heard the other's full reasoning.",
   "At 7:17, Jack sets his cracked phone beside the new box. 'You saw the charge,' Jill says. 'Did you also see your note on the old microwave?' Jack looks at the three-week-old SATURDAY promise. The new box is still sealed. He faces Jill rather than walking away.",
-  "At 7:20, Jill slides the receipt toward Jack and points to the stove, where she has reheated meals for three weeks. 'That's how we've been managing,' she says. Jack has not moved the new box. The SATURDAY note remains on the old microwave, and Jill waits for him to acknowledge that it was his promise.",
+  "At 7:20, Jill slides the receipt across the counter. Jack looks at the amount, then at the dead over-the-range microwave with his SATURDAY note. He puts one hand flat on the counter and waits. The replacement is still sealed. Jill turns to answer him.",
   "At 7:25, Jack stands beside the dead over-the-range microwave and rereads the SATURDAY note. Jill is by the unopened replacement. 'I don't need a speech,' she says. 'I need an answer about what you will actually do.' Jack looks at the note, then directly at her.",
   "At 7:30, the sealed $400 box sits on the same kitchen counter. Jill rests her hand near its tape. Jack stays beside the broken old microwave, waiting for her response.",
-  "At 7:33, Jack's cracked phone rests beside the old microwave's SATURDAY note. Jill is still in the kitchen. The purchase already happened, the repair was neglected, and neither can erase either fact now. What they do with the new appliance must follow from their actual choices tonight."
+  "At 7:33, Jill clicks off the stove and puts the saucepan in the sink. Jack reaches toward the SATURDAY note still taped to the dead microwave. The replacement sits on the same counter. His cracked phone lies beside the $400 receipt. For a moment the kitchen is quiet enough to hear the stove vent stop rattling."
 ]);
