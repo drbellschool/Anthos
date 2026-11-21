@@ -136,7 +136,7 @@ export const MICROWAVE_SOURCE_VOICES={
     resist:"Jill lays down a timetable Jack never agreed to. He says, 'You don't get to decide for both of us again.'"},
    ask:{ack:"I'll invite Jack to make the actual decision with me; I won't call a proposal an agreement.",
     action:"Jill says, 'I'll leave it sealed tonight if you'll actually check the old one tomorrow. Will you do that? Not another Saturday.'",
-    resist:"Jill says she wants Jack's input but starts tearing at the tape while he is answering."}
+    resist:"Jill waves off Jack's answer. 'You're just going to say Saturday again.' He stops talking. She keeps her hand off the tape."}
   }
  }
 };
@@ -160,10 +160,10 @@ export function sourceMicrowaveOutcome(episode,phase,history,outcome){
  if(phase===5){
   if(openRequest)return "The tape hangs loose from the box. Jack puts his cracked phone face down. Jill doesn't take back her choice. Neither can pretend the unopened-box decision is still available.";
   if(outcome==="mutual")return "Jack folds his old SATURDAY note into his pocket rather than leaving it on the broken unit. Jill moves the receipt next to his phone. Neither smiles, but both leave the tape untouched.";
-  if(outcome==="jack_ready")return "Jack keeps his repair note instead of hiding it. Jill turns back toward the stove. The box stays sealed, but his proposed next step is still unaccepted.";
+  if(outcome==="jack_ready")return "Jack pulls the SATURDAY note from the old microwave and folds it once. Jill turns back toward the stove. The box stays sealed; his proposed plan is still unaccepted.";
   if(outcome==="jill_ready")return "Jill leaves the receipt where Jack can see it. He doesn't touch the box. Her offer stands without his agreement.";
   if(outcome==="partial")return "Jill clears a plate from the stove. Jack folds the Saturday note without putting it back. The box stays sealed; they have not reached a shared decision.";
-  return "Jack keeps the old SATURDAY note in his hand. Jill sets down the dish towel. The new microwave stays sealed, and neither pretends the argument is over.";
+  return "Jack peels the SATURDAY note from the dead microwave and holds it in his fist. Jill leaves the saucepan in the sink. The new box stays sealed, and neither has settled the argument.";
  }
  return "";
 }
