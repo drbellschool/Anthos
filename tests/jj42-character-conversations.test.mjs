@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {
- JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,validCharacterMessage42,
+ JJ42_DAYS,buildConversation42,isConversation42,renderConversation42,renderCharacterMessage42,classifyAdvice42,validCharacterMessage42,
  parseLedger42,sophiaConversation42,nextWeekSchedule,due42,weeklyRehearsal42
 } from "../api/jj42-conversations.mjs";
 
@@ -187,4 +187,31 @@ test("model failures, bad facts or too-short texts fall back to verified check-i
   })
  });
  assert.equal(tooShort.jillPrompt,out.jillPrompt);
+});
+
+
+test("bounded semantic classifier honors 'do not call, buy' without disclosing advice",async()=>{
+ const ep=create(),history=[],first=renderConversation42(ep,0,history);
+ history.push({role:"shared",kind:"scene",phase_index:0,body:first.scene},
+  {role:"jill",kind:"coach",phase_index:0,body:"Don't call Jack first. Buy it."});
+ const observed=[],fetchImpl=async(_,options)=>{
+  const req=JSON.parse(options.body);observed.push(req);
+  const value=req.text.format.name==="jj42_action_choice"?{action:"buy"}:{
+   message:"Man, Jill bought a microwave today and I found out through our emergency savings. I should have repaired the old one three Saturdays ago. I believe in doing what I say, and I did not. Still, four hundred dollars from our safety net without a call bothers me. What should I say to her first?"};
+  return {ok:true,async json(){return {output:[{content:[{type:"output_text",text:JSON.stringify(value)}]}]}}};
+ };
+ const out=await renderCharacterMessage42(ep,1,history,{
+  apiKey:"mock-only",fetchImpl
+ });
+ const actual=parseLedger42(out.scene);
+ assert.equal(actual.state.purchase,"bought_unannounced");
+ assert.match(out.jackPrompt,/Jill bought a microwave/);
+ assert.equal(observed.length,2);
+ assert.equal(JSON.parse(observed[0].input).coachText,"Don't call Jack first. Buy it.");
+ assert.ok(observed[0].text.format.schema.properties.action.enum.includes("buy"));
+ assert.equal(observed[1].store,false);
+ const fallback=await classifyAdvice42(0,"Call Jack first.",{
+  apiKey:"mock-only",fetchImpl:async()=>{throw Error("offline")}
+ });
+ assert.equal(fallback,"consult");
 });
