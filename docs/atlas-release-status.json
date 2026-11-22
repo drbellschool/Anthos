@@ -1,0 +1,66 @@
+{
+  "contractVersion": "anthos-4.3-release-gate-v1",
+  "releaseAllowed": false,
+  "lastReviewed": "2026-11-22",
+  "note": "Not ready. The source of truth is tested code, transactional persistence, consent-verified authenticated integration, and real-model quality evidence—not the presence of a mock UI.",
+  "gates": [
+    {
+      "id": "G1",
+      "title": "Episode skill opportunities",
+      "status": "blocked",
+      "evidence": []
+    },
+    {
+      "id": "G2",
+      "title": "Coaching contingent causality",
+      "status": "partial",
+      "evidence": [
+        "tests/jj43-developmental.test.mjs"
+      ]
+    },
+    {
+      "id": "G3",
+      "title": "Persistent four-subject scored observations",
+      "status": "blocked",
+      "evidence": [
+        "supabase/migrations/20261122130000_insight_atlas_foundation.sql"
+      ]
+    },
+    {
+      "id": "G4",
+      "title": "Enduring score influences next actual dialogue",
+      "status": "blocked",
+      "evidence": []
+    },
+    {
+      "id": "G5",
+      "title": "Incidental evidence persists and can affect later stories",
+      "status": "blocked",
+      "evidence": [
+        "api/insight-atlas-model.mjs"
+      ]
+    },
+    {
+      "id": "G6",
+      "title": "Authenticated two-coach MAXQDA-style Atlas",
+      "status": "blocked",
+      "evidence": [
+        "insight-atlas/index.html"
+      ]
+    },
+    {
+      "id": "G7",
+      "title": "Yearlong couple-scoped rollover and safe retention",
+      "status": "blocked",
+      "evidence": []
+    },
+    {
+      "id": "G8",
+      "title": "8/10 certified real story quality under multiple coaching paths",
+      "status": "blocked",
+      "evidence": [
+        "api/insight-atlas-model.mjs"
+      ]
+    }
+  ]
+}
