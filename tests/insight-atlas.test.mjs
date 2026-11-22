@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {skillMovement,incidentalIntimacyReview,applyObservationOnce,memoryContext,repeatedAnnouncement,qualityGate}
  from "../api/insight-atlas-model.mjs";
 
@@ -57,4 +58,28 @@ test("8/10 gate is strict; never a promise of perfect conversation",()=>{
  assert.equal(qualityGate({scores:{...all,nonrepetition:6}}).pass,false);
  assert.equal(qualityGate({scores:all,criticalFailures:["fabricated-repair"]}).pass,false);
  assert.equal(qualityGate({scores:all,requiredRefs:["msg-1"],evidenceRefs:[]}).pass,false);
+});
+
+test("Insight Atlas webpage links to a valid preview script and accurately describes demo data",()=>{
+ const html=readFileSync(new URL("../insight-atlas/index.html",import.meta.url),"utf8");
+ const js=readFileSync(new URL("../insight-atlas/atlas.js",import.meta.url),"utf8");
+ const home=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.match(html,/Insight Atlas/);
+ assert.match(html,/Fictional demonstration only/);
+ assert.match(html,/Both coaching streams|both coaching streams/i);
+ assert.match(home,/href="\/insight-atlas\/"/);
+ assert.match(js,/i-consent-boundaries/);
+ assert.match(js,/i-nontransactional/);
+ assert.doesNotThrow(()=>new Function(js));
+});
+test("Atlas migration is service-only, couple-scoped and quality-pass constrained",()=>{
+ const sql=readFileSync(new URL("../supabase/migrations/20261122130000_insight_atlas_foundation.sql",import.meta.url),"utf8");
+ const seed=readFileSync(new URL("../supabase/migrations/20261122130100_insight_atlas_skill_catalog.sql",import.meta.url),"utf8");
+ assert.match(sql,/foreign key \(episode_id,couple_id\)/);
+ assert.match(sql,/foreign key \(evidence_id,couple_id,subject,skill_id\)/);
+ assert.match(sql,/husband_review_consent_at/);
+ assert.match(sql,/wife_review_consent_at/);
+ assert.match(sql,/overall is not null and overall>=8/);
+ assert.match(sql,/revoke all on public\.anthos_atlas_episodes/);
+ assert.equal((seed.match(/\('g-|\('s-|\('a-|\('i-/g)||[]).length,27);
 });
