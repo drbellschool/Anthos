@@ -1,3 +1,5 @@
+> **Product decision (November 22, 2026):** Insight Atlas is shared within an authenticated couple by default. No per-spouse Deep Dive consent or review-unlock step. Couple isolation and account security remain mandatory.
+
 # Anthos 4.3+ · Insight Atlas and 8/10 Story Quality Contract
 **State:** Foundation implemented on a feature branch; real-couple integration and annual migration of production stories remain gated.
 **Purpose:** A unique, evolving Jack & Jill world per couple, supported by evidence-backed coaching and fictional-character skill trajectories.
@@ -12,7 +14,7 @@
 6. Character memories persist **per couple** for the year (and optionally into subsequent years), and may alter future behavior. A recalled event is **not** new evidence and cannot be scored twice.
 7. Humor is encouraged; do not automatically penalize explicit absurdity, quoted bad advice, sarcasm or a refusal. A genuine transactional demand/pressure has a low observation and a safety flag; violating consent is an independent categorical blocker.
 8. Character free will: advice may be followed, resisted, misinterpreted, or declined, with believable consequences. The six phases inform opportunities, not a preset moral or predetermined rising score.
-9. Both spouses may review both complete coaching streams **only after** explicit informed mutual consent, completion, and authorization. Do not retroactively expose old private coaching from existing pilots.
+9. Insight Atlas is a **shared couple workspace from the beginning**: both authenticated spouses can review both coaching streams during and after each Deep Dive, with no spouse-to-spouse consent, unlock, approval button or separate permission ceremony. Keep strong authorization against outsiders and never automatically import unrelated/unlinked legacy pilots.
 10. An 8/10 standard means a tested release threshold, not a guarantee of all possible outputs. A hard guardrail can block critical failure and offer a safe retry/review rather than silently claiming success.
 
 ## 1. Production data model
@@ -20,7 +22,7 @@ Added additive service-only tables in `20261122130000_insight_atlas_foundation.s
 
 | Table | Purpose / key |
 |---|---|
-| `anthos_atlas_episodes` | Couple, source room, story, version, completion, explicit per-spouse review consent/unlock |
+| `anthos_atlas_episodes` | Couple, source room, story and engine version; shared by authenticated couple members without review unlock |
 | `anthos_atlas_skill_catalog` | Stable, research-attributed Anthos skill IDs and colors (27) |
 | `anthos_atlas_skill_states` | Four subjects × skills × couple; decimal 1–5 yearlong state |
 | `anthos_atlas_evidence` | Source-linked, timestamped source quote, actor, coaching/character distinction, observed rubric score/confidence, safety marker |
@@ -55,7 +57,7 @@ Every Atlas plot point opens:
 - whether it was an episode-selected skill or incidental observation;
 - a distinct human-friendly Sophia memo that does not claim causation without sufficient evidence.
 
-**Visibility:** while episode is ongoing, each spouse sees only their own coaching text. At completion, a shared-review unlock requires both opt-in timestamps and eligible couple-membership checks. Tell both spouses about eventual mutual visibility **before** they submit coaching. Old pilot responses without prior disclosure are not shared without fresh explicit agreement. Couple dashboard retrieves a **server-constructed, authorized** transcript and never exposes service-role keys.
+**Visibility:** the website's Insight Atlas shows both coaching streams to both authenticated members of the same couple from the start of the episode. Character-specific text delivery can still use separate Jack/Jill channels for storytelling, but neither coach's text is a secret from their spouse on the website. No checkbox, opt-in, unlock, or final-scene permission step. Enforce couple membership at every API request; do not automatically attach unrelated/legacy pilot conversations. Couple dashboard retrieves a **server-constructed, authorized** transcript and never exposes service-role keys.
 
 ## 4. Quality Lab release standard (target >=8/10)
 Score each dimension 0–10 with source evidence:
@@ -72,7 +74,7 @@ Score each dimension 0–10 with source evidence:
 
 **Pass:** mean >=8.0, each dimension >=7.0, no critical failures, all required evidence IDs resolved. A missing quality dimension is **not a pass**. Review failures against a named engine version, fix the underlying cause, then retest.
 
-**Hard blockers:** duplicated announcement presented as new, hallucinated purchase/repair/appointment, invented conversation with other spouse, AI claiming coaching advice was enacted without world event, forced positive movement, leaked private transcript before unlock, coercion treated as rewarded/persuasive, missing source citation, cross-couple memory contamination.
+**Hard blockers:** duplicated announcement presented as new, hallucinated purchase/repair/appointment, invented conversation with other spouse, AI claiming coaching advice was enacted without world event, forced positive movement, transcript access by an outsider or different couple, coercion treated as rewarded/persuasive, missing source citation, cross-couple memory contamination.
 
 **Staged QA:**
 - deterministic unit tests of skill movement, citation requirement, no double-scoring, the Thursday/Friday duplicate, humor/negation/consent distinctions, same-couple memory retrieval and 8/10 gate;
@@ -87,7 +89,7 @@ Score each dimension 0–10 with source evidence:
 
 **Remaining production integration**:
 - real couple-account session and membership verification;
-- consent collection, audit, revocation/retention workflow and secure share gating;
+- secure account access, couple membership verification, retention/export/deletion and audit logging;
 - enrollment/room-to-couple linking (no global or user-email matching);
 - archive coach turns and canonical events when completed;
 - transactional state updater using this codebook;
