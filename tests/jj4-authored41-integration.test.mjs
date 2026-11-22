@@ -510,7 +510,8 @@ test("open 4.3: unsolicited husband text, repeated private replies, simultaneous
   assert.match(closing,/made the call/);
   assert.doesNotMatch(closing,/our wives were talking/);
   assert.equal(fx.messages.filter(x=>x.kind==="coach").length,0);
-  assert.ok(end.messages.every(m=>m.role==="jack"));
+  assert.ok(end.messages.filter(m=>String(m.id).startsWith("open-")).every(m=>m.role==="jack"));
+  assert.ok(end.messages.every(m=>m.body!=="Wait. Don't buy it yet."&&m.body!=="Talk to Jack before buying."));
  }finally{
   globalThis.fetch=oldFetch;
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
