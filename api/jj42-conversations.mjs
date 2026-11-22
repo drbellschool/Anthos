@@ -565,15 +565,15 @@ function renderOpenDay43(episode,day,history){
  }
  if(recipient==="jack")message=(state.purchase==="bought_unannounced"?"Jill bought the $400 microwave without talking to me first. ":state.box!=="absent"?"Jill bought the replacement; we haven't established an agreement. ":"Jill and I still need to decide what to do about the microwave. ")+
   (state.repairCalled?"I've made the repair call, but don't have a confirmed price or fix yet. ":state.repairPlan?"I've got a repair call planned. ":"I still haven't made a repair call. ")+"What would you do next?";
- const opportunity=weeklyOpportunity(day);
- // The daily check-in offers a skill opportunity; it never awards points.
+ const opportunity=day<5?weeklyOpportunity(day):null;
+ // Saturday is the closure, not a sixth skill-opportunity day.
  // Keep the actual prompt in Jack/Jill's natural voice without skill labels.
  if(message&&day===1)message=message.replace(/What would you do (?:next|with the next conversation|with this)\?$/i,
   "How would you bring this up without starting with blame?");
  if(message&&day===2)message=message.replace(/What would you do (?:next|with the next conversation|with this)\?$/i,
   "How can I honestly hear the other perspective without pretending I agree?");
  const scene=JSON.stringify({version:JJ42_VERSION,developmental:JJ43_VERSION,day,label:JJ42_DAYS[day],recipient,event,assessment,
-  opportunitySkills:opportunity.skills,opportunityCue:opportunity.promptCue,
+  opportunitySkills:opportunity?.skills||[],opportunityCue:opportunity?.promptCue||null,
   state:{...state,events:state.events.slice(-5)}});
  if(scene.length>2500)throw Error("Open story event too long.");
  return {scene,recipient,jackPrompt:recipient==="jack"?message:"",jillPrompt:recipient==="jill"?message:""};
