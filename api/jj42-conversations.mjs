@@ -575,7 +575,11 @@ function acceptedEvent43(episode,role,action,r,before,day){
 export async function prepareOpenTurn43(episode,role,day,history,text,requestKey,options={}){
  if(!OPEN_ACTIONS43[role]||!Number.isInteger(day)||day<0||day>4)throw Error("Invalid open conversation.");
  const before=currentOpenWorld43(episode,history,day);
- const [action,coaching]=await Promise.all([classifyOpen43(role,text,before,options),scoreCoaching43(text,options)]);
+ const priorSameCoach=openTurns43(episode).some(t=>t.role===role&&normEvent43(t.body)===normEvent43(text));
+ const [action,coaching]=await Promise.all([
+  classifyOpen43(role,text,before,options),
+  priorSameCoach?Promise.resolve(ratingObject43([null,null,null])):scoreCoaching43(text,options)
+ ]);
  const report=/\b(?:our wives were talking|our husbands were talking|my (?:wife|husband) (?:said|told me)|jill told my wife|jack told my husband)\b/i.test(text);
  const skillView=options.atlasContext||null;
  const proposed=(before.strain||0)>=5&&action==="own"?"chat":action;
@@ -592,14 +596,19 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  if(!r.event&&openTurns43(episode).some(t=>t.role===role&&t.reply===r.reply))
   r.reply=followUp43(role,day,before,"repeated");
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
- const [reply,incidentalObservations]=await Promise.all([
+ const [rawReply,incidentalObservations]=await Promise.all([
   phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options),
   classifyIncidental43(text,r.event,{
    ...options,selected:episode.authored43?.selectedSkills||SKILL_IDS43
   })
  ]);
+ // Exact repeated outgoing text never gets delivered as fresh dialogue.
+ // The replacement only asks about unresolved, verified facts.
+ const reply=openTurns43(episode).some(t=>t.role===role&&normEvent43(t.reply)===normEvent43(rawReply))?
+  followUp43(role,day,r.state,"repeated"):rawReply;
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
-  incidentalObservations,
+  duplicateCoaching:priorSameCoach,
+  incidentalObservations:priorSameCoach?incidentalObservations.filter(x=>x.lane!=="coaching"):incidentalObservations,
   reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:(r.event||Object.values(coaching).some(Number.isInteger))?{
    role,recommended:action,enacted,coaching,behavior:r.behavior,
    coachingStrength:weightedSkillRating(coaching,emphasis),behaviorStrength:weightedSkillRating(r.behavior,emphasis),
