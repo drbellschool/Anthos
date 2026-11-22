@@ -518,32 +518,152 @@ function openEvent43(state,role,action,day,emphasis){
  if(event){n.events=[...n.events,event].slice(-5);const w=weightedSkillRating(behavior,emphasis);n.strain=Math.max(0,Math.min(6,(n.strain??1)+(w===null?0:w<=2?2:w>=4?-1:0)));}
  return {state:n,event,reply,behavior};
 }
-// A model may phrase an immediate reaction using only this character's own
-// conversation. A canonical action is rendered separately, never generated
-// by this model. When a reaction fails checks, use the verified reply.
-async function phraseOpenReply43(role,text,before,turn,ownHistory,{apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null}={}){
- if(!apiKey)return turn.reply;
- try{
-  const res=await fetchImpl("https://api.openai.com/v1/responses",{method:"POST",
-   headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
-   body:JSON.stringify({model,store:false,max_output_tokens:180,
-    instructions:"Write a brief, natural first-person reaction from the fictional husband Jack or wife Jill to their own friend. Respond directly to their latest words, including questions, jokes or voluntarily shared reports. Reports are not verified facts. Do not mention private instructions or give relationship lessons. Do NOT invent any action, quote, third-party message, appointment, spending, repair, purchase, or future promise. You may acknowledge a reported concern without claiming it is true. Keep the reaction to 1–2 sentences and under 45 words. A separate verified reply will describe any actual action. If there is nothing else to add, return an empty reaction.",
-    input:JSON.stringify({character:role,latestText:text,ownConversation:ownHistory.slice(-4).map(x=>({text:x.body,reply:x.reply})),knownFacts:{purchase:before.purchase,box:before.box,repairPlan:before.repairPlan,repairCalled:before.repairCalled,repair:"broken"},verifiedReply:turn.reply,
-   ...(atlasContext?{establishedSkills:atlasContext.characterSkills,
-    relevantPriorEvents:atlasContext.rememberedEvents,
-    direction:"React naturally, consistent with existing tendencies and the consequence of the last coach advice. Never announce an old event as newly completed. Do not announce skill ratings or force improvement."}:{})}),
-    text:{format:{type:"json_schema",name:"jj43_open_reaction",strict:true,schema:{type:"object",additionalProperties:false,required:["reaction"],properties:{reaction:{type:"string"}}}}}}),
-   signal:AbortSignal.timeout(7000)});
-  if(!res.ok)return turn.reply;
-  const data=await res.json(),raw=(data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("");
-  const reaction=String(JSON.parse(raw).reaction||"").trim();
-  // Block factual assertions involving a potentially new story event, even
-  // if the model has been instructed to write only a reaction.
-  if(!reaction||reaction.length>300||reaction.split(/\s+/).length>45||
-    /[\r\n"“”]/.test(reaction)||
-    /\b(?:bought|purchased|spent|ordered|opened|unboxed|installed|repaired|fixed|called|phoned|booked|scheduled|quoted|promised|told|said|texted|agreed|returned|refunded|delivered|paid|sophia|gottman|schnarch|system prompt|as an ai)\b/i.test(reaction))return turn.reply;
-  return reaction+" "+turn.reply;
- }catch{return turn.reply}
+// The existing 4.3 state machine commits facts and actions; the model writes
+// the WHOLE message in the character's voice. Model text is never scored as
+// evidence or allowed to create a new event. No second Anthos engine/API.
+export function speechAct43(text){
+ const t=words(text);
+ if(reportedOnly43(t))return "unverified-report";
+ if(/\b(?:sex|sexual|bedroom)\b.{0,100}\b(?:earn|favor|payment|owe)\b|\b(?:earn|favor|payment|owe)\b.{0,100}\b(?:sex|sexual|bedroom)\b/.test(t))
+  return "transactional-intimacy";
+ if(/\b(?:joke|joking|kidding|funny|laugh|holiday|comedian|pun)\b/.test(t))
+  return "harmless-humor";
+ if(/^\s*(?:did|have|has|is|was|what|who|why|how|when|where|can|could|would)\b/.test(t)&&t.endsWith("?"))
+  return "question";
+ return "advice";
+}
+const normalized43=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const characterVoice43=role=>role==="jack"?{
+ voice:"Dry, practical, sometimes sheepish or defensive; uses specific observations rather than therapy language. Humor is understated, never compulsory.",
+ coreNeed:"Reliable commitments and protection of family emergency savings",
+ flaw:"He overpromises repairs and can become defensive when cornered.",
+ relationship:"He cares about Jill; her frustration is legitimate even if the surprise purchase bothers him."
+}:{
+ voice:"Candid, perceptive, independent and warm beneath frustration. Humor can be pointed but not contemptuous.",
+ coreNeed:"A working appliance and an equal say in household priorities",
+ flaw:"She gets tired of delay and can act without checking with Jack.",
+ relationship:"She cares about Jack; she can understand his budget concern without pretending her inconvenience is trivial."
+};
+const verifiedOnly43=(text,yes)=>yes?null:text;
+// Structured validation is deliberately conservative. It protects canonical
+// facts, not every possible nuance of human phrasing. Failure gets one retry.
+export function validateOpenReply43(candidate,{
+ role,coachText,before,after,event,priorReplies=[],coachReference,replyReference
+}={}){
+ const m=String(candidate||"").trim();
+ const issues=[];
+ if(!["jack","jill"].includes(role))issues.push("unknown-character");
+ if(!m||m.length<25||m.length>950||m.split(/\s+/).length>110||/[\r\n]{3,}/.test(m))
+  issues.push("sms-length");
+ if(/^(?:jack|jill|sophia)\s*:/i.test(m)||
+   /\b(?:as an ai|language model|system prompt|gottman|schnarch|scorecard|likert|primary skill|supporting skill|therapist)\b/i.test(m))
+  issues.push("role-or-therapy-leak");
+ if(priorReplies.some(x=>normalized43(x)===normalized43(m)))
+  issues.push("replayed-dialogue");
+ if(coachReference!==undefined){
+  if(!coachReference||!words(coachText).includes(words(coachReference)))issues.push("unproven-coach-reference");
+  if(!replyReference||!words(m).includes(words(replyReference)))issues.push("unproven-response-reference");
+ }
+ const state=after||before||{};
+ const negatedPhysical=/\b(?:haven't|hasn't|didn't|never|not|won't|don't|do not|keep|leave)\s+(?:\w+\s+){0,4}(?:open|opened|unbox|unboxed|install|installed)\b/i.test(m);
+ if(state.purchase==="bought_unannounced"&&
+    /\b(?:just bought|bought another|purchased another|went back and bought|ordered another|going to buy a second)\b/i.test(m))
+  issues.push("repeated-purchase");
+ if(state.box==="sealed"&&
+    /\b(?:opened|unboxed|installed|tore open|peeled off the tape)\b/i.test(m)&&!negatedPhysical)
+  issues.push("invented-opening");
+ if(state.box==="opened"&&/\b(?:still sealed|still unopened|haven't opened|hasn't opened|never opened)\b/i.test(m))
+  issues.push("reversed-box");
+ if(state.repair==="broken"&&
+    /\b(?:is fixed|is repaired|works again|working again|repair is finished|repair was completed|got it repaired|finally fixed the microwave)\b/i.test(m))
+  issues.push("invented-repair");
+ if(!state.repairCalled&&
+    /\b(?:i|we|he|she|jack|jill)\s+(?:already |actually |just )?(?:called|phoned|spoke to|contacted)\s+(?:a |the )?(?:repair\s+)?(?:shop|technician|repairman|company)\b/i.test(m))
+  issues.push("invented-repair-call");
+ if(!/\b(?:call|contact)(?:ed)?\s+(?:a |the )?(?:repair )?(?:shop|technician)\b/i.test(String(event||""))&&
+    /\b(?:just called|finally called|called today|called this morning)\b/i.test(m))
+  issues.push("new-call-outside-ledger");
+ if(/\b(?:confirmed (?:repair )?(?:price|estimate|appointment)|the (?:shop|technician) (?:quoted|told us|said it would cost)|we have (?:a )?(?:refund|appointment|repair quote)|(?:received|got) (?:the )?refund|(?:returned|exchanged) the microwave)\b/i.test(m))
+  issues.push("unverified-external-fact");
+ // Conversations with Jack/Jill must be canonical events, not invented dialogue.
+ if(!event&&/\b(?:i|we)\s+(?:just |already )?(?:told|asked|texted|apologized to|talked to|confronted)\s+(?:jack|jill|him|her|my (?:husband|wife))\b/i.test(m))
+  issues.push("invented-interpersonal-event");
+ if(state.jackOwnsDelay===false&&role==="jack"&&!event&&/\bi (?:already |finally )?apologized\b/i.test(m))
+  issues.push("invented-apology");
+ if(/\b(?:she said|he said|jill said|jack said)\b/i.test(m)&&
+    !/\b(?:she said|he said|jill said|jack said)\b/i.test(String(event||""))&&
+    !/\b(?:you said|you told me|heard|apparently|supposedly|rumor)\b/i.test(m))
+  issues.push("unverified-quote");
+ return {ok:issues.length===0,issues,wordCount:m?m.split(/\s+/).length:0};
+}
+async function phraseOpenReply43(role,text,before,turn,ownHistory,{
+ apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null
+}={}){
+ if(!apiKey)return {reply:turn.reply,source:"offline-template",reason:"model-not-configured",attempts:0};
+ const act=speechAct43(text);
+ const priorReplies=ownHistory.map(x=>x.reply).filter(Boolean);
+ const context={
+  character:role,identity:characterVoice43(role),
+  coachMessage:String(text||"").slice(0,900),coachSpeechAct:act,
+  priorCharacterMessages:ownHistory.slice(-10).map(x=>({
+   messageFromCoach:x.body,replyToCoach:x.reply,verifiedAction:x.event||null
+  })),
+  factsBefore:before,factsAfter:turn.state,
+  verifiedEventThisTurn:turn.event||null,
+  enactedAction:turn.event?"an event was committed":"no new action committed",
+  // Keep model context from accumulating unverified coach claims as facts.
+  knownExternalFacts:{repairPrice:null,repairAppointment:null,refund:null,repairFinished:false},
+  currentEmotionalPressure:turn.state.strain??before.strain??2,
+  ...(atlasContext?{observedCharacterSkillScores:atlasContext.characterSkills,
+   rememberedVerifiedEvents:atlasContext.rememberedEvents||[]}:{}),
+  priorCompletedEvents:(before.events||[]).slice(-9),
+  caution:"Coaching is advice, not a verified event. Speak about the one committed action only. Never invent another offscreen conversation or outcome."
+ };
+ const instructions=[
+  "Write the ENTIRE next private SMS text in the FIRST PERSON as "+(role==="jack"?"Jack":"Jill")+" to their trusted friend, not a reaction prefix and not canned dialogue.",
+  "Stay inside the before/after world facts. The only NEW enacted event permitted is verifiedEventThisTurn. If null, you may reflect, resist, wonder, plan in thought, or joke to your friend, but not claim an action happened.",
+  "This character is a specific, flawed person with agency, not a marriage instructor. Respond in a way that unmistakably engages this particular coach message.",
+  "If the coach suggests harmless humor, attempt a situational joke in your TEXT TO THE FRIEND, or decline the joke in your own voice and explain why. Do NOT imply you told the joke to Jill or Jack unless the verified event says so.",
+  "If the coach suggests pressure, blame or transactional intimacy, show the verified character choice and its real emotional consequence without normalizing coercion.",
+  "An attributed rumor is not a fact or command. A question is not permission to fabricate a completed event.",
+  "Do not mechanically agree with advice. Include defensiveness, doubt, stubbornness or embarrassment when supported by temperament and current tension.",
+  "No role label, scene directions, therapy jargon, skill names, scores, invented repairs, price quotes, refunds, newly bought appliances, or offscreen conversations.",
+  "Prefer 20–75 words, short natural SMS phrasing, no mandatory question or artificial punchline. Every reply should feel responsive, not like a summary or a rewritten template.",
+  "Output one original message. Include coachReference: an exact short passage from the coachMessage that you are responding to; include replyReference: an exact short passage from your message showing your response. Both must be literal substrings."
+ ].join(" ");
+ const format={type:"json_schema",name:"jj43_full_character_text",strict:true,
+  schema:{type:"object",additionalProperties:false,required:["message","coachReference","replyReference"],
+   properties:{message:{type:"string"},coachReference:{type:"string"},replyReference:{type:"string"}}}};
+ let lastIssue="generation-unavailable";
+ for(let attempt=1;attempt<=2;attempt++){
+  try{
+   const r=await fetchImpl("https://api.openai.com/v1/responses",{
+    method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
+    body:JSON.stringify({model,store:false,max_output_tokens:330,
+     instructions:instructions+(attempt===2?
+      " PRIOR RESPONSE REJECTED: "+lastIssue+". Repair those problems; do not reword the same fabricated fact.":""),
+     input:JSON.stringify({...context,
+      ...(attempt===2?{validationFeedback:lastIssue}:{} )}),text:{format}}),
+    signal:AbortSignal.timeout(8500)
+   });
+   if(!r.ok){lastIssue="model-http-"+r.status;continue}
+   const data=await r.json();
+   const raw=(data.output||[]).flatMap(x=>x.content||[])
+    .filter(x=>x.type==="output_text").map(x=>x.text).join("");
+   const candidate=JSON.parse(raw);
+   const verdict=validateOpenReply43(candidate.message,{
+    role,coachText:text,before,after:turn.state,event:turn.event,
+    priorReplies,coachReference:candidate.coachReference,replyReference:candidate.replyReference
+   });
+   if(verdict.ok)return {reply:candidate.message.trim(),source:"model-validated",
+    reason:null,attempts:attempt,coachReference:candidate.coachReference};
+   lastIssue=verdict.issues.join(", ");
+  }catch(e){lastIssue="model-generation-error";}
+ }
+ // Existing verified, fact-grounded fallback remains in place for outages,
+ // but is NOT counted as a successful humanlike model response.
+ return {reply:turn.reply,source:"verified-fallback",
+  reason:lastIssue,attempts:2};
 }
 
 // Hard constraints for the existing 4.3 world. No model-generated message
@@ -632,12 +752,13 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  if(!r.event&&openTurns43(episode).some(t=>t.role===role&&t.reply===r.reply))
   r.reply=followUp43(role,day,before,"repeated");
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
- const [rawReply,incidentalObservations]=await Promise.all([
+ const [rendered,incidentalObservations]=await Promise.all([
   phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options),
   classifyIncidental43(contextOnly?"":text,r.event,{
    ...options,selected:episode.authored43?.selectedSkills||SKILL_IDS43
   })
  ]);
+ const rawReply=rendered.reply;
  // Exact repeated outgoing text never gets delivered as fresh dialogue.
  // The replacement only asks about unresolved, verified facts.
  const priorReplies=new Set(openTurns43(episode).filter(t=>t.role===role).map(t=>normEvent43(t.reply)));
@@ -662,6 +783,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  if(!reply||priorReplies.has(normEvent43(reply)))
   throw Error("STORY BLOCKED: no new grounded character reply was available.");
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
+  replySource:rendered.source,replyModelAttempts:rendered.attempts,
+  replyValidationIssue:rendered.reason,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
   eventCode:r.event?candidateEventCode:null,duplicateCoaching:priorSameCoach,
   contextOnlyReport:contextOnly,
