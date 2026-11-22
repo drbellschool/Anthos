@@ -111,7 +111,7 @@ function mount(root,invite,options={}){
   // rebuilding on every poll erased drafts and stole focus mid-sentence.
   const nextKey=[
    state.role,state.version,state.selectedOption,state.joined,state.bothJoined,state.phaseIndex,state.stage,
-   state.needsReply,state.submitted,state.finished,state.canContinue,state.canText,
+   state.needsReply,state.submitted,state.finished,state.canContinue,state.canText,state.voiceMode,
    !!state.paused,(state.pausedBy||[]).join(","),
    // Another coach submitting is not a reason to steal this coach's focus.
    state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,
@@ -146,7 +146,9 @@ function mount(root,invite,options={}){
    if(state.pausedBy?.length){message("The story is paused.");oneAction("Refresh",refresh);return}
    if(state.canText){
     const character=state.character||"your friend";
-    message("Text "+character+" whenever you want. Your advice and questions can change the story.");
+    message(state.voiceMode==="verified-fallback"?
+     "Verified fallback dialogue is active in this environment; character replies may sound scripted. The existing OpenAI key is not enabled here.":
+     "Text "+character+" whenever you want. Their whole reply is AI-written from verified story facts.");
     const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;field.placeholder="Text "+character+"…";
     field.setAttribute("aria-label","Private text to "+character);
     field.value=draftAdvice;field.addEventListener("input",()=>{draftAdvice=field.value});
