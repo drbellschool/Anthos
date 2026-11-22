@@ -615,11 +615,25 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  // Exact repeated outgoing text never gets delivered as fresh dialogue.
  // The replacement only asks about unresolved, verified facts.
  const priorReplies=new Set(openTurns43(episode).filter(t=>t.role===role).map(t=>normEvent43(t.reply)));
+ const groundedAlternatives=[
+  followUp43(role,day,r.state,"repeated"),
+  role==="jack"?
+   "I can't erase three missed Saturdays by saying the right thing once. The hard part is deciding what actually happens with the repair.":
+   "That money has already left our savings. My next decision is how to handle Jack's concern without ignoring why I was fed up.",
+  role==="jack"?
+   "The old appliance still needs a solution, and no repair price is verified. What would a fair next step look like?":
+   "I know a sealed box doesn't settle the money question. I need a real plan, not another vague promise.",
+  role==="jack"?
+   "I'm worried about our savings and I know Jill has carried the inconvenience. Both facts matter.":
+   "I'm still upset about the missed repairs, but I understand that spending from savings is a serious choice.",
+  role==="jack"?
+   "I don't have a verified cost or a finished repair to report. What I can decide is how to speak to her about it.":
+   "Opening or waiting isn't the entire issue. We still haven't figured out how to make a shared decision."
+ ];
  const reply=priorReplies.has(normEvent43(rawReply))?
-  followUp43(role,day,r.state,"repeated"):rawReply;
- // Fail closed instead of sending an old line again, even after exhaustion
- // of the deliberately constrained offline fallback vocabulary.
- if(priorReplies.has(normEvent43(reply)))
+  groundedAlternatives.find(line=>!priorReplies.has(normEvent43(line))):rawReply;
+ // Fail closed rather than recycle a previous scripted line.
+ if(!reply||priorReplies.has(normEvent43(reply)))
   throw Error("STORY BLOCKED: no new grounded character reply was available.");
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
