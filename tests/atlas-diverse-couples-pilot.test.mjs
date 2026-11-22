@@ -557,9 +557,24 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
   incidental:x.incidentalMovements?.length||0,
   strain:x.final?.strain??null,box:x.final?.box??null,
   errors:x.errors.length,flags:x.flags}));
+ // Consistency is not story quality. Prevent green tests from hiding reused
+ // character lines across unrelated couples or silently ignored harmless humor.
+ const allReplies=reports.flatMap(r=>r.days.flatMap(d=>d.turns.map(t=>t.reply)));
+ const uniqueReplies=new Set(allReplies.map(x=>x.trim().toLowerCase())).size;
+ const funny=reports.find(r=>r.id==="06")?.days[0]?.turns.find(t=>t.role==="jack");
+ const humorAddressed=/\b(?:holiday|joke|joking|comedian|not going to joke|won't joke)\b/i
+  .test([funny?.event,funny?.reply].join(" "));
+ const qualityAudit={
+  totalReplies:allReplies.length,uniqueReplies,
+  uniqueRatio:Number((uniqueReplies/allReplies.length).toFixed(2)),
+  targetUniqueRatio:0.60,
+  benignHumorAddressed:humorAddressed,
+  qualityPass:uniqueReplies/allReplies.length>=0.60&&humorAddressed,
+  note:"Canned offline fallback lines may satisfy state invariants while failing humanlike voices. These measures are a minimum smoke gate, not an 8/10 model-content certification."
+ };
  console.log("ANTHOS_DIVERSE_COUPLES_BEGIN");
  console.log(JSON.stringify({method:"Existing offline Anthos 4.3 open-conversation engine, no new API, no database writes; fixed saved microwave opening.",count:reports.length,
-  turnsExpected:CASES.length*10,summary:rows,couples:reports},null,2));
+  turnsExpected:CASES.length*10,summary:rows,qualityAudit,couples:reports},null,2));
  console.log("ANTHOS_DIVERSE_COUPLES_END");
  assert.equal(CASES.length,10);
  assert.deepEqual(incomplete.map(x=>({type:x.name,errors:x.errors})),[],
@@ -570,4 +585,6 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
   "At least one incidental consequence should be evidenced.");
  assert.ok(new Set(reports.map(r=>r.final.strain)).size>=2,
   "Different couple dynamics should not all have the same relationship pressure.");
+ assert.equal(qualityAudit.qualityPass,true,
+  "DIVERSE COUPLE QUALITY GATE FAILED: "+JSON.stringify(qualityAudit));
 });
