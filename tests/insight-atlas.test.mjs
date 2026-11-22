@@ -123,3 +123,21 @@ test("Real Atlas has authenticated shared couple access and a source-linked char
  assert.doesNotThrow(()=>new Function(js));
  assert.doesNotMatch(config,/process\.env\.SUPABASE_SECRET_KEY/);
 });
+
+test("DB enforces one character action and one normalized source quote per subject/skill",()=>{
+ const sql=readFileSync(new URL("../supabase/migrations/20261122170000_atlas_semantic_action_idempotence.sql",import.meta.url),"utf8");
+ assert.match(sql,/atlas_once_per_character_action/);
+ assert.match(sql,/atlas_once_per_normalized_quote/);
+ assert.match(sql,/Canonical character action identity is missing or mismatched/);
+ assert.match(sql,/repeated-action-or-quotation/);
+ assert.match(sql,/for update/);
+ assert.match(sql,/canonical_action_code=semantic_action/);
+});
+test("Standing facts can recur naturally, but a completed repair call cannot be announced twice",()=>{
+ assert.deepEqual(repeatedAnnouncement("The replacement is still sealed.",[
+  "The replacement is still sealed."
+ ]),[]);
+ assert.ok(repeatedAnnouncement("Jack actually made the repair call.",[
+  "Jack actually made the repair call."
+ ]).length>0);
+});
