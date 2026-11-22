@@ -155,13 +155,15 @@ export async function atlasApi(request,{fetchImpl=fetch}={}){
       undefined,"GET",fetchImpl);
     if(hidden.length)return json({ok:true,skills:[],movements:[],
      message:"Your annual trajectory becomes available when all earlier and ongoing episode reviews are mutually unlocked."});
-    const [scores,movements]=await Promise.all([
+    const [scores,movements,evidence]=await Promise.all([
      db("anthos_atlas_skill_states",{select:"subject,skill_id,score,evidence_count,last_observed_at",
       couple_id:"eq."+user.coupleId,limit:200},undefined,"GET",fetchImpl),
      db("anthos_atlas_movements",{select:"evidence_id,subject,skill_id,previous_score,new_score,delta,recorded_at",
-      couple_id:"eq."+user.coupleId,order:"recorded_at.asc",limit:3000},undefined,"GET",fetchImpl)
+      couple_id:"eq."+user.coupleId,order:"recorded_at.asc",limit:3000},undefined,"GET",fetchImpl),
+     db("anthos_atlas_evidence",{select:"id,episode_id,source_quote,explanation,context_class,confidence,skill_id,subject",
+      couple_id:"eq."+user.coupleId,order:"occurred_at.asc",limit:3000},undefined,"GET",fetchImpl)
     ]);
-    return json({ok:true,skills:scores,movements});
+    return json({ok:true,skills:scores,movements,evidence});
    }
    restricted("Unknown Atlas view.",400);
   }
