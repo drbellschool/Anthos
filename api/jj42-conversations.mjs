@@ -372,9 +372,13 @@ export async function scoreCoaching43(text,{apiKey,model="gpt-4.1-mini",fetchImp
 export const isOpen43=room=>isConversation43(room)&&room.episode.authored43.openConversation===true;
 export const openTurns43=episode=>episode.authored43?.turns||[];
 export function currentOpenWorld43(episode,history,day){
+ if(episode?.authored43?.timeline!=="post-purchase")
+  throw Error("STORY BLOCKED: outdated or unverified 4.3 chronology. Restart from the saved episode.");
  const committed=ledgerRows43(history).find(x=>x.day===day);
  if(!committed)throw Error("Start the fictional day first.");
- return structuredClone(openTurns43(episode).filter(x=>x.day===day).at(-1)?.stateAfter||committed.state);
+ const state=structuredClone(openTurns43(episode).filter(x=>x.day===day).at(-1)?.stateAfter||committed.state);
+ validateWorldTransition43(INITIAL_OPEN43(),state,"");
+ return state;
 }
 const OPEN_ACTIONS43={jack:["chat","own","defend","plan","call","cancel","joke"],jill:["chat","wait","consult","buy","open","own","hear","defend"]};
 // The Atlas does not force positive growth: skills change the probability of
@@ -530,12 +534,16 @@ function sameEvent43(episode,event){
  const key=normEvent43(event);return key.length>0&&openTurns43(episode).some(t=>normEvent43(t.event)===key);
 }
 function validateWorldTransition43(before,after,event){
+ if(before.repair==="broken"&&after.repair!=="broken")
+  throw Error("STORY BLOCKED: no physical repair was established.");
  if(before.purchase==="bought_unannounced"&&after.purchase!=="bought_unannounced")
   throw Error("STORY BLOCKED: completed microwave purchase cannot be reversed or repurchased.");
  if(before.box==="opened"&&after.box!=="opened")
   throw Error("STORY BLOCKED: opened microwave box cannot be resealed.");
  if(before.repairCalled&&!after.repairCalled)
   throw Error("STORY BLOCKED: completed repair-shop call cannot be undone.");
+ if(before.consulted&&!after.consulted||before.waitResolved&&!after.waitResolved)
+  throw Error("STORY BLOCKED: already completed decisions cannot be unmade.");
  if(before.jackOwnsDelay&&!after.jackOwnsDelay||before.jillOwnsPurchase&&!after.jillOwnsPurchase)
   throw Error("STORY BLOCKED: completed accountability cannot be forgotten.");
  if(after.box==="opened"&&!["bought_unannounced","bought_after_consultation"].includes(after.purchase))
@@ -606,8 +614,13 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  ]);
  // Exact repeated outgoing text never gets delivered as fresh dialogue.
  // The replacement only asks about unresolved, verified facts.
- const reply=openTurns43(episode).some(t=>t.role===role&&normEvent43(t.reply)===normEvent43(rawReply))?
+ const priorReplies=new Set(openTurns43(episode).filter(t=>t.role===role).map(t=>normEvent43(t.reply)));
+ const reply=priorReplies.has(normEvent43(rawReply))?
   followUp43(role,day,r.state,"repeated"):rawReply;
+ // Fail closed instead of sending an old line again, even after exhaustion
+ // of the deliberately constrained offline fallback vocabulary.
+ if(priorReplies.has(normEvent43(reply)))
+  throw Error("STORY BLOCKED: no new grounded character reply was available.");
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
   eventCode:r.event?candidateEventCode:null,duplicateCoaching:priorSameCoach,
@@ -618,6 +631,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
    consequence:r.state.strain>before.strain?"Tension":r.state.strain<before.strain?"Opening for discussion":"Unresolved",evidence:r.event}:null};
 }
 function renderOpenDay43(episode,day,history){
+ if(episode?.authored43?.timeline!=="post-purchase")
+  throw Error("STORY BLOCKED: outdated or unverified 4.3 chronology. Restart from the saved episode.");
  const days=ledgerRows43(history);
  if(days.some(x=>x.day===day))throw Error("Day already committed.");
  let state=day?currentOpenWorld43(episode,history,day-1):INITIAL_OPEN43();
