@@ -70,7 +70,7 @@ export function atlasTurnObservations(turn){
  };
  for(const id of SKILL_IDS43){
   const rate=turn.assessment?.coaching?.[id];
-  if(Number.isInteger(rate))add(coach,id,turn.body,rate,0.8,"selected",
+  if(!turn.duplicateCoaching&&Number.isInteger(rate))add(coach,id,turn.body,rate,0.8,"selected",
    "Coach recommendation coded against the episode's skill rubric.");
   const enacted=turn.assessment?.behavior?.[id];
   if(Number.isInteger(enacted)&&turn.event)add(character,id,turn.event,enacted,0.9,"selected",
@@ -79,14 +79,14 @@ export function atlasTurnObservations(turn){
  const coded=Array.isArray(turn.incidentalObservations)?turn.incidentalObservations:null;
  if(coded!==null){
   for(const x of coded){
-   if(!["coaching","character"].includes(x.lane))continue;
+   if(!["coaching","character"].includes(x.lane)||(x.lane==="coaching"&&turn.duplicateCoaching))continue;
    const source=x.lane==="coaching"?turn.body:turn.event;
    if(!source||!source.includes(x.quote)||!Number.isInteger(x.rating)||
       x.rating<1||x.rating>5||x.confidence<0.6)continue;
    add(x.lane==="coaching"?coach:character,x.skillId,x.quote,x.rating,x.confidence,
     "incidental",x.explanation,x.interpretation,x.safetyFlag);
   }
- }else{
+ }else if(!turn.duplicateCoaching){
   const fallback=incidentalIntimacyReview(turn.body);
   for(const x of fallback.observations||[])add(coach,x.skillId,turn.body,
    x.rating,x.confidence,"incidental","Unexpected intimacy-related coaching recommendation.",
