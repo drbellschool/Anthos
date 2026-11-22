@@ -289,7 +289,7 @@ export function developmentTransition43(state,task,advice,emphasis,options={}){
  let behavior={...observedRatings43(enacted,task),"g-start":null};
  if(task===1){
   const line=enacted==="accountable"?"I should have fixed it. I'm worried about our savings; can we talk about what happened?":
-   enacted==="defensive"?"You shouldn't have made this decision without me. This is on you.":
+   enacted==="defensive"?(state.purchase==="bought_unannounced"?"You shouldn't have made this decision without me. This is on you.":"You keep bringing this up. I said I'd deal with it."):
    "I'm worried about using the emergency fund. We still need to talk about the microwave.";
   const focus=enacted==="accountable"?5:enacted==="defensive"?2:4;
   behavior={...behavior,"g-start":focus};
@@ -650,7 +650,8 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
   canonicalFacts:prior.state,verifiedLatestEvent:prior.event,
   ...(developmental?{developmentalObjective:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].objective,
    skillEmphasis:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].emphasis,
-   observableEvidenceGoal:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].evidence}:{}),
+   observableEvidenceGoal:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].evidence,
+   currentDilemma:role==="jack"?authored.jackPrompt:authored.jillPrompt}:{}),
   previousPrivateConversation:ownHistory,
   goal:"Send your own trusted friend a believable message asking what to do next."
  };
@@ -659,7 +660,7 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
   "This is a fictional marriage. No narrator, no stage directions, no Sophia, no relationship skill terminology.",
   "Follow the canonical facts exactly. Do not invent conversations, purchases, repairs, guarantees, receipts, objects or future completed actions.",
   "Intentions are not actions. A planned repair call is NOT a completed call or repaired appliance.",
-  "React to the latest committed event. Have an independent personality, one real concern and a reason to ask advice.",
+  "React to the latest committed event. Have an independent personality, one real concern and a reason to ask advice. If currentDilemma is supplied, preserve its decision opportunity; paraphrase it, do not switch to a different dilemma.",
   "Jack is steady, principled, practical, fatherly and dryly funny; he can take responsibility without giving up reasonable boundaries.",
   "Jill is sharp, loving, candid and independent. Neither character is a bully or a doormat.",
   "Use grounded conversational language and varied sentence lengths, not therapeutic or corporate clichés.",
