@@ -9,7 +9,7 @@ const CHECKPOINT_IDS=PHASE_IDS.slice(0,-1);
 const FOUNDATION_FIELDS=["learningObjective","jackExample","jillExample"];
 const SCENE_FIELDS=["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"];
 let current=null,researcher="Gottman",busy=false,opening=false;
-let pilot=null,pilotPlayers=[];
+let pilot=null,pilotPlayers=[],timedClock=null,tickBusy=false;
 const initiallyDrafted=new Set();
 const skillSymbols={"g-bids":"♡","g-toward":"☏","g-start":"▤","g-patterns":"⚠","g-repair":"↻","g-influence":"◎","g-appreciation":"♧","g-world":"◉","g-meaning":"⌂"};
 function lockPath(input){
@@ -406,12 +406,13 @@ function renderReadiness(){
  box.append(node("p","episode-editorial-note",active+" of 5 optional check-ins assigned."));
 }
 function closePilot(clearRoom=false){
+ if(timedClock){clearInterval(timedClock);timedClock=null;}
  for(const instance of pilotPlayers)instance?.destroy();
  pilotPlayers=[];
  if(clearRoom)pilot=null;
  const board=$("episodePilotBoard");if(board)board.hidden=true;
 }
-async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
+async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
  if(!current||busy)return;
  if(current.dirty||!current.hasSaved){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
@@ -426,13 +427,13 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
  }
  if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
  if(pilot&&(!confirm("Start a fresh "+pilotVersion+" test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
- setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodeLaunchPilot42").disabled=true;$("episodeLaunchPilot43").disabled=true;$("episodePilotReset").disabled=true;
+ setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodeLaunchPilot42").disabled=true;$("episodeLaunchPilot43").disabled=true;$("episodeLaunchPilot43Timed").disabled=true;$("episodePilotReset").disabled=true;
  note("Creating a new, private "+pilotVersion+" episode rehearsal…");
  try{
   const previousRoomId=pilot?.roomId||null;
   const room=await request("episode-studio-pilot-v4",{
    scenarioId:current.id,previousRoomId,pilotVersion,
-   fastForward:["4.2.0","4.3.0"].includes(pilotVersion)
+   fastForward:!timedPilot&&["4.2.0","4.3.0"].includes(pilotVersion),timedPilot
   });
   closePilot();
   pilot=room;
@@ -445,7 +446,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(pilotVersion==="4.2.0"){
    plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
-  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: either coach can text their character throughout the week, even before a check-in. Shared fictional actions affect both conversations. Calendar advancement is separate from texting. Skill emphasis and observed behavior stay behind the scenes. Fast-forward browser QA only; NO SMS."));
+  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: either coach can text their character throughout the week, even before a check-in. Shared fictional actions affect both conversations. Calendar advancement is separate from texting. Skill emphasis and observed behavior stay behind the scenes. "+(timedPilot?"10 minutes per day; SMS starts only after selecting a verified couple.":"Fast-forward browser QA only; NO SMS.")));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
    if(pilotVersion==="4.3.0"){
@@ -469,11 +470,13 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
   $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
-  $("episodePilotSmsStatus").textContent=["4.2.0","4.3.0"].includes(pilotVersion)?
+  const smsEligible=pilotVersion==="4.1.0"||!!room.timedPilot;
+  $("episodePilotClock").textContent=room.timedPilot?"Clock not started. Choose your verified couple to begin Monday.":"";
+  $("episodePilotSmsStatus").textContent=!smsEligible?
    "This is a browser-only fast-forward quality pilot. Real weekly SMS is disabled until the delivery/scheduling tests pass.":
    "Checking existing registered couple consent for private texting…";
-  $("episodePilotSmsCouple").disabled=["4.2.0","4.3.0"].includes(pilotVersion);
-  $("episodePilotSmsSetup").disabled=["4.2.0","4.3.0"].includes(pilotVersion);
+  $("episodePilotSmsCouple").disabled=!smsEligible;
+  $("episodePilotSmsSetup").disabled=!smsEligible;
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
    "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
@@ -485,9 +488,9 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jill)pilotPlayers.push(window.Anthos4Player.mount(wifePanel,new URL(room.invitations.jill).searchParams.get("invite")));
   board.scrollIntoView({behavior:"smooth",block:"start"});
   note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
-  if(room.engine==="4.1.0")await loadSmsEligible();
+  if(smsEligible)await loadSmsEligible();
  }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodeLaunchPilot43").disabled=false;$("episodePilotReset").disabled=false}
+ finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodeLaunchPilot43").disabled=false;$("episodeLaunchPilot43Timed").disabled=false;$("episodePilotReset").disabled=false}
 }
 async function loadSmsEligible(){
  const box=$("episodePilotSmsStatus"),select=$("episodePilotSmsCouple"),
@@ -513,8 +516,8 @@ async function loadSmsEligible(){
 }
 async function setupPilotSms(){
  const statusBox=$("episodePilotSmsStatus");
- if(!pilot?.roomId||pilot.engine!=="4.1.0"||!pilot.invitations?.jack||!pilot.invitations?.jill){
-  statusBox.textContent="Launch one of the five two-person 4.1 pilots first.";
+ if(!pilot?.roomId||!(pilot.engine==="4.1.0"||pilot.timedPilot)||!pilot.invitations?.jack||!pilot.invitations?.jill){
+  statusBox.textContent="Launch a two-person 4.1 or timed 4.3 pilot first.";
   return;
  }
  const husbandCustomerId=$("episodePilotSmsCouple").value;
@@ -528,9 +531,36 @@ async function setupPilotSms(){
    roomId:pilot.roomId,husbandCustomerId,invitations:pilot.invitations
   });
   statusBox.textContent=result.message||"SMS launch submitted to Telnyx.";
+  if(result.timedPilot){
+   pilot.daySchedule=result.daySchedule;pilot.smsStarted=true;pilot.phaseIndex=0;
+   $("episodePilotSmsCouple").disabled=true;
+   startTimedClock();
+  }
  }catch(e){
   statusBox.textContent=e.message||"SMS pilot sending is unavailable; the browser links remain usable.";
- }finally{button.disabled=false}
+ }finally{button.disabled=!!pilot?.smsStarted}
+}
+function startTimedClock(){
+ if(timedClock)clearInterval(timedClock);
+ const roomId=pilot.roomId,clock=$("episodePilotClock");
+ let previousTick=0;
+ const tick=async()=>{
+  if(pilot?.roomId!==roomId||!pilot.smsStarted)return;
+  const next=pilot.daySchedule?.[Math.min((pilot.phaseIndex||0)+1,5)];
+  const s=Math.max(0,Math.ceil((Date.parse(next)-Date.now())/1000));
+  clock.textContent=pilot.finished?"Saturday reflection complete.":pilot.paused?"Pilot paused.":"Day "+((pilot.phaseIndex||0)+1)+"/6 · Next check-in in "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  if(pilot.finished||tickBusy||Date.now()-previousTick<12000)return;
+  previousTick=Date.now();tickBusy=true;
+  try{
+   const result=await request("episode-studio-sms-tick",{roomId});
+   if(pilot?.roomId!==roomId)return;
+   if(!result.active&&!result.finished){clock.textContent="SMS pilot stopped or inactive.";clearInterval(timedClock);timedClock=null;return;}
+   pilot.phaseIndex=result.phaseIndex??pilot.phaseIndex;pilot.paused=result.paused;pilot.finished=result.finished;
+   if(result.nextDayAt)pilot.daySchedule[pilot.phaseIndex+1]=result.nextDayAt;
+   if(result.finished){clock.textContent="Saturday reflection complete.";clearInterval(timedClock);timedClock=null;}
+  }catch(e){clock.textContent="Clock reconnecting: "+e.message;}finally{tickBusy=false;}
+ };
+ timedClock=setInterval(tick,1000);tick();
 }
 async function copyPilot(which){
  const url=pilot?.invitations?.[which];
@@ -960,7 +990,8 @@ function setup(){
  $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
  $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
  $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.3.0"));
- $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0"));
+ $("episodeLaunchPilot43Timed").addEventListener("click",()=>pilotEpisode(false,"4.3.0",true));
+ $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0",!!pilot?.timedPilot));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
