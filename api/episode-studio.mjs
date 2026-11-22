@@ -1,6 +1,7 @@
 // Anthos Episode Studio: private, admin-only editorial planning. No customer data or SMS.
 // Scenario drafts are NOT automatically published to live Jack & Jill rooms.
 import {getScenario,persistEpisodeStudio,listEpisodeSkillUsage} from "./jj2-library.mjs";
+import {normalizeDevelopmentalFlow,MICROWAVE_RUBRICS,BEHAVIOR_SCALE} from "./jj43-developmental.mjs";
 
 export const SKILLS=Object.freeze([
  {id:"g-bids",researcher:"Gottman",title:"Recognize emotional bids",description:"Notice invitations for attention, comfort or connection."},
@@ -80,6 +81,7 @@ export function preserveLockedText(generated,source){
  }
  result.locks=normalizeLocks(source.locks);
  result.toneApproach=source.toneApproach;result.toneIntensity=source.toneIntensity;
+ result.developmentalFlow=source.developmentalFlow;
  return result;
 }
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
@@ -117,6 +119,7 @@ export function normalizeStudio(input,scenario){
  out.soloCoach=value.soloCoach==="jill"?"jill":"jack";
  out.supportingSkills=Array.isArray(value.supportingSkills)?
   [...new Set(value.supportingSkills.filter(v=>ID_SET.has(v)&&v!==out.primarySkill))].slice(0,2):[];
+ out.developmentalFlow=normalizeDevelopmentalFlow(value.developmentalFlow,[out.primarySkill,...out.supportingSkills]);
  out.phases=Object.fromEntries(PHASES.map(p=>[p.id,clean(value.phases?.[p.id],850)]));
  out.checkpoints=normalizeCheckpoints(value.checkpoints,scenario.mode,out.soloCoach);
  out.toneApproach=["balanced","humor","serious"].includes(value.toneApproach)?value.toneApproach:"balanced";
@@ -131,7 +134,7 @@ export async function readEpisodeStudio(id){
   content_version:scenario.content_version,status:scenario.status,
   episode_saved:!!scenario.episode_studio&&Object.keys(scenario.episode_studio).length>0},
   studio:normalizeStudio(scenario.episode_studio,scenario),skills:SKILLS,phases:PHASES,
-  checkpointAudiences:CHECKPOINT_AUDIENCES,skillUsage};
+  checkpointAudiences:CHECKPOINT_AUDIENCES,behaviorRubrics:MICROWAVE_RUBRICS,behaviorScale:BEHAVIOR_SCALE,skillUsage};
 }
 export async function saveEpisodeStudio(body){
  const scenario=await getScenario(body?.id);

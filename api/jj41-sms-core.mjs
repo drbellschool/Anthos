@@ -3,7 +3,10 @@
 // webhooks and existing separately verified, voluntary registration SMS consent.
 import {createHash,randomBytes,createCipheriv,createDecipheriv,createPublicKey,verify,randomUUID} from "node:crypto";
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
-import {status,join,advance,choose,coach,sophia,pause,resume} from "./jj4-core.mjs";
+import {status,join,advance,choose,coach,sophia,pause,resume,textCharacter} from "./jj4-core.mjs";
+import {isOpen43} from "./jj42-conversations.mjs";
+export const PILOT_DAY_MS=10*60*1000;
+export const timedSchedule43=(start=Date.now())=>Array.from({length:6},(_,i)=>new Date(start+i*PILOT_DAY_MS).toISOString());
 
 const PHONE=/^\+[1-9]\d{7,14}$/;
 const SESS="anthos_jj41_sms_participants",EVENTS="anthos_jj41_sms_webhook_events";
@@ -102,11 +105,14 @@ export async function registerPilotSms({origin,roomId,husbandCustomerId,invitati
  if(!choice)throw Object.assign(new Error(
   "Both spouses must have verified phone numbers and their own existing Anthos SMS consent."),{status:403});
  const records=await sql("anthos_jj4_rooms",
-  {id:"eq."+roomId,select:"id,stage,expires_at,episode",limit:"1"})||[];
+  {id:"eq."+roomId,select:"id,stage,expires_at,episode,updated_at",limit:"1"})||[];
  const room=records[0];
- if(!room||room.stage==="retired"||Date.parse(room.expires_at)<=Date.now()||
-    room.episode?.authored41?.version!=="4.1.0"||room.episode?.pilotMode!=="shared")
-  throw Object.assign(new Error("Select an active two-person Deep Dive 4.1 pilot."),{status:409});
+ const open43=isOpen43(room)&&room.episode?.authored42?.timedPilot===true&&!room.episode.authored42.fastForward;
+ if(!room||["retired","complete"].includes(room.stage)||Date.parse(room.expires_at)<=Date.now()||
+    (!open43&&room.episode?.authored41?.version!=="4.1.0")||room.episode?.pilotMode!=="shared")
+  throw Object.assign(new Error("Select an active two-person 4.1 or timed 4.3 SMS pilot."),{status:409});
+ if(open43&&(room.stage!=="needs_scene"||room.episode.authored42.schedule?.length))
+  throw Object.assign(new Error("This timed pilot was already started. Continue it in the browser or create a fresh pilot."),{status:409});
  const values=[];
  for(const [role,person] of [["jack",choice.husband],["jill",choice.wife]]){
   const denied=await sql("anthos_jj41_sms_suppression",
@@ -140,10 +146,17 @@ export async function registerPilotSms({origin,roomId,husbandCustomerId,invitati
   String(x.display_name||"Spouse").trim().split(/\s+/)[0].slice(0,32));
  for(let index=0;index<values.length;index++)
   await join(unprotectSmsToken(values[index].encrypted_token),names[index]||"Spouse");
+ let schedule;
+ if(open43){
+  schedule=timedSchedule43();
+  const episode={...room.episode,authored42:{...room.episode.authored42,schedule}};
+  const claimed=await sql("anthos_jj4_rooms",{id:"eq."+roomId,stage:"eq.needs_scene",updated_at:"eq."+room.updated_at},{episode,updated_at:new Date().toISOString()},"PATCH");
+  if(!claimed?.length)throw Object.assign(new Error("The pilot room changed. Create a fresh pilot."),{status:409});
+ }
  await progressRoom(roomId);
- return {ok:true,registered:true,messagesInitiated:true,
+ return {ok:true,registered:true,messagesInitiated:true,timedPilot:open43,daySchedule:schedule,
   sender:process.env.TELNYX_FROM_NUMBER,
-  message:"The verified couple's private Deep Dive 4.1 texts were submitted to Telnyx. STOP remains available at any time; provider acceptance is not proof of handset delivery."};
+  message:"The verified couple's private Deep Dive "+(open43?"4.3 (10 minutes per fictional day)":"4.1")+" texts were submitted to Telnyx. STOP remains available at any time; provider acceptance is not proof of handset delivery."};
 }
 async function sendSms(phone,text){
  needConfig();
@@ -190,7 +203,36 @@ function smsOptions(st){
 async function currentSessions(roomId){
  return await sql(SESS,{room_id:"eq."+roomId,select:"*",order:"role.asc"})||[];
 }
+async function claimSms(row,column,value){
+ const claimed=await sql(SESS,{id:"eq."+row.id,[column]:row[column]==null?"is.null":"eq."+row[column],stopped_at:"is.null",superseded_at:"is.null"},{[column]:value,updated_at:new Date().toISOString()},"PATCH");
+ if(!claimed?.length)return false;
+ row[column]=value;return true;
+}
+async function sendLongSms(phone,message){
+ const words=String(message||"").split(/\s+/);let part="";
+ for(const word of words){
+  if(part&&part.length+word.length+1>1000){await sendSms(phone,part);part="";}
+  part+=(part?" ":"")+word;
+ }
+ if(part)await sendSms(phone,part);
+}
+async function deliverOpen43(row,st){
+ if(row.stopped_at||row.superseded_at||!row.signup_consent_at)return;
+ if(!row.welcome_sent_at&&await claimSms(row,"welcome_sent_at",new Date().toISOString())){
+  await sendSms(row.phone_e164,"Anthos 4.3 pilot: "+st.character+" is your private fictional friend. Each day lasts 10 minutes; text "+st.character+" whenever you want. You opted in during registration. Reply STOP to opt out, HELP for help. Message/data rates may apply.");
+  const opening=(st.scenes||[]).find(x=>x.kind==="introduction")?.body;
+  if(opening)await sendLongSms(row.phone_e164,opening);
+ }
+ const prompt=latestPrompt(st);
+ if(prompt&&!st.finished&&row.last_choice_phase<st.phaseIndex&&await claimSms(row,"last_choice_phase",st.phaseIndex))
+  await sendSms(row.phone_e164,st.character+" (PRIVATE): "+prompt);
+ if(st.finished&&st.hasSophia&&!row.last_sent_sophia&&await claimSms(row,"last_sent_sophia",true)){
+  const end=(st.scenes||[]).find(x=>x.kind==="sophia")?.body||"";
+  await sendLongSms(row.phone_e164,end+"\nAnthos 4.3 pilot complete. Reply STOP to opt out.");
+ }
+}
 async function deliverShared(row,st){
+ if(st.openConversation)return deliverOpen43(row,st);
  if(row.stopped_at||row.superseded_at||!row.signup_consent_at)return;
  if(!row.welcome_sent_at){
   const now=new Date().toISOString();
@@ -225,6 +267,16 @@ async function progressRoom(roomId){
  const jack=list.find(x=>x.role==="jack"),jill=list.find(x=>x.role==="jill");
  if(!jack||!jill)return false;
  const jt=unprotectSmsToken(jack.encrypted_token),lt=unprotectSmsToken(jill.encrypted_token);
+ const initial=await status(jt);
+ if(initial.openConversation){
+  // One real-time check-in per invocation; reply count never drives time.
+  if(initial.canContinue)await advance(jt);
+  let current=await status(jt);
+  if(current.finished&&!current.hasSophia){await sophia(jt);current=await status(jt);}
+  await deliverOpen43(jack,current);
+  await deliverOpen43(jill,await status(lt));
+  return true;
+ }
  for(let i=0;i<4;i++){
   const state=await status(jt);
   if(state.canContinue){
@@ -245,6 +297,27 @@ async function progressRoom(roomId){
  await deliverShared(jill,await status(lt));
  return true;
 }
+export async function tickPilotSms(roomId){
+ needConfig();
+ if(!UUID.test(roomId||""))throw Object.assign(new Error("Invalid pilot room."),{status:400});
+ const [room]=await sql("anthos_jj4_rooms",{id:"eq."+roomId,select:"id,stage,expires_at,episode",limit:"1"})||[];
+ if(!room||!isOpen43(room)||!room.episode.authored42.timedPilot||room.episode.authored42.schedule?.length!==6||room.stage==="retired"||Date.parse(room.expires_at)<=Date.now())
+  return {ok:true,active:false,finished:false};
+ const rows=await currentSessions(roomId);
+ if(rows.length!==2||rows.some(r=>r.stopped_at||r.superseded_at||!r.signup_consent_at))
+  return {ok:true,active:false,finished:false};
+ if(rows.every(r=>r.last_sent_sophia))return {ok:true,active:false,finished:true};
+ await progressRoom(roomId);
+ const st=await status(unprotectSmsToken(rows.find(r=>r.role==="jack").encrypted_token));
+ return {ok:true,active:!st.finished,finished:st.finished,phaseIndex:st.phaseIndex,nextDayAt:st.nextDayAt,paused:!!st.pausedBy?.length};
+}
+export async function tickActivePilotSms(){
+ if(!pilotSmsReady())return {ok:true,active:0};
+ const rows=await sql(SESS,{stopped_at:"is.null",superseded_at:"is.null",last_sent_sophia:"eq.false",select:"room_id",limit:"100"})||[];
+ const rooms=[...new Set(rows.map(r=>r.room_id))];let active=0,errors=0;
+ for(const id of rooms){try{const result=await tickPilotSms(id);if(result.active)active++;}catch{errors++;}}
+ return {ok:errors===0,active,errors};
+}
 async function findActivePhone(phone){
  const matches=await sql(SESS,{phone_e164:"eq."+phone,stopped_at:"is.null",
   superseded_at:"is.null",order:"created_at.desc",limit:"1",select:"*"})||[];
@@ -256,6 +329,14 @@ async function findActivePhone(phone){
 export async function smsRecoveryMessages(st){
  const scene=lastShared(st);
  const out=[];
+ if(st.openConversation){
+  const own=(st.messages||[]).filter(x=>["prompt","reply"].includes(x.kind)).at(-1)?.body;
+  if(own)out.push((st.character||"Your character")+" (PRIVATE RECAP): "+own);
+  if(st.finished){const end=(st.scenes||[]).find(x=>x.kind==="sophia")?.body;
+   if(end)out.push(end.slice(0,1000));else out.push("Your adventure is complete.");}
+  else out.push("You can text "+st.character+" whenever you want during the pilot. PAUSE or STOP are always available.");
+  return out;
+ }
  if(scene)out.push("Anthos 4.1 · Scene "+(scene.phase_index+1)+"/6 (recap)\n"+scene.body);
  if(st.finished){
   out.push("This Deep Dive has finished. Your previous scene is above.");
@@ -283,12 +364,12 @@ async function resendCurrentSmsContext(row,st){
 async function handleReply(row,txt,eventId){
  const token=unprotectSmsToken(row.encrypted_token),st=await status(token);
  if(st.paused){
-  if(/^RESUME$/i.test(txt.trim())){await resume(token);await sendSms(row.phone_e164,"Resumed Anthos 4.1.");await progressRoom(row.room_id)}
+  if(/^RESUME$/i.test(txt.trim())){await resume(token);await sendSms(row.phone_e164,"Resumed Anthos.");await progressRoom(row.room_id)}
   else await sendSms(row.phone_e164,"Your pilot is paused. Reply RESUME to continue or STOP to opt out.");
   return;
  }
  if(/^PAUSE$/i.test(txt.trim())){
-  await pause(token);await sendSms(row.phone_e164,"Your Anthos 4.1 pilot is paused. Reply RESUME to continue or STOP to opt out.");
+  await pause(token);await sendSms(row.phone_e164,"Your Anthos pilot is paused. Reply RESUME to continue or STOP to opt out.");
   return;
  }
  if(/^(?:RECAP|STORY|CONTEXT)$/i.test(txt.trim())){
@@ -296,6 +377,21 @@ async function handleReply(row,txt,eventId){
   return;
  }
  if(st.finished){await sendSms(row.phone_e164,"This Deep Dive is complete. Your private pilot link remains available in your original invitation.");return}
+ if(st.openConversation){
+  const pair=await currentSessions(row.room_id);
+  if(pair.length!==2||pair.some(x=>x.stopped_at||x.superseded_at||!x.signup_consent_at))return;
+  await progressRoom(row.room_id);
+  const current=await status(token);
+  if(current.finished){await sendSms(row.phone_e164,"This Deep Dive is complete.");return;}
+  if(!current.canText){await sendSms(row.phone_e164,"The story is paused or changing days. Please try again shortly.");return;}
+  const requestKey=stableUuid(eventId+"-open43");
+  const result=await textCharacter(token,txt,requestKey);
+  if(result.safetyNotice){await sendSms(row.phone_e164,result.safetyNotice);return;}
+  if(result.paused){await sendSms(row.phone_e164,"Your pilot is paused. Reply RESUME to continue or STOP to opt out.");return;}
+  const reaction=(result.messages||[]).find(x=>x.kind==="reply"&&String(x.id).includes(requestKey))?.body||latestCharacterReply(result);
+  if(reaction)await sendSms(row.phone_e164,result.character+" (PRIVATE): "+reaction);
+  return;
+ }
  if(!st.needsReply){await progressRoom(row.room_id);return}
  if(st.coachChoices.length){
   const match=/^\s*([1-3])\s*$/.exec(txt);
@@ -348,7 +444,7 @@ export async function receivePilotSms({event,raw,headers}){
     {stopped_at:new Date().toISOString(),updated_at:new Date().toISOString()},"PATCH");
    await sendSms(phone,"Anthos: You're opted out of Deep Dive texts. To restore texts, update your consent through your Anthos account. No more coaching texts will be sent.");
   }else if(/^HELP$/i.test(message)){
-   await sendSms(phone,"Anthos Deep Dive 4.1: Help at anthos.love. Reply RECAP to repeat your current scene and private coaching instructions, PAUSE/RESUME to control your experience, or STOP to opt out. Message/data rates may apply.");
+   await sendSms(phone,"Anthos Deep Dive: Help at anthos.love. Reply RECAP to repeat your current scene and private coaching instructions, PAUSE/RESUME to control your experience, or STOP to opt out. Message/data rates may apply.");
   }else if(!row.signup_consent_at||row.stopped_at||row.superseded_at){
    // Never use texting as a back door around verified registration or STOP.
    return {ok:true,blocked:true};

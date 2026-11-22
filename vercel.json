@@ -134,5 +134,11 @@
       "source": "/dive-review/",
       "destination": "/dive-review/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/jj43-sms-clock",
+      "schedule": "* * * * *"
+    }
   ]
 }

@@ -5,7 +5,7 @@ import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./revi
 import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
 import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
 import { createRoom as createV4PilotRoom } from "./jj4-core.mjs";
-import {registerPilotSms,listEligiblePilotSmsCouples,pilotSmsReady} from "./jj41-sms-core.mjs";
+import {registerPilotSms,listEligiblePilotSmsCouples,pilotSmsReady,tickPilotSms} from "./jj41-sms-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {getAdminHomeMetrics} from "./admin-home-metrics.mjs";
 import {createSignupLink,createOpenSignupLink} from "./customer-signup.mjs";
@@ -288,7 +288,7 @@ export default {
       catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
     }
     if(action==="episode-studio-pilot-v4"){
-      try{return json(await createV4PilotRoom(new URL(request.url).origin,body.scenarioId,body.previousRoomId||null,body.pilotVersion||"4.1.0",{fastForward:body.pilotVersion==="4.2.0"&&body.fastForward===true}))}
+      try{return json(await createV4PilotRoom(new URL(request.url).origin,body.scenarioId,body.previousRoomId||null,body.pilotVersion||"4.1.0",{fastForward:["4.2.0","4.3.0"].includes(body.pilotVersion)&&body.fastForward===true,timedPilot:body.pilotVersion==="4.3.0"&&body.timedPilot===true}))}
       catch(e){return json({error:e.message||"Could not create 4.1 pilot.",},e.status||502)}
     }
     if(action==="episode-studio-sms-eligible"){
@@ -302,6 +302,10 @@ export default {
        invitations:body.invitations
       }));}
       catch(e){return json({error:e.message||"SMS pilot setup unavailable."},e.status||502)}
+    }
+    if(action==="episode-studio-sms-tick"){
+      try{return json(await tickPilotSms(body.roomId));}
+      catch(e){return json({error:e.message||"SMS pilot clock unavailable."},e.status||502)}
     }
     if(action==="episode-studio-sms-status"){
       return json({ok:true,enabled:pilotSmsReady(),

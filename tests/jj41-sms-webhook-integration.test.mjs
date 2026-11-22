@@ -2,17 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,generateKeyPairSync,sign,randomUUID} from "node:crypto";
 import {buildAuthored41} from "../api/jj4-authored41.mjs";
-import {registerPilotSms,receivePilotSms} from "../api/jj41-sms-core.mjs";
+import {registerPilotSms,receivePilotSms,tickPilotSms,PILOT_DAY_MS} from "../api/jj41-sms-core.mjs";
+import {buildConversation43} from "../api/jj42-conversations.mjs";
+import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 
 const sha=s=>createHash("sha256").update(s).digest("hex");
-function fixture(){
+function fixture(open43=false){
  const roomId=randomUUID(),phoneJack="+12125550111",phoneJill="+12125550112",
   tokenJack="J".repeat(43),tokenJill="L".repeat(43),sender="+19036090465";
  const room={id:roomId,title:"One of Us Loves Mountains",
   scenario_id:randomUUID(),episode:buildAuthored41({title:"One of Us Loves Mountains",pilotMode:"shared",
    sophiaIntro:"Anthos introduces the private coaches to fictional Jack and Jill. Each has independent feelings, and no one can demand their partner's agreement."}),
   phase_index:0,stage:"needs_scene",expires_at:"2099-01-01T00:00:00.000Z",
-  created_at:"2026-11-20T00:00:00.000Z",processing_token:null,simulation_state:null};
+  created_at:"2026-11-20T00:00:00.000Z",updated_at:"2026-11-20T00:00:00.000Z",processing_token:null,simulation_state:null};
+ if(open43){
+  room.title="The Four-Hundred-Dollar Surprise";
+  room.episode=buildConversation43({...structuredClone(savedMicrowaveStudio),title:room.title,pilotMode:"shared"},{timedPilot:true,openConversation:true});
+ }
  const people=[
   {id:randomUUID(),room_id:roomId,role:"jack",token_hash:sha(tokenJack),first_name:null,joined_at:null,paused_at:null,submitted_phase:-1},
   {id:randomUUID(),room_id:roomId,role:"jill",token_hash:sha(tokenJill),first_name:null,joined_at:null,paused_at:null,submitted_phase:-1}
@@ -112,7 +118,11 @@ function fixture(){
    assert.equal(body.p_phase,room.phase_index);
    add(lists.anthos_jj4_messages,{room_id:roomId,role:"shared",kind:"scene",
     body:body.p_story,phase_index:room.phase_index});
-   if(room.phase_index<4){
+   if(open43&&room.phase_index<5){
+    if(body.p_jack)add(lists.anthos_jj4_messages,{room_id:roomId,role:"jack",kind:"prompt",body:body.p_jack,phase_index:room.phase_index});
+    if(body.p_jill)add(lists.anthos_jj4_messages,{room_id:roomId,role:"jill",kind:"prompt",body:body.p_jill,phase_index:room.phase_index});
+    room.stage="flow";
+   }else if(room.phase_index<4){
     add(lists.anthos_jj4_messages,{room_id:roomId,role:"jack",kind:"prompt",
      body:body.p_jack,phase_index:room.phase_index});
     add(lists.anthos_jj4_messages,{room_id:roomId,role:"jill",kind:"prompt",
@@ -225,4 +235,47 @@ test("verified signup consent starts independent private SMS coaches automatical
   await fx.inbound(fx.phoneJack,"1");
   assert.equal(fx.outbox.filter(m=>m.to===fx.phoneJill&&m.text.includes("Scene 3/6")).length,0);
  }finally{globalThis.fetch=fetchBefore;fx.restore()}
+});
+
+test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, private routing and Saturday closure",async()=>{
+ const fx=fixture(true),fetchBefore=globalThis.fetch,realNow=Date.now;
+ const started=realNow();let clock=started;
+ Date.now=()=>clock;
+ fx.configure();globalThis.fetch=fx.mockFetch;
+ try{
+  const result=await registerPilotSms({origin:"https://anthos.love",roomId:fx.roomId,
+   husbandCustomerId:fx.husbandCustomerId,invitations:{
+    jack:"https://anthos.love/pilot-v4/?invite="+fx.tokenJack,
+    jill:"https://anthos.love/pilot-v4/?invite="+fx.tokenJill}});
+  assert.equal(result.timedPilot,true);
+  assert.deepEqual(result.daySchedule.map(x=>Date.parse(x)-started),[0,1,2,3,4,5].map(n=>n*PILOT_DAY_MS));
+  const room=fx.lists.anthos_jj4_rooms[0];
+  assert.equal(room.phase_index,0);
+  assert.equal(room.stage,"flow");
+  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.startsWith("Jill (PRIVATE):")));
+  assert.ok(!fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.startsWith("Jack (PRIVATE):")));
+  const key=randomUUID();
+  await fx.inbound(fx.phoneJack,"Our wives were talking. Just fix the microwave.",key);
+  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.startsWith("Jack (PRIVATE):")));
+  const count=fx.outbox.length;
+  await fx.inbound(fx.phoneJack,"Our wives were talking. Just fix the microwave.",key);
+  assert.equal(fx.outbox.length,count);
+  await fx.inbound(fx.phoneJill,"Wait. Don't buy it yet.");
+  assert.equal(room.phase_index,0);
+  assert.ok(!fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.includes("Our wives were talking")));
+  clock=started+PILOT_DAY_MS-1;
+  await tickPilotSms(fx.roomId);
+  assert.equal(room.phase_index,0);
+  for(let day=1;day<=5;day++){
+   clock=started+day*PILOT_DAY_MS;
+   await tickPilotSms(fx.roomId);
+   assert.equal(room.phase_index,day);
+  }
+  assert.equal(room.stage,"complete");
+  assert.equal(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.includes("WHAT THE SKILLS SHOWED")),true);
+  assert.equal(fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.includes("WHAT THE SKILLS SHOWED")),true);
+  const completed=fx.outbox.length;
+  await tickPilotSms(fx.roomId);
+  assert.equal(fx.outbox.length,completed);
+ }finally{globalThis.fetch=fetchBefore;Date.now=realNow;fx.restore();}
 });
