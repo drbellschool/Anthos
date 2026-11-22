@@ -247,7 +247,7 @@ function chooseTask43(state,phase,used,flow){
 function prompt43(s,task,used){
  if(task===2&&!used.includes(1)){
   const start=s.purchase==="consulted"?"I did call Jack before buying anything.": "I held off on buying the microwave.";
-  return start+" Three weeks of heating dinner on the stove haven't made me any more patient. I don't want to put another appliance on my credit card just to prove a point. How can I make it clear I need him to actually deal with this?";
+  return start+" Three weeks of heating dinner on the stove haven't made me any more patient. I don't want to spend money just to prove a point. How can I make it clear I need him to actually deal with this?";
  }
  if(task===3&&!used.includes(2))return "I've still got that Saturday note on the old microwave. I'm tired of seeing it, and I know Jill is too. I care about protecting the emergency fund, but that doesn't make the appliance work. What's a practical first step I could actually follow through on?";
  if(task===3)return "This microwave business isn't about to disappear. "+(s.jillOwnsPurchase?"Jill acknowledged she should've called. ":"")+"I know three repair promises have gone nowhere. I can defend the emergency savings all day, but I still need to do something useful. What should I actually do?";
@@ -286,7 +286,7 @@ export function developmentTransition43(state,task,advice,emphasis,options={}){
  }
  // The dialogue quote is authored as an actual fictional event, not inferred
  // from a coach's recommendation. Only now can gentle startup be observed.
- let behavior=observedRatings43(enacted,task);
+ let behavior={...observedRatings43(enacted,task),"g-start":null};
  if(task===1){
   const line=enacted==="accountable"?"I should have fixed it. I'm worried about our savings; can we talk about what happened?":
    enacted==="defensive"?"You shouldn't have made this decision without me. This is on you.":
@@ -300,7 +300,8 @@ export function developmentTransition43(state,task,advice,emphasis,options={}){
  const impact=ADVICE_CATALOG43[enacted]?.impact||0;
  // Separate story pressure from the instructional score: a constructive
  // admission can be uncomfortable, and does not imply agreement.
- next.strain=Math.max(0,Math.min(6,(state.strain||1)-impact+
+ const skillPressure=behaviorStrength===null?0:behaviorStrength<2.5?1:behaviorStrength>=4.5?-1:0;
+ next.strain=Math.max(0,Math.min(6,(state.strain??1)-impact+skillPressure+
   (enacted!==recommended?1:0)));
  const consequence=impact<0?"Tension":impact>0?"Opening for discussion":"Unresolved";
  if(enacted!==recommended){
@@ -402,7 +403,7 @@ export function sophiaOrientation42(episode){
   "1. FACE HARD DECISIONS (Schnarch): Stay grounded in your values and take responsibility for your own choices without forcing the other person to surrender.\n"+
   "2. GENTLE STARTUP (Gottman): Raise a real concern directly without opening with blame or contempt.\n"+
   "3. ACCEPT INFLUENCE (Gottman): Let a partner's perspective genuinely matter. Listening does not mean automatic agreement.\n\n"+
-  "You aren't being graded. Notice when Jack or Jill uses a skill well, misses an opportunity, or gives advice that backfires. The story can change with your suggestions. I'll return on Saturday to look at what actually happened through those three lenses.";
+  "You aren't being graded. Notice when Jack or Jill uses a skill well or misses an opportunity, and when advice backfires. The story can change with your suggestions. I'll return on Saturday to look at what actually happened through those three lenses.";
 }
 // These messages are private reactions, not committed events. This is
 // intentionally a deterministic fallback for the current browser-only QA
@@ -480,11 +481,34 @@ function skillEvidence42(last){
    "Jack found a repair shop, but no actual call or completed repair was recorded.":
    "No repair call or completed repair was recorded."};
 }
+function sophiaDevelopmental43(episode,days){
+ const last=days.find(x=>x.day===5),entries=days.filter(x=>x.assessment).sort((a,b)=>a.day-b.day);
+ const names=["FACE HARD DECISIONS — Schnarch","GENTLE STARTUP — Gottman","ACCEPT INFLUENCE — Gottman"];
+ const lenses=["Own your position and choices without demanding surrender.","Raise a concern without beginning with blame or contempt.","Consider a partner’s perspective without having to agree."];
+ const parts=SKILL_IDS43.map((id,i)=>{
+  const seen=entries.filter(x=>Number.isInteger(x.assessment.behavior[id]));
+  const good=seen.filter(x=>x.assessment.behavior[id]>=4).sort((a,b)=>b.assessment.behavior[id]-a.assessment.behavior[id])[0];
+  const poor=seen.filter(x=>x.assessment.behavior[id]<=2).sort((a,b)=>a.assessment.behavior[id]-b.assessment.behavior[id])[0];
+  const cite=x=>JJ42_DAYS[x.day-1]+": "+x.event;
+  return names[i]+"\n"+lenses[i]+"\n"+
+   (good?"Helpful: "+cite(good):"No clearly constructive example was recorded.")+"\n"+
+   (poor?"Missed opportunity: "+cite(poor):seen.length?"No clearly counterproductive example was recorded.":"Not observed; there is not enough evidence to rate this skill.");
+ });
+ const s=last.state;
+ const issue=s.repairCalled?"Jack made the call, but no repair or price was confirmed.":s.repairPlan?"Jack planned a repair call; he still has not made it.":"No repair call or completed repair was recorded.";
+ const resistance=entries.find(x=>x.assessment.recommended!==x.assessment.enacted);
+ const body="SOPHIA · SATURDAY | WHAT THE SKILLS SHOWED\n\n"+parts.join("\n\n")+
+  "\n\nWHAT IS STILL OPEN: "+issue+(resistance?" A character did not follow the proposed approach; advice and actual behavior are not the same.":"")+
+  " A shared decision is not established merely by a calmer exchange. What is one concern you can express respectfully, and one promise you can keep this week?\n\nThese observations concern fictional behavior, not your marriage.";
+ if(body.length>2500)throw Error("4.3 Sophia review exceeds message limit.");
+ return body;
+}
 export function sophiaConversation42(episode,scenes=[]){
  const days=scenes.map(x=>parseLedger42(x.body)).filter(Boolean);
  const last=days.find(x=>x.day===5);
  if(!last||![0,1,2,3,4,5].every(day=>days.some(x=>x.day===day)))
   throw new Error("Cannot close 4.2 without the six committed days.");
+ if(episode.authored43?.version===JJ43_VERSION)return sophiaDevelopmental43(episode,days);
  const s=last.state;
  const ev=skillEvidence42(last);
  const join=items=>items.length?items.join(" "):"No clear example was recorded.";
