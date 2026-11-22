@@ -564,6 +564,12 @@ export function validateOpenReply43(candidate,{
   if(!coachReference||!words(coachText).includes(words(coachReference)))issues.push("unproven-coach-reference");
   if(!replyReference||!words(m).includes(words(replyReference)))issues.push("unproven-response-reference");
  }
+ if(speechAct43(coachText)==="harmless-humor"&&
+   !/\b(?:holiday|joke|joking|funny|laugh|kidding|saturday|comedian|not in the mood|can't joke|won't joke)\b/i.test(m))
+  issues.push("ignored-harmless-humor");
+ if(/\b(?:jack|jill|he|she)\s+(?:just |suddenly |finally )?(?:hugged|kissed|forgave|cried|laughed|stormed out|screamed|yelled|threw|slammed|promised|apologized|agreed)\b/i.test(m)&&
+   !/\b(?:hugged|kissed|forgave|cried|laughed|stormed out|screamed|yelled|threw|slammed|promised|apologized|agreed)\b/i.test(String(event||"")))
+  issues.push("invented-partner-reaction");
  const state=after||before||{};
  const negatedPhysical=/\b(?:haven't|hasn't|didn't|never|not|won't|don't|do not|keep|leave)\s+(?:\w+\s+){0,4}(?:open|opened|unbox|unboxed|install|installed)\b/i.test(m);
  if(state.purchase==="bought_unannounced"&&
