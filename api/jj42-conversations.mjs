@@ -400,8 +400,22 @@ export function enactmentWithAtlas43(role,proposed,world,skillView,coaching={},m
  if(proposed==="defend"&&score("g-start")>=4.35&&strain<4)return "chat";
  return proposed;
 }
+// A reported conversation or rumour is context, not a fresh instruction.
+function reportedOnly43(text){
+ const tail=words(text).replace(/^.*?\b(?:our wives were talking|our husbands were talking)\b[^.!?]*[.!?]\s*/i,"");
+ if(!/^(?:my (?:wife|husband) (?:says?|said|told)|jill (?:says?|said|told|wants)|jack (?:says?|said|told|wants)|i (?:heard|was told)|apparently|rumou?r has it)\b/.test(tail))
+  return false;
+ // An independent explicit instruction AFTER a reported sentence is actionable.
+ return !/[.!?]\s*(?:(?:please|just)\s+)?(?:you\s+(?:should|need to|have to)\s+)?(?:call|plan|apologize|own|consult|hear|listen|wait|open|buy|fix|find|ask|tell|stop|make)\b/.test(tail);
+}
+function hostileCoaching43(text){
+ const hasHostility=/\b(?:blame|demand|lecture|yell|scold|accuse|insist)\b/.test(text);
+ const rejected=/\b(?:don't|do not|never|stop|avoid|without|rather than|instead of)\s+(?:\w+\s+){0,3}(?:blame|demand|lecture|yell|scold|accuse|insist)\b/.test(text);
+ return hasHostility&&!rejected;
+}
 function offlineOpen43(role,text,state){
  const s=words(text);
+ if(reportedOnly43(s))return "chat";
  const advice=s.replace(/^.*?\b(?:our wives were talking|my wife told me|my wife said|jill told my wife)\b[^.!?]*[.!?]\s*/i,"");
  if(/^\s*(?:did|have|has|is|was|who|when|where|why|what|how)\b/.test(advice)&&advice.endsWith("?"))return "chat";
  const neg=/\b(?:don't|do not|never|shouldn't)\s+(?:call|buy|open|fix|purchase)\b/.test(advice);
@@ -409,14 +423,18 @@ function offlineOpen43(role,text,state){
   const intimacy=incidentalIntimacyReview(advice);
   if(["joke-with-instruction","coercive-recommendation"].includes(intimacy.interpretation))
    return "joke";
-  if(neg&&/\bcall\b/.test(advice))return "cancel";
+  if(neg&&/\bcall\b/.test(advice)){
+   if(/\b(?:plan|schedule|prepare|later|tomorrow)\b/.test(advice))return "plan";
+   return "cancel";
+  }
   if(!neg&&/\b(?:call|phone|ring|contact)\b[^.!?]{0,50}\b(?:shop|repair|someone|somebody|technician|company)\b/.test(advice))
    return /\b(?:today|now|this morning|right away)\b/.test(advice)?"call":"plan";
   if(!neg&&/\b(?:fix (?:the (?:thing|microwave)|it)|get (?:it|the microwave) fixed|repair it|(?:get|find|record|photograph) (?:the )?model number|plan (?:a )?(?:repair )?(?:shop )?call|follow through)\b/.test(advice))return "plan";
+  if(hostileCoaching43(advice))return "defend";
   if(/\b(?:own|admit|acknowledge|apologize|take responsibility)\b/.test(advice))return "own";
-  if(!/\b(?:don't|do not)\s+(?:blame|lecture|demand)\b/.test(advice)&&/\b(?:blame|lecture|demand|yell)\b/.test(advice))return "defend";
  }else{
   if(!neg&&/\b(?:open|unbox)\b/.test(advice)&&!/\b(?:leave it sealed|keep it sealed|wait)\b/.test(advice)&&state.box==="sealed")return "open";
+  if(hostileCoaching43(advice))return "defend";
   if(/\b(?:own|admit|acknowledge|apologize)\b/.test(advice)&&state.purchase==="bought_unannounced")return "own";
   if(/\b(?:wait|hold off|don't buy|do not buy|(?:keep|leave) (?:it|the (?:replacement|microwave|box)) sealed)\b/.test(advice))return "wait";
   if(/\b(?:call jack|talk to jack|talk to him|consult|ask jack|ask him|discuss|talk together)\b/.test(advice))return "consult";
@@ -428,6 +446,9 @@ function offlineOpen43(role,text,state){
 }
 async function classifyOpen43(role,text,state,{apiKey,model="gpt-4.1-mini",fetchImpl=fetch}={}){
  const fallback=offlineOpen43(role,text,state);
+ // Do not allow a probabilistic classifier to turn attributed rumours into
+ // independently verified instructions.
+ if(reportedOnly43(text))return "chat";
  // Preserve the safety-tagged transactional recommendation as a distinct,
  // consequential choice rather than misclassifying it as harmless chat.
  if(fallback==="joke"||!apiKey)return fallback;
@@ -585,9 +606,10 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  if(!OPEN_ACTIONS43[role]||!Number.isInteger(day)||day<0||day>4)throw Error("Invalid open conversation.");
  const before=currentOpenWorld43(episode,history,day);
  const priorSameCoach=openTurns43(episode).some(t=>t.role===role&&normEvent43(t.body)===normEvent43(text));
+ const contextOnly=reportedOnly43(text);
  const [action,coaching]=await Promise.all([
   classifyOpen43(role,text,before,options),
-  priorSameCoach?Promise.resolve(ratingObject43([null,null,null])):scoreCoaching43(text,options)
+  priorSameCoach||contextOnly?Promise.resolve(ratingObject43([null,null,null])):scoreCoaching43(text,options)
  ]);
  const report=/\b(?:our wives were talking|our husbands were talking|my (?:wife|husband) (?:said|told me)|jill told my wife|jack told my husband)\b/i.test(text);
  const skillView=options.atlasContext||null;
@@ -612,7 +634,7 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
  const [rawReply,incidentalObservations]=await Promise.all([
   phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options),
-  classifyIncidental43(text,r.event,{
+  classifyIncidental43(contextOnly?"":text,r.event,{
    ...options,selected:episode.authored43?.selectedSkills||SKILL_IDS43
   })
  ]);
@@ -642,6 +664,7 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
   eventCode:r.event?candidateEventCode:null,duplicateCoaching:priorSameCoach,
+  contextOnlyReport:contextOnly,
   incidentalObservations:priorSameCoach?incidentalObservations.filter(x=>x.lane!=="coaching"):incidentalObservations,
   reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:(r.event||Object.values(coaching).some(Number.isInteger))?{
    role,recommended:action,enacted,coaching,behavior:r.behavior,
