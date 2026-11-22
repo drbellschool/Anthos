@@ -77,8 +77,11 @@ test("Atlas migration is service-only, couple-scoped and quality-pass constraine
  const seed=readFileSync(new URL("../supabase/migrations/20261122130100_insight_atlas_skill_catalog.sql",import.meta.url),"utf8");
  assert.match(sql,/foreign key \(episode_id,couple_id\)/);
  assert.match(sql,/foreign key \(evidence_id,couple_id,subject,skill_id\)/);
- assert.match(sql,/husband_review_consent_at/);
- assert.match(sql,/wife_review_consent_at/);
+ const shared=readFileSync(new URL("../supabase/migrations/20261122160000_atlas_shared_couple_visibility.sql",import.meta.url),"utf8");
+ assert.match(shared,/drop column if exists husband_review_consent_at/);
+ assert.match(shared,/drop column if exists wife_review_consent_at/);
+ assert.match(shared,/drop column if exists review_unlocked_at/);
+ assert.match(shared,/drop column if exists shared_review_disclosure_ack_at/);
  assert.match(sql,/overall is not null and overall>=8/);
  assert.match(sql,/revoke all on public\.anthos_atlas_episodes/);
  assert.equal((seed.match(/\('g-|\('s-|\('a-|\('i-/g)||[]).length,27);
@@ -102,12 +105,13 @@ test("Weekly Deep Dive highlights only its three selected skills; incidental evi
  assert.match(js,/does not subtract points again/);
 });
 
-test("Real Atlas has separate authenticated pane, mutual consent controls and functional source-linked chart script",()=>{
+test("Real Atlas has authenticated shared couple access and a source-linked chart",()=>{
  const html=readFileSync(new URL("../insight-atlas/index.html",import.meta.url),"utf8");
  const js=readFileSync(new URL("../insight-atlas/live.js",import.meta.url),"utf8");
  const config=readFileSync(new URL("../api/atlas-public-config.mjs",import.meta.url),"utf8");
  assert.match(html,/id="atlasConnected" hidden/);
- assert.match(html,/id="atlasAcknowledge"/);
+ assert.doesNotMatch(html,/id="atlasAcknowledge"/);
+ assert.match(html,/Shared between spouses/);
  assert.match(html,/id="atlasLiveConversation"/);
  assert.match(html,/id="atlasLiveAnnual"/);
  assert.match(html,/\/insight-atlas\/live\.js/);
