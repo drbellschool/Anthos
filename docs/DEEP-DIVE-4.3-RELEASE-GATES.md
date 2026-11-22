@@ -1,3 +1,5 @@
+> **Product decision (November 22, 2026):** Insight Atlas is shared within an authenticated couple by default. No per-spouse Deep Dive consent or review-unlock step. Couple isolation and account security remain mandatory.
+
 # Anthos 4.3 — LOCKED Release Gates (2026-11-22)
 
 **Decision:** NO NEXT 4.3 PILOT / NO MERGE / NO CUSTOMER ROLLOUT until every gate below is integrated, tested against actual code + persistence, and supported by dated evidence.
@@ -24,7 +26,7 @@
 6. **Repeated disclosure:** Jill says "Jack actually made the repair call" on Thursday; Friday must not present it as new. Friday presents something new or revised about the same event.
 7. **Coverage under resistance:** stubborn/foolish advice can prevent character improvement, but all selected learning opportunities were offered without losing story coherence.
 8. **Two-couple isolation:** two simultaneous couples with the same story have different skill states and no cross-couple memories, score contamination, or private transcript disclosures.
-9. **Consent:** partial/unaccepted consent blocks cross-spouse view, even when a partner holds a room link; both opt-ins + completed story permit shared review only to authenticated couple members.
+9. **Shared couple workspace:** both authenticated spouses can access both coaching streams and evidence during the episode without opt-ins or completion, while outsiders, unrelated couples and invite-only visitors cannot access the Atlas.
 10. **Failure behavior:** database-score write conflict, missing evidence, or 8/10 hard-fail does not silently publish a success; retry is idempotent and never fabricates growth.
 
 ## Current implementation facts (not a pass)
