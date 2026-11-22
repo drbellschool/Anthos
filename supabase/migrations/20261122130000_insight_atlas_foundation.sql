@@ -18,7 +18,8 @@ create table if not exists public.anthos_atlas_episodes (
  completed_at timestamptz,
  constraint atlas_review_gate check (review_unlocked_at is null or
    (status='complete' and husband_review_consent_at is not null and wife_review_consent_at is not null)),
- unique (couple_id,source_room_id)
+ unique (couple_id,source_room_id),
+ unique (id,couple_id)
 );
 create index if not exists atlas_episodes_couple_time
  on public.anthos_atlas_episodes(couple_id,created_at desc);
@@ -52,7 +53,7 @@ comment on table public.anthos_atlas_skill_states is
 create table if not exists public.anthos_atlas_evidence (
  id bigint generated always as identity primary key,
  couple_id uuid not null references public.couples(id) on delete cascade,
- episode_id uuid not null references public.anthos_atlas_episodes(id) on delete cascade,
+ episode_id uuid not null,
  subject text not null check (subject in ('husband','wife','jack','jill')),
  evidence_lane text not null check (evidence_lane in ('coaching','character','story','safety')),
  skill_id text references public.anthos_atlas_skill_catalog(skill_id) on delete restrict,
@@ -74,7 +75,9 @@ create table if not exists public.anthos_atlas_evidence (
   ((evidence_lane='coaching' and subject in ('husband','wife')) or
    (evidence_lane='character' and subject in ('jack','jill')) or
    evidence_lane in ('story','safety')),
- unique (episode_id,subject,skill_id,source_kind,source_ref,model_version)
+ unique (episode_id,subject,skill_id,source_kind,source_ref,model_version),
+ unique (id,couple_id,subject,skill_id),
+ foreign key (episode_id,couple_id) references public.anthos_atlas_episodes(id,couple_id) on delete cascade
 );
 create index if not exists atlas_evidence_couple_skill
  on public.anthos_atlas_evidence(couple_id,skill_id,occurred_at desc);
@@ -84,14 +87,16 @@ comment on table public.anthos_atlas_evidence is
  'Immutable source anchors in the admin evidence trail. A quote or joke alone is not a verified enacted character action.';
 
 create table if not exists public.anthos_atlas_movements (
- evidence_id bigint primary key references public.anthos_atlas_evidence(id) on delete cascade,
+ evidence_id bigint primary key,
  couple_id uuid not null references public.couples(id) on delete cascade,
  subject text not null check (subject in ('husband','wife','jack','jill')),
  skill_id text not null references public.anthos_atlas_skill_catalog(skill_id) on delete restrict,
  previous_score numeric(4,2) not null check (previous_score between 1 and 5),
  new_score numeric(4,2) not null check (new_score between 1 and 5),
  delta numeric(4,2) generated always as (new_score-previous_score) stored,
- recorded_at timestamptz not null default now()
+ recorded_at timestamptz not null default now(),
+ foreign key (evidence_id,couple_id,subject,skill_id)
+  references public.anthos_atlas_evidence(id,couple_id,subject,skill_id) on delete cascade
 );
 create index if not exists atlas_movements_couple_skill
  on public.anthos_atlas_movements(couple_id,subject,skill_id,recorded_at);
@@ -130,7 +135,7 @@ create table if not exists public.anthos_atlas_quality_runs (
  pass boolean not null default false,
  created_at timestamptz not null default now(),
  constraint atlas_quality_pass check(not pass or
-   (overall>=8 and cardinality(critical_failures)=0))
+   (overall is not null and overall>=8 and cardinality(critical_failures)=0))
 );
 create index if not exists atlas_quality_runs_time
  on public.anthos_atlas_quality_runs(created_at desc);
