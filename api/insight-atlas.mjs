@@ -22,7 +22,9 @@ async function db(name,q={},body,method="GET",fetchImpl=fetch){
  if(!key)restricted("Atlas server database is unavailable.",503);
  const url=new URL(storySupabaseBase()+name);
  for(const [k,v] of Object.entries(q))url.searchParams.set(k,String(v));
- const res=await fetchImpl(url.toString(),{method,headers:storySupabaseHeaders(key),
+ const h=storySupabaseHeaders(key);
+ if(method==="POST"&&q.on_conflict)h.Prefer="return=representation,resolution=ignore-duplicates";
+ const res=await fetchImpl(url.toString(),{method,headers:h,
   ...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(9500)});
  if(!res.ok)restricted("Secure Atlas storage rejected the operation.",res.status===409?409:502);
  return res.json();
@@ -148,13 +150,17 @@ export async function atlasApi(request,{fetchImpl=fetch}={}){
       couple_id:"eq."+user.coupleId,status:"eq.complete",review_unlocked_at:"not.is.null",limit:100},
       undefined,"GET",fetchImpl);
     if(!episodeRows?.length)return json({ok:true,skills:[],movements:[],message:"Shared annual skill history is available after an episode is mutually unlocked."});
+    const hidden=await db("anthos_atlas_episodes",{select:"id,status,review_unlocked_at",
+      couple_id:"eq."+user.coupleId,review_unlocked_at:"is.null",limit:1},
+      undefined,"GET",fetchImpl);
+    if(hidden.length)return json({ok:true,skills:[],movements:[],
+     message:"Your annual trajectory becomes available when all earlier and ongoing episode reviews are mutually unlocked."});
     const [scores,movements]=await Promise.all([
      db("anthos_atlas_skill_states",{select:"subject,skill_id,score,evidence_count,last_observed_at",
       couple_id:"eq."+user.coupleId,limit:200},undefined,"GET",fetchImpl),
      db("anthos_atlas_movements",{select:"evidence_id,subject,skill_id,previous_score,new_score,delta,recorded_at",
       couple_id:"eq."+user.coupleId,order:"recorded_at.asc",limit:3000},undefined,"GET",fetchImpl)
     ]);
-    // Aggregate trajectories only. Exact quotes require episode-specific mutual consent.
     return json({ok:true,skills:scores,movements});
    }
    restricted("Unknown Atlas view.",400);
