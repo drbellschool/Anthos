@@ -125,6 +125,7 @@ function paintSelectedSkills(){
 }
 function paintSupports(){
  paintSelectedSkills();
+ paintDevelopmentalFlow();
  const box=$("episodeSupports");box.replaceChildren();
  if(!current.studio.supportingSkills.length){box.append(node("span","","Choose from the skill library."));return}
  for(const id of current.studio.supportingSkills){
@@ -211,6 +212,53 @@ function labeledTextarea(labelText,datasetKey,value,max,placeholder){
  area.dataset[datasetKey]=value;area.addEventListener("input",markDirty);
  label.append(area);return label;
 }
+const DEVELOPMENT_NAMES=["Recognize","Interpret","Navigate","Regulate","Differentiate","Discover"];
+const DEVELOPMENT_OBJECTIVES=["Identify the concrete problem and competing legitimate needs.","Distinguish assumptions, facts and each partner's perspective.","Try a meaningful response and encounter its consequence.","Respond to emotional pressure without assuming improvement.","Hold a personal position while staying open to the other person.","Reflect on actual successes, failures and unresolved issues."];
+const DEVELOPMENT_EVIDENCE=["Identifies a need or ignores it; notices the decision before acting.","Checks an assumption or substitutes blame for understanding.","Listens, proposes, dismisses or acts unilaterally.","Remains engaged, takes a practical step, attacks or withdraws.","Owns a choice, respects autonomy or demands surrender.","Names a concrete consequence and a voluntary next step."];
+const DEVELOPMENT_WEIGHTS=[[5,3,4],[5,5,4],[5,3,5],[5,4,3],[5,3,5],[5,4,5]];
+function paintDevelopmentalFlow(){
+ const host=$("episodeDevelopmentalFlow");if(!host||!current)return;
+ host.replaceChildren();
+ const ids=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
+ const prior=current.studio.developmentalFlow||{};
+ const normalized={};
+ host.append(node("h5","","4.3 · Developmental flow"),node("p","episode-editorial-note","Set the learning opportunity, not the next event. Emphasis is importance (1–5), not performance. The engine selects the private coach from the situation. Legacy 4.0–4.2 scripts remain below."));
+ for(const [i,id] of PHASE_IDS.entries()){
+  const old=prior[id]||{};
+  const v={objective:old.objective||DEVELOPMENT_OBJECTIVES[i],evidence:old.evidence||DEVELOPMENT_EVIDENCE[i],emphasis:{}};
+  normalized[id]=v;
+  const detail=node("details","episode-phase-fold");detail.open=i===0;
+  const title=node("summary","episode-phase-head");title.append(node("span","episode-phase-number",i+1),node("strong","",DEVELOPMENT_NAMES[i]));detail.append(title);
+  const body=node("div");
+  for(const [key,label] of [["objective","Developmental objective"],["evidence","Observable effective / ineffective behavior"]]){
+   const wrap=node("label","",label),area=node("textarea");area.rows=2;area.maxLength=600;area.value=v[key];
+   area.setAttribute("aria-label",DEVELOPMENT_NAMES[i]+" "+label);
+   area.addEventListener("input",()=>{v[key]=area.value;markDirty()});
+   wrap.append(area);body.append(wrap);
+  }
+  body.append(node("strong","","Skill emphasis · 1–5"));
+  if(!ids.length)body.append(node("p","episode-editorial-note","Select skills in Relationship Foundation first."));
+  for(const [j,skillId] of ids.entries()){
+   const skill=current.skills.find(s=>s.id===skillId);
+   const weight=old.emphasis?.[skillId];v.emphasis[skillId]=Number.isInteger(weight)&&weight>=1&&weight<=5?weight:DEVELOPMENT_WEIGHTS[i][j]||3;
+   const label=node("label","", (skill?.title||skillId)+(j===0?" · primary":""));
+   const row=node("div","episode-intervention-top");
+   const select=node("select");select.setAttribute("aria-label",DEVELOPMENT_NAMES[i]+" emphasis for "+(skill?.title||skillId));
+   for(const n of [1,2,3,4,5]){const o=node("option","",n+" · "+["Low","Minor","Moderate","High","Essential"][n-1]);o.value=String(n);select.append(o)}
+   select.value=String(v.emphasis[skillId]);
+   select.addEventListener("change",()=>{v.emphasis[skillId]=Number(select.value);markDirty()});
+   label.append(select);row.append(label);body.append(row);
+  }
+  body.append(node("small","episode-editorial-note",i===5?"Sophia reflects on evidence. No extra coaching required.":"Recipient: selected by the engine according to the unresolved dilemma; each spouse has meaningful opportunities."));
+  detail.append(body);host.append(detail);
+ }
+ current.studio.developmentalFlow=normalized;
+ const anchors=node("details","episode-phase-fold");
+ anchors.append(node("summary","episode-phase-head","Behind the scenes · behavioral rating scale"),
+ node("p","episode-editorial-note","1 Counterproductive · 2 Resistant · 3 Developing · 4 Constructive · 5 Highly constructive · Not observed if evidence is missing. Coaching, observed behavior and consequence are separate; never a grade on the real couple."));
+ host.append(anchors);
+}
+
 function renderStoryboard(){
  const root=$("episodePhases");root.replaceChildren();
  for(const [index,p] of current.phases.entries()){
@@ -361,21 +409,21 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   return;
  }
  const approved41=new Set(["the four-hundred-dollar surprise","can we talk later?","a fight on vacation","one of us loves mountains","changing seasons of desire"]);
- if(pilotVersion==="4.2.0"&&String(current.studio?.title||current.title||"").trim().toLowerCase()!=="the four-hundred-dollar surprise"){
-  note("4.2 initially pilots The Four-Hundred-Dollar Surprise. We will extend to other Episode Studio scenarios after quality testing.",true);return;
+ if(["4.2.0","4.3.0"].includes(pilotVersion)&&String(current.studio?.title||current.title||"").trim().toLowerCase()!=="the four-hundred-dollar surprise"){
+  note("4.2/4.3 currently pilot The Four-Hundred-Dollar Surprise. Developmental settings can be saved for all episodes, but other story worlds require validation.",true);return;
  }
  if(pilotVersion==="4.1.0"&&!approved41.has(String(current.studio?.title||current.title||"").trim().toLowerCase())){
   note("4.1 currently supports five approved episodes. Select one of the five authored pilots.",true);return;
  }
  if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
  if(pilot&&(!confirm("Start a fresh "+pilotVersion+" test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
- setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodeLaunchPilot42").disabled=true;$("episodePilotReset").disabled=true;
+ setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodeLaunchPilot42").disabled=true;$("episodeLaunchPilot43").disabled=true;$("episodePilotReset").disabled=true;
  note("Creating a new, private "+pilotVersion+" episode rehearsal…");
  try{
   const previousRoomId=pilot?.roomId||null;
   const room=await request("episode-studio-pilot-v4",{
    scenarioId:current.id,previousRoomId,pilotVersion,
-   fastForward:pilotVersion==="4.2.0"
+   fastForward:["4.2.0","4.3.0"].includes(pilotVersion)
   });
   closePilot();
   pilot=room;
@@ -388,8 +436,14 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(pilotVersion==="4.2.0"){
    plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
+  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: developmental objectives and emphasis guide actual decisions and private recipients. Coaching scores, observed behavior and story consequences are separate. Fast-forward browser QA only; NO SMS."));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
+   if(pilotVersion==="4.3.0"){
+    const config=snapshot.developmentalFlow[phase.id];
+    row.append(node("strong","",DEVELOPMENT_NAMES[index]+" — "),node("span","",config.objective),node("small","","Evidence: "+config.evidence+" · "+Object.entries(config.emphasis).map(([id,w])=>(current.skills.find(x=>x.id===id)?.title||id)+" "+w+"/5").join(" · ")));
+    plan.append(row);continue;
+   }
    row.append(node("strong","",phase.title+" — "));
    row.append(node("span","",snapshot.phases?.[phase.id]||"No summary saved."));
    if(index<5){
@@ -406,11 +460,11 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
   $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
-  $("episodePilotSmsStatus").textContent=pilotVersion==="4.2.0"?
-   "4.2 is a browser-only fast-forward quality pilot. Real 4.2 texting is disabled until the delivery/scheduling tests pass.":
+  $("episodePilotSmsStatus").textContent=["4.2.0","4.3.0"].includes(pilotVersion)?
+   "This is a browser-only fast-forward quality pilot. Real weekly SMS is disabled until the delivery/scheduling tests pass.":
    "Checking existing registered couple consent for private texting…";
-  $("episodePilotSmsCouple").disabled=pilotVersion==="4.2.0";
-  $("episodePilotSmsSetup").disabled=pilotVersion==="4.2.0";
+  $("episodePilotSmsCouple").disabled=["4.2.0","4.3.0"].includes(pilotVersion);
+  $("episodePilotSmsSetup").disabled=["4.2.0","4.3.0"].includes(pilotVersion);
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
    "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
@@ -424,7 +478,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
   if(room.engine==="4.1.0")await loadSmsEligible();
  }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodePilotReset").disabled=false}
+ finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodeLaunchPilot43").disabled=false;$("episodePilotReset").disabled=false}
 }
 async function loadSmsEligible(){
  const box=$("episodePilotSmsStatus"),select=$("episodePilotSmsCouple"),
@@ -684,7 +738,7 @@ function setup(){
   ["1-2","Scene, Setting & Situation","scene","⌖","The place, pressure and opening conflict"],
   ["1-3","Episode Metadata & Motivations","metadata","♙","Episode identity and character needs"],
   ["1-4","Creative Voice","voice","✎","Humor, seriousness and character voice"],
-  ["2-1","Six-Phase Story Flow","flow","▤","Sophia, six phases and private check-ins"],
+  ["2-1","Six-Phase Developmental Flow","flow","▤","Skill emphasis, learning opportunities and evidence"],
   ["3-1","Ending & Reflection Guardrails","ending","⚑","Resolution, research and safety"]
  ];
  const panels={};
@@ -812,7 +866,11 @@ function setup(){
  panels.voice.append(voiceDraft);
 
  // 2-1 — unchanged five private checkpoints stay attached to their phase accordions.
- panels.flow.append(intro,flowHeading,flowActions,phases,flowDraft);
+ const devFlow=node("section","episode-intervention");devFlow.id="episodeDevelopmentalFlow";
+ panels.flow.append(devFlow);
+ const legacyFlow=node("details","episode-phase-fold");
+ legacyFlow.append(node("summary","episode-phase-head","Legacy 4.0–4.2 Story Flow (retained)"),intro,flowHeading,flowActions,phases,flowDraft);
+ panels.flow.append(legacyFlow);
  const phaseOverview=node("div","episode-phase-overview");
  const overviewCards=[];
  for(const [index,id] of PHASE_IDS.entries()){
@@ -892,6 +950,7 @@ function setup(){
  $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false,"4.0.0"));
  $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
  $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
+ $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.3.0"));
  $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0"));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
