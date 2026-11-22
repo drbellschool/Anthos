@@ -25,8 +25,8 @@ footer{padding:26px 0 14px;font-size:12px;color:var(--muted)}[hidden]{display:no
 <header class="top"><a class="brand" href="/">✿ anthos<span>LOVE IN BLOOM</span></a><a href="/" class="small-link">Back to Anthos</a></header>
 <section class="hero"><div class="eyebrow">Sophia's yearlong evidence journal</div><h1>Insight Atlas</h1><p>Every Deep Dive leaves a trail. Revisit what you both coached, what Jack and Jill chose, and how 27 relationship skills evolved—scene by scene, across the year.</p><span class="preview">INTERACTIVE DESIGN PREVIEW · Fictional demonstration only</span></section>
 <section class="card live-panel" id="realAtlas" aria-label="Authenticated couple Insight Atlas">
- <div class="head"><div><div class="caps">Your real story · Authenticated workspace</div><h2>Our Insight Atlas</h2></div><span class="chip">Private until mutually unlocked</span></div>
- <p class="tiny muted">The preview below uses invented examples. This separate area displays actual coaching and cited skill movements only for a verified couple. Neither spouse can read the other's private coaching until the episode is complete and both approve a shared review.</p>
+ <div class="head"><div><div class="caps">Your real story · Authenticated workspace</div><h2>Our Insight Atlas</h2></div><span class="chip">Shared between spouses</span></div>
+ <p class="tiny muted">The preview below uses invented examples. This separate area displays actual coaching and cited skill movements only for a verified couple. Both spouses can see the coaching and character responses as the story unfolds. No separate permission step is required.</p>
  <div id="atlasAuthOff" class="info">Checking whether secure Anthos account sign-in is available…</div>
  <div id="atlasAuthArea" hidden>
   <form id="atlasSignIn" autocomplete="on">
@@ -44,13 +44,12 @@ footer{padding:26px 0 14px;font-size:12px;color:var(--muted)}[hidden]{display:no
   <div class="live-grid" style="margin-top:10px">
    <section class="mini" aria-label="Link a future 4.3 episode">
     <h3 class="section-title">Connect a new Deep Dive</h3>
-    <p class="tiny muted">Each spouse signs in and links their own character invitation before coaching begins. No existing private pilots are silently imported.</p>
+    <p class="tiny muted">Each spouse signs in and connects their character invitation. Both coaching streams belong to your shared couple account. Older unlinked pilot conversations are not imported automatically.</p>
     <label for="atlasInvite">Your personal 4.3 invite token</label>
     <input id="atlasInvite" type="password" autocomplete="off" placeholder="Your 4.3 invite token">
-    <label style="font-weight:500"><input id="atlasAcknowledge" type="checkbox" style="width:auto;min-width:auto"> I understand that my coaching messages may become visible to my spouse if we both approve a shared review after the episode.</label>
     <button type="button" id="atlasLink">Connect my character</button>
    </section>
-   <section class="mini" aria-label="Completed episode reviews">
+   <section class="mini" aria-label="Shared episode reviews">
     <h3 class="section-title">Our episodes</h3>
     <div id="atlasEpisodes">No linked episodes yet.</div>
    </section>
@@ -64,7 +63,7 @@ footer{padding:26px 0 14px;font-size:12px;color:var(--muted)}[hidden]{display:no
   </section>
   <section class="mini" style="margin-top:12px">
    <div class="head"><h3 class="section-title">Our year in skills</h3><button class="quietbtn" id="atlasRefreshAnnual" type="button">Refresh</button></div>
-   <div id="atlasLiveAnnual" class="tiny muted">Your score history becomes available after mutual episode review approval.</div>
+   <div id="atlasLiveAnnual" class="tiny muted">Your yearlong skill history appears here as characters grow.</div>
   </section>
  </div>
 </section>
@@ -96,7 +95,7 @@ footer{padding:26px 0 14px;font-size:12px;color:var(--muted)}[hidden]{display:no
 </section>
 <section class="card episode-only">
  <div class="head"><div><div class="caps">03 · Side-by-side transcript</div><h2>Evidence Threads</h2></div><span class="chip" id="dayName">Friday</span></div>
- <p class="tiny muted">Once an episode is complete and both spouses have agreed to sharing, the Atlas can reveal both coaching streams together.</p>
+ <p class="tiny muted">Both coaching streams appear together in the couple's shared Insight Atlas. Each partner coaches their own character, but the review is a joint experience.</p>
  <div class="streams">
  <div class="stream"><div class="stream-title">♀ Wife → Jill</div><div class="stream-body"><div><div class="caps">Wife's coaching</div><div id="wifeText" class="msg"></div></div><div><div class="caps">Jill's observed action or response</div><div class="msg character" id="jillText"></div><button type="button" id="jillInspect" class="annotation-action" style="margin-top:8px">View citation</button></div></div></div>
  <div class="stream"><div class="stream-title blue">♂ Husband → Jack</div><div class="stream-body"><div><div class="caps">Husband's coaching</div><div id="husbandText" class="msg"></div><div><div class="caps">Jack's observed action or response</div><div class="msg character jack" id="jackText"></div><button type="button" id="jackInspect" class="annotation-action" style="margin-top:8px">View citation</button></div></div></div>
@@ -137,5 +136,5 @@ footer{padding:26px 0 14px;font-size:12px;color:var(--muted)}[hidden]{display:no
   <p class="note"><strong>Important:</strong> 8/10 is a test threshold, not a promise that every real-life interaction will be perfect.</p>
  </section>
 </aside></div>
-<footer>Anthos · Sophia's Insight Atlas · Design preview uses invented dialogue and illustrative scores. Real accounts, private evidence retrieval and shared-review consent are not yet enabled on this page.</footer></div>
+<footer>Anthos · Sophia's Insight Atlas · Design preview uses invented dialogue and illustrative scores. Real couple accounts and live records appear only after secure sign-in; preview conversations are fictional.</footer></div>
 <script src="/insight-atlas/atlas.js" defer></script><script src="/insight-atlas/live.js" defer></script></body></html>
