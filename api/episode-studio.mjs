@@ -27,7 +27,10 @@ export const SKILLS=Object.freeze([
  {id:"a-support",researcher:"Aron",title:"Support individual growth",description:"Encourage a partner's meaningful interests."},
  {id:"a-strengths",researcher:"Aron",title:"Share perspectives and abilities",description:"Learn from each other's strengths."},
  {id:"a-routines",researcher:"Aron",title:"Refresh familiar routines",description:"Introduce meaningful variety together."},
- {id:"a-expansion",researcher:"Aron",title:"Grow through shared experiences",description:"Recognize how shared activities broaden connection."}
+ {id:"a-expansion",researcher:"Aron",title:"Grow through shared experiences",description:"Recognize how shared activities broaden connection."},
+ {id:"i-sexual-respect",researcher:"Gottman + Schnarch (Anthos interpretation)",title:"Practice sexual respect",description:"Express desire without entitlement, objectification or disrespect for the other person."},
+ {id:"i-consent-boundaries",researcher:"Sexual-health consent standards (Anthos interpretation)",title:"Respect consent and boundaries",description:"Treat consent as freely chosen, ongoing, specific and reversible, without pressure or retaliation."},
+ {id:"i-nontransactional",researcher:"Schnarch + sexual-motivation research (Anthos interpretation)",title:"Keep intimacy nontransactional",description:"Avoid treating sexual affection as a debt, reward or payment; prioritize mutual choice."}
 ]);
 export const PHASES=Object.freeze([
  {id:"hook",title:"Hook",hint:"Establish the concrete problem and each character's needs."},
