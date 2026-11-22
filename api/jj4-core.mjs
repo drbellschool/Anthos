@@ -19,7 +19,7 @@ import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulat
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
 import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
-import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,buildConversation43,isConversation43,parseLedger42,due42,renderCharacterMessage42,sophiaOrientation42,reactionConversation42,reaction43,sophiaConversation42} from "./jj42-conversations.mjs";
+import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,buildConversation43,isConversation43,isOpen43,openTurns43,prepareOpenTurn43,parseLedger42,due42,renderCharacterMessage42,sophiaOrientation42,reactionConversation42,reaction43,sophiaConversation42} from "./jj42-conversations.mjs";
 
 
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
@@ -78,7 +78,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  const authored=pilotVersion==="4.1.0",developmental=pilotVersion==="4.3.0",weekly=pilotVersion==="4.2.0"||developmental;
  if(!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
  if(authored)Object.assign(draft,buildAuthored41(draft));
- if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true}));
+ if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true,openConversation:developmental}));
  if(!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
   error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
  if(!draft.primarySkill||(!developmental&&!PHASES4.every(p=>draft.phases[p]?.trim().length>=30)))
@@ -141,7 +141,7 @@ export async function status(token){
  const bothJoined=expected.every(role=>people.some(p=>p.role===role&&p.joined_at));
  const pausedBy=people.filter(p=>expected.includes(p.role)&&p.paused_at).map(p=>p.role);
  const paused=pausedBy.includes(person.role);
- const weekly=isConversation42(room);
+ const weekly=isConversation42(room),openConversation=isOpen43(room);
  const hasSophia=scenes.some(x=>x.kind==="sophia");
   // The opening is a read-only, room-snapshot editorial message. It is not the
   // research-based closing and never needs an extra DB row or outbound SMS.
@@ -163,13 +163,18 @@ export async function status(token){
   return [msg,{id:Number(msg.id)+0.5,kind:"reply",phase_index:msg.phase_index,
    role:person.role,body:reaction,ephemeral:true,created_at:msg.created_at}];
  }):mine;
+ const privateTurns=openConversation&&joined?openTurns43(room.episode).filter(t=>t.role===person.role).flatMap((t,i)=>[
+  {id:"open-"+t.key+"-coach",kind:"coach",role:t.role,body:t.body,phase_index:t.day,created_at:t.at},
+  {id:"open-"+t.key+"-reply",kind:"reply",role:t.role,body:t.reply,phase_index:t.day,created_at:t.at}
+ ]):[];
  const authored41=isAuthored41(room);
  const selected41=authored41?selectedAuthoredChoice(room.episode,person.role,room.phase_index,
   mine.map(x=>({...x,role:person.role}))):null;
  return {ok:true,version:isConversation43(room)?"4.3.0":weekly?"4.2.0":authored41?"4.1.0":"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
-  stage:room.stage,needsReply,submitted:person.submitted_phase===room.phase_index,
+  stage:room.stage,needsReply:openConversation?false:needsReply,submitted:person.submitted_phase===room.phase_index,
+  ...(openConversation?{openConversation:true,canText:joined&&bothJoined&&!pausedBy.length&&room.stage==="flow"&&room.phase_index<5}:{}),
   ...(weekly?{weekDay:JJ42_DAYS[room.phase_index],fastForward:room.episode.authored42.fastForward,
    nextAvailableAt:room.episode.authored42.schedule[room.phase_index]}:{}),
   coachChoices:authored41&&needsReply&&!selected41?authoredOptions(room.episode,person.role,room.phase_index):[],
@@ -178,7 +183,7 @@ export async function status(token){
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage)&&
    (!weekly||due42(room.episode,room.phase_index+(room.stage==="flow"?1:0))),
-  scenes:visibleScenes,messages:visiblePrivate,finished:room.stage==="complete",
+  scenes:visibleScenes,messages:[...visiblePrivate,...privateTurns],finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
   researchSources:hasSophia?(weekly?JJ42_RESEARCH_SOURCES:
    authored41?RESEARCH_SOURCES.filter(x=>/Gottman/.test(x.label)):RESEARCH_SOURCES):[],
@@ -691,7 +696,7 @@ export async function advance(token){
   if(isConversation43(latest)&&phase<5){
    if(!["jack","jill"].includes(rendered.recipient))error("4.3 did not select a private recipient.",502);
    const episode={...latest.episode,checkpoints:latest.episode.checkpoints.map((cp,i)=>
-    i===phase?{...cp,audience:rendered.recipient,waitForReply:true}:cp)};
+    i===phase?{...cp,audience:rendered.recipient,waitForReply:!isOpen43(latest)}:cp)};
    // Persist only under the current scene claim, before the existing atomic
    // commit RPC. No private prompt is visible until that RPC commits it.
    const assigned=await db(R,{id:"eq."+room.id,processing_token:"eq."+claim,stage:"eq.generating",phase_index:"eq."+phase},{episode},"PATCH");
@@ -831,6 +836,41 @@ export async function choose(token,optionId,requestKey){
  return status(token);
 }
 
+// Open 4.3 text and its shared-world transition are saved together in a
+// compare-and-swap on the existing private room. A concurrent calendar claim
+// changes stage; a concurrent text changes updated_at. Neither can be lost.
+export async function textCharacter(token,body,requestKey){
+ const words=brief(body,900);
+ if(words.length<2||!UUID.test(requestKey||""))error("Write a short private message with a valid request key.");
+ for(let attempt=0;attempt<3;attempt++){
+  const {person,room}=await participant(token);
+  if(!person.joined_at||!isOpen43(room))error("Join an open 4.3 conversation first.",403);
+  const turns=openTurns43(room.episode);
+  if(turns.some(t=>t.role===person.role&&t.key===requestKey))return status(token);
+  if(room.stage!=="flow"||room.phase_index>=5)error("The fictional day is changing or has ended. Refresh and try again.",409);
+  const people=await db(P,{room_id:"eq."+room.id,select:"role,joined_at,paused_at"});
+  if(!activeRoles(room).every(role=>people?.some(p=>p.role===role&&p.joined_at&&!p.paused_at)))error("Both coaches must be joined and the story must not be paused.",409);
+  const routing=classifyCoachTurn(words);
+  if(routing.kind==="pause")return pause(token);
+  if(routing.kind==="safety"){
+   const state=await pause(token);
+   return {...state,safetyNotice:"Your episode is paused. Your safety comes before the story. If you are in immediate danger, contact local emergency services. In the U.S., call or text 988 for a mental-health crisis, or call 800-799-7233 / text START to 88788 for domestic-abuse support."};
+  }
+  if(turns.length>=120||turns.filter(t=>t.day===room.phase_index).length>=24)error("This pilot has reached its conversation limit. Use the next day to continue.",429);
+  const history=await db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",order:"id.asc",select:"role,kind,phase_index,body"});
+  const turn=await prepareOpenTurn43(room.episode,person.role,room.phase_index,history||[],words,requestKey,{
+   apiKey:process.env.OPENAI_API_KEY?.trim(),model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini"
+  });
+  const episode={...room.episode,authored43:{...room.episode.authored43,turns:[...turns,turn]}};
+  const updated=new Date(Math.max(Date.now(),(Date.parse(room.updated_at)||0)+1)).toISOString();
+  // Old room timestamps are mandatory in the real table. Never run an
+  // unconditional replacement of the event record.
+  if(!room.updated_at)error("Room version is unavailable. Refresh and retry.",409);
+  const saved=await db(R,{id:"eq."+room.id,stage:"eq.flow",phase_index:"eq."+room.phase_index,updated_at:"eq."+room.updated_at},{episode,updated_at:updated},"PATCH");
+  if(Array.isArray(saved)&&saved.length===1)return status(token);
+ }
+ error("Another conversation moved the story. Please retry your message.",409);
+}
 export async function coach(token,body,requestKey){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join before advising your character.",403);
