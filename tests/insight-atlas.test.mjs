@@ -101,3 +101,21 @@ test("Weekly Deep Dive highlights only its three selected skills; incidental evi
  assert.match(js,/function showIncidental\(id\)/);
  assert.match(js,/does not subtract points again/);
 });
+
+test("Real Atlas has separate authenticated pane, mutual consent controls and functional source-linked chart script",()=>{
+ const html=readFileSync(new URL("../insight-atlas/index.html",import.meta.url),"utf8");
+ const js=readFileSync(new URL("../insight-atlas/live.js",import.meta.url),"utf8");
+ const config=readFileSync(new URL("../api/atlas-public-config.mjs",import.meta.url),"utf8");
+ assert.match(html,/id="atlasConnected" hidden/);
+ assert.match(html,/id="atlasAcknowledge"/);
+ assert.match(html,/id="atlasLiveConversation"/);
+ assert.match(html,/id="atlasLiveAnnual"/);
+ assert.match(html,/\/insight-atlas\/live\.js/);
+ assert.match(js,/api\("\?mode=episode/);
+ assert.match(js,/api\("\?mode=annual/);
+ assert.match(js,/source_quote/);
+ assert.match(js,/authorization|Authorization/);
+ assert.match(js,/replaceState/);
+ assert.doesNotThrow(()=>new Function(js));
+ assert.doesNotMatch(config,/process\.env\.SUPABASE_SECRET_KEY/);
+});
