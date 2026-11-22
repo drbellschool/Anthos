@@ -422,6 +422,31 @@ function openEvent43(state,role,action,day,emphasis){
  if(event){n.events=[...n.events,event].slice(-5);const w=weightedSkillRating(behavior,emphasis);n.strain=Math.max(0,Math.min(6,(n.strain??1)+(w===null?0:w<=2?2:w>=4?-1:0)));}
  return {state:n,event,reply,behavior};
 }
+// A model may phrase an immediate reaction using only this character's own
+// conversation. A canonical action is rendered separately, never generated
+// by this model. When a reaction fails checks, use the verified reply.
+async function phraseOpenReply43(role,text,before,turn,ownHistory,{apiKey,model="gpt-4.1-mini",fetchImpl=fetch}={}){
+ if(!apiKey)return turn.reply;
+ try{
+  const res=await fetchImpl("https://api.openai.com/v1/responses",{method:"POST",
+   headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
+   body:JSON.stringify({model,store:false,max_output_tokens:180,
+    instructions:"Write a brief, natural first-person reaction from the fictional husband Jack or wife Jill to their own friend. Respond directly to their latest words, including questions, jokes or voluntarily shared reports. Reports are not verified facts. Do not mention private instructions or give relationship lessons. Do NOT invent any action, quote, third-party message, appointment, spending, repair, purchase, or future promise. You may acknowledge a reported concern without claiming it is true. Keep the reaction to 1–2 sentences and under 45 words. A separate verified reply will describe any actual action. If there is nothing else to add, return an empty reaction.",
+    input:JSON.stringify({character:role,latestText:text,ownConversation:ownHistory.slice(-4).map(x=>({text:x.body,reply:x.reply})),knownFacts:{purchase:before.purchase,box:before.box,repairPlan:before.repairPlan,repairCalled:before.repairCalled,repair:"broken"},verifiedReply:turn.reply}),
+    text:{format:{type:"json_schema",name:"jj43_open_reaction",strict:true,schema:{type:"object",additionalProperties:false,required:["reaction"],properties:{reaction:{type:"string"}}}}}}),
+   signal:AbortSignal.timeout(7000)});
+  if(!res.ok)return turn.reply;
+  const data=await res.json(),raw=(data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("");
+  const reaction=String(JSON.parse(raw).reaction||"").trim();
+  // Block factual assertions involving a potentially new story event, even
+  // if the model has been instructed to write only a reaction.
+  if(!reaction||reaction.length>300||reaction.split(/\s+/).length>45||
+    /[\r\n"“”]/.test(reaction)||
+    /\b(?:bought|purchased|spent|ordered|opened|unboxed|installed|repaired|fixed|called|phoned|booked|scheduled|quoted|promised|told|said|texted|agreed|returned|refunded|delivered|paid|sophia|gottman|schnarch|system prompt|as an ai)\b/i.test(reaction))return turn.reply;
+  return reaction+" "+turn.reply;
+ }catch{return turn.reply}
+}
+
 export async function prepareOpenTurn43(episode,role,day,history,text,requestKey,options={}){
  if(!OPEN_ACTIONS43[role]||!Number.isInteger(day)||day<0||day>4)throw Error("Invalid open conversation.");
  const before=currentOpenWorld43(episode,history,day);
@@ -431,7 +456,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  const emphasis=episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis;
  const r=openEvent43(before,role,enacted,day,emphasis);
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
- return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply:r.reply,
+ const reply=await phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options);
+ return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
   reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:r.event?{
    role,recommended:action,enacted,coaching,behavior:r.behavior,
    coachingStrength:weightedSkillRating(coaching,emphasis),behaviorStrength:weightedSkillRating(r.behavior,emphasis),
