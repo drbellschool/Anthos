@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: "22"
       - name: Insight Atlas and 4.3 focused quality tests
-        run: node --test tests/atlas-diverse-couples-pilot.test.mjs tests/jj43-canonical-invariants.test.mjs tests/atlas-two-couples-pilot.test.mjs tests/atlas-incidental.test.mjs tests/atlas-auth-review.test.mjs tests/atlas-feedback-loop.test.mjs tests/atlas-opportunities.test.mjs tests/insight-atlas.test.mjs tests/jj43-developmental.test.mjs tests/episode-studio.test.mjs
+        run: node --test tests/jj43-intent-attribution.test.mjs tests/atlas-diverse-couples-pilot.test.mjs tests/jj43-canonical-invariants.test.mjs tests/atlas-two-couples-pilot.test.mjs tests/atlas-incidental.test.mjs tests/atlas-auth-review.test.mjs tests/atlas-feedback-loop.test.mjs tests/atlas-opportunities.test.mjs tests/insight-atlas.test.mjs tests/jj43-developmental.test.mjs tests/episode-studio.test.mjs
 
   atlas-release-gate:
     runs-on: ubuntu-latest
