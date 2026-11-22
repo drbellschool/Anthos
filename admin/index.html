@@ -196,7 +196,7 @@
                     <button type="button" id="episodeGenerate" class="button">✦ AI fill episode</button>
                     <button type="button" id="episodeValidate" class="button">Review</button>
                     <button type="button" id="episodeSave" class="button primary">✓ Save episode</button>
-                    <button type="button" id="episodeLaunchPilot" class="button" hidden aria-hidden="true" tabindex="-1" title="Legacy 4.0 pilot retained for previous conversations">Legacy 4.0 pilot</button><button type="button" id="episodeLaunchPilot41" class="button" title="Launch Deep Dive 4.1 for two private coaches with separate invitation links">▶ Launch Deep Dive 4.1</button><button type="button" id="episodeLaunchPilot42" class="button primary" title="New 4.2 Character Conversations: Jill on Monday, Jack on Tuesday, alternating through Friday, Sophia on Saturday. Test the whole week immediately.">▶ Test Character Conversations 4.2</button><button type="button" id="episodeLaunchPilot43" class="button primary" title="Test the 4.3 skill-centered developmental engine in fast-forward">▶ Test Developmental Flow 4.3</button>
+                    <button type="button" id="episodeLaunchPilot" class="button" hidden aria-hidden="true" tabindex="-1" title="Legacy 4.0 pilot retained for previous conversations">Legacy 4.0 pilot</button><button type="button" id="episodeLaunchPilot41" class="button" title="Launch Deep Dive 4.1 for two private coaches with separate invitation links">▶ Launch Deep Dive 4.1</button><button type="button" id="episodeLaunchPilot42" class="button primary" title="New 4.2 Character Conversations: Jill on Monday, Jack on Tuesday, alternating through Friday, Sophia on Saturday. Test the whole week immediately.">▶ Test Character Conversations 4.2</button><button type="button" id="episodeLaunchPilot43" class="button primary" title="Test the 4.3 skill-centered developmental engine in fast-forward">▶ Test Developmental Flow 4.3</button><button type="button" id="episodeLaunchPilot43Timed" class="button primary" title="Prepare an isolated two-person SMS pilot; each story day lasts ten minutes">▶ 4.3 Timed SMS Pilot · 10 min/day</button>
                   </div>
                 </header>
                 <p id="episodeNotice" class="episode-notice" role="status">Choose a scenario to begin.</p>
@@ -309,7 +309,7 @@
                     <label>Choose the verified couple and who coaches Jack
                       <select id="episodePilotSmsCouple" style="display:block;min-width:220px;width:100%;margin:10px 0"><option value="">Loading registered couples…</option></select>
                     </label>
-                    <button type="button" id="episodePilotSmsSetup" class="button" disabled>Start private SMS coaching</button>
+                    <button type="button" id="episodePilotSmsSetup" class="button" disabled>Start private SMS coaching</button><p id="episodePilotClock" class="episode-notice" aria-live="polite"></p>
                     <p id="episodePilotSmsStatus" role="status" class="episode-notice">Texting starts only after you choose a registered couple and press Start. The Telnyx messaging connection must be enabled.</p>
                   </div>
                   <div class="episode-pilot-players">
