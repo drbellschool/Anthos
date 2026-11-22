@@ -48,7 +48,7 @@ async function session(request,fetchImpl=fetch){
 }
 async function membersEpisode(coupleId,id,fetchImpl=fetch){
  if(!UUID.test(id||""))restricted("Invalid episode identifier.");
- const ep=(await db("anthos_atlas_episodes",{select:"id,couple_id,source_room_id,story_title,story_key,status,review_unlocked_at,husband_review_consent_at,wife_review_consent_at,created_at,completed_at",
+ const ep=(await db("anthos_atlas_episodes",{select:"id,couple_id,source_room_id,story_title,story_key,status,created_at,completed_at",
   couple_id:"eq."+coupleId,id:"eq."+id,limit:1},undefined,"GET",fetchImpl))[0];
  if(!ep)restricted("Episode not found.",404);
  return ep;
@@ -91,21 +91,37 @@ async function archiveCompleted(ep,fetchImpl=fetch){
     records.slice(i,i+50),"POST",fetchImpl);
  }
 }
-async function resolveApproval(ep,role,fetchImpl=fetch){
- if(role==="jack"){
-  await db("anthos_atlas_episodes",{id:"eq."+ep.id,couple_id:"eq."+ep.couple_id},
-   {status:"complete",husband_review_consent_at:new Date().toISOString(),completed_at:ep.completed_at||new Date().toISOString()},"PATCH",fetchImpl);
- }else{
-  await db("anthos_atlas_episodes",{id:"eq."+ep.id,couple_id:"eq."+ep.couple_id},
-   {status:"complete",wife_review_consent_at:new Date().toISOString(),completed_at:ep.completed_at||new Date().toISOString()},"PATCH",fetchImpl);
+// Collect current shared story records without requiring episode completion.
+async function currentRoomTranscript(ep,fetchImpl=fetch){
+ if(!ep.source_room_id)return [];
+ const [roomRows,messages]=await Promise.all([
+  db("anthos_jj4_rooms",{select:"id,episode,stage",id:"eq."+ep.source_room_id,limit:1},undefined,"GET",fetchImpl),
+  db("anthos_jj4_messages",{select:"id,role,kind,body,phase_index,created_at",
+   room_id:"eq."+ep.source_room_id,order:"id.asc",limit:300},undefined,"GET",fetchImpl)
+ ]);
+ const room=roomRows[0];if(!room)return [];
+ const records=[];
+ for(const m of messages||[]){
+  if(!["coach","prompt","sophia"].includes(m.kind))continue;
+  const actor=m.kind==="sophia"?"sophia":m.role==="jack"?(m.kind==="coach"?"husband":"jack"):
+   m.role==="jill"?(m.kind==="coach"?"wife":"jill"):"shared";
+  records.push({source_key:"message:"+m.id,actor,kind:m.kind==="prompt"?"character":m.kind,
+   scene_day:m.phase_index,body:String(m.body||"").slice(0,1800),source_time:m.created_at});
  }
- // Re-read to handle both opt-ins arriving at nearly the same time.
- const after=await membersEpisode(ep.couple_id,ep.id,fetchImpl);
- if(after.status==="complete"&&after.husband_review_consent_at&&after.wife_review_consent_at&&!after.review_unlocked_at)
-  await db("anthos_atlas_episodes",{id:"eq."+ep.id,couple_id:"eq."+ep.couple_id,status:"eq.complete"},
-   {review_unlocked_at:new Date().toISOString()},"PATCH",fetchImpl);
- const full=await membersEpisode(ep.couple_id,ep.id,fetchImpl);
- return {unlocked:!!full.review_unlocked_at,status:full.status};
+ for(const turn of room.episode?.authored43?.turns||[]){
+  if(!["jack","jill"].includes(turn.role)||!UUID.test(turn.key||""))continue;
+  for(const item of [
+   {actor:turn.role==="jack"?"husband":"wife",kind:"coach",body:turn.body,suffix:"coach"},
+   {actor:turn.role,kind:"character",body:turn.reply,suffix:"character"},
+   ...(turn.event?[{actor:"shared",kind:"story",body:turn.event,suffix:"event"}]:[])
+  ]){
+   if(!String(item.body||"").trim())continue;
+   records.push({source_key:"open:"+turn.key+":"+item.suffix,
+    actor:item.actor,kind:item.kind,scene_day:turn.day,
+    body:String(item.body).slice(0,1800),source_time:turn.at});
+  }
+ }
+ return records;
 }
 export async function atlasApi(request,{fetchImpl=fetch}={}){
  if(!["GET","POST"].includes(request.method))return json({error:"Method not allowed"},405);
@@ -119,11 +135,11 @@ export async function atlasApi(request,{fetchImpl=fetch}={}){
   if(request.method==="GET"){
    const mode=url.searchParams.get("mode")||"episodes";
    if(mode==="episodes"){
-    const episodes=await db("anthos_atlas_episodes",{select:"id,story_title,story_key,status,review_unlocked_at,episode_month,created_at",
+    const episodes=await db("anthos_atlas_episodes",{select:"id,story_title,story_key,status,episode_month,created_at",
      couple_id:"eq."+user.coupleId,order:"created_at.desc",limit:100},undefined,"GET",fetchImpl);
     return json({ok:true,episodes:(episodes||[]).map(x=>({
      id:x.id,title:x.story_title,status:x.status,month:x.episode_month,
-     sharedReviewAvailable:!!x.review_unlocked_at
+     sharedReviewAvailable:true
     }))});
    }
    if(mode==="catalog"){
@@ -132,29 +148,25 @@ export async function atlasApi(request,{fetchImpl=fetch}={}){
    }
    if(mode==="episode"){
     const ep=await membersEpisode(user.coupleId,url.searchParams.get("episodeId"),fetchImpl);
-    if(ep.status!=="complete"||!ep.review_unlocked_at)restricted("Both spouses must authorize the completed episode review.",403);
-    const [transcript,evidence,movements]=await Promise.all([
+    // Insight Atlas belongs to the couple, not one spouse. Both streams are
+    // available to authenticated members even while a Deep Dive unfolds.
+    const [archived,evidence,movements,current]=await Promise.all([
      db("anthos_atlas_transcript",{select:"id,source_key,actor,kind,scene_day,body,source_time",
        episode_id:"eq."+ep.id,order:"source_time.asc,id.asc",limit:1000},undefined,"GET",fetchImpl),
      db("anthos_atlas_evidence",{select:"id,subject,skill_id,source_ref,source_quote,explanation,observed_rating,confidence,context_class,occurred_at",
        episode_id:"eq."+ep.id,order:"occurred_at.asc",limit:1000},undefined,"GET",fetchImpl),
      db("anthos_atlas_movements",{select:"evidence_id,subject,skill_id,previous_score,new_score,delta,recorded_at",
-       couple_id:"eq."+user.coupleId,order:"recorded_at.asc",limit:3000},undefined,"GET",fetchImpl)
+       couple_id:"eq."+user.coupleId,order:"recorded_at.asc",limit:3000},undefined,"GET",fetchImpl),
+     currentRoomTranscript(ep,fetchImpl)
     ]);
+    const merged=new Map();
+    for(const m of [...(archived||[]),...(current||[])])merged.set(m.source_key,m);
+    const transcript=[...merged.values()].sort((a,b)=>String(a.source_time||"").localeCompare(String(b.source_time||"")));
     const ids=new Set(evidence.map(e=>e.id));
-    return json({ok:true,episode:{id:ep.id,title:ep.story_title},
+    return json({ok:true,episode:{id:ep.id,title:ep.story_title,status:ep.status},
      transcript,evidence,movements:movements.filter(x=>ids.has(x.evidence_id))});
    }
    if(mode==="annual"){
-    const episodeRows=await db("anthos_atlas_episodes",{select:"id",
-      couple_id:"eq."+user.coupleId,status:"eq.complete",review_unlocked_at:"not.is.null",limit:100},
-      undefined,"GET",fetchImpl);
-    if(!episodeRows?.length)return json({ok:true,skills:[],movements:[],message:"Shared annual skill history is available after an episode is mutually unlocked."});
-    const hidden=await db("anthos_atlas_episodes",{select:"id,status,review_unlocked_at",
-      couple_id:"eq."+user.coupleId,review_unlocked_at:"is.null",limit:1},
-      undefined,"GET",fetchImpl);
-    if(hidden.length)return json({ok:true,skills:[],movements:[],
-     message:"Your annual trajectory becomes available when all earlier and ongoing episode reviews are mutually unlocked."});
     const [scores,movements,evidence]=await Promise.all([
      db("anthos_atlas_skill_states",{select:"subject,skill_id,score,evidence_count,last_observed_at",
       couple_id:"eq."+user.coupleId,limit:200},undefined,"GET",fetchImpl),
@@ -175,28 +187,23 @@ export async function atlasApi(request,{fetchImpl=fetch}={}){
   if(!input||typeof input!=="object"||Array.isArray(input))restricted("Invalid request.");
   if(input.action==="link"){
    const raw=String(input.inviteToken||"");
-   if(!INVITE.test(raw)||input.acknowledgeFutureSharedReview!==true)
-    restricted("You must use your individual 4.3 invitation and acknowledge future shared review.");
+   if(!INVITE.test(raw))restricted("Enter your individual 4.3 invitation.");
    const roleHash=hash(raw);
    const participant=(await db("anthos_jj4_participants",{
      select:"room_id,role,joined_at",token_hash:"eq."+roleHash,limit:1},undefined,"GET",fetchImpl))[0];
    if(!participant||!["jack","jill"].includes(participant.role))restricted("Invalid invitation.",401);
    const linked=await db("rpc/anthos_atlas_claim_room",{},
     {p_room:participant.room_id,p_couple:user.coupleId,p_user:user.userId,
-     p_role:participant.role,p_invite_hash:roleHash,p_ack_shared_future_review:true},
+     p_role:participant.role,p_invite_hash:roleHash},
     "POST",fetchImpl);
    return json({ok:true,linked:!!linked,episodeId:linked||null,
     message:linked?"Both spouses connected to their yearlong story.":"Your role is verified. Your spouse must link their own invitation."});
   }
-  if(input.action==="review-consent"){
+  if(input.action==="sync"){
    const ep=await membersEpisode(user.coupleId,input.episodeId,fetchImpl);
-   if(!ep.source_room_id)restricted("This episode has no available source transcript.",409);
-   const claims=await db("anthos_atlas_room_claims",{select:"role,user_id",
-    room_id:"eq."+ep.source_room_id,couple_id:"eq."+ep.couple_id,
-    user_id:"eq."+user.userId,limit:1},undefined,"GET",fetchImpl);
-   if(claims.length!==1)restricted("Only an original verified coach may approve review.",403);
+   // Archival is background persistence, not an approval or permission step.
    await archiveCompleted(ep,fetchImpl);
-   return json({ok:true,...await resolveApproval(ep,claims[0].role,fetchImpl)});
+   return json({ok:true,archived:true});
   }
   restricted("Unknown Atlas action.",400);
  }catch(e){const status=Number.isInteger(e?.status)?e.status:500;
