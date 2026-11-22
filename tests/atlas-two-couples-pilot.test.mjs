@@ -71,6 +71,10 @@ async function runOne(config){
     atlasContext:atlasContext(scores,memories,role)
    });
    ep.authored43.turns.push(turn);
+   if(turn.event&&!turn.eventCode)errors.push("EVENT WITHOUT CANONICAL IDENTITY: "+turn.event);
+   if(turn.eventCode&&noRepeatedActions.has("code:"+turn.eventCode))
+    errors.push("REPEATED CANONICAL ACTION CODE: "+turn.eventCode);
+   if(turn.eventCode)noRepeatedActions.add("code:"+turn.eventCode);
    const eventKey=role+"|"+String(turn.event||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"");
    if(turn.event&&noRepeatedActions.has(eventKey))errors.push("DUPLICATE EVENT: "+role+" "+turn.event);
    if(turn.event)noRepeatedActions.add(eventKey);
@@ -163,6 +167,8 @@ test("SIMULATED PILOT: two independent 4.3 couples, five days each",async()=>{
  assert.equal(report.comparison.negativeIncidentalObserved,true);
  assert.deepEqual(a.continuityErrors,[],"Constructive path repeats or violates the canonical world.");
  assert.deepEqual(b.continuityErrors,[],"Difficult path repeats or violates the canonical world.");
+ assert.deepEqual(a.repeatWarnings,[],"Constructive story repeats a completed announcement as news.");
+ assert.deepEqual(b.repeatWarnings,[],"Difficult story repeats a completed announcement as news.");
  assert.equal(a.days[0].after.purchase,"bought_unannounced");
  assert.equal(b.days[0].after.purchase,"bought_unannounced");
  assert.ok(a.days[0].sceneOpening.includes("already happened"));
