@@ -288,7 +288,7 @@ export default {
       catch(e){return json({error:e.message||"Could not create signup link."},e.status||502);}
     }
     if(action==="episode-studio-pilot-v4"){
-      try{return json(await createV4PilotRoom(new URL(request.url).origin,body.scenarioId,body.previousRoomId||null,body.pilotVersion||"4.1.0",{fastForward:body.pilotVersion==="4.2.0"&&body.fastForward===true}))}
+      try{return json(await createV4PilotRoom(new URL(request.url).origin,body.scenarioId,body.previousRoomId||null,body.pilotVersion||"4.1.0",{fastForward:["4.2.0","4.3.0"].includes(body.pilotVersion)&&body.fastForward===true}))}
       catch(e){return json({error:e.message||"Could not create 4.1 pilot.",},e.status||502)}
     }
     if(action==="episode-studio-sms-eligible"){
