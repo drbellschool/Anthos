@@ -71,18 +71,16 @@ async function loadEpisodes(){
  for(const ep of results.episodes||[]){
   const line=el("div",undefined,"live-episode"),label=el("div");
   label.append(el("strong",ep.title),el("div",ep.status==="complete"?"Completed":"In progress","tiny muted"));
-  const button=el("button",ep.sharedReviewAvailable?"Review evidence":ep.status==="complete"?"Approve shared review":"In progress");
-  button.type="button";button.disabled=ep.status!=="complete";
+  const button=el("button","View our story");
+  button.type="button";
   button.onclick=async()=>{
    button.disabled=true;
    try{
-    if(ep.sharedReviewAvailable)await loadEpisode(ep.id);
-    else{
-     const r=await api("",{action:"review-consent",episodeId:ep.id});
-     status(r.unlocked?"Both approvals are recorded. You may now review the full story.":"Your approval was saved. Your spouse must approve separately before the transcripts are shared.");
-     await loadEpisodes();
-    }
-   }catch(e){status(e.message);button.disabled=false}
+    // Recording a finished episode is an internal archive operation,
+    // not an approval step. Open the shared transcript regardless.
+    if(ep.status==="complete")await api("",{action:"sync",episodeId:ep.id}).catch(()=>{});
+    await loadEpisode(ep.id);
+   }catch(e){status(e.message)}finally{button.disabled=false}
   };
   line.append(label,button);target.append(line);
  }
@@ -91,8 +89,7 @@ async function loadEpisodes(){
 async function linkRoom(){
  const invite=$("atlasInvite").value.trim();
  if(!/^[A-Za-z0-9_-]{43}$/.test(invite))throw Error("Paste the individual token from your private 4.3 invitation.");
- if(!$("atlasAcknowledge").checked)throw Error("Please review and accept the future shared-review disclosure.");
- const result=await api("",{action:"link",inviteToken:invite,acknowledgeFutureSharedReview:true});
+ const result=await api("",{action:"link",inviteToken:invite});
  $("atlasInvite").value="";
  status(result.message||"Invitation verified.");
  await loadEpisodes();
@@ -134,7 +131,7 @@ async function loadEpisode(id){
   };
   citations.append(b);
  }
- status("Showing actual completed episode evidence after both spouses authorized sharing.");
+ status("Showing your couple's shared Deep Dive, including both coaching streams.");
  $("atlasLiveReview").scrollIntoView({block:"start",behavior:"smooth"});
 }
 async function loadAnnual(){
@@ -148,7 +145,7 @@ async function loadAnnual(){
   const skill=catalog.find(x=>x.skill_id===id);
   const op=el("option",skill?.skill_title||id);op.value=id;select.append(op);
  }
- const explanation=el("p","Select a skill. Tap any plotted observation to see the source evidence.","tiny muted");
+ const explanation=el("p","Your couple's combined record. Select a skill and tap an observation to inspect its source.","tiny muted");
  const plot=document.createElementNS("http://www.w3.org/2000/svg","svg");
  plot.setAttribute("viewBox","0 0 680 285");plot.setAttribute("role","group");plot.setAttribute("aria-label","Four separate source-linked coaching and fictional character trajectories");
  plot.style.cssText="width:100%;height:auto";
