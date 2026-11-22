@@ -22,7 +22,8 @@ export function weeklyOpportunity(day,selected=MICROWAVE_FOCUS){
  return {day,skills:d.skills.filter(x=>selected.includes(x)),promptCue:d.promptCue};
 }
 export function missingWeeklyOpportunities(events=[],selected=MICROWAVE_FOCUS){
- const seen=new Set(events.flatMap(x=>Array.isArray(x?.opportunitySkills)?x.opportunitySkills:[]));
+ const seen=new Set(events.flatMap(x=>Array.isArray(x?.opportunitySkills)?x.opportunitySkills:
+  Array.isArray(x?.skills)?x.skills:[]));
  return selected.filter(id=>!seen.has(id));
 }
 export function coverageReport(events=[],selected=MICROWAVE_FOCUS){
