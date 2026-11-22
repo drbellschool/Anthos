@@ -47,6 +47,18 @@ test("Voice gate rejects false repair facts, new purchases and unsourced convers
   "I just told Jill what I think and apologized to her.",base
  ).issues.includes("invented-interpersonal-event"));
 });
+test("Coach's harmless joke cannot be silently ignored, and partner reactions cannot be fabricated",()=>{
+ const after={purchase:"bought_unannounced",box:"sealed",repair:"broken",repairCalled:false};
+ const humor=validateOpenReply43("I need to think about how to handle this problem and I'm still frustrated.",{
+  role:"jack",coachText:"Make a joke about our national microwave repair holiday.",after
+ });
+ assert.ok(humor.issues.includes("ignored-harmless-humor"));
+ const fake=validateOpenReply43("Jill hugged me, forgave everything and started laughing. I think everything is solved.",{
+  role:"jack",coachText:"Own the missed repair promise.",after,
+  event:"Jack acknowledged the missed repair promise."
+ });
+ assert.ok(fake.issues.includes("invented-partner-reaction"));
+});
 test("Voice gate allows discussing verified events and admits existing status instead of inventing progress",()=>{
  const after={purchase:"bought_unannounced",box:"sealed",repair:"broken",repairCalled:false};
  const valid=validateOpenReply43(
