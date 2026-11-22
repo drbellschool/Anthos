@@ -71,3 +71,24 @@ test("4.3 model context sees own coaching only; ratings use evidence and are not
  assert.ok(msg);
  assert.ok(JSON.parse(msg.input).developmentalObjective);
 });
+
+test("changing author emphasis changes the next decision opportunity, not just a displayed score",()=>{
+ const create=()=>ep();
+ const historyFor=e=>{
+  const h=[];
+  for(let day=0;day<2;day++){
+   const out=renderConversation42(e,day,h);
+   h.push({role:"shared",kind:"scene",phase_index:day,body:out.scene},
+    {role:out.recipient,kind:"coach",phase_index:day,body:day===0?"Call Jack first.":"Listen to his concern."});
+  }
+  return h;
+ };
+ const standard=create(),focused=create();
+ focused.authored43.flow.discovery.emphasis={"s-decisions":5,"g-start":1,"g-influence":1};
+ const a=parseLedger42(renderConversation42(standard,2,historyFor(standard)).scene);
+ const b=parseLedger42(renderConversation42(focused,2,historyFor(focused)).scene);
+ assert.equal(a.task,1);
+ assert.equal(b.task,3);
+ assert.equal(a.state.purchase,b.state.purchase);
+ assert.equal(a.recipient,"jack");assert.equal(b.recipient,"jack");
+});
