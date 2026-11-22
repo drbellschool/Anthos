@@ -1,0 +1,35 @@
+-- Canonical 27-item Anthos codebook. Research-informed, Anthos-authored skill anchors.
+insert into public.anthos_atlas_skill_catalog(skill_id,research_foundation,skill_title,skill_description,color_hex)
+values
+ ('g-bids','Gottman','Recognize emotional bids','Notice invitations for attention, comfort or connection.','#db7575'),
+ ('g-toward','Gottman','Turn toward connection','Respond to an emotional bid rather than dismissing it.','#9f7be1'),
+ ('g-start','Gottman','Use a gentle startup','Raise a concern without blame or criticism.','#31a99b'),
+ ('g-patterns','Gottman','Notice destructive conflict patterns','Recognize criticism, contempt, defensiveness or stonewalling.','#518ecf'),
+ ('g-repair','Gottman','Make and receive repairs','Attempt reconnection after friction or a mistake.','#d6a441'),
+ ('g-influence','Gottman','Accept influence','Seriously consider a partner''s perspective.','#df7dba'),
+ ('g-appreciation','Gottman','Express appreciation','Name what a partner contributes.','#777fc9'),
+ ('g-world','Gottman','Know the partner''s inner world','Understand hopes, stressors, values and dreams.','#b27b53'),
+ ('g-meaning','Gottman','Create shared meaning','Build common rituals, traditions and goals.','#5f9e73'),
+ ('s-self','Schnarch','Maintain a solid sense of self','State a true position without demanding agreement.','#db7575'),
+ ('s-soothe','Schnarch','Self-soothe','Manage distress without assigning it all to a partner.','#9f7be1'),
+ ('s-react','Schnarch','Respond without reactivity','Stay engaged instead of attacking or withdrawing.','#31a99b'),
+ ('s-diff','Schnarch','Differentiate without disconnecting','Respect differing needs while remaining connected.','#518ecf'),
+ ('s-honesty','Schnarch','Practice honest intimacy','Disclose meaningfully without requiring validation.','#d6a441'),
+ ('s-own','Schnarch','Own a contribution to conflict','Notice one''s own behavior in a recurring pattern.','#df7dba'),
+ ('s-discomfort','Schnarch','Tolerate discomfort for growth','Engage constructively with difficult but safe moments.','#777fc9'),
+ ('s-decisions','Schnarch','Face hard decisions','Handle differences that simple compromise cannot erase.','#b27b53'),
+ ('a-new','Aron','Try something new together','Share a mutually welcome unfamiliar experience.','#5f9e73'),
+ ('a-curiosity','Aron','Stay curious about one another','Discover a new side of a familiar partner.','#db7575'),
+ ('a-challenge','Aron','Pursue a shared challenge','Cooperate in a jointly chosen challenge.','#9f7be1'),
+ ('a-support','Aron','Support individual growth','Encourage a partner''s meaningful interests.','#31a99b'),
+ ('a-strengths','Aron','Share perspectives and abilities','Learn from each other''s strengths.','#518ecf'),
+ ('a-routines','Aron','Refresh familiar routines','Introduce meaningful variety together.','#d6a441'),
+ ('a-expansion','Aron','Grow through shared experiences','Recognize how shared activities broaden connection.','#df7dba'),
+ ('i-sexual-respect','Gottman + Schnarch (Anthos interpretation)','Practice sexual respect','Express desire without entitlement, objectification or disrespect for the other person.','#777fc9'),
+ ('i-consent-boundaries','Sexual-health consent standards (Anthos interpretation)','Respect consent and boundaries','Treat consent as freely chosen, ongoing, specific and reversible, without pressure or retaliation.','#b27b53'),
+ ('i-nontransactional','Schnarch + sexual-motivation research (Anthos interpretation)','Keep intimacy nontransactional','Avoid treating sexual affection as a debt, reward or payment; prioritize mutual choice.','#5f9e73')
+on conflict (skill_id) do update set
+ research_foundation=excluded.research_foundation,
+ skill_title=excluded.skill_title,
+ skill_description=excluded.skill_description,
+ color_hex=excluded.color_hex;
