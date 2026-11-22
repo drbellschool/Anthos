@@ -1,7 +1,7 @@
 // Anthos Episode Studio: private, admin-only editorial planning. No customer data or SMS.
 // Scenario drafts are NOT automatically published to live Jack & Jill rooms.
 import {getScenario,persistEpisodeStudio,listEpisodeSkillUsage} from "./jj2-library.mjs";
-import {normalizeDevelopmentalFlow} from "./jj43-developmental.mjs";
+import {normalizeDevelopmentalFlow,MICROWAVE_RUBRICS,BEHAVIOR_SCALE} from "./jj43-developmental.mjs";
 
 export const SKILLS=Object.freeze([
  {id:"g-bids",researcher:"Gottman",title:"Recognize emotional bids",description:"Notice invitations for attention, comfort or connection."},
@@ -134,7 +134,7 @@ export async function readEpisodeStudio(id){
   content_version:scenario.content_version,status:scenario.status,
   episode_saved:!!scenario.episode_studio&&Object.keys(scenario.episode_studio).length>0},
   studio:normalizeStudio(scenario.episode_studio,scenario),skills:SKILLS,phases:PHASES,
-  checkpointAudiences:CHECKPOINT_AUDIENCES,skillUsage};
+  checkpointAudiences:CHECKPOINT_AUDIENCES,behaviorRubrics:MICROWAVE_RUBRICS,behaviorScale:BEHAVIOR_SCALE,skillUsage};
 }
 export async function saveEpisodeStudio(body){
  const scenario=await getScenario(body?.id);
