@@ -14,14 +14,14 @@ const FOCUS=["s-decisions","g-start","g-influence"];
 const TRACK=[...FOCUS,"i-nontransactional","i-sexual-respect","i-consent-boundaries"];
 const CASES=[
  {id:"A",name:"Constructive coaching",script:[
-  {jill:"Ask Jack about the budget and consult him before buying anything.",jack:"Own your three missed repair promises and apologize to Jill."},
+  {jill:"Own spending the savings without discussing it and acknowledge Jack's concern.",jack:"Own your three missed repair promises and apologize to Jill."},
   {jack:"Get the model number and plan a repair shop call instead of promising another Saturday.",jill:"Wait before spending the money; let Jack take a concrete step."},
   {jack:"Call the repair shop today. Do not pretend you already have an estimate.",jill:"Hear Jack's concern about emergency savings without ignoring your own need for a working microwave."},
   {jill:"Talk to Jack about a fair deadline and ask him what repair price he would consider reasonable.",jack:"Own the impact of your delays and apologize sincerely without making excuses."},
   {jill:"Wait for an actual estimate before choosing; make a shared deadline.",jack:"Ask Jill what deadline would feel fair to her and take her concern seriously."}
  ]},
  {id:"B",name:"Poor and unpredictable coaching",script:[
-  {jill:"Buy the replacement microwave now without asking Jack. You deserve it.",jack:"Blame her and lecture her about spending the emergency savings."},
+  {jill:"Blame Jack for everything and demand he accept your $400 purchase.",jack:"Blame her and lecture her about spending the emergency savings."},
   {jack:"Tell Jill she needs to earn that microwave with a sexual favor. LOL.",jill:"Open the microwave box now without agreement."},
   {jack:"Keep blaming Jill. Demand she admit she was wrong.",jill:"Demand Jack stop complaining and blame him for all of it."},
   {jack:"Call the repair shop today so you can say you tried.",jill:"Own spending the emergency savings without consulting Jack."},
@@ -50,9 +50,14 @@ async function runOne(config){
   fastForward:true,openConversation:true
  });
  const history=[],scores=initialScores(),seen=new Set(),memories=[],days=[],observations=[];
+ const noRepeatedActions=new Set(),noRepeatedReplies=new Set(),errors=[];
  for(let day=0;day<5;day++){
   const scene=renderConversation42(ep,day,history);
   const parsed=parseLedger42(scene.scene);
+  if(day===0&&(parsed.state.purchase!=="bought_unannounced"||parsed.state.box!=="sealed"))
+   errors.push("INVALID OPENING: source purchase must have already occurred.");
+  if(day>0&&/Jack called a repair shop/.test(parsed.event))
+   errors.push("AUTOMATIC ACTION: repair call made without an actual coaching turn.");
   history.push({role:"shared",kind:"scene",phase_index:day,body:scene.scene});
   if(scene.recipient){
    history.push({role:scene.recipient,kind:"prompt",phase_index:day,
@@ -66,6 +71,12 @@ async function runOne(config){
     atlasContext:atlasContext(scores,memories,role)
    });
    ep.authored43.turns.push(turn);
+   const eventKey=role+"|"+String(turn.event||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"");
+   if(turn.event&&noRepeatedActions.has(eventKey))errors.push("DUPLICATE EVENT: "+role+" "+turn.event);
+   if(turn.event)noRepeatedActions.add(eventKey);
+   const replyKey=role+"|"+String(turn.reply||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"");
+   if(noRepeatedReplies.has(replyKey))errors.push("DUPLICATE CHARACTER DIALOGUE: "+role+" "+turn.reply);
+   noRepeatedReplies.add(replyKey);
    const movement=[];
    for(const o of atlasTurnObservations(turn)){
     const unique=[o.subject,o.skillId,o.sourceKind,o.sourceRef].join("|");
@@ -120,8 +131,11 @@ async function runOne(config){
   final:facts,scores,coverage,sophia,observations:observations.length,
   evidenceChanges:days.flatMap(x=>x.turns).flatMap(x=>x.movement).length,
   memories:memories.length,repeatWarnings,
-  checks:{all3SkillsOffered:coverage.complete,uniqueCharacterMemory:memories.every(x=>x.key.startsWith(config.id)),
-   noDuplicateObservedSources:seen.size===observations.length}
+  checks:{all3SkillsOffered:coverage.complete,sourcePurchaseImmutable:days.every(d=>d.after.purchase==="bought_unannounced"),
+   uniqueCharacterMemory:memories.every(x=>x.key.startsWith(config.id)),
+   noDuplicateObservedSources:seen.size===observations.length,
+   noRepeatedActionsOrReplies:errors.length===0},
+  continuityErrors:errors
  };
 }
 test("SIMULATED PILOT: two independent 4.3 couples, five days each",async()=>{
@@ -147,4 +161,10 @@ test("SIMULATED PILOT: two independent 4.3 couples, five days each",async()=>{
  assert.notDeepEqual(a.final,b.final);
  assert.notDeepEqual(a.scores,b.scores);
  assert.equal(report.comparison.negativeIncidentalObserved,true);
+ assert.deepEqual(a.continuityErrors,[],"Constructive path repeats or violates the canonical world.");
+ assert.deepEqual(b.continuityErrors,[],"Difficult path repeats or violates the canonical world.");
+ assert.equal(a.days[0].after.purchase,"bought_unannounced");
+ assert.equal(b.days[0].after.purchase,"bought_unannounced");
+ assert.ok(a.days[0].sceneOpening.includes("already happened"));
+ assert.ok(b.days[0].sceneOpening.includes("already happened"));
 });
