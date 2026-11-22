@@ -83,3 +83,21 @@ test("Atlas migration is service-only, couple-scoped and quality-pass constraine
  assert.match(sql,/revoke all on public\.anthos_atlas_episodes/);
  assert.equal((seed.match(/\('g-|\('s-|\('a-|\('i-/g)||[]).length,27);
 });
+
+test("Weekly Deep Dive highlights only its three selected skills; incidental evidence is secondary",()=>{
+ const html=readFileSync(new URL("../insight-atlas/index.html",import.meta.url),"utf8");
+ const js=readFileSync(new URL("../insight-atlas/atlas.js",import.meta.url),"utf8");
+ assert.match(html,/id="weeklyFocus"/);
+ assert.match(html,/This week's three skills/);
+ assert.match(html,/1 primary \+ 2 supporting/);
+ assert.match(html,/<details class="extra-notes" id="incidentalDetails">/);
+ assert.doesNotMatch(html,/<details class="extra-notes" id="incidentalDetails" open/);
+ assert.match(html,/Other moments Sophia noticed/);
+ assert.match(html,/id="annualLibrary"/);
+ assert.match(html,/Explore all 27 skills/);
+ assert.match(js,/skillDefs\.filter\(\(\[, , , ,type\]\)=>type==="Primary"\|\|type==="Supporting"\)/);
+ assert.match(js,/if\(!\["s-decisions","g-start","g-influence"\]\.includes\(id\)\)return/);
+ assert.match(js,/let selected="s-decisions",focusSelected="s-decisions"/);
+ assert.match(js,/function showIncidental\(id\)/);
+ assert.match(js,/does not subtract points again/);
+});
