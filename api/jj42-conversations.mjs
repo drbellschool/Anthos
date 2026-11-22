@@ -4,7 +4,7 @@
 // check-ins. The shared 'scene' row is a canonical non-private event ledger,
 // NEVER shown as a shared story or sent to either SMS recipient.
 import {DEVELOPMENTAL_PHASES,MICROWAVE_RUBRICS,SKILL_IDS43,normalizeDevelopmentalFlow,weightedSkillRating,observedRatings43,offlineCoaching43,validateCoaching43,ADVICE_CATALOG43,ratingObject43} from "./jj43-developmental.mjs";
-import {repeatedAnnouncement} from "./insight-atlas-model.mjs";
+import {repeatedAnnouncement,incidentalIntimacyReview,memoryContext} from "./insight-atlas-model.mjs";
 import {weeklyOpportunity} from "./atlas-opportunities.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
@@ -354,13 +354,35 @@ export function currentOpenWorld43(episode,history,day){
  if(!committed)throw Error("Start the fictional day first.");
  return structuredClone(openTurns43(episode).filter(x=>x.day===day).at(-1)?.stateAfter||committed.state);
 }
-const OPEN_ACTIONS43={jack:["chat","own","defend","plan","call","cancel"],jill:["chat","wait","consult","buy","open","own","hear","defend"]};
+const OPEN_ACTIONS43={jack:["chat","own","defend","plan","call","cancel","joke"],jill:["chat","wait","consult","buy","open","own","hear","defend"]};
+// The Atlas does not force positive growth: skills change the probability of
+// resisting or accepting advice, and only a later verified action changes scores.
+export function enactmentWithAtlas43(role,proposed,world,skillView,coaching={},message=""){
+ if(!skillView)return proposed;
+ const skills=skillView.characterSkills||{};
+ const score=id=>Number.isFinite(skills[id])?skills[id]:3;
+ const strain=Number(world?.strain)||1;
+ const weak=role==="jack"?score("s-decisions"):score("g-influence");
+ const relevant=(proposed==="hear"||proposed==="consult")?"g-influence":"s-decisions";
+ if(role==="jack"&&proposed==="joke"){
+  return score("i-nontransactional")>=3.6?"reject_joke":"joke";
+ }
+ if(["own","hear","consult"].includes(proposed)&&score(relevant)<2.55&&strain>=2)
+  return "chat"; // genuine resistance; it is NOT an observed skill improvement
+ // Explicitly hostile coaching can still influence a high-skill character,
+ // but a highly differentiated character may reject the hostile approach.
+ if(proposed==="defend"&&score("g-start")>=4.35&&strain<4)return "chat";
+ return proposed;
+}
 function offlineOpen43(role,text,state){
  const s=words(text);
  const advice=s.replace(/^.*?\b(?:our wives were talking|my wife told me|my wife said|jill told my wife)\b[^.!?]*[.!?]\s*/i,"");
  if(/^\s*(?:did|have|has|is|was|who|when|where|why|what|how)\b/.test(advice)&&advice.endsWith("?"))return "chat";
  const neg=/\b(?:don't|do not|never|shouldn't)\s+(?:call|buy|open|fix|purchase)\b/.test(advice);
  if(role==="jack"){
+  const intimacy=incidentalIntimacyReview(advice);
+  if(["joke-with-instruction","coercive-recommendation"].includes(intimacy.interpretation))
+   return "joke";
   if(neg&&/\bcall\b/.test(advice))return "cancel";
   if(!neg&&/\b(?:call|phone|ring|contact)\b[^.!?]{0,50}\b(?:shop|repair|someone|somebody|technician|company)\b/.test(advice))
    return /\b(?:today|now|this morning|right away)\b/.test(advice)?"call":"plan";
@@ -380,7 +402,9 @@ function offlineOpen43(role,text,state){
 }
 async function classifyOpen43(role,text,state,{apiKey,model="gpt-4.1-mini",fetchImpl=fetch}={}){
  const fallback=offlineOpen43(role,text,state);
- if(!apiKey)return fallback;
+ // Preserve the safety-tagged transactional recommendation as a distinct,
+ // consequential choice rather than misclassifying it as harmless chat.
+ if(fallback==="joke"||!apiKey)return fallback;
  const allowed=OPEN_ACTIONS43[role];
  try{
  const res=await fetchImpl("https://api.openai.com/v1/responses",{method:"POST",
@@ -399,7 +423,15 @@ function openEvent43(state,role,action,day,emphasis){
  const n=structuredClone(state);let event="",reply="",behavior=ratingObject43([null,null,null]);
  const set=(e,r,b)=>{event=e;reply=r;behavior=ratingObject43(b)};
  if(role==="jack"){
-  if(action==="plan"&&!n.repairCalled&&!n.repairPlan){
+  if(action==="joke"){
+   set("Jack told Jill she should earn the microwave with a sexual favor; Jill rejected that transactional demand.",
+    "I repeated that awful microwave joke to Jill. She was furious, and I can't really blame her. I turned a broken appliance into an insult.",
+    [2,1,1]);
+  }else if(action==="reject_joke"){
+   set("Jack rejected the idea that Jill should earn the microwave through sex; he chose to address the real spending disagreement.",
+    "No, I'm not turning intimacy into payment. The microwave's broken, my promises are overdue, and that's the problem I need to deal with.",
+    [3,4,4]);
+  }else if(action==="plan"&&!n.repairCalled&&!n.repairPlan){
    n.repairPlan=true;n.callDue=day+1;
    set("Jack found the model number and told Jill he planned a repair-shop call for the next day.","Fair point. I keep saying I'll fix it and then Saturday comes and goes. I've got the model number now. I'll call a shop tomorrow instead of making another promise I can't keep.",[4,null,null]);
   }else if(action==="plan"&&n.repairPlan&&!n.repairCalled){
@@ -440,14 +472,17 @@ function openEvent43(state,role,action,day,emphasis){
 // A model may phrase an immediate reaction using only this character's own
 // conversation. A canonical action is rendered separately, never generated
 // by this model. When a reaction fails checks, use the verified reply.
-async function phraseOpenReply43(role,text,before,turn,ownHistory,{apiKey,model="gpt-4.1-mini",fetchImpl=fetch}={}){
+async function phraseOpenReply43(role,text,before,turn,ownHistory,{apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null}={}){
  if(!apiKey)return turn.reply;
  try{
   const res=await fetchImpl("https://api.openai.com/v1/responses",{method:"POST",
    headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
    body:JSON.stringify({model,store:false,max_output_tokens:180,
     instructions:"Write a brief, natural first-person reaction from the fictional husband Jack or wife Jill to their own friend. Respond directly to their latest words, including questions, jokes or voluntarily shared reports. Reports are not verified facts. Do not mention private instructions or give relationship lessons. Do NOT invent any action, quote, third-party message, appointment, spending, repair, purchase, or future promise. You may acknowledge a reported concern without claiming it is true. Keep the reaction to 1–2 sentences and under 45 words. A separate verified reply will describe any actual action. If there is nothing else to add, return an empty reaction.",
-    input:JSON.stringify({character:role,latestText:text,ownConversation:ownHistory.slice(-4).map(x=>({text:x.body,reply:x.reply})),knownFacts:{purchase:before.purchase,box:before.box,repairPlan:before.repairPlan,repairCalled:before.repairCalled,repair:"broken"},verifiedReply:turn.reply}),
+    input:JSON.stringify({character:role,latestText:text,ownConversation:ownHistory.slice(-4).map(x=>({text:x.body,reply:x.reply})),knownFacts:{purchase:before.purchase,box:before.box,repairPlan:before.repairPlan,repairCalled:before.repairCalled,repair:"broken"},verifiedReply:turn.reply,
+   ...(atlasContext?{establishedSkills:atlasContext.characterSkills,
+    relevantPriorEvents:atlasContext.rememberedEvents,
+    direction:"React naturally, consistent with existing tendencies and the consequence of the last coach advice. Never announce an old event as newly completed. Do not announce skill ratings or force improvement."}:{})}),
     text:{format:{type:"json_schema",name:"jj43_open_reaction",strict:true,schema:{type:"object",additionalProperties:false,required:["reaction"],properties:{reaction:{type:"string"}}}}}}),
    signal:AbortSignal.timeout(7000)});
   if(!res.ok)return turn.reply;
@@ -467,14 +502,16 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  const before=currentOpenWorld43(episode,history,day);
  const [action,coaching]=await Promise.all([classifyOpen43(role,text,before,options),scoreCoaching43(text,options)]);
  const report=/\b(?:our wives were talking|our husbands were talking|my (?:wife|husband) (?:said|told me)|jill told my wife|jack told my husband)\b/i.test(text);
- const enacted=(before.strain||0)>=5&&action==="own"?"chat":action;
+ const skillView=options.atlasContext||null;
+ const proposed=(before.strain||0)>=5&&action==="own"?"chat":action;
+ const enacted=enactmentWithAtlas43(role,proposed,before,skillView,coaching,text);
  const emphasis=episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis;
  const r=openEvent43(before,role,enacted,day,emphasis);
- if(enacted!==action){
+ if(enacted!==action&&enacted!=="reject_joke"){
   r.event=role==="jack"?"Jack chose not to address his missed promises yet.":"Jill chose not to acknowledge her purchase yet.";
   r.state.events=[...r.state.events,r.event].slice(-5);
   r.behavior=ratingObject43([2,null,null]);
-  r.reply=role==="jack"?"I hear you. I'm not ready to have that conversation with Jill just yet. I'm still frustrated.":"I hear you, but I'm not ready to admit that to Jack just yet. I'm still frustrated.";
+  r.reply=role==="jack"?"I hear you, but I'm not ready for that conversation with Jill just yet. I'm frustrated.":"I hear you, but I'm not ready for that conversation with Jack just yet. I'm frustrated.";
  }
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
  const reply=await phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options);
@@ -827,7 +864,7 @@ export function validCharacterMessage42(message,state,phase){
  return true;
 }
 export async function renderCharacterMessage42(episode,phase,history=[],{
- apiKey,model="gpt-4.1-mini",fetchImpl=fetch,timeoutMs=11000
+ apiKey,model="gpt-4.1-mini",fetchImpl=fetch,timeoutMs=11000,atlas=null
 }={}){
  let decisionOverride=null,ratings=null;
  const developmental=episode.authored43?.version===JJ43_VERSION;
@@ -850,6 +887,13 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
  const ownHistory=[...history.filter(x=>x.role===role&&["prompt","coach"].includes(x.kind)),
   ...openTurns43(episode).filter(x=>x.role===role).flatMap(x=>[{kind:"coach",body:x.body},{kind:"reply",body:x.reply}])]
   .slice(-6).map(x=>({kind:x.kind,body:x.body.slice(0,900)}));
+ const atlasView=atlas?{
+   skills:atlas.scores?.[role]||{},
+   relevantMemories:memoryContext(atlas.memories||[],
+    episode.authored43?.selectedSkills||SKILL_IDS43).map(m=>({
+     key:m.memoryKey,summary:m.summary,referenceOnly:true
+    }))
+  }:null;
  const context={
   character,day:JJ42_DAYS[phase],
   problemStatement:episode.authored42.weekFraming||JJ42_WEEK_FRAMING,
@@ -863,6 +907,8 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
    selectedSkillOpportunity:prior.opportunitySkills||[],
    opportunityCue:phase<5?weeklyOpportunity(phase).promptCue:""}:{}),
   previousPrivateConversation:ownHistory,
+  ...(atlasView?{establishedCharacterState:atlasView,
+   instruction:"Respect this fictional character's observed skill tendencies, with plausible situational variation. Previous events affect present attitudes, not by restating old announcements."}:{}),
   goal:"Send your own trusted friend a believable message asking what to do next."
  };
  const instructions=[
