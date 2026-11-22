@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: "22"
       - name: Insight Atlas and 4.3 focused quality tests
-        run: node --test tests/atlas-feedback-loop.test.mjs tests/atlas-opportunities.test.mjs tests/insight-atlas.test.mjs tests/jj43-developmental.test.mjs tests/episode-studio.test.mjs
+        run: node --test tests/atlas-auth-review.test.mjs tests/atlas-feedback-loop.test.mjs tests/atlas-opportunities.test.mjs tests/insight-atlas.test.mjs tests/jj43-developmental.test.mjs tests/episode-studio.test.mjs
 
   atlas-release-gate:
     runs-on: ubuntu-latest
