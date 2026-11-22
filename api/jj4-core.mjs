@@ -19,6 +19,7 @@ import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulat
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
 import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
+import {atlasForRoom,reconcileAtlasOpenTurns,slimAtlasContext} from "./atlas-runtime.mjs";
 import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,buildConversation43,isConversation43,isOpen43,openTurns43,prepareOpenTurn43,parseLedger42,due42,renderCharacterMessage42,sophiaOrientation42,reactionConversation42,reaction43,sophiaConversation42} from "./jj42-conversations.mjs";
 
 
@@ -226,6 +227,7 @@ async function directScene(room,phaseIndex){
   const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
    select:"role,kind,phase_index,body"});
   return renderCharacterMessage42(room.episode,phaseIndex,history||[],{
+   atlas:isConversation43(room)?await atlasForRoom(room.id):null,
    apiKey:process.env.OPENAI_API_KEY?.trim(),
    model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini"
   });
@@ -692,6 +694,9 @@ export async function advance(token){
  if(typeof phase!=="number"||phase<0)return status(token);
  try{
   const latest=(await db(R,{id:"eq."+room.id,select:"*"}))?.[0];
+  // Recover any score updates from a previously committed open turn before
+  // generating the next dialogue. Failure holds the scene, never hides a debt.
+  if(isOpen43(latest))await reconcileAtlasOpenTurns(latest);
   const rendered=await directScene(latest,phase);
   if(isConversation43(latest)&&phase<5){
    if(!["jack","jill"].includes(rendered.recipient))error("4.3 did not select a private recipient.",502);
@@ -845,6 +850,9 @@ export async function textCharacter(token,body,requestKey){
  for(let attempt=0;attempt<3;attempt++){
   const {person,room}=await participant(token);
   if(!person.joined_at||!isOpen43(room))error("Join an open 4.3 conversation first.",403);
+  // A saved turn may be retried after a transient scoring outage. Reconcile
+  // before the idempotent early return so no evidence or score is skipped.
+  const existingAtlas=await reconcileAtlasOpenTurns(room);
   const turns=openTurns43(room.episode);
   if(turns.some(t=>t.role===person.role&&t.key===requestKey))return status(token);
   if(room.stage!=="flow"||room.phase_index>=5)error("The fictional day is changing or has ended. Refresh and try again.",409);
@@ -859,7 +867,9 @@ export async function textCharacter(token,body,requestKey){
   if(turns.length>=120||turns.filter(t=>t.day===room.phase_index).length>=24)error("This pilot has reached its conversation limit. Use the next day to continue.",429);
   const history=await db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",order:"id.asc",select:"role,kind,phase_index,body"});
   const turn=await prepareOpenTurn43(room.episode,person.role,room.phase_index,history||[],words,requestKey,{
-   apiKey:process.env.OPENAI_API_KEY?.trim(),model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini"
+   apiKey:process.env.OPENAI_API_KEY?.trim(),model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",
+   atlasContext:slimAtlasContext(existingAtlas?.atlas,person.role,
+    room.episode.authored43?.selectedSkills||["s-decisions","g-start","g-influence","i-nontransactional","i-sexual-respect"])
   });
   const episode={...room.episode,authored43:{...room.episode.authored43,turns:[...turns,turn]}};
   const updated=new Date(Math.max(Date.now(),(Date.parse(room.updated_at)||0)+1)).toISOString();
@@ -867,7 +877,11 @@ export async function textCharacter(token,body,requestKey){
   // unconditional replacement of the event record.
   if(!room.updated_at)error("Room version is unavailable. Refresh and retry.",409);
   const saved=await db(R,{id:"eq."+room.id,stage:"eq.flow",phase_index:"eq."+room.phase_index,updated_at:"eq."+room.updated_at},{episode,updated_at:updated},"PATCH");
-  if(Array.isArray(saved)&&saved.length===1)return status(token);
+  if(Array.isArray(saved)&&saved.length===1){
+   const newRoom={...room,episode,updated_at:updated};
+   await reconcileAtlasOpenTurns(newRoom);
+   return status(token);
+  }
  }
  error("Another conversation moved the story. Please retry your message.",409);
 }
