@@ -29,3 +29,16 @@ jobs:
           node-version: "22"
       - name: Insight Atlas and 4.3 focused quality tests
         run: node --test tests/insight-atlas.test.mjs tests/jj43-developmental.test.mjs tests/episode-studio.test.mjs
+
+  atlas-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Block 4.3 release until eight gates are proven
+        run: node scripts/verify-atlas-release.mjs
