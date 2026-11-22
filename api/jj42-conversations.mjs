@@ -115,6 +115,11 @@ export const isConversation42=room=>room?.episode?.authored42?.version===JJ42_VE
 export const isConversation43=room=>isConversation42(room)&&room.episode.authored43?.version===JJ43_VERSION;
 export function buildConversation43(draft,options={}){
  const ep=buildConversation42(draft,options);
+ if(options.timedPilot===true){
+  ep.authored42.fastForward=false;
+  ep.authored42.schedule=[];
+  ep.authored42.timedPilot=true;
+ }
  const selected=[ep.primarySkill,...ep.supportingSkills];
  // Reuse the existing factual world, private invitation lifecycle, model
  // renderer and coach persistence. 4.3 is a strategy, not another engine.
@@ -386,9 +391,11 @@ function openEvent43(state,role,action,day,emphasis){
  const n=structuredClone(state);let event="",reply="",behavior=ratingObject43([null,null,null]);
  const set=(e,r,b)=>{event=e;reply=r;behavior=ratingObject43(b)};
  if(role==="jack"){
-  if(action==="plan"&&!n.repairCalled){
+  if(action==="plan"&&!n.repairCalled&&!n.repairPlan){
    n.repairPlan=true;n.callDue=day+1;
    set("Jack found the model number and told Jill he planned a repair-shop call for the next day.","Fair point. I keep saying I'll fix it and then Saturday comes and goes. I've got the model number now. I'll call a shop tomorrow instead of making another promise I can't keep.",[4,null,null]);
+  }else if(action==="plan"&&n.repairPlan&&!n.repairCalled){
+   reply="I haven't forgotten. The model number and the shop are sorted. Tomorrow I need to make the call, not another excuse.";
   }else if(action==="call"&&!n.repairCalled){
    n.repairPlan=true;n.repairCalled=true;n.callDue=null;
    set("Jack called a repair shop and told Jill; no price, appointment, or repair was confirmed.","All right, I made the call and told Jill. No price confirmed yet, but at least I'm doing something instead of just staring at that Saturday note.",[5,null,null]);
@@ -405,7 +412,7 @@ function openEvent43(state,role,action,day,emphasis){
    set(n.consulted?"Jill purchased the $400 replacement after discussing it with Jack and informed him; agreement was not established.":"Jill purchased the $400 replacement using shared savings without consulting Jack. Jack noticed the charge.","I bought it. It's still in the box. "+(n.consulted?"We talked about the price, but that doesn't mean we agreed.":"I know I should have talked to him about the money."),[2,null,n.consulted?3:1]);
   }else if(action==="consult"){
    n.consulted=true;if(n.box==="absent")n.purchase="consulted";
-   set(n.box==="absent"?"Jill raised the $400 replacement with Jack before buying anything.":"Jill raised the replacement decision with Jack after the purchase.","I talked to him about the price and why I'm tired of waiting. We haven't agreed on what to do yet.",[4,null,4]);
+   set(n.box==="absent"?"Jill raised the $400 replacement with Jack before buying anything.":"Jill raised the replacement decision with Jack after the purchase.","I talked to him about the price and why I'm tired of waiting. We haven't agreed on what to do yet.",[4,null,3]);
   }else if(action==="wait"&&n.box!=="opened"){
    if(n.box==="absent"&&n.purchase!=="consulted")n.purchase="waiting";
    set(n.box==="sealed"?"Jill agreed to leave the replacement sealed for now.":"Jill decided not to buy a replacement for now.",n.box==="sealed"?"Fine, I'm leaving the tape alone for now. That is not the same as agreeing to return it.":"I'm holding off. I'd rather not spend the money if he's actually going to do something about it.",[3,null,null]);
@@ -655,14 +662,14 @@ function skillEvidence42(last){
    "No repair call or completed repair was recorded."};
 }
 function sophiaDevelopmental43(episode,days){
- const last=days.find(x=>x.day===5),entries=[...days.filter(x=>x.assessment),...openTurns43(episode).filter(x=>x.assessment).map(x=>({day:x.day+1,event:x.event,assessment:x.assessment}))].sort((a,b)=>a.day-b.day);
+ const last=days.find(x=>x.day===5),entries=[...days.filter(x=>x.assessment).map(x=>({...x,...(episode.authored43?.openConversation?{calendarDay:x.day}: {})})),...openTurns43(episode).filter(x=>x.assessment).map(x=>({day:x.day+1,calendarDay:x.day,event:x.event,assessment:x.assessment}))].sort((a,b)=>a.day-b.day);
  const names=["FACE HARD DECISIONS — Schnarch","GENTLE STARTUP — Gottman","ACCEPT INFLUENCE — Gottman"];
  const lenses=["Own your position and choices without demanding surrender.","Raise a concern without beginning with blame or contempt.","Consider a partner’s perspective without having to agree."];
  const parts=SKILL_IDS43.map((id,i)=>{
   const seen=entries.filter(x=>Number.isInteger(x.assessment.behavior[id]));
   const good=seen.filter(x=>x.assessment.behavior[id]>=4).sort((a,b)=>b.assessment.behavior[id]-a.assessment.behavior[id])[0];
   const poor=seen.filter(x=>x.assessment.behavior[id]<=2).sort((a,b)=>a.assessment.behavior[id]-b.assessment.behavior[id])[0];
-  const cite=x=>JJ42_DAYS[x.day-1]+": "+x.event;
+  const cite=x=>JJ42_DAYS[x.calendarDay??(x.day-1)]+": "+x.event;
   return names[i]+"\n"+lenses[i]+"\n"+
    (good?"Helpful: "+cite(good):"No clearly constructive example was recorded.")+"\n"+
    (poor?"Missed opportunity: "+cite(poor):seen.length?"No clearly counterproductive example was recorded.":"Not observed; there is not enough evidence to rate this skill.");
