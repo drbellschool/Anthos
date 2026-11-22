@@ -12,17 +12,17 @@ import {buildConversation42,buildConversation43,parseLedger42} from "../api/jj42
 const url="https://anthos.test/api/jack-jill-v4";
 const roomId="99000000-0000-4000-8000-000000000001";
 const sha=x=>createHash("sha256").update(x).digest("hex");
-function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null,version42=false,version43=false}={}){
+function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null,version42=false,version43=false,open43=false}={}){
  const tokens={jack:"J".repeat(43),jill:"L".repeat(43)};
- const episode=version42||version43?
-  (version43?buildConversation43:buildConversation42)({...structuredClone(studio||savedMicrowaveStudio),title,pilotMode:"shared"},{fastForward:true}):
+ const episode=version42||version43||open43?
+  (version43||open43?buildConversation43:buildConversation42)({...structuredClone(studio||savedMicrowaveStudio),title,pilotMode:"shared"},{fastForward:true,openConversation:open43}):
   buildAuthored41(studio?{...structuredClone(studio),title,pilotMode:"shared"}:{
    title,pilotMode:"shared",
    sophiaIntro:"Sophia welcomes the husband and wife and explains how shared decisions and attentive listening are different skills."
   });
  const room={id:roomId,scenario_id:randomUUID(),title:episode.title,episode,
   stage:"needs_scene",phase_index:0,expires_at:"2099-01-01T00:00:00.000Z",
-  created_at:"2026-11-20T15:00:00.000Z",processing_token:null,simulation_state:null};
+  created_at:"2026-11-20T15:00:00.000Z",updated_at:"2026-11-20T15:00:00.000Z",processing_token:null,simulation_state:null};
  const people=[
   {id:"99000000-0000-4000-8000-000000000011",room_id:roomId,role:"jack",token_hash:sha(tokens.jack),
    joined_at:null,submitted_phase:-1,first_name:null,paused_at:null},
@@ -73,10 +73,10 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
    assert.equal(room.phase_index,body.p_phase);
    assert.equal(room.processing_token,body.p_claim);
    add("shared","scene",room.phase_index,body.p_story);
-   if(room.phase_index<(version42||version43?5:4)){
+   if(room.phase_index<(version42||version43||open43?5:4)){
     if(body.p_jack)add("jack","prompt",room.phase_index,body.p_jack);
     if(body.p_jill)add("jill","prompt",room.phase_index,body.p_jill);
-    room.stage="awaiting";
+    room.stage=open43?"flow":"awaiting";
    }else room.stage=room.phase_index===5?"complete":"flow";
    room.processing_token=null;return respond(true);
   }
@@ -461,6 +461,56 @@ test("4.3 HTTP route commits dynamic audiences with the existing room and hides 
   const saved=fx.messages.filter(x=>x.kind==="scene").map(x=>parseLedger42(x.body));
   assert.ok(saved.slice(1).every(x=>x.assessment&&x.assessment.behavior));
   assert.equal(fx.messages.some(x=>x.body.includes("WRONG ROLE DO NOT SAVE")),false);
+ }finally{
+  globalThis.fetch=oldFetch;
+  if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
+  if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;
+ }
+});
+
+
+test("open 4.3: unsolicited husband text, repeated private replies, simultaneous texts, no required daily coach",async()=>{
+ const fx=makeFixture({open43:true}),oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ globalThis.fetch=fx.fakeFetch;process.env.SUPABASE_SECRET_KEY="synthetic-only";delete process.env.OPENAI_API_KEY;
+ try{
+  await fx.request("jack","join",{name:"Husband"});await fx.request("jill","join",{name:"Wife"});
+  const first=await fx.request("jill","advance");
+  assert.equal(first.weekDay,"Monday");assert.equal(first.canText,true);assert.equal(first.needsReply,false);
+  assert.ok(first.messages.some(m=>m.kind==="prompt"));
+  const jackInitially=await fx.request("jack");
+  assert.equal(jackInitially.canText,true);assert.equal(jackInitially.messages.length,0);
+  await fx.request("jill","text",{message:"Wait. Don't buy it yet.",requestKey:randomUUID()});
+  const key=randomUUID(),report="Hey man, our wives were talking. Just fix the microwave.";
+  const jack=await fx.request("jack","text",{message:report,requestKey:key});
+  assert.equal(jack.weekDay,"Monday");assert.ok(jack.messages.some(m=>m.kind==="reply"&&/spouses are talking/.test(m.body)));
+  assert.equal(fx.room.episode.authored43.turns.at(-1).stateAfter.repairPlan,true);
+  assert.equal(fx.room.episode.authored43.turns.at(-1).stateAfter.repairCalled,false);
+  assert.equal(fx.room.episode.authored43.turns.at(-1).reportedByCoach,true);
+  await fx.request("jack","text",{message:report,requestKey:key});
+  assert.equal(fx.room.episode.authored43.turns.length,2);
+  // Same-day followup is not rejected and does not trigger calendar advancement.
+  const mixed=await Promise.all([
+   fx.request("jack","text",{message:"Call someone tomorrow.",requestKey:randomUUID()}),
+   fx.request("jill","text",{message:"Talk to Jack before buying.",requestKey:randomUUID()})
+  ]);
+  assert.equal(mixed[0].weekDay,"Monday");assert.equal(mixed[1].weekDay,"Monday");
+  assert.equal(fx.room.episode.authored43.turns.length,4);
+  assert.equal(fx.room.episode.authored43.turns.at(-1).stateAfter.consulted,true);
+  const wife=await fx.request("jill");
+  assert.ok(wife.messages.every(m=>!m.body.includes("our wives were talking")));
+  const tuesday=await fx.request("jill","advance");
+  assert.equal(tuesday.weekDay,"Tuesday");assert.ok(tuesday.messages.some(m=>m.kind==="prompt"&&/actually made the repair call/.test(m.body)));
+  const world=parseLedger42(fx.messages.filter(x=>x.kind==="scene").at(-1).body).state;
+  assert.equal(world.repairCalled,true);assert.equal(world.repair,"broken");assert.equal(world.box,"absent");
+  // Silence does not manufacture a coach message or stall the week.
+  for(let day=2;day<=5;day++)assert.equal((await fx.request("jack","advance")).phaseIndex,day);
+  const end=await fx.request("jack","closure");
+  assert.equal(end.finished,true);
+  const closing=end.scenes.find(x=>x.kind==="sophia").body;
+  assert.match(closing,/made the call/);
+  assert.doesNotMatch(closing,/our wives were talking/);
+  assert.equal(fx.messages.filter(x=>x.kind==="coach").length,0);
+  assert.ok(end.messages.every(m=>m.role==="jack"));
  }finally{
   globalThis.fetch=oldFetch;
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
