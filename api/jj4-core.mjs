@@ -78,7 +78,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  const authored=pilotVersion==="4.1.0",developmental=pilotVersion==="4.3.0",weekly=pilotVersion==="4.2.0"||developmental;
  if(!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
  if(authored)Object.assign(draft,buildAuthored41(draft));
- if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true,openConversation:developmental}));
+ if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true,openConversation:developmental,timedPilot:developmental&&options.timedPilot===true}));
  if(!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
   error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
  if(!draft.primarySkill||(!developmental&&!PHASES4.every(p=>draft.phases[p]?.trim().length>=30)))
@@ -113,7 +113,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  }
  return {ok:true,engine:developmental?"4.3.0":weekly?"4.2.0":authored?"4.1.0":"4.0.0",title:draft.title,roomId:created.id,
   invitations,mode:scenario.mode,soloCoach:draft.soloCoach,expiresAt:created.expires_at,previousRetired,
-  ...(weekly?{fastForward:draft.authored42.fastForward,daySchedule:draft.authored42.schedule}:{}),
+  ...(weekly?{fastForward:draft.authored42.fastForward,timedPilot:!!draft.authored42.timedPilot,daySchedule:draft.authored42.schedule}:{}),
   note:weekly?"Private weekly conversation rehearsal. No SMS is sent; QA fast-forward can skip Monday–Saturday waits.":
   "Private browser pilot. No actual text messages will be sent."};
 }
@@ -174,7 +174,7 @@ export async function status(token){
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
   stage:room.stage,needsReply:openConversation?false:needsReply,submitted:person.submitted_phase===room.phase_index,
-  ...(openConversation?{openConversation:true,canText:joined&&bothJoined&&!pausedBy.length&&room.stage==="flow"&&room.phase_index<5}:{}),
+  ...(openConversation?{openConversation:true,timedPilot:!!room.episode.authored42.timedPilot,nextDayAt:room.episode.authored42.schedule?.[room.phase_index+1]||null,canText:joined&&bothJoined&&!pausedBy.length&&room.stage==="flow"&&room.phase_index<5}:{}),
   ...(weekly?{weekDay:JJ42_DAYS[room.phase_index],fastForward:room.episode.authored42.fastForward,
    nextAvailableAt:room.episode.authored42.schedule[room.phase_index]}:{}),
   coachChoices:authored41&&needsReply&&!selected41?authoredOptions(room.episode,person.role,room.phase_index):[],
