@@ -24,6 +24,17 @@ export const JJ42_WEEK_FRAMING=[
  "Jill wants a working appliance and is weary of reheating dinner on the stove.",
  "Neither a repair nor a retailer policy has been confirmed. Later events must come only from the canonical ledger."
 ].join(" ");
+// 4.3's open-world serial continuation begins AFTER the already-purchased
+// Thursday episode-studio premise. Never reuse the 4.2 pre-purchase prequel.
+export const JJ43_WEEK_FRAMING=[
+ "Last Thursday Jill purchased ONE $400 microwave using shared emergency savings,",
+ "and arrived with the sealed replacement box. Jack noticed the charge.",
+ "This week's story follows the consequences of that completed purchase.",
+ "The old microwave is broken. Jack missed three Saturday repair promises.",
+ "The replacement has NOT been opened or installed. No shop has been contacted,",
+ "no repair cost/appointment/retailer policy is known, and no refund occurred.",
+ "The purchase and Thursday arrival may be remembered, never repeated as new."
+].join(" ");
 const ROLES=["jill","jack","jill","jack","jill"];
 const PHASES=["hook","conflict","discovery","reattempt","outcome"];
 const INITIAL=()=>({
@@ -34,6 +45,12 @@ const INITIAL=()=>({
  "Jack has missed three Saturday repair promises.",
  "Jill found a $400 replacement and is considering spending shared emergency savings."]
 });
+const INITIAL_OPEN43=()=>({...INITIAL(),purchase:"bought_unannounced",box:"sealed",
+ strain:2,callDue:null,events:[
+  "Jack missed three Saturday promises to repair the old microwave.",
+  "Last Thursday Jill purchased ONE $400 replacement using shared emergency savings without consulting Jack.",
+  "Jill brought the sealed box into the kitchen once. Jack noticed the charge. Neither has contacted a repair shop."
+ ]});
 const words=x=>String(x||"").trim().toLowerCase().replace(/[’]/g,"'");
 function has(s,re){return re.test(s)}
 function action42(phase,text){
@@ -126,8 +143,12 @@ export function buildConversation43(draft,options={}){
  const selected=[ep.primarySkill,...ep.supportingSkills];
  // Reuse the existing factual world, private invitation lifecycle, model
  // renderer and coach persistence. 4.3 is a strategy, not another engine.
- return {...ep,authored43:{version:JJ43_VERSION,flow:normalizeDevelopmentalFlow(draft.developmentalFlow,selected),
-  ...(options.openConversation?{openConversation:true,turns:[]}: {})},
+ return {...ep,
+  authored42:{...ep.authored42,
+   ...(options.openConversation?{weekFraming:JJ43_WEEK_FRAMING,
+    mode:"post-purchase-continuation"}:{})},
+  authored43:{version:JJ43_VERSION,flow:normalizeDevelopmentalFlow(draft.developmentalFlow,selected),
+  ...(options.openConversation?{openConversation:true,turns:[],timeline:"post-purchase"}: {})},
   checkpoints:ep.checkpoints.map((cp,i)=>({...cp,audience:i===0?"jill":"none",waitForReply:i===0}))};
 }
 export function due42(episode,phase,now=Date.now()){
@@ -442,7 +463,7 @@ function openEvent43(state,role,action,day,emphasis){
    set("Jack called a repair shop and told Jill; no price, appointment, or repair was confirmed.","All right, I made the call and told Jill. No price confirmed yet, but at least I'm doing something instead of just staring at that Saturday note.",[5,null,null]);
   }else if(action==="cancel"&&n.repairPlan&&!n.repairCalled){
    n.repairPlan=false;n.callDue=null;set("Jack told Jill he was putting off the planned repair call.","I'm putting the call off again. I realize that is not going to go over especially well.",[2,null,null]);
-  }else if(action==="own"){
+  }else if(action==="own"&&!n.jackOwnsDelay){
    n.jackOwnsDelay=true;set("Jack told Jill, 'I should have dealt with the microwave sooner. I'm sorry.'","You're right that my word needs to mean something. I told her I should have dealt with this sooner. That's on me.",[4,4,3]);
   }else if(action==="defend"){
    set("Jack told Jill, 'You keep bringing this up. I said I'd deal with it.'","I told her I've said I'll handle it. I'm annoyed this keeps coming up. It didn't exactly help the conversation.",[2,2,2]);
@@ -451,17 +472,19 @@ function openEvent43(state,role,action,day,emphasis){
   if(action==="buy"&&n.box==="absent"){
    n.purchase=n.consulted?"bought_after_consultation":"bought_unannounced";n.box="sealed";
    set(n.consulted?"Jill purchased the $400 replacement after discussing it with Jack and informed him; agreement was not established.":"Jill purchased the $400 replacement using shared savings without consulting Jack. Jack noticed the charge.","I bought it. It's still in the box. "+(n.consulted?"We talked about the price, but that doesn't mean we agreed.":"I know I should have talked to him about the money."),[2,null,n.consulted?3:1]);
-  }else if(action==="consult"){
+  }else if(action==="consult"&&!n.consulted){
    n.consulted=true;if(n.box==="absent")n.purchase="consulted";
    set(n.box==="absent"?"Jill raised the $400 replacement with Jack before buying anything.":"Jill raised the replacement decision with Jack after the purchase.","I talked to him about the price and why I'm tired of waiting. We haven't agreed on what to do yet.",[4,null,3]);
-  }else if(action==="wait"&&n.box!=="opened"){
+  }else if(action==="wait"&&n.box!=="opened"&&!n.waitResolved){
+   n.waitResolved=true;
    if(n.box==="absent"&&n.purchase!=="consulted")n.purchase="waiting";
    set(n.box==="sealed"?"Jill agreed to leave the replacement sealed for now.":"Jill decided not to buy a replacement for now.",n.box==="sealed"?"Fine, I'm leaving the tape alone for now. That is not the same as agreeing to return it.":"I'm holding off. I'd rather not spend the money if he's actually going to do something about it.",[3,null,null]);
   }else if(action==="open"&&n.box==="sealed"){
    n.box="opened";set("Jill opened the purchased replacement before a shared decision.","The box is open now. I was frustrated and went ahead. I know that doesn't magically settle the money discussion.",[2,null,1]);
-  }else if(action==="own"&&n.purchase==="bought_unannounced"){
+  }else if(action==="own"&&n.purchase==="bought_unannounced"&&!n.jillOwnsPurchase){
    n.jillOwnsPurchase=true;set("Jill acknowledged the unannounced purchase to Jack.","I told him I should have called before spending the money. I still need him to take the repair seriously.",[4,null,4]);
-  }else if(action==="hear"){
+  }else if(action==="hear"&&!n.jillHeardSavings){
+   n.jillHeardSavings=true;
    set("Jill agreed to consider Jack's financial concern without surrendering her own need for a working appliance.","I can understand why he wants the savings protected. I still need a working microwave. Both things can be true.",[4,null,4]);
   }else if(action==="defend"){
    set("Jill dismissed Jack's concern about the shared spending decision.","I'm still mad about the broken microwave. I brushed off his concern about the money, and we didn't get anywhere.",[2,null,2]);
@@ -498,6 +521,57 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{apiKey,model=
  }catch{return turn.reply}
 }
 
+// Hard constraints for the existing 4.3 world. No model-generated message
+// can authorize reversing a purchase/opened box/repair call or double-count
+// the same concrete behavior. All prior committed turns are consulted, not
+// only the short context retained for human-readable scenes.
+const normEvent43=s=>String(s||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+function sameEvent43(episode,event){
+ const key=normEvent43(event);return key.length>0&&openTurns43(episode).some(t=>normEvent43(t.event)===key);
+}
+function validateWorldTransition43(before,after,event){
+ if(before.purchase==="bought_unannounced"&&after.purchase!=="bought_unannounced")
+  throw Error("STORY BLOCKED: completed microwave purchase cannot be reversed or repurchased.");
+ if(before.box==="opened"&&after.box!=="opened")
+  throw Error("STORY BLOCKED: opened microwave box cannot be resealed.");
+ if(before.repairCalled&&!after.repairCalled)
+  throw Error("STORY BLOCKED: completed repair-shop call cannot be undone.");
+ if(before.jackOwnsDelay&&!after.jackOwnsDelay||before.jillOwnsPurchase&&!after.jillOwnsPurchase)
+  throw Error("STORY BLOCKED: completed accountability cannot be forgotten.");
+ if(after.box==="opened"&&!["bought_unannounced","bought_after_consultation"].includes(after.purchase))
+  throw Error("STORY BLOCKED: cannot open a box never purchased.");
+ if(/(?:confirmed price|quoted \$|scheduled appointment|finished repair|received refund)/i.test(event||""))
+  throw Error("STORY BLOCKED: unknown retailer/repair claims are not evidence.");
+}
+function followUp43(role,day,state,why=""){
+ const facts=role==="jack"?
+  (state.repairCalled?"The shop still hasn't confirmed a price or a fix. ":
+   state.repairPlan?"I've identified a next step, but the repair isn't done. ":
+   "The old microwave is still broken. "):
+  (state.box==="opened"?"The replacement is open, and I can't undo that choice. ":
+   "The replacement is still sealed, but the money already left our savings. ");
+ const needs=role==="jack"?[
+  "I need to figure out how to acknowledge her inconvenience without pretending the savings don't matter.",
+  "What would make her believe I'll follow through this time?",
+  "I'm uncomfortable with how quickly this became an argument about motives.",
+  "The next useful move has to be different from another promise.",
+  "I'd rather ask what decision we can actually make with the information we have."
+ ]:[
+  "I want him to see that the old microwave hasn't worked in three weeks.",
+  "It's hard not to hear another plan as another delay.",
+  "What would count as taking my practical frustration seriously?",
+  "I still want our household to have a workable plan.",
+  "The emergency fund matters, but so does agreeing on what happens next."
+ ];
+ return (why?"That part of the conversation isn't new. ":"")+facts+needs[day];
+}
+function acceptedEvent43(episode,role,action,r,before,day){
+ validateWorldTransition43(before,r.state,r.event);
+ if(!r.event)return {...r,event:"",behavior:ratingObject43([null,null,null])};
+ if(!sameEvent43(episode,r.event))return r;
+ return {...r,state:structuredClone(before),event:"",
+  behavior:ratingObject43([null,null,null]),reply:followUp43(role,day,before,"repeated")};
+}
 export async function prepareOpenTurn43(episode,role,day,history,text,requestKey,options={}){
  if(!OPEN_ACTIONS43[role]||!Number.isInteger(day)||day<0||day>4)throw Error("Invalid open conversation.");
  const before=currentOpenWorld43(episode,history,day);
@@ -507,13 +581,16 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  const proposed=(before.strain||0)>=5&&action==="own"?"chat":action;
  const enacted=enactmentWithAtlas43(role,proposed,before,skillView,coaching,text);
  const emphasis=episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis;
- const r=openEvent43(before,role,enacted,day,emphasis);
+ let r=openEvent43(before,role,enacted,day,emphasis);
  if(enacted!==action&&enacted!=="reject_joke"){
   r.event=role==="jack"?"Jack chose not to address his missed promises yet.":"Jill chose not to acknowledge her purchase yet.";
   r.state.events=[...r.state.events,r.event].slice(-5);
   r.behavior=ratingObject43([2,null,null]);
-  r.reply=role==="jack"?"I hear you, but I'm not ready for that conversation with Jill just yet. I'm frustrated.":"I hear you, but I'm not ready for that conversation with Jack just yet. I'm frustrated.";
+  r.reply=followUp43(role,day,before,"resisted");
  }
+ r=acceptedEvent43(episode,role,enacted,r,before,day);
+ if(!r.event&&openTurns43(episode).some(t=>t.role===role&&t.reply===r.reply))
+  r.reply=followUp43(role,day,before,"repeated");
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
  const [reply,incidentalObservations]=await Promise.all([
   phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options),
@@ -531,12 +608,10 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
 function renderOpenDay43(episode,day,history){
  const days=ledgerRows43(history);
  if(days.some(x=>x.day===day))throw Error("Day already committed.");
- let state=day?currentOpenWorld43(episode,history,day-1):{...INITIAL(),strain:1,callDue:null};
- let event=day?"A new fictional day began.":"Jill is considering a replacement; no purchase has occurred.",assessment=null;
- if(day&&state.repairPlan&&!state.repairCalled&&Number.isInteger(state.callDue)&&state.callDue<=day){
-  const r=openEvent43(state,"jack","call",day,episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis);state=r.state;event=r.event;
-  assessment={role:"jack",recommended:"call",enacted:"call",behavior:r.behavior};
- }
+ let state=day?currentOpenWorld43(episode,history,day-1):INITIAL_OPEN43();
+ let event=day?"A new fictional day began.":"Jill's $400 purchase and arrival already happened last Thursday; the replacement is sealed.",assessment=null;
+ // Planning a call is not completing it. Never mark the shop called merely
+ // because a day passed: that requires a new observable decision or action.
  const previous=days.at(-1)?.recipient;
  const emphasis=episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis;
  const priorTurns=openTurns43(episode).filter(t=>t.day===day-1);
@@ -549,7 +624,7 @@ function renderOpenDay43(episode,day,history){
  const jillPriority=(state.box==="absent"&&!state.repairCalled?1:0)+(state.box==="sealed"?2:0)+
   (state.repairCalled?2:0)+(state.purchase==="bought_unannounced"&&!state.jillOwnsPurchase?1:0)+
   (emphasis["g-influence"]||3)/3-(priorTurns.some(t=>t.role==="jill")?2:0)-(previous==="jill"?1:0);
- const recipient=day===5?null:day===0?"jill":event.includes("Jack called")?"jill":
+ const recipient=day===5?null:day===0?"jack":event.includes("Jack called")?"jill":
   jackPriority>jillPriority?"jack":"jill";
  let message="";
 
@@ -560,10 +635,11 @@ function renderOpenDay43(episode,day,history){
    (told?"We still don't have a repair estimate, and I need us to settle on a decision date. ":"Jack actually made the repair call. No confirmed fix yet, but I'll take the progress. "):
    state.repairPlan?"Jack has a plan to call a repair shop. I'm waiting to see whether he follows through. ":"We're still dealing with the broken microwave. ";
   const box=state.box==="opened"?"The replacement box is open. ":state.box==="sealed"?"The replacement is still sealed. ":"I haven't purchased a replacement. ";
-  message=day===0?prompt(state,0):report+box+
+  message=report+box+
    (told?"How would you suggest we agree on a deadline without dismissing Jack's savings concern?":"How would you handle the next conversation?");
  }
- if(recipient==="jack")message=(state.purchase==="bought_unannounced"?"Jill bought the $400 microwave without talking to me first. ":state.box!=="absent"?"Jill bought the replacement; we haven't established an agreement. ":"Jill and I still need to decide what to do about the microwave. ")+
+ if(recipient==="jack")message=(day===0?"Jill came home last Thursday with a $400 microwave she'd bought without talking to me. The box is still sealed. ":"")+
+  (state.purchase==="bought_unannounced"&&day!==0?"Jill spent $400 of our savings without talking to me. ":state.box==="absent"?"Jill and I still need to decide what to do about the microwave. ":"")+
   (state.repairCalled?"I've made the repair call, but don't have a confirmed price or fix yet. ":state.repairPlan?"I've got a repair call planned. ":"I still haven't made a repair call. ")+"What would you do next?";
  const opportunity=day<5?weeklyOpportunity(day):null;
  // Saturday is the closure, not a sixth skill-opportunity day.
