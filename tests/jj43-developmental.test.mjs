@@ -137,7 +137,11 @@ test("open 4.3 private model reaction sees only the current character's voluntee
    const name=req.text.format.name;
    if(name==="jj43_coach_rubric")return {ok:false};
    if(name==="jj43_open_intent")return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({action:"plan"})}]}]})};
-   return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({reaction:"Apparently this microwave has a bigger fan club than I do."})}]}]})};
+   return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({
+    message:"Apparently this microwave has a bigger fan club than I do. I have the model number, and I'll call a shop tomorrow instead of making another empty promise. I haven't made the call yet.",
+    coachReference:"Our wives were talking",
+    replyReference:"bigger fan club than I do"
+   })}]}]})};
   }
  });
  assert.ok(result.reply.startsWith("Apparently this microwave"));
