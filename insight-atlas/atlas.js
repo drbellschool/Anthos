@@ -56,28 +56,57 @@ const scenes=[
   j:{quote:"what spending limit feels safe to him",memo:"Jill actively requests Jack's perspective. The purchase remains unresolved."},k:{quote:"I asked Jill what deadline feels fair.",memo:"Jack invites input before deciding, a constructive response under pressure."}}
 ];
 const periods=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-let selected="g-influence",day=4,person="j",tab="episode";
+let selected="s-decisions",focusSelected="s-decisions",annualSelected="g-influence",day=4,person="j",tab="episode";
 const skill=id=>skillDefs.find(x=>x[0]===id);
 const score=(p,d)=>rec[selected]?.[p]?.[d]??null;
 const quoteFor=p=>scenes[day][p].quote;
 const text=(id,value)=>$(id).textContent=String(value);
 function init(){
- skillDefs.slice(0,6).forEach(([id,title,who,color,type])=>{
+ skillDefs.filter(([, , , ,type])=>type==="Primary"||type==="Supporting").forEach(([id,title,who,color,type])=>{
   const button=document.createElement("button");button.type="button";button.className="skill";button.dataset.skill=id;button.style.setProperty("--accent",color);
-  const label=document.createElement("span");label.textContent=title;
+  const label=document.createElement("span");label.className="skill-title";label.textContent=title;
   const sub=document.createElement("small");sub.textContent=type+" · "+who;
   button.append(label,sub);button.onclick=()=>selectSkill(id);$("skills").append(button);
  });
  const sel=$("otherSkills");
  for(const [id,title,who,,type] of skillDefs){const opt=document.createElement("option");opt.value=id;opt.textContent=title+" · "+who+(type==="Library"?" (not observed here)":"");sel.append(opt)}
- sel.onchange=()=>selectSkill(sel.value);
+ sel.onchange=()=>{if(tab==="annual")selectSkill(sel.value)};
  scenes.forEach((d,i)=>{const b=document.createElement("button");b.type="button";b.className="day";b.textContent=d.day.slice(0,3);b.onclick=()=>{day=i;render()};$("days").append(b)});
- document.querySelectorAll("[data-tab]").forEach(el=>el.onclick=()=>{tab=el.dataset.tab;render()});
+ document.querySelectorAll("[data-tab]").forEach(el=>el.onclick=()=>{tab=el.dataset.tab;selected=tab==="episode"?focusSelected:annualSelected;render()});
  $("jillInspect").onclick=()=>{person="j";render()};
  $("jackInspect").onclick=()=>{person="k";render()};
+ document.querySelectorAll("[data-incident]").forEach(btn=>btn.addEventListener("click",()=>showIncidental(btn.dataset.incident)));
  render();
 }
-function selectSkill(id){selected=id;render()}
+function selectSkill(id){
+ if(tab==="episode"){
+  if(!["s-decisions","g-start","g-influence"].includes(id))return;
+  focusSelected=id;
+ }else{
+  annualSelected=id;
+ }
+ selected=id;render();
+}
+function showIncidental(id){
+ // This is a separate inspector, not a selection of the three weekly skills.
+ // It never changes the primary weekly chart or the active Deep Dive skill.
+ const box=$("incidentalInspector");
+ if(!["i-nontransactional","i-sexual-respect"].includes(id))return;
+ const label=skill(id)?.[1]||"Incidental observation";
+ box.replaceChildren();
+ const title=document.createElement("strong");title.textContent=label+" · Wednesday";
+ const coach=document.createElement("p");
+ coach.textContent='Husband coaching (SIM-COACH-WED): “'+scenes[2].husband+'”';
+ const acted=document.createElement("p");
+ acted.textContent='Jack enacted (SIM-JACK-WED): “'+scenes[2].jack+'”';
+ const scored=document.createElement("p");
+ scored.textContent='Jack example state: '+(rec[id]?.k?.[2]??"not observed")+
+  '/5. Husband coaching is assessed separately. One incident does not change Jill, and the microwave remains the focus of this week.';
+ const guidance=document.createElement("p");
+ guidance.textContent="Sophia memo: This incidental evidence may inform a future episode about intimacy. Recalling it later does not subtract points again.";
+ for(const el of [title,coach,acted,scored,guidance])box.append(el);
+ document.querySelectorAll("[data-incident]").forEach(el=>el.setAttribute("aria-pressed",String(el.dataset.incident===id)));
+}
 function selectedColor(){return skill(selected)?.[3]||"#9477de"}
 function writeSeries(svg,labels,j,k,interactive){
  const color=selectedColor(),X=i=>52+i*(575/(labels.length-1)),Y=n=>239-(n-1)*45;
