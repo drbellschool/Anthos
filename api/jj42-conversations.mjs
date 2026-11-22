@@ -565,10 +565,11 @@ function followUp43(role,day,state,why=""){
  ];
  return (why?"That part of the conversation isn't new. ":"")+facts+needs[day];
 }
-function acceptedEvent43(episode,role,action,r,before,day){
+function acceptedEvent43(episode,role,action,r,before,day,eventCode){
  validateWorldTransition43(before,r.state,r.event);
  if(!r.event)return {...r,event:"",behavior:ratingObject43([null,null,null])};
- if(!sameEvent43(episode,r.event))return r;
+ if(!sameEvent43(episode,r.event)&&
+  !openTurns43(episode).some(t=>t.eventCode===eventCode&&t.event))return r;
  return {...r,state:structuredClone(before),event:"",
   behavior:ratingObject43([null,null,null]),reply:followUp43(role,day,before,"repeated")};
 }
@@ -592,7 +593,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
   r.behavior=ratingObject43([2,null,null]);
   r.reply=followUp43(role,day,before,"resisted");
  }
- r=acceptedEvent43(episode,role,enacted,r,before,day);
+ const candidateEventCode=r.event?role+":"+enacted:null;
+ r=acceptedEvent43(episode,role,enacted,r,before,day,candidateEventCode);
  if(!r.event&&openTurns43(episode).some(t=>t.role===role&&t.reply===r.reply))
   r.reply=followUp43(role,day,before,"repeated");
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
@@ -607,7 +609,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  const reply=openTurns43(episode).some(t=>t.role===role&&normEvent43(t.reply)===normEvent43(rawReply))?
   followUp43(role,day,r.state,"repeated"):rawReply;
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
-  duplicateCoaching:priorSameCoach,
+  // Persisted semantic commitment, not a message ID or an AI-generated label.
+  eventCode:r.event?candidateEventCode:null,duplicateCoaching:priorSameCoach,
   incidentalObservations:priorSameCoach?incidentalObservations.filter(x=>x.lane!=="coaching"):incidentalObservations,
   reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:(r.event||Object.values(coaching).some(Number.isInteger))?{
    role,recommended:action,enacted,coaching,behavior:r.behavior,
