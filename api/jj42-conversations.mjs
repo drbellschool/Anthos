@@ -4,6 +4,7 @@
 // check-ins. The shared 'scene' row is a canonical non-private event ledger,
 // NEVER shown as a shared story or sent to either SMS recipient.
 import {DEVELOPMENTAL_PHASES,MICROWAVE_RUBRICS,SKILL_IDS43,normalizeDevelopmentalFlow,weightedSkillRating,observedRatings43,offlineCoaching43,validateCoaching43,ADVICE_CATALOG43,ratingObject43} from "./jj43-developmental.mjs";
+import {repeatedAnnouncement} from "./insight-atlas-model.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
 export const JJ42_DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -250,7 +251,7 @@ function chooseTask43(state,phase,used,flow){
  };
  return candidates.sort((a,b)=>score(b)-score(a)||a-b)[0];
 }
-function prompt43(s,task,used){
+function prompt43(s,task,used,history=[]){
  if(task===2&&!used.includes(1)){
   const start=s.purchase==="consulted"?"I did call Jack before buying anything.": "I held off on buying the microwave.";
   return start+" Three weeks of heating dinner on the stove haven't made me any more patient. I don't want to spend money just to prove a point. How can I make it clear I need him to actually deal with this?";
@@ -258,7 +259,13 @@ function prompt43(s,task,used){
  if(task===3&&!used.includes(2))return "I've still got that Saturday note on the old microwave. I'm tired of seeing it, and I know Jill is too. I care about protecting the emergency fund, but that doesn't make the appliance work. What's a practical first step I could actually follow through on?";
  if(task===3)return "This microwave business isn't about to disappear. "+(s.jillOwnsPurchase?"Jill acknowledged she should've called. ":"")+"I know three repair promises have gone nowhere. I can defend the emergency savings all day, but I still need to do something useful. What should I actually do?";
  if(task===1&&s.strain>=3)return prompt(s,1)+" I'm not exactly in a generous mood.";
- if(task===4&&s.repairCalled)return "Jack actually called the repair shop. No confirmed price yet, but he finally made the call. "+(s.box==="sealed"?"The replacement is still boxed.":s.box==="opened"?"The new box is already open.":"I haven't bought a replacement.")+" I don't want to pretend that fixes everything between us. What would you do with the decision now?";
+
+ if(task===4&&s.repairCalled){
+  const announced=history.some(x=>x.role==="jill"&&x.kind==="prompt"&&
+   /jack (?:actually )?(?:made the repair call|called the repair shop)/i.test(x.body));
+  if(announced)return "We've already discussed Jack's call, but the shop still hasn't confirmed a price. The decision is still ours to make. How would you set a reasonable deadline without starting another argument?";
+  return "Jack actually called the repair shop. No confirmed price yet, but he finally made the call. "+(s.box==="sealed"?"The replacement is still boxed.":s.box==="opened"?"The new box is already open.":"I haven't bought a replacement.")+" I don't want to pretend that fixes everything between us. What would you do with the decision now?";
+ }
  return prompt(s,task);
 }
 export function reaction43(episode,task,advice){
@@ -500,9 +507,17 @@ function renderOpenDay43(episode,day,history){
  const recipient=day===5?null:day===0?"jill":event.includes("Jack called")?"jill":
   jackPriority>jillPriority?"jack":"jill";
  let message="";
- if(recipient==="jill")message=day===0?prompt(state,0):
-  (state.repairCalled?"Jack actually made the repair call. No confirmed fix yet, but I'll take the progress. ":state.repairPlan?"Jack has a plan to call a repair shop. I'm waiting to see whether he follows through. ":"We're still dealing with the broken microwave. ")+
-  (state.box==="opened"?"The replacement box is open. ":state.box==="sealed"?"The replacement is still sealed. ":"I haven't purchased a replacement. ")+"How would you handle the next conversation?";
+
+ if(recipient==="jill"){
+  const priorJill=history.filter(x=>x.role==="jill"&&x.kind==="prompt").map(x=>x.body);
+  const told=priorJill.some(x=>/jack actually made the repair call|jack actually called the repair shop/i.test(x));
+  const report=state.repairCalled?
+   (told?"We still don't have a repair estimate, and I need us to settle on a decision date. ":"Jack actually made the repair call. No confirmed fix yet, but I'll take the progress. "):
+   state.repairPlan?"Jack has a plan to call a repair shop. I'm waiting to see whether he follows through. ":"We're still dealing with the broken microwave. ";
+  const box=state.box==="opened"?"The replacement box is open. ":state.box==="sealed"?"The replacement is still sealed. ":"I haven't purchased a replacement. ";
+  message=day===0?prompt(state,0):report+box+
+   (told?"How would you suggest we agree on a deadline without dismissing Jack's savings concern?":"How would you handle the next conversation?");
+ }
  if(recipient==="jack")message=(state.purchase==="bought_unannounced"?"Jill bought the $400 microwave without talking to me first. ":state.box!=="absent"?"Jill bought the replacement; we haven't established an agreement. ":"Jill and I still need to decide what to do about the microwave. ")+
   (state.repairCalled?"I've made the repair call, but don't have a confirmed price or fix yet. ":state.repairPlan?"I've got a repair call planned. ":"I still haven't made a repair call. ")+"What would you do next?";
  const scene=JSON.stringify({version:JJ42_VERSION,developmental:JJ43_VERSION,day,label:JJ42_DAYS[day],recipient,event,assessment,state:{...state,events:state.events.slice(-5)}});
@@ -532,7 +547,7 @@ function renderDevelopmental43(episode,phase,history=[],decisionOverride=null,ra
   task,recipient,event,state:{...state,events:state.events.slice(-6)},assessment};
  const scene=JSON.stringify(internal);
  if(scene.length<80||scene.length>2500)throw Error("Invalid 4.3 canonical event length.");
- const message=task===null?"":prompt43(state,task,used);
+ const message=task===null?"":prompt43(state,task,used,history);
  return {scene,recipient,jackPrompt:recipient==="jack"?message:"",jillPrompt:recipient==="jill"?message:""};
 }
 
@@ -865,7 +880,9 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
   const raw=(data.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text")
    .map(x=>x.text).join("");
   const candidate=JSON.parse(raw).message;
-  if(!validCharacterMessage42(candidate,prior.state,phase))return authored;
+  const ownPrior=ownHistory.filter(x=>x.kind==="prompt").map(x=>x.body);
+  if(!validCharacterMessage42(candidate,prior.state,phase)||
+    (developmental&&repeatedAnnouncement(candidate,ownPrior).length))return authored;
   return {...authored,jackPrompt:role==="jack"?candidate:"",
    jillPrompt:role==="jill"?candidate:""};
  }catch{
