@@ -6,6 +6,7 @@
 import {DEVELOPMENTAL_PHASES,MICROWAVE_RUBRICS,SKILL_IDS43,normalizeDevelopmentalFlow,weightedSkillRating,observedRatings43,offlineCoaching43,validateCoaching43,ADVICE_CATALOG43,ratingObject43} from "./jj43-developmental.mjs";
 import {repeatedAnnouncement,incidentalIntimacyReview,memoryContext} from "./insight-atlas-model.mjs";
 import {weeklyOpportunity} from "./atlas-opportunities.mjs";
+import {classifyIncidental43} from "./atlas-incidental.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
 export const JJ42_DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -514,8 +515,14 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
   r.reply=role==="jack"?"I hear you, but I'm not ready for that conversation with Jill just yet. I'm frustrated.":"I hear you, but I'm not ready for that conversation with Jack just yet. I'm frustrated.";
  }
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
- const reply=await phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options);
+ const [reply,incidentalObservations]=await Promise.all([
+  phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options),
+  classifyIncidental43(text,r.event,{
+   ...options,selected:episode.authored43?.selectedSkills||SKILL_IDS43
+  })
+ ]);
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
+  incidentalObservations,
   reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:(r.event||Object.values(coaching).some(Number.isInteger))?{
    role,recommended:action,enacted,coaching,behavior:r.behavior,
    coachingStrength:weightedSkillRating(coaching,emphasis),behaviorStrength:weightedSkillRating(r.behavior,emphasis),
