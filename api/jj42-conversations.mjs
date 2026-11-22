@@ -571,7 +571,7 @@ function followUp43(role,day,state,why=""){
   "I still want our household to have a workable plan.",
   "The emergency fund matters, but so does agreeing on what happens next."
  ];
- return (why?"That part of the conversation isn't new. ":"")+facts+needs[day];
+ return facts+needs[day];
 }
 function acceptedEvent43(episode,role,action,r,before,day,eventCode){
  validateWorldTransition43(before,r.state,r.event);
@@ -603,6 +603,10 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  }
  const candidateEventCode=r.event?role+":"+enacted:null;
  r=acceptedEvent43(episode,role,enacted,r,before,day,candidateEventCode);
+ // When nothing new happened, do not recycle a generic "What do you think?"
+ // and present it as a new story beat.
+ if(!r.event&&/\b(?:what do you think|what are you thinking)\?$/i.test(r.reply))
+  r.reply=followUp43(role,day,before);
  if(!r.event&&openTurns43(episode).some(t=>t.role===role&&t.reply===r.reply))
   r.reply=followUp43(role,day,before,"repeated");
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
