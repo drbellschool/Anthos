@@ -2,57 +2,70 @@
   "contractVersion": "anthos-4.3-release-gate-v1",
   "releaseAllowed": false,
   "lastReviewed": "2026-11-22",
-  "note": "Not ready. The source of truth is tested code, transactional persistence, consent-verified authenticated integration, and real-model quality evidence—not the presence of a mock UI.",
+  "note": "Feature code and sample tests exist for G1–G7, but NO gate is fully verified with an activated couple and live-model QA. G8 remains blocked; runtime write mode is disabled unless deliberately enabled after isolation and certification. Release is forbidden.",
   "gates": [
     {
       "id": "G1",
       "title": "Episode skill opportunities",
-      "status": "blocked",
-      "evidence": []
+      "status": "partial",
+      "evidence": [
+        "api/atlas-opportunities.mjs",
+        "tests/atlas-opportunities.test.mjs"
+      ]
     },
     {
       "id": "G2",
       "title": "Coaching contingent causality",
       "status": "partial",
       "evidence": [
-        "tests/jj43-developmental.test.mjs"
+        "api/jj42-conversations.mjs",
+        "tests/atlas-feedback-loop.test.mjs"
       ]
     },
     {
       "id": "G3",
       "title": "Persistent four-subject scored observations",
-      "status": "blocked",
+      "status": "partial",
       "evidence": [
-        "supabase/migrations/20261122130000_insight_atlas_foundation.sql"
+        "supabase/migrations/20261122140000_atlas_evidence_atomic_rpc.sql",
+        "api/atlas-runtime.mjs"
       ]
     },
     {
       "id": "G4",
       "title": "Enduring score influences next actual dialogue",
-      "status": "blocked",
-      "evidence": []
+      "status": "partial",
+      "evidence": [
+        "api/jj42-conversations.mjs",
+        "api/jj4-core.mjs"
+      ]
     },
     {
       "id": "G5",
       "title": "Incidental evidence persists and can affect later stories",
-      "status": "blocked",
+      "status": "partial",
       "evidence": [
-        "api/insight-atlas-model.mjs"
+        "api/atlas-incidental.mjs",
+        "api/atlas-runtime.mjs"
       ]
     },
     {
       "id": "G6",
       "title": "Authenticated two-coach MAXQDA-style Atlas",
-      "status": "blocked",
+      "status": "partial",
       "evidence": [
-        "insight-atlas/index.html"
+        "api/insight-atlas.mjs",
+        "insight-atlas/live.js"
       ]
     },
     {
       "id": "G7",
       "title": "Yearlong couple-scoped rollover and safe retention",
-      "status": "blocked",
-      "evidence": []
+      "status": "partial",
+      "evidence": [
+        "supabase/migrations/20261122150000_atlas_couple_binding_and_transcript.sql",
+        "api/atlas-runtime.mjs"
+      ]
     },
     {
       "id": "G8",
