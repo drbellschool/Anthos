@@ -5,6 +5,7 @@
 // NEVER shown as a shared story or sent to either SMS recipient.
 import {DEVELOPMENTAL_PHASES,MICROWAVE_RUBRICS,SKILL_IDS43,normalizeDevelopmentalFlow,weightedSkillRating,observedRatings43,offlineCoaching43,validateCoaching43,ADVICE_CATALOG43,ratingObject43} from "./jj43-developmental.mjs";
 import {repeatedAnnouncement} from "./insight-atlas-model.mjs";
+import {weeklyOpportunity} from "./atlas-opportunities.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
 export const JJ42_DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -520,7 +521,16 @@ function renderOpenDay43(episode,day,history){
  }
  if(recipient==="jack")message=(state.purchase==="bought_unannounced"?"Jill bought the $400 microwave without talking to me first. ":state.box!=="absent"?"Jill bought the replacement; we haven't established an agreement. ":"Jill and I still need to decide what to do about the microwave. ")+
   (state.repairCalled?"I've made the repair call, but don't have a confirmed price or fix yet. ":state.repairPlan?"I've got a repair call planned. ":"I still haven't made a repair call. ")+"What would you do next?";
- const scene=JSON.stringify({version:JJ42_VERSION,developmental:JJ43_VERSION,day,label:JJ42_DAYS[day],recipient,event,assessment,state:{...state,events:state.events.slice(-5)}});
+ const opportunity=weeklyOpportunity(day);
+ // The daily check-in offers a skill opportunity; it never awards points.
+ // Keep the actual prompt in Jack/Jill's natural voice without skill labels.
+ if(message&&day===1)message=message.replace(/What would you do (?:next|with the next conversation|with this)\?$/i,
+  "How would you bring this up without starting with blame?");
+ if(message&&day===2)message=message.replace(/What would you do (?:next|with the next conversation|with this)\?$/i,
+  "How can I honestly hear the other perspective without pretending I agree?");
+ const scene=JSON.stringify({version:JJ42_VERSION,developmental:JJ43_VERSION,day,label:JJ42_DAYS[day],recipient,event,assessment,
+  opportunitySkills:opportunity.skills,opportunityCue:opportunity.promptCue,
+  state:{...state,events:state.events.slice(-5)}});
  if(scene.length>2500)throw Error("Open story event too long.");
  return {scene,recipient,jackPrompt:recipient==="jack"?message:"",jillPrompt:recipient==="jill"?message:""};
 }
@@ -543,8 +553,10 @@ function renderDevelopmental43(episode,phase,history=[],decisionOverride=null,ra
  const recipient=task===null?null:TASKS43[task].role;
  // Keep each ledger within the existing RPC body limit. The full earlier
  // history is preserved in separate immutable day rows, not repeated here.
+ const opportunity=phase<5?weeklyOpportunity(phase):null;
  const internal={version:JJ42_VERSION,developmental:JJ43_VERSION,day:phase,label:JJ42_DAYS[phase],
-  task,recipient,event,state:{...state,events:state.events.slice(-6)},assessment};
+  task,recipient,event,opportunitySkills:opportunity?.skills||[],
+  state:{...state,events:state.events.slice(-6)},assessment};
  const scene=JSON.stringify(internal);
  if(scene.length<80||scene.length>2500)throw Error("Invalid 4.3 canonical event length.");
  const message=task===null?"":prompt43(state,task,used,history);
@@ -847,7 +859,9 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
   ...(developmental?{developmentalObjective:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].objective,
    skillEmphasis:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].emphasis,
    observableEvidenceGoal:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].evidence,
-   currentDilemma:role==="jack"?authored.jackPrompt:authored.jillPrompt}:{}),
+   currentDilemma:role==="jack"?authored.jackPrompt:authored.jillPrompt,
+   selectedSkillOpportunity:prior.opportunitySkills||[],
+   opportunityCue:phase<5?weeklyOpportunity(phase).promptCue:""}:{}),
   previousPrivateConversation:ownHistory,
   goal:"Send your own trusted friend a believable message asking what to do next."
  };
