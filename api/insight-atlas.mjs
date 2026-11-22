@@ -167,6 +167,10 @@ export async function atlasApi(request,{fetchImpl=fetch}={}){
    }
    restricted("Unknown Atlas view.",400);
   }
+  if(process.env.ANTHOS_ATLAS_WRITES_ENABLED!=="1")
+   restricted("New Atlas account linking and review changes are locked pending release certification.",503);
+  if(process.env.VERCEL_ENV==="preview"&&process.env.ANTHOS_QA_STRICT_ISOLATION!=="1")
+   restricted("Atlas preview writes require isolated Quality Lab storage.",503);
   const input=await request.json().catch(()=>null);
   if(!input||typeof input!=="object"||Array.isArray(input))restricted("Invalid request.");
   if(input.action==="link"){
