@@ -53,13 +53,13 @@ test("Atlas rejects unsigned requests before any database access",async()=>{
 test("Atlas does not disclose completed private coaching until both consent",async()=>{
  const {fetchImpl,visits}=mock(true);
  const resp=await run(fetchImpl,req("/api/insight-atlas?mode=episode&episodeId="+EPISODE));
- assert.equal(resp.status,403);
+ assert.equal(resp.status,403,JSON.stringify(await resp.json()));
  assert.ok(!visits.some(x=>x.endsWith("/anthos_atlas_transcript")));
 });
 test("Mutually unlocked episode returns real source-linked annotations to a member",async()=>{
  const {fetchImpl}=mock(false);
  const resp=await run(fetchImpl,req("/api/insight-atlas?mode=episode&episodeId="+EPISODE));
- assert.equal(resp.status,200);
+ assert.equal(resp.status,200,JSON.stringify(resp.status!==200?await resp.clone().json():{}));
  const data=await resp.json();
  assert.equal(data.transcript[0].actor,"husband");
  assert.equal(data.movements[0].evidence_id,12);
