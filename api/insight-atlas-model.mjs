@@ -71,9 +71,7 @@ export function repeatedAnnouncement(nextMessage,priorOwnMessages){
  const s=norm(nextMessage);
  const phrases=[
   /jack actually (made|completed) the repair call/,
-  /jack (actually )?called the repair shop/,
-  /the replacement is still sealed/,
-  /i haven t bought a replacement/
+  /jack (actually )?called the repair shop/
  ];
  return phrases.filter(p=>p.test(s)&&priorOwnMessages.some(msg=>p.test(norm(msg)))).map(p=>p.source);
 }
