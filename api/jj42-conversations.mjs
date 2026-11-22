@@ -412,13 +412,13 @@ function offlineOpen43(role,text,state){
   if(neg&&/\bcall\b/.test(advice))return "cancel";
   if(!neg&&/\b(?:call|phone|ring|contact)\b[^.!?]{0,50}\b(?:shop|repair|someone|somebody|technician|company)\b/.test(advice))
    return /\b(?:today|now|this morning|right away)\b/.test(advice)?"call":"plan";
-  if(!neg&&/\b(?:fix (?:the (?:thing|microwave)|it)|get (?:it|the microwave) fixed|repair it|get the model number|follow through)\b/.test(advice))return "plan";
+  if(!neg&&/\b(?:fix (?:the (?:thing|microwave)|it)|get (?:it|the microwave) fixed|repair it|(?:get|find|record|photograph) (?:the )?model number|plan (?:a )?(?:repair )?(?:shop )?call|follow through)\b/.test(advice))return "plan";
   if(/\b(?:own|admit|acknowledge|apologize|take responsibility)\b/.test(advice))return "own";
   if(!/\b(?:don't|do not)\s+(?:blame|lecture|demand)\b/.test(advice)&&/\b(?:blame|lecture|demand|yell)\b/.test(advice))return "defend";
  }else{
   if(!neg&&/\b(?:open|unbox)\b/.test(advice)&&!/\b(?:leave it sealed|keep it sealed|wait)\b/.test(advice)&&state.box==="sealed")return "open";
   if(/\b(?:own|admit|acknowledge|apologize)\b/.test(advice)&&state.purchase==="bought_unannounced")return "own";
-  if(/\b(?:wait|hold off|don't buy|do not buy|keep it sealed|leave it sealed)\b/.test(advice))return "wait";
+  if(/\b(?:wait|hold off|don't buy|do not buy|(?:keep|leave) (?:it|the (?:replacement|microwave|box)) sealed)\b/.test(advice))return "wait";
   if(/\b(?:call jack|talk to jack|talk to him|consult|ask jack|ask him|discuss|talk together)\b/.test(advice))return "consult";
   if(!neg&&/\b(?:buy|purchase|order|get the new one)\b/.test(advice)&&!/\b(?:did you|have you|already bought|already purchased)\b/.test(advice))return "buy";
   if(/\b(?:listen|hear|consider)\b/.test(advice))return "hear";
