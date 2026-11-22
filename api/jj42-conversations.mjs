@@ -402,7 +402,7 @@ function openEvent43(state,role,action,day,emphasis){
  }else{
   if(action==="buy"&&n.box==="absent"){
    n.purchase=n.consulted?"bought_after_consultation":"bought_unannounced";n.box="sealed";
-   set(n.consulted?"Jill purchased the $400 replacement after discussing it with Jack; agreement was not established.":"Jill purchased the $400 replacement using shared savings without consulting Jack. Jack noticed the charge.","I bought it. It's still in the box. "+(n.consulted?"We talked about the price, but that doesn't mean we agreed.":"I know I should have talked to him about the money."),[2,null,n.consulted?3:1]);
+   set(n.consulted?"Jill purchased the $400 replacement after discussing it with Jack and informed him; agreement was not established.":"Jill purchased the $400 replacement using shared savings without consulting Jack. Jack noticed the charge.","I bought it. It's still in the box. "+(n.consulted?"We talked about the price, but that doesn't mean we agreed.":"I know I should have talked to him about the money."),[2,null,n.consulted?3:1]);
   }else if(action==="consult"){
    n.consulted=true;if(n.box==="absent")n.purchase="consulted";
    set(n.box==="absent"?"Jill raised the $400 replacement with Jack before buying anything.":"Jill raised the replacement decision with Jack after the purchase.","I talked to him about the price and why I'm tired of waiting. We haven't agreed on what to do yet.",[4,null,4]);
@@ -455,10 +455,16 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  const enacted=(before.strain||0)>=5&&action==="own"?"chat":action;
  const emphasis=episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis;
  const r=openEvent43(before,role,enacted,day,emphasis);
+ if(enacted!==action){
+  r.event=role==="jack"?"Jack chose not to address his missed promises yet.":"Jill chose not to acknowledge her purchase yet.";
+  r.state.events=[...r.state.events,r.event].slice(-5);
+  r.behavior=ratingObject43([2,null,null]);
+  r.reply=role==="jack"?"I hear you. I'm not ready to have that conversation with Jill just yet. I'm still frustrated.":"I hear you, but I'm not ready to admit that to Jack just yet. I'm still frustrated.";
+ }
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
  const reply=await phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options);
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
-  reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:r.event?{
+  reportedByCoach:report,stateAfter:r.state,event:r.event,assessment:(r.event||Object.values(coaching).some(Number.isInteger))?{
    role,recommended:action,enacted,coaching,behavior:r.behavior,
    coachingStrength:weightedSkillRating(coaching,emphasis),behaviorStrength:weightedSkillRating(r.behavior,emphasis),
    consequence:r.state.strain>before.strain?"Tension":r.state.strain<before.strain?"Opening for discussion":"Unresolved",evidence:r.event}:null};
@@ -473,7 +479,19 @@ function renderOpenDay43(episode,day,history){
   assessment={role:"jack",recommended:"call",enacted:"call",behavior:r.behavior};
  }
  const previous=days.at(-1)?.recipient;
- const recipient=day===5?null:day===0?"jill":event.includes("Jack called")?"jill":state.purchase==="bought_unannounced"&&previous!=="jack"?"jack":previous==="jack"?"jill":"jack";
+ const emphasis=episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis;
+ const priorTurns=openTurns43(episode).filter(t=>t.day===day-1);
+ // A check-in is an invitation, not a coaching gate. Select its recipient
+ // from unresolved decisions, emphasis and recent interaction, not a fixed
+ // husband/wife alternation. Both private composers remain open.
+ const jackPriority=(state.purchase==="bought_unannounced"?3:0)+(!state.repairCalled?2:0)+
+  (!state.jackOwnsDelay?1:0)+(emphasis["g-start"]||3)/3-
+  (priorTurns.some(t=>t.role==="jack")?2:0)-(previous==="jack"?1:0);
+ const jillPriority=(state.box==="absent"&&!state.repairCalled?1:0)+(state.box==="sealed"?2:0)+
+  (state.repairCalled?2:0)+(state.purchase==="bought_unannounced"&&!state.jillOwnsPurchase?1:0)+
+  (emphasis["g-influence"]||3)/3-(priorTurns.some(t=>t.role==="jill")?2:0)-(previous==="jill"?1:0);
+ const recipient=day===5?null:day===0?"jill":event.includes("Jack called")?"jill":
+  jackPriority>jillPriority?"jack":"jill";
  let message="";
  if(recipient==="jill")message=day===0?prompt(state,0):
   (state.repairCalled?"Jack actually made the repair call. No confirmed fix yet, but I'll take the progress. ":state.repairPlan?"Jack has a plan to call a repair shop. I'm waiting to see whether he follows through. ":"We're still dealing with the broken microwave. ")+
