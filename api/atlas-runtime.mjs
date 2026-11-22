@@ -3,7 +3,7 @@
 // name, phone, or email; never use unbound pilots as yearlong memory sources.
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {incidentalIntimacyReview,memoryContext} from "./insight-atlas-model.mjs";
-import {openTurns43,parseLedger42} from "./jj42-conversations.mjs";
+import {openTurns43} from "./jj42-conversations.mjs";
 import {SKILL_IDS43} from "./jj43-developmental.mjs";
 
 const table=(x)=>["anthos_atlas_episodes","anthos_atlas_skill_states","anthos_atlas_memories","anthos_atlas_evidence","anthos_jj4_messages"].includes(x);
@@ -13,7 +13,9 @@ async function atlasDb(resource,params={},payload,method="GET",fetchImpl=fetch){
  if(!table(resource)&&resource!=="rpc/anthos_atlas_record_observation")throw Error("Invalid Atlas resource.");
  const url=new URL(storySupabaseBase()+resource);
  for(const [name,value] of Object.entries(params))url.searchParams.set(name,String(value));
- const res=await fetchImpl(url.toString(),{method,headers:storySupabaseHeaders(key()),
+ const h=storySupabaseHeaders(key());
+ if(params.on_conflict&&method==="POST")h.Prefer="return=representation,resolution=ignore-duplicates";
+ const res=await fetchImpl(url.toString(),{method,headers:h,
   ...(payload===undefined?{}:{body:JSON.stringify(payload)}),signal:AbortSignal.timeout(10000)});
  if(!res.ok)throw Error("Atlas evidence storage failed ("+res.status+").");
  return res.json();
@@ -69,18 +71,22 @@ export function atlasTurnObservations(turn){
   if(Number.isInteger(enacted)&&turn.event)add(character,id,turn.event,enacted,0.9,"selected",
    "Character behavior observed in a committed canonical action.");
  }
- const incidental=incidentalIntimacyReview(turn.body);
- for(const item of incidental.observations||[])add(coach,item.skillId,turn.body,
-  item.rating,item.confidence,"incidental","Unexpected intimacy-related coaching recommendation.",
-  incidental.interpretation==="rejects-transaction"?"refused":
-  incidental.interpretation==="joke-with-instruction"?"joke":"observed",
-  incidental.safetyFlag);
- // Note: the character is NOT penalized for advice alone.
- if(turn.event&&/Jack (?:told|suggested) Jill.{0,180}(?:sex|sexual|bedroom|favor|payment)/i.test(turn.event)){
-  const code=incidentalIntimacyReview(turn.event);
-  for(const item of code.observations||[])add(character,item.skillId,turn.event,
-   item.rating,item.confidence,"incidental","Character actually enacted the suggestion.",
-   "observed",code.safetyFlag);
+ const coded=Array.isArray(turn.incidentalObservations)?turn.incidentalObservations:null;
+ if(coded!==null){
+  for(const x of coded){
+   if(!["coaching","character"].includes(x.lane))continue;
+   const source=x.lane==="coaching"?turn.body:turn.event;
+   if(!source||!source.includes(x.quote)||!Number.isInteger(x.rating)||
+      x.rating<1||x.rating>5||x.confidence<0.6)continue;
+   add(x.lane==="coaching"?coach:character,x.skillId,x.quote,x.rating,x.confidence,
+    "incidental",x.explanation,x.interpretation,x.safetyFlag);
+  }
+ }else{
+  const fallback=incidentalIntimacyReview(turn.body);
+  for(const x of fallback.observations||[])add(coach,x.skillId,turn.body,
+   x.rating,x.confidence,"incidental","Unexpected intimacy-related coaching recommendation.",
+   fallback.interpretation==="rejects-transaction"?"refused":
+   fallback.interpretation==="joke-with-instruction"?"joke":"observed",fallback.safetyFlag);
  }
  return result;
 }
@@ -99,10 +105,34 @@ export async function reconcileAtlasOpenTurns(room,{fetchImpl=fetch}={}){
  const atlas=await atlasForRoom(room.id,{fetchImpl});
  if(!atlas)return null;
  const turns=openTurns43(room.episode);
+ const already=await atlasDb("anthos_atlas_evidence",{
+  select:"subject,skill_id,source_kind,source_ref",
+  episode_id:"eq."+atlas.episodeId,limit:2000},undefined,"GET",fetchImpl);
+ const seen=new Set((already||[]).map(x=>[x.subject,x.skill_id,x.source_kind,x.source_ref].join("|")));
  const outcomes=[];
  for(const turn of turns){
-  for(const observation of atlasTurnObservations(turn))
+  const observations=atlasTurnObservations(turn);
+  for(const observation of observations){
+   const key=[observation.subject,observation.skillId,observation.sourceKind,observation.sourceRef].join("|");
+   if(seen.has(key))continue;
    outcomes.push(await applyOne(atlas,observation,fetchImpl));
+   seen.add(key);
+  }
+  // The shared fictional event, not private advice, is the future-memory fact.
+  // Stored once, even if a text retry or room reconciliation repeats.
+  const event=String(turn.event||"").trim();
+  if(event&&turn.key){
+   const skills=[...new Set(observations.map(x=>x.skillId))];
+   const sensitive=skills.some(x=>x==="i-nontransactional"||x==="i-sexual-respect"||x==="i-consent-boundaries");
+   await atlasDb("anthos_atlas_memories",{on_conflict:"couple_id,memory_key"},{
+    couple_id:atlas.coupleId,originating_episode_id:atlas.episodeId,
+    memory_key:"turn:"+turn.key,memory_summary:event.slice(0,1400),
+    characters:[turn.role],skill_ids:skills,
+    tags:["canonical-event",sensitive?"incidental-intimacy":"general"],
+    tension:/rejected|furious|defensive|dismissed|angry|hurt/i.test(event)?"unresolved":"evolving",
+    salience:sensitive?5:3
+   },"POST",fetchImpl);
+  }
  }
  return {atlas:await atlasForRoom(room.id,{fetchImpl}),observations:outcomes.length,
   applied:outcomes.filter(x=>x?.applied).length};
