@@ -11,6 +11,11 @@ const key=()=>process.env.SUPABASE_SECRET_KEY?.trim()||process.env.SUPABASE_SERV
 async function atlasDb(resource,params={},payload,method="GET",fetchImpl=fetch){
  if(!key())throw Error("Atlas storage is not configured.");
  if(!table(resource)&&resource!=="rpc/anthos_atlas_record_observation")throw Error("Invalid Atlas resource.");
+ if(method!=="GET"){
+  if(process.env.ANTHOS_ATLAS_WRITES_ENABLED!=="1")throw Error("Atlas write mode is locked pending release certification.");
+  if(process.env.VERCEL_ENV==="preview"&&process.env.ANTHOS_QA_STRICT_ISOLATION!=="1")
+   throw Error("Atlas preview writes require a separate Quality Lab database.");
+ }
  const url=new URL(storySupabaseBase()+resource);
  for(const [name,value] of Object.entries(params))url.searchParams.set(name,String(value));
  const h=storySupabaseHeaders(key());
