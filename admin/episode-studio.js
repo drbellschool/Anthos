@@ -445,7 +445,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0"){
   if(pilotVersion==="4.2.0"){
    plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
-  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: developmental objectives and emphasis guide actual decisions and private recipients. Coaching scores, observed behavior and story consequences are separate. Fast-forward browser QA only; NO SMS."));
+  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: either coach can text their character throughout the week, even before a check-in. Shared fictional actions affect both conversations. Calendar advancement is separate from texting. Skill emphasis and observed behavior stay behind the scenes. Fast-forward browser QA only; NO SMS."));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
    if(pilotVersion==="4.3.0"){
