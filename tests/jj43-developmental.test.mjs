@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
-import {buildConversation43,weeklyRehearsal42,parseLedger42,renderConversation42,developmentTransition43,renderCharacterMessage42} from "../api/jj42-conversations.mjs";
+import {buildConversation43,weeklyRehearsal42,parseLedger42,renderConversation42,developmentTransition43,renderCharacterMessage42,prepareOpenTurn43} from "../api/jj42-conversations.mjs";
 import {DEVELOPMENTAL_PHASES,normalizeDevelopmentalFlow,weightedSkillRating,offlineCoaching43,validateCoaching43,ratingObject43} from "../api/jj43-developmental.mjs";
 import {normalizeStudio} from "../api/episode-studio.mjs";
 const ep=()=>buildConversation43({...structuredClone(savedMicrowaveStudio),pilotMode:"shared"},{fastForward:true});
@@ -91,4 +91,50 @@ test("changing author emphasis changes the next decision opportunity, not just a
  assert.equal(b.task,3);
  assert.equal(a.state.purchase,b.state.purchase);
  assert.equal(a.recipient,"jack");assert.equal(b.recipient,"jack");
+});
+
+
+test("open 4.3: a volunteered claim is not a fact, and repeated purchase does not duplicate an action",async()=>{
+ const e=buildConversation43({...structuredClone(savedMicrowaveStudio),pilotMode:"shared"},{fastForward:true,openConversation:true});
+ const initial=renderConversation42(e,0,[]);
+ const history=[{role:"shared",kind:"scene",phase_index:0,body:initial.scene}];
+ const send=async(role,text,key)=>{
+  const t=await prepareOpenTurn43(e,role,0,history,text,key);
+  e.authored43.turns.push(t);return t;
+ };
+ const rumor=await send("jack","My wife told me Jill already bought the microwave.","a");
+ assert.equal(rumor.reportedByCoach,true);
+ assert.equal(rumor.stateAfter.purchase,"not_bought");
+ assert.equal(rumor.event,"");
+ assert.equal(rumor.assessment,null);
+ const buy=await send("jill","Buy the microwave now.","b");
+ assert.equal(buy.stateAfter.purchase,"bought_unannounced");
+ const repeat=await send("jill","Buy the microwave now.","c");
+ assert.equal(repeat.event,"");
+ assert.equal(repeat.stateAfter.box,"sealed");
+ assert.equal(repeat.stateAfter.events.filter(x=>x.includes("Jill purchased")).length,1);
+ const open=await send("jill","Open the box.","d");
+ assert.equal(open.stateAfter.box,"opened");
+ const reverse=await send("jill","Wait and leave it sealed.","e");
+ assert.equal(reverse.stateAfter.box,"opened");
+});
+test("open 4.3 private model reaction sees only the current character's volunteered information",async()=>{
+ const e=buildConversation43({...structuredClone(savedMicrowaveStudio),pilotMode:"shared"},{fastForward:true,openConversation:true});
+ const history=[{role:"shared",kind:"scene",phase_index:0,body:renderConversation42(e,0,[]).scene}];
+ e.authored43.turns.push(await prepareOpenTurn43(e,"jill",0,history,"Wait. SECRET WIFE MESSAGE.","first"));
+ const requests=[];
+ const result=await prepareOpenTurn43(e,"jack",0,history,"Our wives were talking. Just fix the microwave.","second",{
+  apiKey:"mock-only",fetchImpl:async(_,options)=>{
+   const req=JSON.parse(options.body);requests.push(req);
+   const name=req.text.format.name;
+   if(name==="jj43_coach_rubric")return {ok:false};
+   if(name==="jj43_open_intent")return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({action:"plan"})}]}]})};
+   return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({reaction:"Apparently this microwave has a bigger fan club than I do."})}]}]})};
+  }
+ });
+ assert.ok(result.reply.startsWith("Apparently this microwave"));
+ assert.ok(result.reply.includes("I'll call a shop tomorrow"));
+ assert.equal(result.stateAfter.repairCalled,false);
+ assert.ok(requests.every(x=>!x.input.includes("SECRET WIFE MESSAGE")));
+ assert.ok(requests.every(x=>x.store===false));
 });
