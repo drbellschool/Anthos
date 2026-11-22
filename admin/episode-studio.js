@@ -256,6 +256,15 @@ function paintDevelopmentalFlow(){
  const anchors=node("details","episode-phase-fold");
  anchors.append(node("summary","episode-phase-head","Behind the scenes · behavioral rating scale"),
  node("p","episode-editorial-note","1 Counterproductive · 2 Resistant · 3 Developing · 4 Constructive · 5 Highly constructive · Not observed if evidence is missing. Coaching, observed behavior and consequence are separate; never a grade on the real couple."));
+ for(const id of ids){
+  const skill=current.skills.find(x=>x.id===id);
+  anchors.append(node("strong","",skill?.title||id));
+  const rubric=current.behaviorRubrics?.[id];
+  if(!rubric){anchors.append(node("p","episode-editorial-note","Skill-specific behavior anchors are not yet validated for this pilot. Emphasis can still be saved."));continue;}
+  const list=node("ol");
+  rubric.forEach((criteria,i)=>list.append(node("li","",(current.behaviorScale[i]||String(i+1))+" — "+criteria)));
+  anchors.append(list);
+ }
  host.append(anchors);
 }
 
@@ -572,7 +581,7 @@ async function openEditor(id,petal,mode){
  $("episodeStudioTitle").textContent="Loading episode…";note("Loading objectives and story flow…");
  try{
   const data=await request(null,{id});
-  current={id,petal:data.scenario.petal_slug||petal,mode:data.scenario.mode||mode,status:data.scenario.status||"draft",studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,
+  current={id,petal:data.scenario.petal_slug||petal,mode:data.scenario.mode||mode,status:data.scenario.status||"draft",studio:data.studio,skills:data.skills,skillUsage:data.skillUsage||{},phases:data.phases,behaviorRubrics:data.behaviorRubrics||{},behaviorScale:data.behaviorScale||[],
    version:data.scenario.content_version,hasSaved:data.scenario.episode_saved,dirty:false};
   renderStoryboard();
   const select=$("episodePrimary");select.replaceChildren();
