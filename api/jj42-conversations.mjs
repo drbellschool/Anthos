@@ -660,7 +660,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  const act=speechAct43(text);
  const priorReplies=ownHistory.map(x=>x.reply).filter(Boolean);
  const spouseConversationCommitted=!!turn.event&&
-  /\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|informed)\b/i.test(turn.event)&&
+  /\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|informed|suggested|proposed|offered|invited|thanked)\b/i.test(turn.event)&&
   !/\b(?:chose not to|declined to|refused to)\b/i.test(turn.event);
  const context={
   character:role,identity:approved.characterVoices[role],
