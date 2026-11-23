@@ -651,7 +651,7 @@ export function validateOpenReply43(candidate,{
 }
 async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null,
- requireModelVoice=false,replyTimeoutMs=18000,storyQualityContract=null
+ requireModelVoice=false,replyTimeoutMs=18000,storyQualityContract=null,creativeStyle=null
 }={}){
  if(!apiKey){
   if(requireModelVoice)throw Error("ANTHOS LIVE QA BLOCKED: existing OpenAI key is unavailable; scripted fallback forbidden.");
@@ -667,6 +667,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  const context={
   character:role,identity:approved.characterVoices[role],
   establishedEpisodeWorld:approved.world,trackedObjects:approved.objects,
+  ...(creativeStyle?{episodeCreativeStyle:creativeStyle}:{}),
   canonicalNarrativeInvariants:approved.invariants.map(x=>({id:x.id,fact:x.fact})),
   coachMessage:String(text||"").slice(0,900),coachSpeechAct:act,
   priorCharacterMessages:ownHistory.slice(-10).map(x=>({
@@ -690,6 +691,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Write the ENTIRE next private SMS text in the FIRST PERSON as "+(role==="jack"?"Jack":"Jill")+" to their trusted friend, not a reaction prefix and not canned dialogue.",
   "Stay inside the before/after world facts. The only NEW enacted event permitted is verifiedEventThisTurn. If null, you may reflect, resist, wonder, plan in thought, or joke to your friend, but not claim an action happened.",
   "This character is a specific, flawed person with agency, not a marriage instructor. Respond in a way that unmistakably engages this particular coach message.",
+  "Use episodeCreativeStyle, when present, for a natural voice, suitable humor, tone and callbacks. This creative direction NEVER overrides verified story facts, consent, or independent character choices.",
   "The recipient is your trusted friend, never 'the coach'. Never use AI, authoring, scoring or assessment language.",
   "Established facts remain true in jokes, metaphors and casual implications. Do not imply a completed purchase still needs to happen.",
   "CRITICAL: newSpouseConversationAllowed="+spouseConversationCommitted+
@@ -845,7 +847,15 @@ async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKe
  const change={state,event:outcome.event,reply:outcome.reply,behavior:outcome.behavior};
  const [rendered,incidentalObservations]=await Promise.all([
   phraseOpenReply43(role,text,before,change,prior,
-   {...options,storyQualityContract:graph.qualityContract}),
+   {...options,storyQualityContract:graph.qualityContract,
+     creativeStyle:{
+      toneApproach:episode.toneApproach||"balanced",
+      toneIntensity:Number(episode.toneIntensity)||3,
+      voice:String(episode.tone||"").slice(0,650),
+      humorNotes:String(episode.humorNotes||"").slice(0,1300),
+      runningGags:String(episode.runningGags||"").slice(0,1300),
+      creativeDirection:String(episode.creativeDirection||"").slice(0,650)
+     }}),
   classifyIncidental43(report?"":text,outcome.event,{
    ...options,selected:focus
   })
