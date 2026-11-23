@@ -613,7 +613,7 @@ export function validateOpenReply43(candidate,{
     !/\b(?:she said|he said|jill said|jack said)\b/i.test(String(event||""))&&
     !/\b(?:you said|you told me|heard|apparently|supposedly|rumor)\b/i.test(m))
   issues.push("unverified-quote");
- const generic=storyQualityContract?reviewStoryReply(m,{role,contract:storyQualityContract,priorReplies}):null;
+ const generic=storyQualityContract?reviewStoryReply(m,{role,contract:storyQualityContract,priorReplies,verifiedEvent:event}):null;
  if(generic)issues.push(...generic.critical);
  return {ok:issues.length===0,issues:[...new Set(issues)],advisory:generic?.advisory||[],wordCount:m?m.split(/\s+/).length:0};
 }
