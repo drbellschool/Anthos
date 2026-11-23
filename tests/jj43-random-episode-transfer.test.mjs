@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {buildConversation43,renderConversation42,prepareOpenTurn43,parseLedger42,
  sophiaConversation42,sophiaOrientation42} from "../api/jj42-conversations.mjs";
 import {atlasTurnObservations} from "../api/atlas-runtime.mjs";
+import {normalizeStudio} from "../api/episode-studio.mjs";
 import {scenarioGraph} from "./fixtures/jj43-what-makes-us-feel-close-graph.mjs";
 import {assertStoryQualityContract,reviewStoryReply} from "../lib/anthos-story-quality.mjs";
 import {episode,qualityContract,offlineProbe} from "./fixtures/jj43-what-makes-us-feel-close.mjs";
@@ -188,4 +189,19 @@ test("Scenario model must repair an invented reservation before reply can be sen
  assert.equal(turn.reply,src.reply);
  assert.match(requests.filter(x=>x.text?.format?.name==="jj43_full_character_text")[1].instructions,
   /canonical-implication:no-confirmed-booking/);
+});
+
+test("Episode Studio round-trips the approved graph and rejects cross-episode substitution",()=>{
+ const saved={title:episode.title,premise:episode.premise,
+  learningObjective:episode.learningObjective,primarySkill:episode.primarySkill,
+  supportingSkills:episode.supportingSkills,scenarioGraph};
+ const source={id:episode.id,title:episode.title,opening_scene:episode.premise,mode:"shared"};
+ const normalized=normalizeStudio(saved,source);
+ assert.equal(normalized.scenarioGraph.episodeId,episode.id);
+ assert.equal(normalized.scenarioGraph.rules.length,scenarioGraph.rules.length);
+ const again=normalizeStudio(normalized,source);
+ assert.deepEqual(again.scenarioGraph,normalized.scenarioGraph);
+ assert.throws(()=>normalizeStudio(saved,{...source,id:"other-episode"}),/graph ID mismatch/);
+ assert.throws(()=>normalizeStudio({...saved,supportingSkills:["g-influence"]},source),
+  /focus skill opportunity missing/);
 });
