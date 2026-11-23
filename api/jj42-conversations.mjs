@@ -605,6 +605,8 @@ export function validateOpenReply43(candidate,{
    !/\b(?:hugged|kissed|forgave|cried|laughed|stormed out|screamed|yelled|threw|slammed|promised|apologized|agreed)\b/i.test(String(event||"")))
   issues.push("invented-partner-reaction");
  const state=after||before||{};
+ const mortgageOnly= !storyQualityContract||storyQualityContract.episodeId===MICROWAVE_STORY_QUALITY.episodeId;
+ if(mortgageOnly){
  const negatedPhysical=/\b(?:haven't|hasn't|didn't|never|not|won't|don't|do not|keep|leave)\s+(?:\w+\s+){0,4}(?:open|opened|unbox|unboxed|install|installed)\b/i.test(m);
  if(state.purchase==="bought_unannounced"&&
     /\b(?:just bought|bought another|purchased another|went back and bought|ordered another|going to buy a second)\b/i.test(m))
@@ -625,6 +627,7 @@ export function validateOpenReply43(candidate,{
   issues.push("new-call-outside-ledger");
  if(/\b(?:confirmed (?:repair )?(?:price|estimate|appointment)|the (?:shop|technician) (?:quoted|told us|said it would cost)|we have (?:a )?(?:refund|appointment|repair quote)|(?:received|got) (?:the )?refund|(?:returned|exchanged) the microwave)\b/i.test(m))
   issues.push("unverified-external-fact");
+ }
  // Conversations with Jack/Jill must be canonical events, not invented dialogue.
  const actionMentionsSpeech=/\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|confronted|informed)\b/i.test(String(event||""));
  const allegedTalk=!actionMentionsSpeech?
@@ -672,7 +675,9 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   newSpouseConversationAllowed:spouseConversationCommitted,
   enactedAction:turn.event?"one bounded event was committed":"no new physical or interpersonal action committed",
   // Keep model context from accumulating unverified coach claims as facts.
-  knownExternalFacts:{repairPrice:null,repairAppointment:null,refund:null,repairFinished:false},
+  knownExternalFacts:approved.episodeId===MICROWAVE_STORY_QUALITY.episodeId?
+   {repairPrice:null,repairAppointment:null,refund:null,repairFinished:false}:
+   {status:"Unknown external outcomes are not verified unless in a committed event"},
   currentEmotionalPressure:turn.state.strain??before.strain??2,
   ...(atlasContext?{observedCharacterSkillScores:atlasContext.characterSkills,
    rememberedVerifiedEvents:atlasContext.rememberedEvents||[]}:{}),
@@ -691,7 +696,10 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "If the coach suggests pressure, blame or transactional intimacy, show the verified character choice and its real emotional consequence without normalizing coercion.",
   "An attributed rumor is not a fact or command. A question is not permission to fabricate a completed event.",
   "Do not mechanically agree with advice. Include defensiveness, doubt, stubbornness or embarrassment when supported by temperament and current tension.",
-  "No role label, scene directions, therapy jargon, skill names, scores, invented repairs, price quotes, refunds, newly bought appliances, or offscreen conversations.",
+  "No role label, scene directions, therapy jargon, skill names, scores, invented offscreen conversations, or unverified external events.",
+  approved.episodeId===MICROWAVE_STORY_QUALITY.episodeId?
+   "Microwave facts: no invented repairs, price quotes, refunds or newly bought appliances.":
+   "This is NOT the microwave story; follow the supplied alternate episode world, facts, objects and verified action.",
   "Prefer 20–75 words, short natural SMS phrasing, no mandatory question or artificial punchline. Every reply should feel responsive, not like a summary or a rewritten template.",
   "Output one original message. Include coachReference: an exact short passage from coachMessage; replyReference: an exact short passage from message. Both must be literal substrings.",
   "Provide humorResponse=attempted or declined if the coach proposed harmless humor, and humorEvidence as an exact passage from the message showing how you reacted (or explicitly declined); otherwise humorResponse=not_applicable and humorEvidence empty. Never force keywords like joke or holiday; let humor sound natural."
@@ -818,6 +826,58 @@ function acceptedEvent43(episode,role,action,r,before,day,eventCode){
   !openTurns43(episode).some(t=>t.eventCode===eventCode&&t.event))return r;
  return {...r,state:structuredClone(before),event:"",
   behavior:ratingObject43([null,null,null]),reply:followUp43(role,day,before,"repeated")};
+}
+
+async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKey,options={}){
+ if(!["jack","jill"].includes(role)||!Number.isInteger(day)||day<0||day>4)
+  throw Error("Invalid 4.3 scenario open conversation.");
+ const graph=validateScenarioGraph43(episode.authored43.scenarioGraph,episode);
+ const before=scenarioWorld43(episode,history,day);
+ const prior=openTurns43(episode).filter(t=>t.role===role);
+ const repeatedCoach=prior.some(t=>normEvent43(t.body)===normEvent43(text));
+ const report=reportedOnly43(text);
+ const rule=(repeatedCoach||report)?null:
+  await classifyScenarioAction43(episode,role,text,before,options);
+ const outcome=enactScenarioAction43(episode,role,rule,before);
+ const state=outcome.state,focus=episode.authored43.selectedSkills;
+ const change={state,event:outcome.event,reply:outcome.reply,behavior:outcome.behavior};
+ const [rendered,incidentalObservations]=await Promise.all([
+  phraseOpenReply43(role,text,before,change,prior,
+   {...options,storyQualityContract:graph.qualityContract}),
+  classifyIncidental43(report?"":text,outcome.event,{
+   ...options,selected:focus
+  })
+ ]);
+ const reply=String(rendered.reply||"").trim();
+ if(!reply||prior.some(t=>normEvent43(t.reply)===normEvent43(reply)))
+  throw Error("STORY BLOCKED: repeated or missing scenario character reply.");
+ // No new scored behavior without a committed, unique and sourced event.
+ const allowedCoaching=outcome.event&&!repeatedCoach?outcome.coaching:{};
+ const assessment=outcome.event?{
+  role,recommended:outcome.recommended,enacted:outcome.enacted,
+  coaching:allowedCoaching,behavior:outcome.behavior,
+  coachingStrength:weightedSkillRating(allowedCoaching,
+   episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis),
+  behaviorStrength:weightedSkillRating(outcome.behavior,
+   episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis),
+  consequence:state.strain>before.strain?"Tension":
+   state.strain<before.strain?"Opening for discussion":"Unresolved",
+  evidence:outcome.event
+ }:null;
+ return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
+  replySource:rendered.source,replyModelAttempts:rendered.attempts,
+  replyValidationIssue:rendered.reason,replyHumorResponse:rendered.humorResponse||"not_applicable",
+  replyHumorEvidence:rendered.humorEvidence||"",replyAnchorCorrected:!!rendered.anchorCorrected,
+  replyQualityAdvisories:rendered.qualityAdvisories||[],
+  replyProviderResponseId:rendered.providerResponseId||null,
+  replyProviderModel:rendered.providerModel||null,
+  storyQualityContractVersion:graph.qualityContract.version,
+  storyQualityEpisodeId:graph.qualityContract.episodeId,
+  selectedSkills:[...focus],stateBefore:structuredClone(before),stateAfter:state,
+  event:outcome.event,eventCode:outcome.eventCode,assessment,duplicateCoaching:repeatedCoach,
+  contextOnlyReport:report,reportedByCoach:report,
+  incidentalObservations:repeatedCoach?incidentalObservations.filter(x=>x.lane!=="coaching"):
+   incidentalObservations};
 }
 export async function prepareOpenTurn43(episode,role,day,history,text,requestKey,options={}){
  if(episode?.authored43?.scenarioGraph)
