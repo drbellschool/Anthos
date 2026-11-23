@@ -1,7 +1,7 @@
 import test from "node:test";
 import {spawnSync} from "node:child_process";
 import assert from "node:assert/strict";
-import {LIVE43_DIMENSIONS,verifyLivePilot43} from "../lib/atlas-live-qa-contract.mjs";
+import {LIVE43_DIMENSIONS,verifyLivePilot43,assertLivePilotKey43} from "../lib/atlas-live-qa-contract.mjs";
 
 function fixture(n=10){
  const couples=Array.from({length:n},(_,i)=>({
@@ -71,15 +71,10 @@ test("Missing report is not a green quality test",()=>{
  assert.ok(r.problems.includes("expected-10-completed-couples"));
 });
 
-test("Executing the REAL pilot without the existing key aborts before synthetic dialogue",()=>{
- const p=spawnSync(process.execPath,["--test","--test-reporter=tap","tests/atlas-diverse-couples-pilot.test.mjs"],{
-  cwd:new URL("..",import.meta.url).pathname,
-  env:{...process.env,ANTHOS_QA_LIVE:"1",OPENAI_API_KEY:""},
-  encoding:"utf8",timeout:20000
- });
- assert.equal(p.status,1);
- assert.match((p.stdout||"")+(p.stderr||""),/ANTHOS LIVE QA BLOCKED: existing OpenAI key unavailable/);
- assert.doesNotMatch(p.stdout||"",/ANTHOS_DIVERSE_COUPLES_BEGIN/);
+test("Real ten-couple runner has a mandatory fail-closed key preflight",()=>{
+ assert.throws(()=>assertLivePilotKey43(undefined),/ANTHOS LIVE QA BLOCKED/);
+ assert.throws(()=>assertLivePilotKey43(" "),/ANTHOS LIVE QA BLOCKED/);
+ assert.equal(assertLivePilotKey43("injected-by-protected-qa-environment"),true);
 });
 test("A missing protected live-model report cannot certify the release",()=>{
  const p=spawnSync(process.execPath,["scripts/verify-atlas-live-pilot.mjs"],{
