@@ -599,7 +599,9 @@ export function validateOpenReply43(candidate,{
   issues.push("unverified-external-fact");
  // Conversations with Jack/Jill must be canonical events, not invented dialogue.
  const actionMentionsSpeech=/\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|confronted|informed)\b/i.test(String(event||""));
- if(!actionMentionsSpeech&&/\b(?:i|we)\s+(?:just |already |finally )?(?:told|asked|texted|apologized to|talked to|confronted)\s+(?:jack|jill|him|her|my (?:husband|wife))\b/i.test(m))
+ const allegedTalk=!actionMentionsSpeech?
+  /\b(?:i|we)\b([^.!?]{0,110})\b(?:told|asked|texted|apologized to|talked to|confronted)\s+(?:jack|jill|him|her|my (?:husband|wife))\b/i.exec(m):null;
+ if(allegedTalk&&!/\b(?:didn't|haven't|hasn't|not|never|would|might|could|should|don't)\b/i.test(allegedTalk[1]))
   issues.push("invented-interpersonal-event");
  if(!/\b(?:responded|replied|rejected|laughed|shouted|yelled|refused|stormed|snapped|forgave|shut down|shot down)\b/i.test(String(event||""))&&
     /\b(?:she|he|jill|jack)\s+(?:shot (?:that|it|me) down|shut (?:that|it|me) down|snapped|refused|laughed|stormed out|rolled (?:his|her|their) eyes)\b/i.test(m))
