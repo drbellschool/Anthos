@@ -79,7 +79,13 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  const authored=pilotVersion==="4.1.0",developmental=pilotVersion==="4.3.0",weekly=pilotVersion==="4.2.0"||developmental;
  if(!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
  if(authored)Object.assign(draft,buildAuthored41(draft));
- if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true,openConversation:developmental,timedPilot:developmental&&options.timedPilot===true}));
+ if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{
+  fastForward:options.fastForward===true,openConversation:developmental,
+  timedPilot:developmental&&options.timedPilot===true,
+  // The ONLY source of scenario rules is this server-read Episode Studio row.
+  // Never accept arbitrary scenario graphs from a client pilot request.
+  ...(developmental&&draft.scenarioGraph?{scenarioGraph:draft.scenarioGraph}:{})
+ }));
  if(!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
   error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
  if(!draft.primarySkill||(!developmental&&!PHASES4.every(p=>draft.phases[p]?.trim().length>=30)))
