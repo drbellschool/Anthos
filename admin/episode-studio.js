@@ -168,7 +168,7 @@ function paintSkills(){
   const entries=current.skillUsage?.[skill.id]||[];
   const tools=node("div","episode-skill-tools");
   const count=node("span","episode-usage-count",String(entries.length));
-  count.title=entries.length+" saved 4.0 episode"+(entries.length===1?"":"s");
+  count.title=entries.length+" saved episode"+(entries.length===1?"":"s");
   const infoWrap=node("span","episode-info-wrap"),info=node("button","episode-skill-info","i");
   info.type="button";info.setAttribute("aria-label","Episodes using "+skill.title);
   info.setAttribute("aria-expanded","false");
@@ -188,7 +188,7 @@ function paintSkills(){
    infoWrap.classList.remove("open");info.setAttribute("aria-expanded","false");
   });
   const tooltip=node("span","episode-info-tooltip");
-  tooltip.append(node("strong","",entries.length+" saved 4.0 "+(entries.length===1?"episode":"episodes")));
+  tooltip.append(node("strong","",entries.length+" saved "+(entries.length===1?"episode":"episodes")));
   if(entries.length){for(const episode of entries)tooltip.append(node("span","episode-usage-item",episode.title))}
   else tooltip.append(node("span","episode-usage-item","No saved episode uses this objective yet."));
   infoWrap.append(info,tooltip);
@@ -526,7 +526,7 @@ function closePilot(clearRoom=false){
  if(clearRoom)pilot=null;
  const board=$("episodePilotBoard");if(board)board.hidden=true;
 }
-async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
+async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
  if(!current||busy)return;
  if(pilotVersion==="4.3.0"&&current.mode!=="shared"){
   note("The live 4.3 pilot supports a shared two-coach episode. Individual episode editing remains available, but solo SMS launching is not yet supported.",true);return;
@@ -700,8 +700,8 @@ async function loadSmsEligible(){
 }
 async function setupPilotSms(){
  const statusBox=$("episodePilotSmsStatus");
- if(!pilot?.roomId||!(pilot.engine==="4.1.0"||pilot.timedPilot)||!pilot.invitations?.jack||!pilot.invitations?.jill){
-  statusBox.textContent="Launch a two-person 4.1 or timed 4.3 pilot first.";
+ if(!pilot?.roomId||!pilot.timedPilot||!pilot.invitations?.jack||!pilot.invitations?.jill){
+  statusBox.textContent="Create a two-person timed 4.3 SMS pilot first.";
   return;
  }
  const husbandCustomerId=$("episodePilotSmsCouple").value;
@@ -806,7 +806,7 @@ async function openEditor(id,petal,mode){
   document.dispatchEvent(new CustomEvent("anthos-episode-selected",{detail:{id:current.id,petal:current.petal}}));
   if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
   try{localStorage.setItem("anthos.studio.lastEpisodeId",String(id))}catch{}
-  note(data.scenario.episode_saved?"Saved 4.0 draft loaded. Edit and save whenever you're ready.":"Episode seed loaded. Use ✦ AI fill episode, then revise the narrative and check-ins.");
+  note(data.scenario.episode_saved?"Saved Deep Dive 4.3 editorial draft loaded. Story rules appear under Story World.":"Episode selected. Draft the foundation, verify its 4.3 story world, then save to enable testing.");
   void autoDraftMissingDetails();
   window.scrollTo({top:0,behavior:"smooth"});
  }catch(error){note(error.message,true);current=null}
@@ -832,7 +832,7 @@ async function save(){
   note("Before saving, add a clear title, a descriptive premise, and a learning objective.",true);
   return;
  }
- setBusy(true);note("Saving the editable Anthos 4.0 episode draft…");
+ setBusy(true);note("Saving the Deep Dive 4.3 editorial draft and approved story world…");
  try{
   const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,status:current.status,studio:s});
   current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.status=result.status||current.status;current.hasSaved=true;current.dirty=false;updatePilotControls43();
@@ -840,7 +840,7 @@ async function save(){
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
   $("episodeSavedState").classList.remove("modified");
-  note("Saved. The episode and all five optional intervention settings are stored. No SMS or pilot was launched.");
+  note("4.3 episode saved. Existing pilot conversations are unaffected. No SMS was sent.");
   renderReadiness();
  }catch(error){note(error.message,true)}finally{setBusy(false)}
 }
