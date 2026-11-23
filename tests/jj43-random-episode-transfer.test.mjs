@@ -203,5 +203,5 @@ test("Episode Studio round-trips the approved graph and rejects cross-episode su
  assert.deepEqual(again.scenarioGraph,normalized.scenarioGraph);
  assert.throws(()=>normalizeStudio(saved,{...source,id:"other-episode"}),/graph ID mismatch/);
  assert.throws(()=>normalizeStudio({...saved,supportingSkills:["g-influence"]},source),
-  /focus skill opportunity missing/);
+  /episode-specific five-day opportunities required|focus skill opportunity missing/);
 });
