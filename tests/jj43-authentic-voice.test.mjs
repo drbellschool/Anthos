@@ -175,7 +175,7 @@ test("Natural dry humor need not contain the words joke, holiday or funny",()=>{
  const bad=validateOpenReply43("I'm still thinking about our budget and haven't figured it out.",{
   role:"jack",coachText:"Make a joke about the microwave.",
   after:{purchase:"bought_unannounced",box:"sealed",repair:"broken",repairCalled:false},
-  humorResponse:"attempted",humorEvidence:"");
+  humorResponse:"attempted",humorEvidence:""});
  assert.ok(bad.issues.includes("unverified-humor-evidence"));
 });
 test("Mandatory live QA refuses to silently switch to fallback without a key",async()=>{
