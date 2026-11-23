@@ -55,7 +55,7 @@ export const offlineProbe=[
   reply:"I spent half the week building what I thought would be a great Saturday. Jill wants a porch and an hour without a plan. I know I'm pushing dinner too hard, but it stings to feel like the effort doesn't count.",
   eventCode:"jack:presses-his-plan",event:"Jack pressed for the active outing and dinner instead of asking what Jill meant by closeness."},
  {day:"Monday",role:"jill",coach:"Thank him for the thought, but explain that you want quiet conversation, not an itinerary.",
-  reply:"I told him the plans were thoughtful. I also said I don't want to spend our only quiet afternoon racing a schedule. He looked surprised; I don't know yet whether he heard the second part.",
+  reply:"I told him the plans were thoughtful. I also said I don't want to spend our only quiet afternoon racing a schedule. I couldn't tell yet whether he heard the second part.",
   eventCode:"jill:states-porch-preference",event:"Jill thanked Jack for planning and said she would prefer unhurried porch conversation."},
  {day:"Tuesday",role:"jack",coach:"Ask what she'd actually enjoy instead of treating the porch as rejection.",
   reply:"I asked her what she was picturing when she said 'close.' It was less about staying home than having my attention without a timer running. Weirdly, my first impulse was to suggest a timed hour on the porch. I didn't.",
