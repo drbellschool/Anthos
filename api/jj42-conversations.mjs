@@ -7,6 +7,8 @@ import {DEVELOPMENTAL_PHASES,MICROWAVE_RUBRICS,SKILL_IDS43,normalizeDevelopmenta
 import {repeatedAnnouncement,incidentalIntimacyReview,memoryContext} from "./insight-atlas-model.mjs";
 import {weeklyOpportunity} from "./atlas-opportunities.mjs";
 import {classifyIncidental43} from "./atlas-incidental.mjs";
+import {validateScenarioGraph43,scenarioWorld43,renderScenarioDay43,
+ classifyScenarioAction43,enactScenarioAction43,closeScenario43} from "./jj43-scenario-graph.mjs";
 import {assertStoryQualityContract,reviewStoryReply,MICROWAVE_STORY_QUALITY} from "../lib/anthos-story-quality.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
@@ -135,6 +137,29 @@ export function buildConversation42(draft,{fastForward=false,now=new Date()}={})
 export const isConversation42=room=>room?.episode?.authored42?.version===JJ42_VERSION;
 export const isConversation43=room=>isConversation42(room)&&room.episode.authored43?.version===JJ43_VERSION;
 export function buildConversation43(draft,options={}){
+ // Use the same 4.3 engine, JJ4 room persistence and private-message flow.
+ // The graph is an authored Episode Studio decision map, NOT a new engine.
+ if(options.scenarioGraph){
+  if(draft?.pilotMode!=="shared"||options.openConversation!==true)
+   throw Error("STORY BLOCKED: authored 4.3 shared open episode required.");
+  const graph=validateScenarioGraph43(options.scenarioGraph,draft);
+  const selected=[draft.primarySkill,...draft.supportingSkills];
+  return {...draft,authored42:{
+   version:JJ42_VERSION,mode:"scenario-conversations",
+   fastForward:options.fastForward===true,schedule:nextWeekSchedule(options.now),
+   narrator:false,sourcePremise:draft.premise,
+   weekFraming:Object.values(graph.qualityContract.world).join(" "),
+   primarySkill:draft.primarySkill,supportingSkills:[...draft.supportingSkills],
+   intent:"two private coaches; one verified shared story"
+  },authored43:{
+   version:JJ43_VERSION,openConversation:true,timeline:"scenario-graph",
+   scenarioGraph:structuredClone(graph),selectedSkills:selected,turns:[],
+   flow:normalizeDevelopmentalFlow(draft.developmentalFlow,selected)
+  },sophiaIntro:"",checkpoints:PHASES.map((afterPhase,i)=>({
+   afterPhase,audience:i===0?"jack":"none",waitForReply:i===0,
+   purpose:"Private dialogue with the fictional character; shared facts remain verified."
+  }))};
+ }
  const ep=buildConversation42(draft,options);
  if(options.timedPilot===true){
   ep.authored42.fastForward=false;
@@ -373,6 +398,8 @@ export async function scoreCoaching43(text,{apiKey,model="gpt-4.1-mini",fetchImp
 export const isOpen43=room=>isConversation43(room)&&room.episode.authored43.openConversation===true;
 export const openTurns43=episode=>episode.authored43?.turns||[];
 export function currentOpenWorld43(episode,history,day){
+ if(episode?.authored43?.scenarioGraph)
+  return scenarioWorld43(episode,history,day);
  if(episode?.authored43?.timeline!=="post-purchase")
   throw Error("STORY BLOCKED: outdated or unverified 4.3 chronology. Restart from the saved episode.");
  const committed=ledgerRows43(history).find(x=>x.day===day);
@@ -793,6 +820,8 @@ function acceptedEvent43(episode,role,action,r,before,day,eventCode){
   behavior:ratingObject43([null,null,null]),reply:followUp43(role,day,before,"repeated")};
 }
 export async function prepareOpenTurn43(episode,role,day,history,text,requestKey,options={}){
+ if(episode?.authored43?.scenarioGraph)
+  return prepareScenarioOpenTurn43(episode,role,day,history,text,requestKey,options);
  if(!OPEN_ACTIONS43[role]||!Number.isInteger(day)||day<0||day>4)throw Error("Invalid open conversation.");
  const before=currentOpenWorld43(episode,history,day);
  const priorSameCoach=openTurns43(episode).some(t=>t.role===role&&normEvent43(t.body)===normEvent43(text));
@@ -879,6 +908,7 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
    consequence:r.state.strain>before.strain?"Tension":r.state.strain<before.strain?"Opening for discussion":"Unresolved",evidence:r.event}:null};
 }
 function renderOpenDay43(episode,day,history){
+ if(episode?.authored43?.scenarioGraph)return renderScenarioDay43(episode,day,history);
  if(episode?.authored43?.timeline!=="post-purchase")
   throw Error("STORY BLOCKED: outdated or unverified 4.3 chronology. Restart from the saved episode.");
  const days=ledgerRows43(history);
@@ -1110,6 +1140,7 @@ export function sophiaConversation42(episode,scenes=[]){
  const last=days.find(x=>x.day===5);
  if(!last||![0,1,2,3,4,5].every(day=>days.some(x=>x.day===day)))
   throw new Error("Cannot close 4.2 without the six committed days.");
+ if(episode.authored43?.scenarioGraph)return closeScenario43(episode,scenes);
  if(episode.authored43?.version===JJ43_VERSION)return sophiaDevelopmental43(episode,days);
  const s=last.state;
  const ev=skillEvidence42(last);
