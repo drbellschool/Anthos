@@ -405,6 +405,27 @@ const CASES=[
 ];
 
 const LIVE_QA=process.env.ANTHOS_QA_LIVE==="1";
+const SMOKE=process.env.ANTHOS_QA_SMOKE==="1";
+const RELAY_URL=process.env.ANTHOS_QA_RELAY_URL||"";
+const RELAY_TOKEN=process.env.ANTHOS_QA_RELAY_TOKEN||"";
+function remoteQAConfig(){
+ if(!RELAY_URL||!RELAY_TOKEN)return null;
+ const u=new URL(RELAY_URL);
+ if(u.protocol!=="https:"||!u.hostname.endsWith(".vercel.app")||
+    u.pathname!=="/api/qa-jj43-relay")throw Error("Invalid restricted preview relay.");
+ return {
+  apiKey:"existing-provider-via-server-relay",
+  fetchImpl:async(url,init)=>{
+   let v={};try{v=JSON.parse(init.body)}catch{}
+   if(url!=="https://api.openai.com/v1/responses"||
+       v.text?.format?.name!=="jj43_full_character_text")
+    return new Response(JSON.stringify({error:"Only validated model speech uses live QA relay."}),{status:503});
+   const h={"content-type":"application/json","x-anthos-qa-token":RELAY_TOKEN};
+   if(process.env.ANTHOS_QA_VERCEL_BYPASS)h["x-vercel-protection-bypass"]=process.env.ANTHOS_QA_VERCEL_BYPASS;
+   return fetch(u,{method:"POST",headers:h,body:init.body,signal:init.signal});
+  }
+ };
+}
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday"];
 const focus=["s-decisions","g-start","g-influence"];
 const codes=[...new Set(SKILLS.map(s=>s.id).concat(focus))];
@@ -451,10 +472,10 @@ async function simulate(config){
    const advice=config.scripts[day][role];
    if(!advice)throw Error("Missing "+stage);
    const key=refKey(config,day,role);
+   const transport=LIVE_QA?(remoteQAConfig()||{apiKey:process.env.OPENAI_API_KEY}):{};
    const turn=await prepareOpenTurn43(episode,role,day,history,advice,key,
     {atlasContext:context(scores,memories,role),
-     requireModelVoice:LIVE_QA,
-     apiKey:LIVE_QA?process.env.OPENAI_API_KEY:undefined,
+     ...transport,requireModelVoice:LIVE_QA,
      model:process.env.ANTHOS_JJ4_MODEL||process.env.OPENAI_MODEL||"gpt-4.1-mini"});
    episode.authored43.turns.push(turn);
    const eventIdentity=role+"|"+String(turn.event||"").toLowerCase().replace(/[^a-z0-9]/g,"");
@@ -561,8 +582,12 @@ async function simulate(config){
 }
 test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns",async()=>{
  // Mandatory live QA is not allowed to silently become a fallback simulation.
- if(LIVE_QA)assertLivePilotKey43(process.env.OPENAI_API_KEY);
- const reports=await Promise.all(CASES.map(c=>simulate(c)));
+ if(LIVE_QA)assertLivePilotKey43(
+  process.env.OPENAI_API_KEY||(RELAY_URL&&RELAY_TOKEN?"restricted-preview-relay":null));
+ const selected=process.env.ANTHOS_QA_COUPLE_ID?
+  CASES.filter(c=>c.id===process.env.ANTHOS_QA_COUPLE_ID):CASES;
+ assert.ok(selected.length,"No valid QA couple was selected.");
+ const reports=await Promise.all(selected.map(c=>simulate(c)));
  const incomplete=reports.filter(x=>!x.completed);
  const critical=reports.filter(x=>x.errors.length);
  const rows=reports.map(x=>({id:x.id,type:x.name,completed:x.completed,
@@ -576,8 +601,8 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
  const allReplies=reports.flatMap(r=>r.days.flatMap(d=>d.turns.map(t=>t.reply)));
  const uniqueReplies=new Set(allReplies.map(x=>x.trim().toLowerCase())).size;
  const funny=reports.find(r=>r.id==="06")?.days[0]?.turns.find(t=>t.role==="jack");
- const humorAddressed=/\b(?:holiday|joke|joking|comedian|not going to joke|won't joke)\b/i
-  .test([funny?.event,funny?.reply].join(" "));
+ const humorAddressed=funny?.replyHumorResponse==="attempted"||
+  funny?.replyHumorResponse==="declined";
  const qualityAudit={
   totalReplies:allReplies.length,uniqueReplies,
   uniqueRatio:Number((uniqueReplies/allReplies.length).toFixed(2)),
@@ -588,14 +613,18 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
  };
  const liveReviews=LIVE_QA&&process.env.ANTHOS_QA_HUMAN_REVIEWS_PATH?
   JSON.parse(readFileSync(process.env.ANTHOS_QA_HUMAN_REVIEWS_PATH,"utf8")):[];
- const liveVerification=LIVE_QA?verifyLivePilot43({couples:reports,reviews:liveReviews}):null;
+ const liveVerification=LIVE_QA?verifyLivePilot43({couples:reports,reviews:liveReviews,
+  expectedCouples:SMOKE?selected.length:10}):null;
  if(LIVE_QA&&process.env.ANTHOS_QA_OUTPUT_PATH)
   writeFileSync(process.env.ANTHOS_QA_OUTPUT_PATH,
    JSON.stringify({runKind:"real-model-required",couples:reports,reviews:liveReviews,
     verification:liveVerification},null,2));
  console.log("ANTHOS_DIVERSE_COUPLES_BEGIN");
- console.log(JSON.stringify({method:"Existing offline Anthos 4.3 open-conversation engine, no new API, no database writes; fixed saved microwave opening.",count:reports.length,
-  turnsExpected:CASES.length*10,runKind:LIVE_QA?"real-model-required":"offline-deterministic",
+ console.log(JSON.stringify({method:LIVE_QA?
+  "Real OpenAI Responses used only for whole-message dialogue via restricted branch QA relay; action/skill classifiers deterministic; no database writes":
+  "Existing offline Anthos 4.3 open-conversation engine, no new API, no database writes; fixed saved microwave opening.",
+  count:reports.length,turnsExpected:selected.length*10,
+  runKind:LIVE_QA?(SMOKE?"real-model-smoke-unreviewed":"real-model-required"):"offline-deterministic",
   liveVerification,summary:rows,qualityAudit,couples:reports},null,2));
  console.log("ANTHOS_DIVERSE_COUPLES_END");
  assert.equal(CASES.length,10);
@@ -603,12 +632,20 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
   "Every archetype must complete five days with both coaching streams.");
  assert.deepEqual(critical.map(x=>({type:x.name,errors:x.errors})),[],
   "No world-state, source-evidence, or dialogue duplication may pass.");
- assert.ok(reports.some(r=>r.incidentalMovements?.some(x=>x.delta<0)),
-  "At least one incidental consequence should be evidenced.");
- assert.ok(new Set(reports.map(r=>r.final.strain)).size>=2,
-  "Different couple dynamics should not all have the same relationship pressure.");
+ if(selected.length>1){
+  assert.ok(reports.some(r=>r.incidentalMovements?.some(x=>x.delta<0)),
+   "At least one incidental consequence should be evidenced.");
+  assert.ok(new Set(reports.map(r=>r.final.strain)).size>=2,
+   "Different couple dynamics should not all have the same relationship pressure.");
+ }
  if(LIVE_QA){
-  assert.equal(liveVerification.passed,true,
+  if(SMOKE){
+   const all=reports.flatMap(c=>c.days.flatMap(d=>d.turns));
+   assert.equal(all.length,selected.length*10);
+   assert.ok(all.every(t=>t.replySource==="model-validated"&&t.replyProviderResponseId),
+    "REAL QA SMOKE FAILED: an OpenAI response is missing or unverified");
+   assert.equal(new Set(all.map(t=>t.replyProviderResponseId)).size,all.length);
+  }else assert.equal(liveVerification.passed,true,
    "LIVE AI + HUMAN 8/10 QUALITY GATE FAILED: "+JSON.stringify(liveVerification));
  }else{
   assert.equal(qualityAudit.qualityPass,true,
