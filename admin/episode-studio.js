@@ -419,8 +419,14 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   return;
  }
  const approved41=new Set(["the four-hundred-dollar surprise","can we talk later?","a fight on vacation","one of us loves mountains","changing seasons of desire"]);
- if(["4.2.0","4.3.0"].includes(pilotVersion)&&String(current.studio?.title||current.title||"").trim().toLowerCase()!=="the four-hundred-dollar surprise"){
-  note("4.2/4.3 currently pilot The Four-Hundred-Dollar Surprise. Developmental settings can be saved for all episodes, but other story worlds require validation.",true);return;
+ const pilotTitle=String(current.studio?.title||current.title||"").trim().toLowerCase();
+ const originalMicrowave=pilotTitle==="the four-hundred-dollar surprise";
+ const approvedScenarioGraph=pilotVersion==="4.3.0"&&
+  current.studio?.scenarioGraph?.version==="anthos-4.3-scenario-graph-v1"&&
+  current.studio.scenarioGraph.episodeId===current.id;
+ if((pilotVersion==="4.2.0"&&!originalMicrowave)||
+    (pilotVersion==="4.3.0"&&!originalMicrowave&&!approvedScenarioGraph)){
+  note("This episode needs a saved, approved 4.3 story graph before starting its real two-person pilot. No microwave plot will be substituted.",true);return;
  }
  if(pilotVersion==="4.1.0"&&!approved41.has(String(current.studio?.title||current.title||"").trim().toLowerCase())){
   note("4.1 currently supports five approved episodes. Select one of the five authored pilots.",true);return;
