@@ -226,3 +226,30 @@ test("Admin launch no longer blocks approved second-episode 4.3 SMS on microwave
  assert.match(frontend,/pilotEpisode\(false,"4\.3\.0",true\)/);
  assert.match(frontend,/episode-studio-sms-setup/);
 });
+
+test("4.3 actual provider prompt uses Studio humor, style and persona rather than abandoned 4.1 script fields",async()=>{
+ const ep=initialize(),history=[],requests=[];
+ ep.toneApproach="humor";
+ ep.toneIntensity=4;
+ ep.tone="Dry, situational wit with believable vulnerability.";
+ ep.humorNotes="Jack calls the refrigerator their campaign manager.";
+ ep.runningGags="The calendar cannot negotiate for them.";
+ ep.creativeDirection="No cheap jokes and no automatic reconciliation.";
+ const opened=renderConversation42(ep,0,[]);
+ history.push({role:"shared",kind:"scene",phase_index:0,body:opened.scene});
+ const src=offlineProbe[0];
+ const result=await prepareOpenTurn43(ep,src.role,0,history,src.coach,
+  "00000000-0000-4000-8000-000000004302",{
+   apiKey:"synthetic-provider",fetchImpl:fakeVoice([mockOf(src)],requests)});
+ assert.equal(result.replySource,"model-validated");
+ const request=requests.find(x=>x.text?.format?.name==="jj43_full_character_text");
+ assert.ok(request);
+ const context=JSON.parse(request.input);
+ assert.equal(context.episodeCreativeStyle.toneApproach,"humor");
+ assert.equal(context.episodeCreativeStyle.toneIntensity,4);
+ assert.match(context.episodeCreativeStyle.humorNotes,/refrigerator/);
+ assert.match(context.episodeCreativeStyle.runningGags,/calendar/);
+ assert.match(context.episodeCreativeStyle.creativeDirection,/automatic reconciliation/);
+ assert.equal(context.identity.voice,scenarioGraph.qualityContract.characterVoices.jack.voice);
+ assert.equal(context.establishedEpisodeWorld.where,scenarioGraph.qualityContract.world.where);
+});
