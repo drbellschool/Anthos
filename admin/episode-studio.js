@@ -56,6 +56,7 @@ const note=(msg,isError=false)=>{const n=$("episodeNotice");n.textContent=msg;n.
 const markDirty=()=>{
  if(!current||opening)return;
  current.dirty=true;
+ updatePilotControls43();
  $("episodeSavedState").textContent="Unsaved edits";
  $("episodeSavedState").classList.add("modified");
  renderReadiness();
@@ -334,6 +335,27 @@ function renderStoryboard(){
 }
 // 4.3 canonical world editor. These are the actual serialized facts and
 // decision rules consumed by the engine—not a separate screenplay or mock-up.
+function canLaunch43(){
+ if(!current||current.dirty||!current.hasSaved||current.mode!=="shared")return false;
+ const graph=current.studio?.scenarioGraph;
+ const focus=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
+ const graphReady=graph?.version==="anthos-4.3-scenario-graph-v1"&&
+  graph.episodeId===current.id&&Array.isArray(graph.days)&&graph.days.length===5&&
+  Array.isArray(graph.rules)&&graph.rules.length>=4&&
+  focus.every(skill=>graph.days.some(day=>(day.skills||[]).includes(skill)));
+ return graphReady||
+  String(current.studio?.title||"").trim().toLowerCase()==="the four-hundred-dollar surprise";
+}
+function updatePilotControls43(){
+ const okay=canLaunch43();
+ for(const id of ["episodeLaunchPilot43","episodeLaunchPilot43Timed"]){
+  const button=$(id);if(!button)continue;
+  button.disabled=!okay||busy;
+  button.title=okay?
+   "Create a private 4.3 pilot room. SMS starts only after choosing a registered couple.":
+   "Save a shared episode with an approved 4.3 story graph before starting a pilot.";
+ }
+}
 function renderWorld43(){
  const host=$("episodeWorld43");if(!host||!current)return;
  host.replaceChildren();
@@ -458,7 +480,7 @@ function populate(){
  const primary=current.skills.find(x=>x.id===s.primarySkill);
  if(primary)researcher=primary.researcher;
  paintResearchers();paintSkills();paintSupports();
- opening=false;renderReadiness();renderWorld43();
+ opening=false;renderReadiness();renderWorld43();updatePilotControls43();
  document.dispatchEvent(new CustomEvent("anthos-episode-populated"));
 }
 function validation(){
@@ -506,6 +528,9 @@ function closePilot(clearRoom=false){
 }
 async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
  if(!current||busy)return;
+ if(pilotVersion==="4.3.0"&&current.mode!=="shared"){
+  note("The live 4.3 pilot supports a shared two-coach episode. Individual episode editing remains available, but solo SMS launching is not yet supported.",true);return;
+ }
  if(current.dirty||!current.hasSaved){
   note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
   return;
@@ -591,7 +616,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
   if(smsEligible)await loadSmsEligible();
  }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodeLaunchPilot43").disabled=false;$("episodeLaunchPilot43Timed").disabled=false;$("episodePilotReset").disabled=false}
+ finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;updatePilotControls43();$("episodePilotReset").disabled=false}
 }
 async function refreshPilotReview43(){
  const host=$("episodeReviewReport43");if(!host)return;
@@ -810,7 +835,7 @@ async function save(){
  setBusy(true);note("Saving the editable Anthos 4.0 episode draft…");
  try{
   const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,status:current.status,studio:s});
-  current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.status=result.status||current.status;current.hasSaved=true;current.dirty=false;
+  current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.status=result.status||current.status;current.hasSaved=true;current.dirty=false;updatePilotControls43();
    document.dispatchEvent(new CustomEvent("anthos-episode-saved",{detail:{id:current.id}}));
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
@@ -1121,10 +1146,10 @@ function setup(){
  panels.story.append(worldHeading,worldHost);
  const creativeDetails=node("details","episode-v43-fold");
  creativeDetails.append(node("summary","","Voice, humor & tone"));
- for(const child of [toneFields,voiceDraft,
+ for(const child of [toneFields,voiceDraft,$("episodeAddHumor"),panels.story.querySelector(".episode-quiet-rule"),
   ...Array.from(panels.story.children).filter(x=>
     x.matches?.('label:has([data-episode-field="humorNotes"]),label:has([data-episode-field="runningGags"]),label:has([data-episode-field="tone"])'))
- ])creativeDetails.append(child);
+ ].filter(Boolean))creativeDetails.append(child);
  panels.story.append(creativeDetails);
  const metadataDetails=node("details","episode-v43-fold");
  metadataDetails.append(node("summary","","Additional character motivations & creative direction"),metaFold,metaDraft);
