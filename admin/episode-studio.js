@@ -64,6 +64,8 @@ const markDirty=()=>{
 function setBusy(on){
  busy=on;
  for(const id of ["episodeGenerate","episodeSave","episodeValidate"])$(id).disabled=on;
+ // Re-enable valid pilot controls after save/AI requests have settled.
+ updatePilotControls43();
 }
 async function request(action,data={}){
  const params=new URLSearchParams();
@@ -336,7 +338,7 @@ function renderStoryboard(){
 // 4.3 canonical world editor. These are the actual serialized facts and
 // decision rules consumed by the engine—not a separate screenplay or mock-up.
 function canLaunch43(){
- if(!current||current.dirty||!current.hasSaved||current.mode!=="shared")return false;
+ if(!current||current.mode!=="shared")return false;
  const graph=current.studio?.scenarioGraph;
  const focus=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
  const graphReady=graph?.version==="anthos-4.3-scenario-graph-v1"&&
@@ -352,9 +354,19 @@ function updatePilotControls43(){
   const button=$(id);if(!button)continue;
   button.disabled=!okay||busy;
   button.title=okay?
-   "Create a private 4.3 pilot room. SMS starts only after choosing a registered couple.":
-   "Save a shared episode with an approved 4.3 story graph before starting a pilot.";
+   (current.dirty||!current.hasSaved?
+    "Start 4.3: save pending edits first, then create a private pilot. Real texts need a separate Start action.":
+    "Create a private 4.3 pilot; no SMS until a registered couple is selected."):
+   "This episode needs an approved shared 4.3 story graph with matching skills.";
  }
+ const hint=$("episodePilotEmpty");
+ if(hint)hint.textContent=!current?
+  "Choose a 4.3 shared episode to begin.":
+  !okay?
+  "This episode needs an approved 4.3 story graph and matching relationship skills before it can launch.":
+  current.dirty||!current.hasSaved?
+  "Ready: the pilot will save your pending edits first, then create the private room. It will not send SMS automatically.":
+  "Ready for browser or SMS pilot. Real texts begin only after choosing the verified couple and clicking Start private SMS coaching.";
 }
 function renderWorld43(){
  const host=$("episodeWorld43");if(!host||!current)return;
@@ -545,8 +557,8 @@ async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
   note("The live 4.3 pilot supports a shared two-coach episode. Individual episode editing remains available, but solo SMS launching is not yet supported.",true);return;
  }
  if(current.dirty||!current.hasSaved){
-  note("Save your episode first. The pilot uses a snapshot of the last saved six-phase flow and humor.",true);
-  return;
+  note("Saving your 4.3 episode before launching the private pilot…");
+  if(!await save())return;
  }
  const approved41=new Set(["the four-hundred-dollar surprise","can we talk later?","a fight on vacation","one of us loves mountains","changing seasons of desire"]);
  const pilotTitle=String(current.studio?.title||current.title||"").trim().toLowerCase();
@@ -820,7 +832,9 @@ async function openEditor(id,petal,mode){
   if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
   try{localStorage.setItem("anthos.studio.lastEpisodeId",String(id))}catch{}
   note(data.scenario.episode_saved?"Saved Deep Dive 4.3 editorial draft loaded. Story rules appear under Story World.":"Episode selected. Draft the foundation, verify its 4.3 story world, then save to enable testing.");
-  void autoDraftMissingDetails();
+  // Never silently AI-draft a saved episode on open; this previously
+  // marked completed drafts "Unsaved edits" and blocked launch.
+  // Editorial AI drafting is an explicit user action.
   window.scrollTo({top:0,behavior:"smooth"});
  }catch(error){note(error.message,true);current=null}
 }
@@ -839,11 +853,11 @@ async function generate(){
  }catch(error){note(error.message,true)}finally{setBusy(false)}
 }
 async function save(){
- if(!current||busy)return;
+ if(!current||busy)return false;
  const s=collect();
  if(s.title.trim().length<5||s.premise.trim().length<75||s.learningObjective.trim().length<12){
   note("Before saving, add a clear title, a descriptive premise, and a learning objective.",true);
-  return;
+  return false;
  }
  setBusy(true);note("Saving the Deep Dive 4.3 editorial draft and approved story world…");
  try{
@@ -855,7 +869,8 @@ async function save(){
   $("episodeSavedState").classList.remove("modified");
   note("4.3 episode saved. Existing pilot conversations are unaffected. No SMS was sent.");
   renderReadiness();
- }catch(error){note(error.message,true)}finally{setBusy(false)}
+  return true;
+ }catch(error){note(error.message,true);return false}finally{setBusy(false)}
 }
 function back(){
  if(busy)return;
