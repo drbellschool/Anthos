@@ -2,7 +2,7 @@
   "contractVersion": "anthos-4.3-release-gate-v1",
   "releaseAllowed": false,
   "lastReviewed": "2026-11-23",
-  "note": "4.3 portable-quality safeguards and stronger source-cited review now exist on draft PR #135. Existing G1–G7 still partial; G8 blocked. The Nov 22/23 100-turn real-model engineering smoke does not certify this newer code or other 119 episodes; release forbidden.",
+  "note": "Feature PR #135 now executes a second saved shared 4.3 episode via Episode Studio-approved scenario graph in the existing JJ4 engine. 116 focused CI checks pass and preview build READY; a ten-turn mocked model replay and Supabase editorial-draft graph persistence are verified. No live OpenAI second-episode run or human 8/10 certification exists. G1-G7 remain partial, G8 blocked; production release forbidden.",
   "gates": [
     {
       "id": "G1",
@@ -79,7 +79,7 @@
   "qualityHardening": {
     "lockedAt": "2026-11-23",
     "engine": "4.3",
-    "status": "code-implemented-testing-ongoing",
+    "status": "second-episode-integrated-mock-qa-passed-live-qa-pending",
     "commitments": [
       "humanlike-role-grounded-conversation",
       "episode-specific-semantic-continuity",
@@ -91,14 +91,21 @@
       "cross-episode-unit-fixtures",
       "actual-4.3-open-turn-validator",
       "ten-dimension-citation-and-hard-review-gates",
-      "pilot-audit-fields"
+      "pilot-audit-fields",
+      "scenario-agnostic-graph-driven-4.3-state-actions",
+      "second-production-editorial-draft-graph-stored-Supabase",
+      "episode-studio-graph-read-save-and-room-creation-path",
+      "five-days-ten-two-role-mocked-model-handler-transcript-and-closed-Sophia",
+      "contradictory-coaching-divergence-and-semantic-repair-regressions",
+      "preview-branch-READY-deployment"
     ],
     "unverified": [
-      "end-to-end-non-microwave-world-state-and-Episode-Studio",
-      "post-hardening-real-model-pilot",
-      "ten-couple-human-8-of-10",
+      "real-OpenAI-second-episode-ten-turn-live-pilot",
+      "ten-couple-human-reviewed-quality-8-10",
       "30-combination-reliability",
-      "120-episode-sample-and-1000-couple-readiness"
+      "remaining-119-episode-world-graphs-and-validation",
+      "production-couple-and-SMS-end-to-end",
+      "1000-couple-scalability-and-operational-readiness"
     ]
   }
 }
