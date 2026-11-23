@@ -1,4 +1,5 @@
 import test from "node:test";
+import {readFileSync} from "node:fs";
 import assert from "node:assert/strict";
 import {buildConversation43,renderConversation42,prepareOpenTurn43,parseLedger42,
  sophiaConversation42,sophiaOrientation42} from "../api/jj42-conversations.mjs";
@@ -204,4 +205,14 @@ test("Episode Studio round-trips the approved graph and rejects cross-episode su
  assert.throws(()=>normalizeStudio(saved,{...source,id:"other-episode"}),/graph ID mismatch/);
  assert.throws(()=>normalizeStudio({...saved,supportingSkills:["g-influence"]},source),
   /episode-specific five-day opportunities required|focus skill opportunity missing/);
+});
+
+test("Serialized Episode Studio graph matches the 10-turn QA-approved source",()=>{
+ const saved=JSON.parse(readFileSync(new URL("../docs/episode-graphs/what-makes-us-feel-close-4.3.json",import.meta.url),"utf8"));
+ assert.deepEqual(saved,scenarioGraph);
+ const studio=normalizeStudio({
+  title:episode.title,premise:episode.premise,learningObjective:episode.learningObjective,
+  primarySkill:episode.primarySkill,supportingSkills:episode.supportingSkills,scenarioGraph:saved
+ },{id:episode.id,title:episode.title,opening_scene:episode.premise,mode:"shared"});
+ assert.equal(studio.scenarioGraph.rules.length,12);
 });
