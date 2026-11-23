@@ -158,13 +158,13 @@
         </section>
 
         <section data-studio-page="deepdives" class="studio-page" hidden>
-          <div class="page-kicker">ANTHOS 4.0 · CURRICULUM &amp; NARRATIVE DESIGN</div>
+          <div class="page-kicker">ANTHOS 4.3 · DEEP DIVE OPERATIONS</div>
           <h2 class="studio-title">Deep Dive <em>Episode Studio.</em></h2>
-          <p class="studio-lead">Choose relationship objectives, outline six flexible phases, and set your own style of humor. Let AI complete the editorial fields, then revise freely. No scripted SMS dialogue, no eight-step milestone rail, and no legacy pilot launch.</p>
-          <div class="episode-overview"><span>Choose a scenario seed</span><span>Generate or edit its objectives and flow</span><span>Save a versioned Anthos 4.0 draft</span></div>
+          <p class="studio-lead">Design the relationship challenge, verify its story world, tune how Jack and Jill learn, and run a private 4.3 OpenAI + SMS pilot. One workflow; no older-version tools.</p>
+          <div class="episode-overview"><span>Choose episode</span><span>Define its 4.3 story world</span><span>Coach by real SMS</span><span>Review the evidence</span></div>
           <section class="panel jj2-library" id="jj2Library" aria-labelledby="jj2ManagerTitle">
             <div class="panel-top"><div><span class="eyebrow">ANTHOS · DEEP DIVE LIBRARY</span><h3 class="mini-title" id="jj2ManagerTitle">12-Petal Episode Library</h3></div><button type="button" class="button" id="jj2Refresh">↻ Refresh</button></div>
-            <p class="soft-text">A reusable adventure library: five <strong>shared</strong> Jack-and-Jill decisions and five <strong>individual</strong> private explorations in each petal. Select a seed to build a new Anthos 4.0 episode. Existing 3.x rooms and SMS remain separate; saving here does not publish or start a pilot.</p>
+            <p class="soft-text">A reusable adventure library: five <strong>shared</strong> Jack-and-Jill decisions and five <strong>individual</strong> private explorations in each petal. Select a story, then work through the 4.3 Studio. Saving updates the editorial draft; SMS starts only when you explicitly launch a registered couple pilot.</p>
             <div class="jj2-metrics" aria-label="Deep Dive catalog totals">
               <div><strong id="jj2CountTotal">—</strong><span>Scenario seeds</span></div>
               <div><strong id="jj2CountShared">—</strong><span>Shared / two coaches</span></div>
@@ -187,8 +187,8 @@
                 <header class="episode-studio-head">
                   <div class="episode-heading">
                     <button type="button" id="episodeBack" class="episode-quiet">← Episode library</button>
-                    <p class="eyebrow">ANTHOS · DEEP DIVE 4.0 / EPISODE DESIGN</p>
-                    <h3 id="episodeStudioTitle">Objective &amp; Story Flow Studio</h3>
+                    <p class="eyebrow">ANTHOS · DEEP DIVE STUDIO 4.3</p>
+                    <h3 id="episodeStudioTitle">4.3 Episode Studio</h3>
                     <p id="episodeMeta" class="episode-meta"></p>
                   </div>
                   <div class="episode-header-controls"><label class="episode-switcher">Petal <select id="episodeStudioPetal" aria-label="Filter episodes by petal"><option value="">All petals</option></select></label><label class="episode-switcher">Episode <select id="episodeStudioPicker" aria-label="Choose episode within the Studio"><option value="">Select an episode…</option></select></label>
@@ -196,7 +196,7 @@
                     <button type="button" id="episodeGenerate" class="button">✦ AI fill episode</button>
                     <button type="button" id="episodeValidate" class="button">Review</button>
                     <button type="button" id="episodeSave" class="button primary">✓ Save episode</button>
-                    <button type="button" id="episodeLaunchPilot" class="button" hidden aria-hidden="true" tabindex="-1" title="Legacy 4.0 pilot retained for previous conversations">Legacy 4.0 pilot</button><button type="button" id="episodeLaunchPilot41" class="button" title="Launch Deep Dive 4.1 for two private coaches with separate invitation links">▶ Launch Deep Dive 4.1</button><button type="button" id="episodeLaunchPilot42" class="button primary" title="New 4.2 Character Conversations: Jill on Monday, Jack on Tuesday, alternating through Friday, Sophia on Saturday. Test the whole week immediately.">▶ Test Character Conversations 4.2</button><button type="button" id="episodeLaunchPilot43" class="button primary" title="Test the 4.3 skill-centered developmental engine in fast-forward">▶ Test Developmental Flow 4.3</button><button type="button" id="episodeLaunchPilot43Timed" class="button primary" title="Prepare an isolated two-person SMS pilot; each story day lasts ten minutes">▶ 4.3 Timed SMS Pilot · 10 min/day</button>
+                    <button type="button" id="episodeLaunchPilot" class="button" hidden aria-hidden="true" tabindex="-1" title="Legacy 4.0 pilot retained for previous conversations">Legacy 4.0 pilot</button><button type="button" id="episodeLaunchPilot41" class="button" hidden aria-hidden="true" tabindex="-1">Archived pilot</button><button type="button" id="episodeLaunchPilot42" class="button" hidden aria-hidden="true" tabindex="-1">Archived rehearsal</button><button type="button" id="episodeLaunchPilot43" class="button primary" title="Test the 4.3 skill-centered developmental engine in fast-forward">▶ Browser QA 4.3</button><button type="button" id="episodeLaunchPilot43Timed" class="button primary" title="Prepare an isolated two-person SMS pilot; each story day lasts ten minutes">▶ Start 4.3 SMS Pilot</button>
                   </div>
                 </header>
                 <p id="episodeNotice" class="episode-notice" role="status">Choose a scenario to begin.</p>
@@ -214,7 +214,7 @@
                   <section class="episode-pane episode-story" aria-label="Episode and six phase storyboard">
                     <div class="episode-pane-header">
                       <span class="eyebrow">02 · EPISODE DESIGN &amp; SIX-PHASE FLOW</span>
-                      <h4>Story &amp; Six-Phase Flow</h4>
+                      <h4>Story &amp; Character World</h4>
                       <p>Story summaries only. Jack, Jill and Sophia improvise the actual conversation.</p>
                     </div>
                     <div class="episode-design-top"><div class="episode-client-modes" id="episodeClientModes" role="group" aria-label="Episode participant mode"><strong>Client Mode</strong><div class="episode-mode-choices"><button type="button" data-mode-choice="shared" aria-pressed="false">👥 Couple Episode <small>Husband &amp; Wife</small></button><button type="button" data-mode-choice="jack" aria-pressed="false">♙ Husband Only <small>Private to Husband</small></button><button type="button" data-mode-choice="jill" aria-pressed="false">♙ Wife Only <small>Private to Wife</small></button></div></div><div class="episode-mode-banner" id="episodeModeBanner"></div></div><div class="episode-basics">
@@ -238,7 +238,7 @@
                         </div>
                       </details>
                     </div>
-                    <div class="episode-intro"><div class="episode-problem-head"><strong>💜 Sophia · Group Introduction</strong><button type="button" id="episodeIntroDraft" class="episode-problem-generate">✦ AI draft</button></div><p>Sent to clients before Jack and Jill contact them. Use &lt;&lt;husband&gt;&gt; and &lt;&lt;wife&gt;&gt; for their names. Keep it human, vivid and brief.</p><label>Opening message<textarea data-episode-field="sophiaIntro" maxlength="1600" rows="5" placeholder="Sophia welcomes the participants, explains the relationship objective and sets the scene..."></textarea></label></div><div class="episode-scene-grid"><details class="episode-more"><summary>🎬 Scene, Setting &amp; Situation</summary><div class="episode-more-fields"><label>Setting<textarea data-episode-field="sceneSetting" maxlength="650" rows="2"></textarea></label><label>Stress<textarea data-episode-field="sceneStress" maxlength="650" rows="2"></textarea></label><label>Triggering situation<textarea data-episode-field="sceneTrigger" maxlength="650" rows="2"></textarea></label></div></details><details class="episode-more"><summary>🎭 Tone &amp; Style</summary><div class="episode-more-fields"><label>Approach<select id="episodeToneApproach"><option value="balanced">Balanced</option><option value="humor">Humor-led</option><option value="serious">Serious-led</option></select></label><label>Intensity · <span id="episodeIntensityValue">3 / 5</span><input id="episodeIntensity" type="range" min="1" max="5" value="3"></label><label>Humor or serious element<textarea data-episode-field="toneElement" maxlength="700" rows="3"></textarea></label></div></details></div><div class="episode-flow-heading"><strong>▱ Six-Phase Story Flow</strong><span>5 optional private intervention slots between phases</span></div>
+                    <div class="episode-intro"><div class="episode-problem-head"><strong>💜 Sophia · Group Introduction</strong><button type="button" id="episodeIntroDraft" class="episode-problem-generate">✦ AI draft</button></div><p>Sent to clients before Jack and Jill contact them. Use &lt;&lt;husband&gt;&gt; and &lt;&lt;wife&gt;&gt; for their names. Keep it human, vivid and brief.</p><label>Opening message<textarea data-episode-field="sophiaIntro" maxlength="1600" rows="5" placeholder="Sophia welcomes the participants, explains the relationship objective and sets the scene..."></textarea></label></div><div class="episode-scene-grid"><details class="episode-more"><summary>🎬 Scene, Setting &amp; Situation</summary><div class="episode-more-fields"><label>Setting<textarea data-episode-field="sceneSetting" maxlength="650" rows="2"></textarea></label><label>Stress<textarea data-episode-field="sceneStress" maxlength="650" rows="2"></textarea></label><label>Triggering situation<textarea data-episode-field="sceneTrigger" maxlength="650" rows="2"></textarea></label></div></details><details class="episode-more"><summary>🎭 Tone &amp; Style</summary><div class="episode-more-fields"><label>Approach<select id="episodeToneApproach"><option value="balanced">Balanced</option><option value="humor">Humor-led</option><option value="serious">Serious-led</option></select></label><label>Intensity · <span id="episodeIntensityValue">3 / 5</span><input id="episodeIntensity" type="range" min="1" max="5" value="3"></label><label>Humor or serious element<textarea data-episode-field="toneElement" maxlength="700" rows="3"></textarea></label></div></details></div><div class="episode-flow-heading"><strong>▱ Six-Phase Story Flow</strong><span>Historical storyboard fields are retained but not used for 4.3 coaching.</span></div>
                     <div class="episode-scene-approval"><button type="button" id="episodeSceneDraft" class="episode-problem-generate">✦ AI fill unlocked scene details</button><button type="button" id="episodeSceneLock" class="episode-problem-generate">✓ Approve &amp; lock scene and tone</button><button type="button" id="episodeFlowDraft" class="episode-problem-generate">✦ Draft unlocked story phases</button></div><div class="episode-flow-actions"><button type="button" id="episodeExpandAll">Expand all</button><button type="button" id="episodeCollapseAll">Collapse all</button></div><div id="episodePhases" class="episode-phase-list"></div>
                     <details class="episode-more episode-final-notes">
                       <summary>Ending &amp; reflection guardrails</summary>
@@ -274,21 +274,21 @@
                     <div class="episode-right-section">
                       <h5>Episode Goals &amp; Readiness</h5>
                       <div id="episodeReadiness" class="episode-readiness" aria-live="polite"></div>
-                      <p class="episode-editorial-note">This saves an editorial plan. Live SMS and the 4.0 story director are not yet connected.</p>
+                      <p class="episode-editorial-note">A validated 4.3 story graph governs facts and consequences. Saving the draft does not send messages.</p>
                     </div>
                   </aside>
                 </div>
-                <section class="episode-pilot-lab" id="episodePilotBoard" hidden aria-label="Anthos 4.0 husband and wife pilot laboratory">
+                <section class="episode-pilot-lab" id="episodePilotBoard" hidden aria-label="Anthos 4.3 husband and wife pilot and review">
                   <header class="episode-pilot-heading">
-                    <div><span class="eyebrow">VERSION 4.0 · BROWSER REHEARSAL</span>
+                    <div><span class="eyebrow">ANTHOS 4.3 · LIVE PILOT &amp; REVIEW</span>
                       <h4>Test this episode with both coaches</h4>
-                      <p>Use the two conversations below or open the individual invitation links on separate devices. No real SMS is sent.</p>
+                      <p>Preview each private coach conversation below. For real texts, choose a verified couple and explicitly start the SMS pilot.</p>
                     </div>
                     <div class="episode-pilot-buttons"><button type="button" id="episodePilotReset" class="button primary" title="Save episode edits first, then restart both test conversations from the latest saved plan">↻ Reset &amp; Retest</button><button type="button" id="episodePilotClose" class="button">Close test panels</button></div>
                   </header>
                   <p id="episodePilotStatus" class="episode-notice" role="status"></p>
                   <details class="episode-pilot-plan">
-                    <summary>View the exact six-phase plan this pilot will follow</summary>
+                    <summary>View 4.3 coaching objectives for this pilot</summary>
                     <ol id="episodePilotPlan" class="episode-pilot-plan-list"></ol>
                   </details>
                   <div class="episode-pilot-links">
@@ -304,7 +304,7 @@
                     </div>
                   </div>
                   <div class="episode-pilot-sms" id="episodePilotSmsPanel" style="margin-top:16px;padding:16px;border:1px solid #bfcabe;border-radius:12px">
-                    <strong>Deep Dive 4.1 · Text the registered couple</strong>
+                    <strong>Deep Dive 4.3 · Text the registered couple</strong>
                     <p>Anthos uses each adult's existing, separately verified mobile number and voluntary SMS consent from registration. No second JOIN, verification code, or new consent is required. Texts are private to each character coach. Reply STOP to cancel or HELP for help; message and data rates may apply.</p>
                     <label>Choose the verified couple and who coaches Jack
                       <select id="episodePilotSmsCouple" style="display:block;min-width:220px;width:100%;margin:10px 0"><option value="">Loading registered couples…</option></select>
