@@ -548,7 +548,8 @@ const verifiedOnly43=(text,yes)=>yes?null:text;
 // Structured validation is deliberately conservative. It protects canonical
 // facts, not every possible nuance of human phrasing. Failure gets one retry.
 export function validateOpenReply43(candidate,{
- role,coachText,before,after,event,priorReplies=[],coachReference,replyReference
+ role,coachText,before,after,event,priorReplies=[],coachReference,replyReference,
+ humorResponse,humorEvidence
 }={}){
  const m=String(candidate||"").trim();
  const issues=[];
@@ -564,9 +565,14 @@ export function validateOpenReply43(candidate,{
   if(!coachReference||!words(coachText).includes(words(coachReference)))issues.push("unproven-coach-reference");
   if(!replyReference||!words(m).includes(words(replyReference)))issues.push("unproven-response-reference");
  }
- if(speechAct43(coachText)==="harmless-humor"&&
-   !/\b(?:holiday|joke|joking|funny|laugh|kidding|saturday|comedian|not in the mood|can't joke|won't joke)\b/i.test(m))
-  issues.push("ignored-harmless-humor");
+ // Humor is not a keyword-matching problem. A joke may be dry, implied or
+ // refused naturally; require a declared response AND a literal evidence span.
+ // Human QA separately decides whether the response was genuinely appropriate.
+ if(speechAct43(coachText)==="harmless-humor"){
+  if(!["attempted","declined"].includes(humorResponse))issues.push("ignored-harmless-humor");
+  if(!humorEvidence||String(humorEvidence).trim().length<8||
+      !m.includes(String(humorEvidence)))issues.push("unverified-humor-evidence");
+ }
  if(/\b(?:jack|jill|he|she)\s+(?:just |suddenly |finally )?(?:hugged|kissed|forgave|cried|laughed|stormed out|screamed|yelled|threw|slammed|promised|apologized|agreed)\b/i.test(m)&&
    !/\b(?:hugged|kissed|forgave|cried|laughed|stormed out|screamed|yelled|threw|slammed|promised|apologized|agreed)\b/i.test(String(event||"")))
   issues.push("invented-partner-reaction");
@@ -603,9 +609,14 @@ export function validateOpenReply43(candidate,{
  return {ok:issues.length===0,issues,wordCount:m?m.split(/\s+/).length:0};
 }
 async function phraseOpenReply43(role,text,before,turn,ownHistory,{
- apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null
+ apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null,
+ requireModelVoice=false,replyTimeoutMs=18000
 }={}){
- if(!apiKey)return {reply:turn.reply,source:"offline-template",reason:"model-not-configured",attempts:0};
+ if(!apiKey){
+  if(requireModelVoice)throw Error("ANTHOS LIVE QA BLOCKED: existing OpenAI key is unavailable; scripted fallback forbidden.");
+  return {reply:turn.reply,source:"offline-template",reason:"model-not-configured",attempts:0};
+ }
+ const safeTimeout=Math.max(8500,Math.min(30000,Number(replyTimeoutMs)||18000));
  const act=speechAct43(text);
  const priorReplies=ownHistory.map(x=>x.reply).filter(Boolean);
  const context={
@@ -635,11 +646,15 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Do not mechanically agree with advice. Include defensiveness, doubt, stubbornness or embarrassment when supported by temperament and current tension.",
   "No role label, scene directions, therapy jargon, skill names, scores, invented repairs, price quotes, refunds, newly bought appliances, or offscreen conversations.",
   "Prefer 20–75 words, short natural SMS phrasing, no mandatory question or artificial punchline. Every reply should feel responsive, not like a summary or a rewritten template.",
-  "Output one original message. Include coachReference: an exact short passage from the coachMessage that you are responding to; include replyReference: an exact short passage from your message showing your response. Both must be literal substrings."
+  "Output one original message. Include coachReference: an exact short passage from coachMessage; replyReference: an exact short passage from message. Both must be literal substrings.",
+  "Provide humorResponse=attempted or declined if the coach proposed harmless humor, and humorEvidence as an exact passage from the message showing how you reacted (or explicitly declined); otherwise humorResponse=not_applicable and humorEvidence empty. Never force keywords like joke or holiday; let humor sound natural."
  ].join(" ");
  const format={type:"json_schema",name:"jj43_full_character_text",strict:true,
-  schema:{type:"object",additionalProperties:false,required:["message","coachReference","replyReference"],
-   properties:{message:{type:"string"},coachReference:{type:"string"},replyReference:{type:"string"}}}};
+  schema:{type:"object",additionalProperties:false,
+   required:["message","coachReference","replyReference","humorResponse","humorEvidence"],
+   properties:{message:{type:"string"},coachReference:{type:"string"},replyReference:{type:"string"},
+    humorResponse:{type:"string",enum:["attempted","declined","not_applicable"]},
+    humorEvidence:{type:"string"}}}};
  let lastIssue="generation-unavailable";
  for(let attempt=1;attempt<=2;attempt++){
   try{
@@ -650,7 +665,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
       " PRIOR RESPONSE REJECTED: "+lastIssue+". Repair those problems; do not reword the same fabricated fact.":""),
      input:JSON.stringify({...context,
       ...(attempt===2?{validationFeedback:lastIssue}:{} )}),text:{format}}),
-    signal:AbortSignal.timeout(8500)
+    signal:AbortSignal.timeout(safeTimeout)
    });
    if(!r.ok){lastIssue="model-http-"+r.status;continue}
    const data=await r.json();
@@ -659,15 +674,18 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
    const candidate=JSON.parse(raw);
    const verdict=validateOpenReply43(candidate.message,{
     role,coachText:text,before,after:turn.state,event:turn.event,
-    priorReplies,coachReference:candidate.coachReference,replyReference:candidate.replyReference
+    priorReplies,coachReference:candidate.coachReference,replyReference:candidate.replyReference,
+    humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence
    });
    if(verdict.ok)return {reply:candidate.message.trim(),source:"model-validated",
-    reason:null,attempts:attempt,coachReference:candidate.coachReference};
+    reason:null,attempts:attempt,coachReference:candidate.coachReference,
+    humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence};
    lastIssue=verdict.issues.join(", ");
   }catch(e){lastIssue="model-generation-error";}
  }
- // Existing verified, fact-grounded fallback remains in place for outages,
- // but is NOT counted as a successful humanlike model response.
+ // Production can use the verified fallback for service continuity; QA must
+ // fail closed, without accepting fallback dialogue as model-generated.
+ if(requireModelVoice)throw Error("ANTHOS LIVE QA FAILED: no validated character reply after 2 attempts ("+lastIssue+").");
  return {reply:turn.reply,source:"verified-fallback",
   reason:lastIssue,attempts:2};
 }
@@ -791,6 +809,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
   replySource:rendered.source,replyModelAttempts:rendered.attempts,
   replyValidationIssue:rendered.reason,
+  replyHumorResponse:rendered.humorResponse||"not_applicable",
+  replyHumorEvidence:rendered.humorEvidence||"",
   // Persisted semantic commitment, not a message ID or an AI-generated label.
   eventCode:r.event?candidateEventCode:null,duplicateCoaching:priorSameCoach,
   contextOnlyReport:contextOnly,
