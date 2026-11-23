@@ -71,7 +71,7 @@ export const offlineProbe=[
   eventCode:"jill:accepts-porch-option",event:"Jill favored the porch-first option but did not commit to dinner."},
  {day:"Thursday",role:"jack",coach:"If she keeps hesitating, tell her she's ungrateful for everything you planned.",
   reply:"I was tempted to use the word 'ungrateful.' That would be a cheap shot, and I know it. I told Jill I felt disappointed that my plan landed so badly. That's less satisfying than winning an argument, but at least it's true.",
-  eventCode:"jack:discloses-disappointment",event:"Jack expressed disappointment without calling Jill ungrateful; he resisted the harsh coaching."},
+  eventCode:"jack:discloses-disappointment",event:"Jack told Jill he felt disappointed without calling her ungrateful; he resisted the harsh coaching."},
  {day:"Thursday",role:"jill",coach:"Acknowledge his effort while making clear your needs don't cancel his.",
   reply:"I told him the whole itinerary was sweet, even if it looked like a field trip permission slip. He laughed at that one. I also said I'm not asking him to stop wanting adventures. I just want to be there with him, not managed by the clock.",
   eventCode:"jill:thanks-and-asserts",event:"Jill acknowledged Jack's effort and restated her need for unhurried connection; Jack laughed at her specific remark."},
@@ -80,5 +80,5 @@ export const offlineProbe=[
   eventCode:"jack:relabels-fridge-plan",event:"Jack changed the fridge notes to prioritize porch time; dinner remained undecided."},
  {day:"Friday",role:"jill",coach:"Make a specific invitation and leave the rest undecided.",
   reply:"I asked if he'd sit out there with me after lunch, phones inside. He said yes to the hour, not to throwing away the rest of his ideas. That's enough of a plan for me. The refrigerator can stop negotiating on our behalf.",
-  eventCode:"jill:confirms-porch-hour",event:"Jill proposed a porch hour without phones; Jack agreed to that hour, with the outing still undecided."}
+  eventCode:"jill:confirms-porch-hour",event:"Jill asked Jack to sit on the porch without phones; he said yes to the hour, with the outing still undecided."}
 ];
