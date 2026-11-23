@@ -504,6 +504,8 @@ async function simulate(config){
    if(turn.event)memories.push({id:config.id+"-"+day+"-"+role,turn:key,event:turn.event});
    texts.push({role,advice,replySource:turn.replySource,
     replyModelAttempts:turn.replyModelAttempts,
+    replyProviderResponseId:turn.replyProviderResponseId,
+    replyProviderModel:turn.replyProviderModel,
     replyValidationIssue:turn.replyValidationIssue,
     replyHumorResponse:turn.replyHumorResponse,
     replyHumorEvidence:turn.replyHumorEvidence,
