@@ -537,6 +537,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   pilot=room;
   $("episodePilotEmpty").hidden=true;
   showStudioSection("pilot");
+  refreshPilotReview43();
   const board=$("episodePilotBoard");
   board.hidden=false;
   const plan=$("episodePilotPlan");
@@ -591,6 +592,64 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   if(smsEligible)await loadSmsEligible();
  }catch(e){note(e.message,true)}
  finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;$("episodeLaunchPilot43").disabled=false;$("episodeLaunchPilot43Timed").disabled=false;$("episodePilotReset").disabled=false}
+}
+async function refreshPilotReview43(){
+ const host=$("episodeReviewReport43");if(!host)return;
+ host.replaceChildren();
+ if(!pilot?.roomId){
+  host.append(node("p","episode-editorial-note","Start a 4.3 browser or SMS pilot to see real character dialogue, verified events and human ratings here."));
+  return;
+ }
+ host.append(node("p","episode-editorial-note","Loading the protected transcript and SMS feedback…"));
+ try{
+  const result=await request("episode-studio-live-review",{roomId:pilot.roomId});
+  if(pilot?.roomId!==result.roomId)return;
+  host.replaceChildren();
+  const counts=result.counts||{};
+  const summary=node("div","episode-v43-world-summary");
+  for(const text of [
+   (counts.coachingTurns||0)+" coaching turns",
+   (counts.validatedOpenAI||0)+" validated OpenAI replies",
+   (counts.fallbacks||0)+" non-model replies",
+   (counts.participantRatings||0)+" SMS quality ratings"
+  ])summary.append(node("span","",text));
+  host.append(summary);
+  const state=node("p","episode-editorial-note","Independent 8/10 human certification: not yet established. A participant's SMS rating is useful feedback, but not a formal release review.");
+  host.append(state);
+  const ratings=node("details","episode-v43-fold");
+  ratings.append(node("summary","","SMS feedback from both private coaches"));
+  for(const role of ["jack","jill"]){
+   const lines=result.participantReviews?.[role]||[];
+   ratings.append(node("strong","episode-v43-role",role==="jack"?"Jack's coach":"Jill's coach"));
+   if(!lines.length)ratings.append(node("p","episode-editorial-note","No ratings yet. Text QA LIST for the ten categories and QA 4 8 for an example rating."));
+   for(const rating of lines){
+    const line=node("p","episode-v43-world-line",
+     rating.dimension+" · "+rating.score+"/10"+
+     (rating.comment?" · "+rating.comment:"")+
+     (rating.sourceQuote?" · Source: “"+rating.sourceQuote+"”":""));
+    ratings.append(line);
+   }
+  }
+  host.append(ratings);
+  const history=node("details","episode-v43-fold");
+  history.append(node("summary","","Actual coach / character transcript ("+(result.turns||[]).length+" messages)"));
+  for(const [i,turn] of (result.turns||[]).entries()){
+   const item=node("details","episode-v43-rule");
+   item.append(node("summary","",(i+1)+". "+(turn.role==="jack"?"Jack's coach":"Jill's coach")+
+    " · Day "+(Number(turn.day)+1)+" · "+(turn.source==="model-validated"?"OpenAI verified":"Other / not live-verified")));
+   const body=node("div","episode-v43-rule-body");
+   body.append(node("strong","","Private coach advice"),node("p","",turn.advice||"—"),
+    node("strong","","Character reply"),node("p","",turn.reply||"—"),
+    node("strong","","Verified story consequence"),node("p","",turn.event||"No new event verified."),
+    node("small","episode-editorial-note",turn.responseId?
+     "Provider receipt: "+turn.responseId+" · "+turn.model:"No validated provider receipt"));
+   item.append(body);history.append(item);
+  }
+  if(!(result.turns||[]).length)history.append(node("p","episode-editorial-note","No character replies yet."));
+  host.append(history);
+ }catch(error){
+  host.replaceChildren(node("p","episode-v43-error","Could not load the protected QA report: "+error.message));
+ }
 }
 async function loadSmsEligible(){
  const box=$("episodePilotSmsStatus"),select=$("episodePilotSmsCouple"),
@@ -1081,6 +1140,16 @@ function setup(){
  const pilotEmpty=node("p","episode-v43-empty","Choose and save an episode with an approved 4.3 story world, then run browser QA or start a timed SMS pilot.");
  pilotEmpty.id="episodePilotEmpty";
  panels.pilot.insertBefore(pilotEmpty,board);
+ const reviewPanel=node("section","episode-v43-review");
+ reviewPanel.append(node("h5","episode-v43-subheading","Live transcript & human feedback"));
+ const reviewLead=node("p","episode-editorial-note",
+  "Review what the model really said to each coach, the verified consequences, and each spouse's SMS ratings. No fictional QA response is counted as a live model reply.");
+ const refresh=node("button","episode-panel-draft","↻ Refresh QA evidence");refresh.type="button";
+ refresh.addEventListener("click",refreshPilotReview43);
+ const report=node("div","episode-v43-report");report.id="episodeReviewReport43";
+ reviewPanel.append(reviewLead,refresh,report);
+ panels.pilot.append(reviewPanel);
+ refreshPilotReview43();
  for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
  studio.querySelector(".episode-workflow").hidden=true;
  panels.flow.prepend(readinessHost);
