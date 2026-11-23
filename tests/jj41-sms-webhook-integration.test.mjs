@@ -85,6 +85,19 @@ function fixture(open43=false){
    outbox.push(body);
    return respond({data:{id:randomUUID()}},202);
   }
+  if(u.hostname==="api.openai.com"){
+   assert.equal(u.pathname,"/v1/responses");
+   if(body?.text?.format?.name!=="jj43_full_character_text")
+    return respond({error:"Test classifier unavailable"},503);
+   const context=JSON.parse(body.input),coach=String(context.coachMessage||"");
+   const msg=context.character==="jack"?
+    "I've missed three repair Saturdays, and I know the broken microwave is still a problem. We also need to talk seriously about our savings, but I'm tired of making promises without following through.":
+    "The replacement is already bought, and the savings question still matters. I don't want to pretend a sealed box solves everything. I still need to hear what Jack thinks before making another choice.";
+   return respond({id:"resp_sms_mock_"+randomUUID().replace(/-/g,""),
+    model:"gpt-4.1-mini",output:[{content:[{type:"output_text",
+     text:JSON.stringify({message:msg,coachReference:coach.slice(0,30),
+      replyReference:msg.slice(0,32),humorResponse:"not_applicable",humorEvidence:""})}]}]},200);
+  }
   assert.equal(u.hostname,"kstluxwgrrgdbjyloscb.supabase.co");
   const name=u.pathname.split("/rest/v1/")[1];
   if(Object.hasOwn(lists,name)){
@@ -243,6 +256,11 @@ test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, privat
  Date.now=()=>clock;
  fx.configure();globalThis.fetch=fx.mockFetch;
  try{
+  await assert.rejects(registerPilotSms({
+   origin:"https://anthos.love",roomId:fx.roomId,
+   husbandCustomerId:fx.husbandCustomerId,invitations:{}
+  }),/Real OpenAI provider unavailable/);
+  process.env.OPENAI_API_KEY="synthetic-openai-test-only";
   const result=await registerPilotSms({origin:"https://anthos.love",roomId:fx.roomId,
    husbandCustomerId:fx.husbandCustomerId,invitations:{
     jack:"https://anthos.love/pilot-v4/?invite="+fx.tokenJack,
@@ -277,5 +295,17 @@ test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, privat
   const completed=fx.outbox.length;
   await tickPilotSms(fx.roomId);
   assert.equal(fx.outbox.length,completed);
+  const eventCount=room.episode.authored43.turns.length;
+  assert.ok(eventCount>=2,"SMS pilot needs real-model receipts for review.");
+  assert.ok(room.episode.authored43.turns.every(t=>t.replySource==="model-validated"));
+  await fx.inbound(fx.phoneJack,"QA LIST");
+  assert.match(fx.outbox.at(-1).text,/10\\. Memory and scores/);
+  await fx.inbound(fx.phoneJack,"QA 4 8 Natural but too cautious");
+  assert.equal(room.episode.authored43.smsHumanReviews.jack.characterVoice.score,8);
+  assert.equal(room.episode.authored43.smsHumanReviews.jack.characterVoice.certification,"participant-feedback-only");
+  assert.equal(room.episode.authored43.turns.length,eventCount);
+  await fx.inbound(fx.phoneJack,"QA STATUS");
+  assert.match(fx.outbox.at(-1).text,/1\\/10 categories rated/);
+  assert.equal(room.episode.authored43.smsHumanReviews.jill,undefined);
  }finally{globalThis.fetch=fetchBefore;Date.now=realNow;fx.restore();}
 });
