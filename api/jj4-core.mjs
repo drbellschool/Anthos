@@ -853,7 +853,7 @@ export async function choose(token,optionId,requestKey){
 // Open 4.3 text and its shared-world transition are saved together in a
 // compare-and-swap on the existing private room. A concurrent calendar claim
 // changes stage; a concurrent text changes updated_at. Neither can be lost.
-export async function textCharacter(token,body,requestKey){
+export async function textCharacter(token,body,requestKey,{requireLiveProvider=false}={}){
  const words=brief(body,900);
  if(words.length<2||!UUID.test(requestKey||""))error("Write a short private message with a valid request key.");
  for(let attempt=0;attempt<3;attempt++){
@@ -878,8 +878,14 @@ export async function textCharacter(token,body,requestKey){
   const turn=await prepareOpenTurn43(room.episode,person.role,room.phase_index,history||[],words,requestKey,{
    apiKey:process.env.OPENAI_API_KEY?.trim(),model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",
    atlasContext:slimAtlasContext(existingAtlas?.atlas,person.role,
-    room.episode.authored43?.selectedSkills||["s-decisions","g-start","g-influence","i-nontransactional","i-sexual-respect"])
+    room.episode.authored43?.selectedSkills||["s-decisions","g-start","g-influence","i-nontransactional","i-sexual-respect"]),
+   requireModelVoice:requireLiveProvider
   });
+  // An SMS character response must be a verified OpenAI response, never
+  // a silent offline template substituted when the provider is down.
+  if(requireLiveProvider&&
+    (turn.replySource!=="model-validated"||!turn.replyProviderResponseId))
+   throw Error("Live OpenAI response not verified; no SMS reply committed.");
   const episode={...room.episode,authored43:{...room.episode.authored43,turns:[...turns,turn]}};
   const updated=new Date(Math.max(Date.now(),(Date.parse(room.updated_at)||0)+1)).toISOString();
   // Old room timestamps are mandatory in the real table. Never run an
