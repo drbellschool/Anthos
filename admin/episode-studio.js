@@ -332,6 +332,89 @@ function renderStoryboard(){
  }
  wireLocks();
 }
+// 4.3 canonical world editor. These are the actual serialized facts and
+// decision rules consumed by the engine—not a separate screenplay or mock-up.
+function renderWorld43(){
+ const host=$("episodeWorld43");if(!host||!current)return;
+ host.replaceChildren();
+ const graph=current.studio?.scenarioGraph;
+ const valid=graph?.version==="anthos-4.3-scenario-graph-v1"&&
+  graph.episodeId===current.id&&Array.isArray(graph.rules)&&
+  Array.isArray(graph.days)&&graph.days.length===5;
+ if(!valid){
+  const notice=node("div","episode-v43-world-missing");
+  notice.append(node("strong","","No approved 4.3 story world saved"),
+   node("p","","This episode has editorial notes but no verified event graph. Older scripts are not substituted. Build and approve an episode-specific graph before launching a live pilot."));
+  host.append(notice);
+  return;
+ }
+ const head=node("div","episode-v43-world-summary");
+ head.append(node("strong","","4.3 world attached"),
+  node("span","",graph.days.length+" daily opportunities"),
+  node("span","",graph.rules.length+" approved choices"),
+  node("span","",(graph.qualityContract?.objects||[]).length+" tracked objects"));
+ host.append(head);
+ const hint=node("p","episode-editorial-note",
+  "These exact facts, character voices and verified consequences govern both private coaches. Edits affect NEW pilots after Save; existing conversations keep their original snapshot.");
+ host.append(hint);
+ const edit=(labelText,value,update,rows=2,max=900)=>{
+  const label=node("label","episode-v43-edit",labelText);
+  const field=document.createElement("textarea");
+  field.value=String(value||"");field.rows=rows;field.maxLength=max;
+  field.addEventListener("input",()=>{update(field.value);markDirty()});
+  label.append(field);return label;
+ };
+ const fold=(title,open=false)=>{
+  const item=node("details","episode-v43-fold");
+  item.open=open;item.append(node("summary","",title));
+  host.append(item);return item;
+ };
+ const world=graph.qualityContract?.world||{};
+ const canon=fold("Who, what, where, when & why",true);
+ const canonGrid=node("div","episode-v43-world-grid");
+ for(const key of ["who","what","where","when","why"])
+  canonGrid.append(edit(key.charAt(0).toUpperCase()+key.slice(1),
+   world[key],value=>{world[key]=value},2,600));
+ canon.append(canonGrid);
+ const character=fold("Jack & Jill · first private messages");
+ const openings=node("div","episode-v43-world-grid");
+ for(const role of ["jack","jill"])
+  openings.append(edit(role==="jack"?"Jack's opening":"Jill's opening",
+   graph.roleOpenings?.[role],value=>{graph.roleOpenings[role]=value},3,800));
+ character.append(openings);
+ const tracked=fold("Tracked objects & unchangeable facts");
+ for(const object of graph.qualityContract?.objects||[])
+  tracked.append(node("p","episode-v43-world-line",object.id.replaceAll("-"," ")+": "+object.state));
+ for(const invariant of graph.qualityContract?.invariants||[])
+  tracked.append(node("p","episode-v43-world-line","Guardrail: "+invariant.fact));
+ const days=fold("Five learning opportunities");
+ for(const [index,day] of graph.days.entries()){
+  const box=node("div","episode-v43-rule");
+  box.append(node("strong","","Day "+(index+1)+" · "+(day.skills||[]).join(" / ")),
+   edit("Focus question",day.cue,v=>{day.cue=v},2,450),
+   edit("Character prompt",day.prompt,v=>{day.prompt=v},2,650));
+  days.append(box);
+ }
+ const choices=fold("Approved decisions & consequences");
+ for(const rule of graph.rules){
+  const detail=node("details","episode-v43-rule");
+  detail.append(node("summary","",rule.role.toUpperCase()+" · "+rule.id.replaceAll("-"," ")));
+  const content=node("div","episode-v43-rule-body");
+  content.append(
+   edit("Recognizable coaching advice (one cue per line)",rule.cues.join("\n"),v=>{
+    rule.cues=v.split("\n").map(s=>s.trim()).filter(Boolean)
+   },3,900),
+   edit("Verified character action",rule.event,v=>{rule.event=v},3,750),
+   edit("Browser-only safety reply",rule.reply,v=>{rule.reply=v},3,900),
+   node("p","episode-editorial-note",
+    "Canon changes: "+Object.entries(rule.set||{}).map(([k,v])=>k+" → "+String(v)).join(", ")+
+    (Object.keys(rule.requires||{}).length?
+     " · Requires "+Object.entries(rule.requires).map(([k,v])=>k+"="+String(v)).join(", "):"")+
+    " · Emotional pressure "+(rule.strainDelta||0))
+  );
+  detail.append(content);choices.append(detail);
+ }
+}
 function populate(){
  if(!current)return;
  opening=true;
@@ -375,22 +458,28 @@ function populate(){
  const primary=current.skills.find(x=>x.id===s.primarySkill);
  if(primary)researcher=primary.researcher;
  paintResearchers();paintSkills();paintSupports();
- opening=false;renderReadiness();
+ opening=false;renderReadiness();renderWorld43();
  document.dispatchEvent(new CustomEvent("anthos-episode-populated"));
 }
 function validation(){
  const s=collect();if(!s)return [];
- const active=s.checkpoints.filter(x=>x.audience!=="none");
+ const graph=s.scenarioGraph;
+ const focus=[s.primarySkill,...s.supportingSkills].filter(Boolean);
+ const graphAttached=graph?.version==="anthos-4.3-scenario-graph-v1"&&graph.episodeId===current.id;
+ const graphComplete=graphAttached&&graph.days?.length===5&&
+  graph.rules?.length>=4&&Object.keys(graph.fieldDomains||{}).length>=3;
+ const focusMatched=graphComplete&&focus.every(skill=>
+  graph.days.some(day=>(day.skills||[]).includes(skill)));
  return [
-  ["Primary skill assigned",!!s.primarySkill],
-  ["Clear title and story premise",s.title.trim().length>=5&&s.premise.trim().length>=75],
-  ["Learning target defined",s.learningObjective.trim().length>=12],
-  ["Characters have separate motivations",s.jackMotivation.trim().length>=20&&s.jillMotivation.trim().length>=20],
-  ["Six story phases outlined",PHASE_IDS.every(x=>(s.phases[x]||"").trim().length>=30)],
-  ["Check-in purposes are actionable",active.every(x=>x.purpose.trim().length>=20)],
-  ["Story closes its original dilemma",s.closureCriteria.trim().length>=20],
-  ["Research-informed notes present",s.researchNotes.trim().length>=15],
-  ["Reflection invitation present",s.reflectionPrompt.trim().length>=15]
+  ["Primary and supporting skills selected",focus.length>=1&&focus.length<=3],
+  ["Clear story premise and learning objective",s.title.trim().length>=5&&s.premise.trim().length>=75&&s.learningObjective.trim().length>=12],
+  ["Jack and Jill have distinct motivations",s.jackMotivation.trim().length>=20&&s.jillMotivation.trim().length>=20],
+  ["Episode-specific 4.3 story world attached",!!graphAttached],
+  ["Five real opportunities and approved actions",!!graphComplete],
+  ["All selected skills covered by the world",!!focusMatched],
+  ["Developmental objectives established",PHASE_IDS.every(id=>!!s.developmentalFlow?.[id]?.objective?.trim())],
+  ["Earned ending and research notes",s.closureCriteria.trim().length>=20&&s.researchNotes.trim().length>=15],
+  ["Voluntary reflection invitation",s.reflectionPrompt.trim().length>=15]
  ];
 }
 function renderReadiness(){
@@ -403,8 +492,10 @@ function renderReadiness(){
   const row=node("div","episode-check"+(passed?" ok":""));
   row.append(node("span","",passed?"✓":"○"),node("span","",label));box.append(row);
  }
- const active=collect().checkpoints.filter(x=>x.audience!=="none").length;
- box.append(node("p","episode-editorial-note",active+" of 5 optional check-ins assigned."));
+ box.append(node("p","episode-editorial-note",
+  current.studio.scenarioGraph?
+   "4.3 world controls the shared story; only recorded actions count toward coaching and behavior evidence.":
+   "4.3 pilot unavailable until this episode has an approved, saved story graph."));
 }
 function closePilot(clearRoom=false){
  if(timedClock){clearInterval(timedClock);timedClock=null;}
