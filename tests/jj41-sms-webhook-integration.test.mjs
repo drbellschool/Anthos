@@ -33,7 +33,8 @@ function fixture(open43=false){
    phone_verified_at:now,sms_consent_at:now,sms_disclosure_version:"anthos-sms-2026-11-v1"}
  ];
  const lists={anthos_jj4_rooms:[room],anthos_jj4_participants:people,
-  anthos_customer_directory:customers,anthos_jj41_sms_suppression:[],
+  anthos_customer_directory:customers,anthos_atlas_episodes:[],
+   anthos_jj41_sms_suppression:[],
   anthos_jj4_messages:[],anthos_jj41_sms_participants:[],anthos_jj41_sms_webhook_events:[]};
  const outbox=[],keypair=generateKeyPairSync("ed25519");let counter=0;
  const previous={};
