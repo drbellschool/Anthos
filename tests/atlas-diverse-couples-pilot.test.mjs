@@ -530,11 +530,16 @@ async function simulate(config){
     replyValidationIssue:turn.replyValidationIssue,
     replyHumorResponse:turn.replyHumorResponse,
     replyHumorEvidence:turn.replyHumorEvidence,
+    replyQualityAdvisories:turn.replyQualityAdvisories||[],
+    storyQualityEpisodeId:turn.storyQualityEpisodeId||null,
+    storyQualityContractVersion:turn.storyQualityContractVersion||null,
     prompt:opened.recipient===role?
     role==="jack"?opened.jackPrompt:opened.jillPrompt:"",
     proposed:turn.assessment?.recommended||null,enacted:turn.assessment?.enacted||null,
     eventCode:turn.eventCode||null,event:turn.event||"",reply:turn.reply,
     moves:changes,
+    stateBefore:{purchase:previous.purchase,box:previous.box,repairPlan:previous.repairPlan,
+     repairCalled:previous.repairCalled,strain:previous.strain},
     state:{purchase:state.purchase,box:state.box,repairPlan:state.repairPlan,
      repairCalled:state.repairCalled,strain:state.strain}});
   }
