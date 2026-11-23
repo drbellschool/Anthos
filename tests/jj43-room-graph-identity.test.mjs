@@ -62,8 +62,8 @@ test("PRODUCTION regression: server 4.3 createRoom pins saved scenario ID into g
    assert.equal(validateScenarioGraph43(persisted.authored43.scenarioGraph,persisted).episodeId,SOURCE_ID);
    assert.equal(persisted.authored43.timeline,"scenario-graph");
    assert.equal(persisted.authored42.timedPilot===true,timed);
-   assert.ok(scenarioWorld43(persisted,[],0));
    const scene=renderConversation42(persisted,0,[]);
+   assert.ok(scenarioWorld43(persisted,[{role:"shared",kind:"scene",body:scene.scene}],0));
    assert.ok(scene.scene.includes(SOURCE_ID));
    assert.ok(!scene.scene.toLowerCase().includes("microwave"));
   }
