@@ -112,7 +112,7 @@ test("AI must draft targeted interventions, while saved drafts remain admin-only
  assert.match(backend,/action==="episode-studio-generate"/);
  assert.match(backend,/action==="episode-studio-save"/);
  assert.match(ui,/Discard unsaved changes/);
- assert.match(ui,/No SMS or pilot was launched/);
+ assert.match(ui,/No SMS was sent/);
  assert.doesNotMatch(ui,/pilot-create-jack-jill|\/pilot\/?\?/);
 });
 
