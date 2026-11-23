@@ -444,6 +444,8 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   });
   closePilot();
   pilot=room;
+  $("episodePilotEmpty").hidden=true;
+  showStudioSection("pilot");
   const board=$("episodePilotBoard");
   board.hidden=false;
   const plan=$("episodePilotPlan");
@@ -453,7 +455,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   if(pilotVersion==="4.2.0"){
    plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
-  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: either coach can text their character throughout the week, even before a check-in. Shared fictional actions affect both conversations. Calendar advancement is separate from texting. Skill emphasis and observed behavior stay behind the scenes. "+(timedPilot?"10 minutes per day; SMS starts only after selecting a verified couple.":"Fast-forward browser QA only; NO SMS.")));
+  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: each coach privately advises a fictional character. Verified decisions affect the same story while time passes separately from coaching frequency. "+(timedPilot?"Each fictional day lasts ten minutes; messages start only when you select the registered couple.":"Browser review only; no SMS.")));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
    if(pilotVersion==="4.3.0"){
@@ -476,8 +478,8 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   jack.parentElement.hidden=!room.invitations.jack;jill.parentElement.hidden=!room.invitations.jill;
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
-  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"Test this individual episode":"Test this episode with both coaches";
-  const smsEligible=pilotVersion==="4.1.0"||!!room.timedPilot;
+  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"4.3 · Individual coach review":"4.3 · Two private coaching streams";
+  const smsEligible=!!room.timedPilot;
   $("episodePilotClock").textContent=room.timedPilot?"Clock not started. Choose your verified couple to begin Monday.":"";
   $("episodePilotSmsStatus").textContent=!smsEligible?
    "This is a browser-only fast-forward quality pilot. Real weekly SMS is disabled until the delivery/scheduling tests pass.":
@@ -960,9 +962,38 @@ function setup(){
  ));
  panels.flow.append(endDraft);
 
- // Remove the now-empty original columns only after all live controls are relocated.
+ // Build the one-screen-at-a-time 4.3 editorial workflow.
+ // Only the real graph is the source of story events; archived scripts never show.
+ const endHeading=node("h5","episode-v43-subheading","Sophia's earned ending & research");
+ panels.flow.insertBefore(endHeading,ending);
+ const worldHeading=node("h5","episode-v43-subheading","Verified 4.3 story world");
+ const worldHost=node("section","episode-v43-world");worldHost.id="episodeWorld43";
+ panels.story.append(worldHeading,worldHost);
+ const creativeDetails=node("details","episode-v43-fold");
+ creativeDetails.append(node("summary","","Voice, humor & tone"));
+ for(const child of [toneFields,voiceDraft,
+  ...Array.from(panels.story.children).filter(x=>
+    x.matches?.('label:has([data-episode-field="humorNotes"]),label:has([data-episode-field="runningGags"]),label:has([data-episode-field="tone"])'))
+ ])creativeDetails.append(child);
+ panels.story.append(creativeDetails);
+ const metadataDetails=node("details","episode-v43-fold");
+ metadataDetails.append(node("summary","","Additional character motivations & creative direction"),metaFold,metaDraft);
+ panels.story.insertBefore(metadataDetails,worldHeading);
+ const board=$("episodePilotBoard");
+ panels.pilot.append(board);
+ const pilotActions=node("div","episode-v43-pilot-actions");
+ pilotActions.append($("episodeLaunchPilot43"),$("episodeLaunchPilot43Timed"));
+ panels.pilot.insertBefore(pilotActions,board);
+ const help=node("p","episode-v43-pilot-help",
+  "Browser QA opens private test links without texting. SMS sends real messages to the previously verified, opted-in couple using OpenAI for Jack and Jill.");
+ panels.pilot.insertBefore(help,board);
+ const pilotEmpty=node("p","episode-v43-empty","Choose and save an episode with an approved 4.3 story world, then run browser QA or start a timed SMS pilot.");
+ pilotEmpty.id="episodePilotEmpty";
+ panels.pilot.insertBefore(pilotEmpty,board);
  for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
- nav.querySelector("button").click();
+ studio.querySelector(".episode-workflow").hidden=true;
+ panels.flow.prepend(readinessHost);
+ showStudioSection("foundation");
  document.querySelectorAll("[data-episode-field]").forEach(input=>input.addEventListener("input",markDirty));
  // Mode controls update the saved episode mode only after Save; existing pilot rooms remain snapshots.
  document.querySelectorAll("[data-mode-choice]").forEach(button=>button.addEventListener("click",()=>{
@@ -1001,7 +1032,7 @@ function setup(){
  $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
  $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.3.0"));
  $("episodeLaunchPilot43Timed").addEventListener("click",()=>pilotEpisode(false,"4.3.0",true));
- $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0",!!pilot?.timedPilot));
+ $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,"4.3.0",!!pilot?.timedPilot));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
