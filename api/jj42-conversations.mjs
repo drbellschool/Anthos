@@ -672,9 +672,16 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
    const raw=(data.output||[]).flatMap(x=>x.content||[])
     .filter(x=>x.type==="output_text").map(x=>x.text).join("");
    const candidate=JSON.parse(raw);
+   // Exact self-quotation is metadata, not a world fact. When the model
+   // slightly misquotes ITS OWN message, extract a literal span locally
+   // rather than rejecting otherwise valid dialogue or falsely scoring it.
+   const responseText=String(candidate.message||"").trim();
+   const quoted=String(candidate.replyReference||"").trim();
+   const replyReference=quoted&&words(responseText).includes(words(quoted))?
+    quoted:responseText.slice(0,Math.min(85,responseText.length));
    const verdict=validateOpenReply43(candidate.message,{
     role,coachText:text,before,after:turn.state,event:turn.event,
-    priorReplies,coachReference:candidate.coachReference,replyReference:candidate.replyReference,
+    priorReplies,coachReference:candidate.coachReference,replyReference,
     humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence
    });
    if(verdict.ok){
