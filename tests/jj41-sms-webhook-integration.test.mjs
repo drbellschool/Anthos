@@ -5,9 +5,11 @@ import {buildAuthored41} from "../api/jj4-authored41.mjs";
 import {registerPilotSms,receivePilotSms,tickPilotSms,PILOT_DAY_MS} from "../api/jj41-sms-core.mjs";
 import {buildConversation43} from "../api/jj42-conversations.mjs";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
+import {episode as closeEpisode} from "./fixtures/jj43-what-makes-us-feel-close.mjs";
+import {scenarioGraph as closeGraph} from "./fixtures/jj43-what-makes-us-feel-close-graph.mjs";
 
 const sha=s=>createHash("sha256").update(s).digest("hex");
-function fixture(open43=false){
+function fixture(open43=false,alternate=false){
  const roomId=randomUUID(),phoneJack="+12125550111",phoneJill="+12125550112",
   tokenJack="J".repeat(43),tokenJill="L".repeat(43),sender="+19036090465";
  const room={id:roomId,title:"One of Us Loves Mountains",
@@ -16,8 +18,13 @@ function fixture(open43=false){
   phase_index:0,stage:"needs_scene",expires_at:"2099-01-01T00:00:00.000Z",
   created_at:"2026-11-20T00:00:00.000Z",updated_at:"2026-11-20T00:00:00.000Z",processing_token:null,simulation_state:null};
  if(open43){
-  room.title="The Four-Hundred-Dollar Surprise";
-  room.episode=buildConversation43({...structuredClone(savedMicrowaveStudio),title:room.title,pilotMode:"shared"},{timedPilot:true,openConversation:true});
+  room.title=alternate?closeEpisode.title:"The Four-Hundred-Dollar Surprise";
+  room.scenario_id=alternate?closeEpisode.id:room.scenario_id;
+  room.episode=alternate?
+   buildConversation43({...closeEpisode,pilotMode:"shared"},{
+    timedPilot:true,openConversation:true,scenarioGraph:closeGraph}):
+   buildConversation43({...structuredClone(savedMicrowaveStudio),title:room.title,pilotMode:"shared"},{
+    timedPilot:true,openConversation:true});
  }
  const people=[
   {id:randomUUID(),room_id:roomId,role:"jack",token_hash:sha(tokenJack),first_name:null,joined_at:null,paused_at:null,submitted_phase:-1},
@@ -91,7 +98,11 @@ function fixture(open43=false){
    if(body?.text?.format?.name!=="jj43_full_character_text")
     return respond({error:"Test classifier unavailable"},503);
    const context=JSON.parse(body.input),coach=String(context.coachMessage||"");
-   const msg=context.character==="jack"?
+   const isOther=String(context.establishedEpisodeWorld?.what||"").includes("porch");
+   const msg=isOther?(context.character==="jack"?
+    "I put thought into the dinner idea, but Jill wants time on the porch. It's hard not to take that personally. I need to understand her version of closeness before booking anything.":
+    "Jack planned a lot, but I would feel close sitting on the porch together. Nothing about dinner is settled, and I want him to understand the quiet hour is important to me."):
+    context.character==="jack"?
     "I've missed three repair Saturdays, and I know the broken microwave is still a problem. We also need to talk seriously about our savings, but I'm tired of making promises without following through.":
     "The replacement is already bought, and the savings question still matters. I don't want to pretend a sealed box solves everything. I still need to hear what Jack thinks before making another choice.";
    return respond({id:"resp_sms_mock_"+randomUUID().replace(/-/g,""),
@@ -312,4 +323,32 @@ test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, privat
   assert.ok(fx.outbox.at(-1).text.includes("1/10 categories rated"));
   assert.equal(room.episode.authored43.smsHumanReviews.jill,undefined);
  }finally{globalThis.fetch=fetchBefore;Date.now=realNow;fx.restore();}
+});
+
+test("Second saved 4.3 episode registers verified phones and captures SMS human QA",async()=>{
+ const fx=fixture(true,true),priorFetch=globalThis.fetch;
+ fx.configure();process.env.OPENAI_API_KEY="synthetic-openai-test-only";
+ globalThis.fetch=fx.mockFetch;
+ try{
+  const result=await registerPilotSms({origin:"https://anthos.love",roomId:fx.roomId,
+   husbandCustomerId:fx.husbandCustomerId,invitations:{
+    jack:"https://anthos.love/pilot-v4/?invite="+fx.tokenJack,
+    jill:"https://anthos.love/pilot-v4/?invite="+fx.tokenJill}});
+  assert.equal(result.timedPilot,true);
+  const room=fx.lists.anthos_jj4_rooms[0];
+  assert.equal(room.episode.authored43.scenarioGraph.episodeId,closeEpisode.id);
+  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.includes("porch")));
+  assert.ok(!fx.outbox.some(x=>/microwave|repair shop|\$400/i.test(x.text)));
+  const prior=fx.outbox.length;
+  await fx.inbound(fx.phoneJack,"Ask what she'd actually enjoy instead of seeing rejection.");
+  const sent=fx.outbox.slice(prior).filter(x=>x.to===fx.phoneJack);
+  assert.ok(sent.some(x=>x.text.startsWith("Jack (PRIVATE):")),JSON.stringify(sent));
+  assert.ok(sent.some(x=>x.text.includes("porch")));
+  assert.equal(room.episode.authored43.turns.length,1);
+  assert.equal(room.episode.authored43.turns[0].replySource,"model-validated");
+  assert.match(room.episode.authored43.turns[0].replyProviderResponseId,/^resp_/);
+  await fx.inbound(fx.phoneJack,"QA 4 8 Engaging and responsive");
+  assert.equal(room.episode.authored43.smsHumanReviews.jack.characterVoice.score,8);
+  assert.equal(room.episode.authored43.smsHumanReviews.jill,undefined);
+ }finally{globalThis.fetch=priorFetch;fx.restore()}
 });
