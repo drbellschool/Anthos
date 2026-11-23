@@ -271,8 +271,11 @@ test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, privat
   const room=fx.lists.anthos_jj4_rooms[0];
   assert.equal(room.phase_index,0);
   assert.equal(room.stage,"flow");
-  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.startsWith("Jill (PRIVATE):")));
-  assert.ok(!fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.startsWith("Jack (PRIVATE):")));
+  // 4.3 dynamically selects one character check-in for the opening;
+  // both private SMS composers are available immediately, without a
+  // forced Jill-first schedule copied from the 4.1 system.
+  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.startsWith("Jack (PRIVATE):")));
+  assert.ok(!fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.startsWith("Jill (PRIVATE):")));
   const key=randomUUID();
   await fx.inbound(fx.phoneJack,"Our wives were talking. Just fix the microwave.",key);
   assert.ok(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.startsWith("Jack (PRIVATE):")));
