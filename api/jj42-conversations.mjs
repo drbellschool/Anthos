@@ -629,7 +629,7 @@ export function validateOpenReply43(candidate,{
   issues.push("unverified-external-fact");
  }
  // Conversations with Jack/Jill must be canonical events, not invented dialogue.
- const actionMentionsSpeech=/\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|confronted|informed)\b/i.test(String(event||""));
+ const actionMentionsSpeech=/\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|confronted|informed|suggested|proposed|offered|invited|thanked)\b/i.test(String(event||""));
  const allegedTalk=!actionMentionsSpeech?
   /\b(?:i|we)\b([^.!?]{0,110})\b(?:told|asked|texted|apologized to|talked to|confronted)\s+(?:jack|jill|him|her|my (?:husband|wife))\b/i.exec(m):null;
  if(allegedTalk&&!/\b(?:didn't|haven't|hasn't|not|never|would|might|could|should|don't)\b/i.test(allegedTalk[1]))
