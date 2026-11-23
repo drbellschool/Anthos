@@ -1,5 +1,5 @@
-// Anthos 4.0 — one compact, objective-driven storyboard with optional private check-ins.
-// Editorial design only: no outgoing SMS and no automatic 3.x pilot launch.
+// Anthos 4.3 Studio: one editorial workflow and one protected live SMS pilot.
+// Archived fields stay mounted only for old draft compatibility.
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id);
@@ -10,6 +10,7 @@ const FOUNDATION_FIELDS=["learningObjective","jackExample","jillExample"];
 const SCENE_FIELDS=["sceneSetting","sceneStress","sceneTrigger","toneElement","premise","jackMotivation","jillMotivation","boundaries","creativeDirection"];
 let current=null,researcher="Gottman",busy=false,opening=false;
 let pilot=null,pilotPlayers=[],timedClock=null,tickBusy=false;
+let showStudioSection=()=>{};
 const initiallyDrafted=new Set();
 const skillSymbols={"g-bids":"♡","g-toward":"☏","g-start":"▤","g-patterns":"⚠","g-repair":"↻","g-influence":"◎","g-appreciation":"♧","g-world":"◉","g-meaning":"⌂"};
 function lockPath(input){
@@ -222,7 +223,7 @@ function paintDevelopmentalFlow(){
  const ids=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
  const prior=current.studio.developmentalFlow||{};
  const normalized={};
- host.append(node("h5","","4.3 · Developmental flow"),node("p","episode-editorial-note","Set the learning opportunity, not the next event. Emphasis is importance (1–5), not performance. The engine selects the private coach from the situation. Legacy 4.0–4.2 scripts remain below."));
+ host.append(node("h5","","4.3 · Developmental flow"),node("p","episode-editorial-note","Set a learning opportunity, not a scripted outcome. Emphasis (1–5) is importance, not performance. Jack and Jill choose independently; only verified actions count as evidence."));
  for(const [i,id] of PHASE_IDS.entries()){
   const old=prior[id]||{};
   const v={objective:old.objective||DEVELOPMENT_OBJECTIVES[i],evidence:old.evidence||DEVELOPMENT_EVIDENCE[i],emphasis:{}};
@@ -358,7 +359,7 @@ function populate(){
  $("episodeStudioTitle").textContent=s.title||"Untitled episode";
  $("episodeMeta").textContent=(current.mode==="shared"?"SHARED · Jack and Jill / two private coaches":
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
- " · Editorial version 4.0";
+ " · Deep Dive engine 4.3";
  $("episodePetal").textContent=current.petal;
  const scenePetal=$("episodeScenePetalLabel");if(scenePetal)scenePetal.textContent=current.petal.replaceAll("-"," ");
  const reviewSelect=$("episodeStatusSelect");if(reviewSelect)reviewSelect.value=current.status||"draft";
@@ -779,12 +780,10 @@ function setup(){
  const nav=document.createElement("nav");nav.className="episode-side-nav";nav.setAttribute("aria-label","Episode editorial sections");
  const stage=document.createElement("div");stage.className="episode-panel-stage";
  const specs=[
-  ["1-1","Relationship Foundation","foundation","♡","Skills, priorities and the couple's problem"],
-  ["1-2","Scene, Setting & Situation","scene","⌖","The place, pressure and opening conflict"],
-  ["1-3","Episode Metadata & Motivations","metadata","♙","Episode identity and character needs"],
-  ["1-4","Creative Voice","voice","✎","Humor, seriousness and character voice"],
-  ["2-1","Six-Phase Developmental Flow","flow","▤","Skill emphasis, learning opportunities and evidence"],
-  ["3-1","Ending & Reflection Guardrails","ending","⚑","Resolution, research and safety"]
+  ["01","Foundation","foundation","♡","Primary skill, supporting skills and conflict"],
+  ["02","Story World","story","⌖","Scene, characters, verified decisions and humor"],
+  ["03","Coaching & Evidence","flow","▤","Six learning phases, observed behavior and ending"],
+  ["04","Pilot & Review","pilot","✉","Browser QA, real SMS and human quality review"]
  ];
  const panels={};
  for(const [number,title,key,symbol,description] of specs){
@@ -800,17 +799,21 @@ function setup(){
   const headingCopy=node("div","episode-side-heading-copy");
   headingCopy.append(node("h4","",number+" · "+title),node("p","",description));
   heading.append(headingCopy);panel.append(heading);stage.append(panel);panels[key]=panel;
-  button.addEventListener("click",()=>{
-   for(const tab of nav.querySelectorAll("button")){
-    const selected=tab===button;tab.classList.toggle("active",selected);
-    if(selected)tab.setAttribute("aria-current","step");else tab.removeAttribute("aria-current");
-   }
-   for(const item of stage.children)item.hidden=item!==panel;
-   stage.scrollTop=0;
-  });
+  button.addEventListener("click",()=>showStudioSection(key));
  }
  // Keep the CSS grid parent: previous releases removed it, stacking all six panels.
  layout.append(nav,stage);
+ showStudioSection=key=>{
+  const chosen=panels[key]||panels.foundation;
+  for(const tab of nav.querySelectorAll("button")){
+   const active=tab.dataset.panel===chosen.dataset.panel;
+   tab.classList.toggle("active",active);
+   tab.setAttribute("aria-selected",String(active));
+   if(active)tab.setAttribute("aria-current","step");else tab.removeAttribute("aria-current");
+  }
+  for(const item of stage.children)item.hidden=item!==chosen;
+  stage.scrollTop=0;
+ };
 
  // 1-1 — visible skills and problem side-by-side, with editable Jack/Jill examples.
  const foundationGrid=node("div","episode-foundation-workspace");
@@ -838,7 +841,7 @@ function setup(){
  statusSelect.addEventListener("change",()=>{if(!current)return;current.status=statusSelect.value;markDirty()});
  reviewLabel.append(statusSelect);
  settingsRow.append(petalInfo,reviewLabel);settings.append(settingsRow);
- sceneTop.append(mode,settings);panels.scene.append(sceneTop);
+ sceneTop.append(mode,settings);panels.story.append(sceneTop);
  sceneFields.open=true;toneFields.open=true;
  sceneDraft.textContent="✦ AI Draft Scene";
  const work=node("div","episode-scene-workspace");
@@ -854,11 +857,11 @@ function setup(){
  const tips=node("div","episode-scene-tips");
  tips.append(node("strong","","Scene Tips"),node("p","","Use specific objects, an everyday irritation, and an awkward moment that causes a real reaction. Keep it believable."));
  quick.append(expand,sceneLock,tips);work.append(sceneCard,quick);
- panels.scene.append(work);
+ panels.story.append(work);
  const preview=node("section","episode-scene-preview");
  preview.append(node("h5","","▣ Scene Preview · how it fits together"));
  const previewBody=node("p","","Choose an episode to preview its scene.");
- preview.append(previewBody);panels.scene.append(preview);
+ preview.append(previewBody);panels.story.append(preview);
  const updatePreview=()=>{
   const values=["sceneSetting","sceneStress","sceneTrigger"].map(key=>field(key)?.value.trim()||"");
   previewBody.textContent=values.filter(Boolean).join(" ")||"Fill the setting, stress and triggering situation to see the opening scene together.";
@@ -869,17 +872,17 @@ function setup(){
 
  // 1-3 — all existing metadata/motivation inputs together, draftable without touching locks.
  const metaFold=node("div","episode-metadata-editor");
- metaFold.append(basics);panels.metadata.append(metaFold);
+ metaFold.append(basics);panels.story.append(metaFold);
  const motivation=basics.querySelector("details");if(motivation)motivation.open=true;
  const metaDraft=node("button","episode-panel-draft","✦ AI Draft Episode Details");metaDraft.type="button";
  metaDraft.addEventListener("click",()=>draftOnly(
   ["premise","jackMotivation","jillMotivation","boundaries","creativeDirection"],
   "Describe a vivid, specific situation and two distinct character motivations, using everyday language. Preserve the established relationship objective, all existing locked fields, and the episode title."
  ));
- panels.metadata.append(metaDraft);
+ panels.story.append(metaDraft);
 
  // 1-4 — the tone editor belongs here, not in the scene panel.
- panels.voice.append(toneFields);
+ panels.story.append(toneFields);
  // Large direct-choice tone buttons, while the existing select remains the saved source.
  const toneBar=node("div","episode-tone-choices");
  const toneSelect=$("episodeToneApproach");
@@ -901,20 +904,21 @@ function setup(){
  updateToneButtons();
  for(const child of Array.from(creative.children)){
   if(child.classList.contains("episode-pane-header")||child.classList.contains("episode-right-section"))continue;
-  panels.voice.append(child);
+  panels.story.append(child);
  }
  const voiceDraft=node("button","episode-panel-draft","✦ AI Draft Creative Voice");voiceDraft.type="button";
  voiceDraft.addEventListener("click",()=>draftOnly(
   ["tone","toneElement","humorNotes","runningGags"],
   "Draft a concise natural character-voice guide and an optional situational complication that fits the chosen humor/seriousness setting. Avoid canned jokes or therapy speech."
  ));
- panels.voice.append(voiceDraft);
+ panels.story.append(voiceDraft);
 
  // 2-1 — unchanged five private checkpoints stay attached to their phase accordions.
  const devFlow=node("section","episode-intervention");devFlow.id="episodeDevelopmentalFlow";
  panels.flow.append(devFlow);
- const legacyFlow=node("details","episode-phase-fold");
- legacyFlow.append(node("summary","episode-phase-head","Legacy 4.0–4.2 Story Flow (retained)"),intro,flowHeading,flowActions,phases,flowDraft);
+ const legacyFlow=node("div","episode-archived-fields");
+ legacyFlow.hidden=true;legacyFlow.setAttribute("aria-hidden","true");
+ legacyFlow.append(intro,flowHeading,flowActions,phases,flowDraft);
  panels.flow.append(legacyFlow);
  const phaseOverview=node("div","episode-phase-overview");
  const overviewCards=[];
@@ -945,16 +949,16 @@ function setup(){
 
  // 3-1 — research and Sophia's ending alongside closure and reflection criteria.
  ending.open=true;
- panels.ending.append(ending);
+ panels.flow.append(ending);
  const researchBlock=node("div","episode-ending-research");
  researchBlock.append(node("h5","","Research connection for Sophia"),researchLabel);
- panels.ending.append(researchBlock);
+ panels.flow.append(researchBlock);
  const endDraft=node("button","episode-panel-draft","✦ AI Draft Ending Guardrails");endDraft.type="button";
  endDraft.addEventListener("click",()=>draftOnly(
   ["closureCriteria","reflectionPrompt","researchNotes"],
   "Provide an earned ending condition, specific real-world reflection question and plain-language research takeaway without grading or shaming the relationship. Preserve locked fields."
  ));
- panels.ending.append(endDraft);
+ panels.flow.append(endDraft);
 
  // Remove the now-empty original columns only after all live controls are relocated.
  for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
