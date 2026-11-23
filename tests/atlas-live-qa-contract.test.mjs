@@ -1,7 +1,7 @@
 import test from "node:test";
 import {spawnSync} from "node:child_process";
 import assert from "node:assert/strict";
-import {LIVE43_DIMENSIONS,verifyLivePilot43,assertLivePilotKey43} from "../lib/atlas-live-qa-contract.mjs";
+import {LIVE43_DIMENSIONS,LIVE43_HARD_CHECKS,verifyLivePilot43,assertLivePilotKey43} from "../lib/atlas-live-qa-contract.mjs";
 
 function fixture(n=10){
  const couples=Array.from({length:n},(_,i)=>({
@@ -18,8 +18,8 @@ function fixture(n=10){
  const reviews=couples.map(c=>({coupleId:c.id,provenance:"human-reviewed-live-transcript",
   reviewer:"Quality Lab reviewer",reviewedAt:"2026-11-22T18:00:00Z",
   scores:Object.fromEntries(LIVE43_DIMENSIONS.map(d=>[d,8.2])),
-  evidence:Object.fromEntries(["coachingResponsiveness","characterVoice",
-   "storyContinuity","humorAndPlayfulness"].map(d=>[d,c.days[0].turns[0].reply.slice(0,35)])),
+  evidence:Object.fromEntries(LIVE43_DIMENSIONS.map(d=>[d,c.days[0].turns[0].reply.slice(0,35)])),
+  hardChecks:Object.fromEntries(LIVE43_HARD_CHECKS.map(k=>[k,true])),
   criticalFailure:false
  }));
  return {couples,reviews};
@@ -84,4 +84,16 @@ test("A missing protected live-model report cannot certify the release",()=>{
  });
  assert.equal(p.status,1);
  assert.match(p.stderr||"",/no protected live-model ten-couple report/i);
+});
+
+test("Quality certification cannot average away safety, duplicate facts or missing evidence",()=>{
+ const x=fixture();
+ x.reviews[0].hardChecks.consentAndRespect=false;
+ x.reviews[1].hardChecks.noDoubleCountedEvidence=undefined;
+ x.reviews[2].evidence.dialogueNaturalness="";
+ const r=verifyLivePilot43(x);
+ assert.equal(r.passed,false);
+ assert.ok(r.problems.includes("c0:missing-or-failed-hard-check-consentAndRespect"));
+ assert.ok(r.problems.includes("c1:missing-or-failed-hard-check-noDoubleCountedEvidence"));
+ assert.ok(r.problems.includes("c2:missing-cited-quality-evidence-dialogueNaturalness"));
 });
