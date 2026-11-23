@@ -299,13 +299,13 @@ test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, privat
   assert.ok(eventCount>=2,"SMS pilot needs real-model receipts for review.");
   assert.ok(room.episode.authored43.turns.every(t=>t.replySource==="model-validated"));
   await fx.inbound(fx.phoneJack,"QA LIST");
-  assert.match(fx.outbox.at(-1).text,/10\\. Memory and scores/);
+  assert.ok(fx.outbox.at(-1).text.includes("10. Memory and scores"));
   await fx.inbound(fx.phoneJack,"QA 4 8 Natural but too cautious");
   assert.equal(room.episode.authored43.smsHumanReviews.jack.characterVoice.score,8);
   assert.equal(room.episode.authored43.smsHumanReviews.jack.characterVoice.certification,"participant-feedback-only");
   assert.equal(room.episode.authored43.turns.length,eventCount);
   await fx.inbound(fx.phoneJack,"QA STATUS");
-  assert.match(fx.outbox.at(-1).text,/1\\/10 categories rated/);
+  assert.ok(fx.outbox.at(-1).text.includes("1/10 categories rated"));
   assert.equal(room.episode.authored43.smsHumanReviews.jill,undefined);
  }finally{globalThis.fetch=fetchBefore;Date.now=realNow;fx.restore();}
 });
