@@ -68,7 +68,11 @@ export function atlasTurnObservations(turn){
    quote:sourceQuote,explanation,observedRating,confidence,contextClass,
    interpretation,safetyFlag});
  };
- for(const id of SKILL_IDS43){
+ // Episode Studio controls the primary/supporting skills. Never credit
+ // microwave skills to a different relationship objective by inheritance.
+ const focus=Array.isArray(turn.selectedSkills)&&turn.selectedSkills.length?
+  turn.selectedSkills:SKILL_IDS43;
+ for(const id of focus){
   const rate=turn.assessment?.coaching?.[id];
   if(!turn.duplicateCoaching&&Number.isInteger(rate))add(coach,id,turn.body,rate,0.8,"selected",
    "Coach recommendation coded against the episode's skill rubric.");
