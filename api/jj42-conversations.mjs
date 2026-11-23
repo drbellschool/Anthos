@@ -623,6 +623,9 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  const safeTimeout=Math.max(8500,Math.min(30000,Number(replyTimeoutMs)||18000));
  const act=speechAct43(text);
  const priorReplies=ownHistory.map(x=>x.reply).filter(Boolean);
+ const spouseConversationCommitted=!!turn.event&&
+  /\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|informed)\b/i.test(turn.event)&&
+  !/\b(?:chose not to|declined to|refused to)\b/i.test(turn.event);
  const context={
   character:role,identity:characterVoice43(role),
   coachMessage:String(text||"").slice(0,900),coachSpeechAct:act,
@@ -631,7 +634,8 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   })),
   factsBefore:before,factsAfter:turn.state,
   verifiedEventThisTurn:turn.event||null,
-  enactedAction:turn.event?"an event was committed":"no new action committed",
+  newSpouseConversationAllowed:spouseConversationCommitted,
+  enactedAction:turn.event?"one bounded event was committed":"no new physical or interpersonal action committed",
   // Keep model context from accumulating unverified coach claims as facts.
   knownExternalFacts:{repairPrice:null,repairAppointment:null,refund:null,repairFinished:false},
   currentEmotionalPressure:turn.state.strain??before.strain??2,
@@ -644,6 +648,8 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Write the ENTIRE next private SMS text in the FIRST PERSON as "+(role==="jack"?"Jack":"Jill")+" to their trusted friend, not a reaction prefix and not canned dialogue.",
   "Stay inside the before/after world facts. The only NEW enacted event permitted is verifiedEventThisTurn. If null, you may reflect, resist, wonder, plan in thought, or joke to your friend, but not claim an action happened.",
   "This character is a specific, flawed person with agency, not a marriage instructor. Respond in a way that unmistakably engages this particular coach message.",
+  "CRITICAL: newSpouseConversationAllowed="+spouseConversationCommitted+
+   ". When FALSE, the character has NOT talked or texted their spouse as a result of this advice. Never write I told him/her, I asked my spouse, he/she responded, or anything implying an offscreen conversation. Speak only to YOUR private coach about what you feel, think, intend, resist or might say in the future.",
   "If the coach suggests harmless humor, attempt a situational joke in your TEXT TO THE FRIEND, or decline the joke in your own voice and explain why. Do NOT imply you told the joke to Jill or Jack unless the verified event says so.",
   "If the coach suggests pressure, blame or transactional intimacy, show the verified character choice and its real emotional consequence without normalizing coercion.",
   "An attributed rumor is not a fact or command. A question is not permission to fabricate a completed event.",
@@ -666,7 +672,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
     method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
     body:JSON.stringify({model,store:false,max_output_tokens:440,
      instructions:instructions+(attempt===2?
-      " PRIOR RESPONSE REJECTED: "+lastIssue+". Repair those problems; do not reword the same fabricated fact.":""),
+      " PRIOR RESPONSE REJECTED: "+lastIssue+". The original reply made an unsupported factual claim. If it claimed any discussion or partner reaction, rewrite the private message WITHOUT any new completed conversation or spouse response. Express the concern as an intention or private thought instead.":""),
      input:JSON.stringify({...context,
       ...(attempt===2?{validationFeedback:lastIssue}:{} )}),text:{format}}),
     signal:AbortSignal.timeout(safeTimeout)
