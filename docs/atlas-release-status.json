@@ -1,8 +1,8 @@
 {
   "contractVersion": "anthos-4.3-release-gate-v1",
   "releaseAllowed": false,
-  "lastReviewed": "2026-11-22",
-  "note": "Feature code and sample tests exist for G1–G7, but NO gate is fully verified with an activated couple and live-model QA. G8 remains blocked; runtime write mode is disabled unless deliberately enabled after isolation and certification. Release is forbidden.",
+  "lastReviewed": "2026-11-23",
+  "note": "4.3 portable-quality safeguards and stronger source-cited review now exist on draft PR #135. Existing G1–G7 still partial; G8 blocked. The Nov 22/23 100-turn real-model engineering smoke does not certify this newer code or other 119 episodes; release forbidden.",
   "gates": [
     {
       "id": "G1",
@@ -75,5 +75,30 @@
         "api/insight-atlas-model.mjs"
       ]
     }
-  ]
+  ],
+  "qualityHardening": {
+    "lockedAt": "2026-11-23",
+    "engine": "4.3",
+    "status": "code-implemented-testing-ongoing",
+    "commitments": [
+      "humanlike-role-grounded-conversation",
+      "episode-specific-semantic-continuity",
+      "coaching-contingent-consequences",
+      "ten-dimension-evidence-backed-certification"
+    ],
+    "implemented": [
+      "approved-world-contract-schema-and-microwave-contract",
+      "cross-episode-unit-fixtures",
+      "actual-4.3-open-turn-validator",
+      "ten-dimension-citation-and-hard-review-gates",
+      "pilot-audit-fields"
+    ],
+    "unverified": [
+      "end-to-end-non-microwave-world-state-and-Episode-Studio",
+      "post-hardening-real-model-pilot",
+      "ten-couple-human-8-of-10",
+      "30-combination-reliability",
+      "120-episode-sample-and-1000-couple-readiness"
+    ]
+  }
 }
