@@ -31,7 +31,7 @@ test("Offline editor-authored ten-turn transfer storyboard is coherent and sourc
    assert.ok(row.coach.trim().length>12 && row.reply.trim().length>30);
    assert.ok(row.event && row.eventCode && !seenCodes.has(row.eventCode));
    seenCodes.add(row.eventCode);
-   const result=reviewStoryReply(row.reply,{role:row.role,contract:qualityContract,priorReplies:prior[row.role]});
+   const result=reviewStoryReply(row.reply,{role:row.role,contract:qualityContract,priorReplies:prior[row.role],verifiedEvent:row.event});
    if(!result.ok)errs.push({day,role:row.role,critical:result.critical});
    prior[row.role].push(row.reply);
   }
@@ -63,4 +63,17 @@ test("The episode's contrasting human definitions of closeness are preserved wit
  assert.match(jack.at(-1).reply,/not a promise about dinner/);
  assert.match(jill.at(-1).reply,/not to throwing away the rest of his ideas/);
  assert.equal(offlineProbe.filter(x=>/restaurant.*booked|confirmed reservation/i.test(x.event)).length,0);
+});
+
+test("An attractive but unsourced partner reaction is caught in the new episode",()=>{
+ const invented=reviewStoryReply("I explained I wanted porch time. He looked surprised.",{
+  role:"jill",contract:qualityContract,
+  verifiedEvent:"Jill explained that she wanted unhurried porch time."
+ });
+ assert.ok(invented.critical.includes("unsupported-partner-reaction"));
+ const sourced=reviewStoryReply("I explained I wanted porch time. He looked surprised.",{
+  role:"jill",contract:qualityContract,
+  verifiedEvent:"Jill explained that she wanted unhurried porch time. Jack looked surprised."
+ });
+ assert.equal(sourced.ok,true);
 });
