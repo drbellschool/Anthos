@@ -68,6 +68,11 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  if(!["shared","individual"].includes(scenario.mode))error("Unsupported episode mode.");
  if(!scenario.episode_studio)error("Save this 4.0 episode before launching a pilot.",409);
  const draft=normalizeStudio(scenario.episode_studio,scenario);
+ // normalizeStudio intentionally returns only editorial fields, so its result
+ // has no id. Graph-based 4.3 validates against episode.id both at room
+ // creation and on every later turn. Pin the server-read canonical scenario ID
+ // into the room snapshot; never trust a browser-provided episode ID.
+ draft.id=scenario.id;
  draft.pilotMode=scenario.mode;
  const active=scenario.mode==="individual"?[draft.soloCoach]:ROLE;
  if(previousRoomId!==null){
