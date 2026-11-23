@@ -404,6 +404,19 @@ function renderWorld43(){
   openings.append(edit(role==="jack"?"Jack's opening":"Jill's opening",
    graph.roleOpenings?.[role],value=>{graph.roleOpenings[role]=value},3,800));
  character.append(openings);
+ const personas=fold("Character agency, personality & distinct needs");
+ for(const role of ["jack","jill"]){
+  const voice=graph.qualityContract?.characterVoices?.[role];if(!voice)continue;
+  const card=node("div","episode-v43-rule");
+  card.append(node("strong","",role==="jack"?"Jack · character contract":"Jill · character contract"));
+  for(const [key,label] of [
+   ["voice","Natural speaking voice & humor"],
+   ["coreNeed","Legitimate personal need"],
+   ["flaw","Flaw / difficult reaction"],
+   ["relationship","Independent relationship motivation"]
+  ])card.append(edit(label,voice[key],v=>{voice[key]=v},2,650));
+  personas.append(card);
+ }
  const tracked=fold("Tracked objects & unchangeable facts");
  for(const object of graph.qualityContract?.objects||[])
   tracked.append(node("p","episode-v43-world-line",object.id.replaceAll("-"," ")+": "+object.state));
