@@ -216,3 +216,13 @@ test("Serialized Episode Studio graph matches the 10-turn QA-approved source",()
  },{id:episode.id,title:episode.title,opening_scene:episode.premise,mode:"shared"});
  assert.equal(studio.scenarioGraph.rules.length,12);
 });
+
+test("Admin launch no longer blocks approved second-episode 4.3 SMS on microwave-only title",()=>{
+ const frontend=readFileSync(new URL("../admin/episode-studio.js",import.meta.url),"utf8");
+ assert.match(frontend,/approvedScenarioGraph=pilotVersion==="4\.3\.0"/);
+ assert.match(frontend,/current\.studio\.scenarioGraph\.episodeId===current\.id/);
+ assert.match(frontend,/pilotVersion==="4\.3\.0"&&!originalMicrowave&&!approvedScenarioGraph/);
+ assert.doesNotMatch(frontend,/4\.2\/4\.3 currently pilot The Four-Hundred-Dollar Surprise/);
+ assert.match(frontend,/pilotEpisode\(false,"4\.3\.0",true\)/);
+ assert.match(frontend,/episode-studio-sms-setup/);
+});
