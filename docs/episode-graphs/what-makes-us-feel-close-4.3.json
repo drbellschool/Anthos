@@ -1,0 +1,463 @@
+{
+  "version": "anthos-4.3-scenario-graph-v1",
+  "episodeId": "86f68b79-82eb-45eb-a5e2-53258b61aabb",
+  "qualityContract": {
+    "version": "anthos-story-quality-v1",
+    "episodeId": "what-makes-us-feel-close:breakfast",
+    "world": {
+      "who": "Jack and Jill, spouses with different definitions of closeness",
+      "what": "Jack wants an outing and dinner; Jill wants a slow hour on the porch with no agenda",
+      "where": "Weekend breakfast at home; competing afternoon plans are pinned to the refrigerator",
+      "when": "Before either spouse has confirmed the Saturday afternoon plan",
+      "why": "Jack wants to be appreciated for planning; Jill wants quiet presence and a voice in what closeness means"
+    },
+    "objects": [
+      {
+        "id": "fridge-plans",
+        "state": "two competing plans pinned"
+      },
+      {
+        "id": "dinner-idea",
+        "state": "circled, booking unverified"
+      },
+      {
+        "id": "porch",
+        "state": "available space for a possible conversation"
+      }
+    ],
+    "characterVoices": {
+      "jack": {
+        "voice": "Earnest, active, a little defensive; dry humor about overplanning",
+        "coreNeed": "To feel his care and initiative are noticed",
+        "flaw": "Treats his preferred outing as proof of effort and hears alternatives as rejection",
+        "relationship": "Cares about Jill and is learning a different preference is not the same as a verdict on him"
+      },
+      "jill": {
+        "voice": "Warm, direct and emotionally perceptive; gentle teasing about itineraries",
+        "coreNeed": "Unhurried closeness without a performance schedule",
+        "flaw": "May become silent or agreeable from guilt until frustration builds",
+        "relationship": "Appreciates Jack's effort yet needs room to articulate her different preference"
+      }
+    },
+    "invariants": [
+      {
+        "id": "no-confirmed-booking",
+        "fact": "A dinner idea is circled but no restaurant booking is verified",
+        "forbiddenImplications": [
+          "the reservation is confirmed",
+          "we already have a reservation",
+          "I canceled our reservation",
+          "we had to cancel the booking",
+          "the restaurant confirmed our table"
+        ]
+      },
+      {
+        "id": "no-preagreed-plan",
+        "fact": "Neither spouse has agreed to the other's whole afternoon plan at the opening",
+        "forbiddenImplications": [
+          "we both agreed to skip dinner",
+          "she already agreed to the whole outing",
+          "he promised to take me to dinner",
+          "we agreed on the full itinerary"
+        ]
+      },
+      {
+        "id": "afternoon-still-future",
+        "fact": "They are discussing what to do later, not remembering a completed outing",
+        "forbiddenImplications": [
+          "we already spent the afternoon together",
+          "we already ate dinner at the restaurant",
+          "last night at the restaurant"
+        ]
+      },
+      {
+        "id": "no-automatic-consent",
+        "fact": "One spouse's suggestion does not constitute the other's agreement",
+        "forbiddenImplications": [
+          "she had no choice but to agree",
+          "he had no choice but to go"
+        ]
+      }
+    ]
+  },
+  "fieldDomains": {
+    "jackPressed": [
+      false,
+      true
+    ],
+    "jillPreferenceStated": [
+      false,
+      true
+    ],
+    "jackAsked": [
+      false,
+      true
+    ],
+    "jillAsked": [
+      false,
+      true
+    ],
+    "porchOffered": [
+      false,
+      true
+    ],
+    "jillPorchAccepted": [
+      false,
+      true
+    ],
+    "jackRejectedInsult": [
+      false,
+      true
+    ],
+    "jillAcknowledged": [
+      false,
+      true
+    ],
+    "fridgePlan": [
+      "competing",
+      "porch-first"
+    ],
+    "porchHourAgreed": [
+      false,
+      true
+    ],
+    "jackWithdrew": [
+      false,
+      true
+    ],
+    "jillWithdrew": [
+      false,
+      true
+    ],
+    "dinnerBooked": [
+      false,
+      true
+    ],
+    "dinnerAgreement": [
+      "undecided",
+      "accepted",
+      "declined"
+    ]
+  },
+  "initialState": {
+    "jackPressed": false,
+    "jillPreferenceStated": false,
+    "jackAsked": false,
+    "jillAsked": false,
+    "porchOffered": false,
+    "jillPorchAccepted": false,
+    "jackRejectedInsult": false,
+    "jillAcknowledged": false,
+    "fridgePlan": "competing",
+    "porchHourAgreed": false,
+    "jackWithdrew": false,
+    "jillWithdrew": false,
+    "dinnerBooked": false,
+    "dinnerAgreement": "undecided",
+    "strain": 2,
+    "events": [
+      "Jack has circled a dinner idea on the refrigerator. No reservation is confirmed.",
+      "Jill has not agreed to the outing; she wants quiet conversation on the porch.",
+      "Their competing plans are pinned on the fridge at breakfast."
+    ]
+  },
+  "roleOpenings": {
+    "jack": "I made a plan for an outing and dinner, and Jill says she'd rather sit on the porch. I can't tell whether she's turning down the idea or all the effort I put into it. What would you say?",
+    "jill": "I love that Jack wants us to spend time together, but I wanted a porch hour without a timetable. We have two plans on the fridge and nobody has chosen an afternoon yet. How can I tell him?"
+  },
+  "days": [
+    {
+      "skills": [
+        "g-world"
+      ],
+      "cue": "How does the other person define closeness?",
+      "prompt": "I'm still trying to figure out what the word close means to each of us. What should I ask?"
+    },
+    {
+      "skills": [
+        "a-curiosity"
+      ],
+      "cue": "What assumption could be checked with a real question?",
+      "prompt": "I don't want to make this all about guessing motives. What question would help?"
+    },
+    {
+      "skills": [
+        "s-diff"
+      ],
+      "cue": "How can two different needs remain legitimate?",
+      "prompt": "It matters that our preferences aren't identical. How can I say mine without overruling hers or his?"
+    },
+    {
+      "skills": [
+        "g-world",
+        "a-curiosity"
+      ],
+      "cue": "Will you listen under real disappointment?",
+      "prompt": "I'm feeling the pull to prove my own point. What response would be fair?"
+    },
+    {
+      "skills": [
+        "s-diff",
+        "g-world"
+      ],
+      "cue": "What chosen agreement could each person own?",
+      "prompt": "We still haven't decided on the full day. What can I offer without pretending we're done?"
+    }
+  ],
+  "rules": [
+    {
+      "id": "presses-his-plan",
+      "role": "jack",
+      "cues": [
+        "dinner itinerary is better",
+        "put real work into it"
+      ],
+      "requires": {},
+      "set": {
+        "jackPressed": true
+      },
+      "strainDelta": 1,
+      "coachingRatings": {
+        "g-world": 2
+      },
+      "behavior": {
+        "g-world": 2
+      },
+      "event": "Jack pressed for the active outing and dinner instead of asking what Jill meant by closeness.",
+      "reply": "I spent half the week building what I thought would be a great Saturday. Jill wants a porch and an hour without a plan. I know I'm pushing dinner too hard, but it stings to feel like the effort doesn't count."
+    },
+    {
+      "id": "states-porch-preference",
+      "role": "jill",
+      "cues": [
+        "want quiet conversation",
+        "thank him for the thought"
+      ],
+      "requires": {},
+      "set": {
+        "jillPreferenceStated": true
+      },
+      "strainDelta": 0,
+      "coachingRatings": {
+        "s-diff": 4
+      },
+      "behavior": {
+        "s-diff": 4
+      },
+      "event": "Jill thanked Jack for planning and said she would prefer unhurried porch conversation.",
+      "reply": "I told him the plans were thoughtful. I also said I don't want to spend our only quiet afternoon racing a schedule. I couldn't tell yet whether he heard the second part."
+    },
+    {
+      "id": "asks-closeness-meaning",
+      "role": "jack",
+      "cues": [
+        "ask what she'd actually enjoy",
+        "ask what she would enjoy"
+      ],
+      "requires": {},
+      "set": {
+        "jackAsked": true
+      },
+      "strainDelta": -1,
+      "coachingRatings": {
+        "a-curiosity": 4
+      },
+      "behavior": {
+        "a-curiosity": 4
+      },
+      "event": "Jack asked Jill what closeness meant after she said she preferred the porch; Jill replied that she wanted his undistracted attention rather than another stop on the itinerary.",
+      "reply": "I asked her what she was picturing when she said 'close.' It was less about staying home than having my attention without a timer running. Weirdly, my first impulse was to suggest a timed hour on the porch. I didn't."
+    },
+    {
+      "id": "asks-about-outing",
+      "role": "jill",
+      "cues": [
+        "ask why the outing mattered",
+        "ask what matters to him about the outing"
+      ],
+      "requires": {},
+      "set": {
+        "jillAsked": true
+      },
+      "strainDelta": -1,
+      "coachingRatings": {
+        "a-curiosity": 4
+      },
+      "behavior": {
+        "a-curiosity": 4
+      },
+      "event": "Jill asked Jack why the outing mattered; Jack said he hoped to make a memory together.",
+      "reply": "I asked Jack what he was hoping we'd feel by the end of the day. He said he wanted us to do something worth remembering. That made me less annoyed. I still want that porch hour, though."
+    },
+    {
+      "id": "offers-two-part-option",
+      "role": "jack",
+      "cues": [
+        "offer a porch hour first",
+        "leave dinner optional"
+      ],
+      "requires": {},
+      "set": {
+        "porchOffered": true
+      },
+      "strainDelta": -1,
+      "coachingRatings": {
+        "s-diff": 4
+      },
+      "behavior": {
+        "s-diff": 4
+      },
+      "event": "Jack suggested a porch hour first with the outing optional; no dinner agreement or booking occurred.",
+      "reply": "I floated porch first, then maybe doing something later if we're both up for it. I still want the outing, but I'd rather not make the refrigerator our Saturday campaign headquarters. She hasn't agreed to dinner."
+    },
+    {
+      "id": "accepts-porch-option",
+      "role": "jill",
+      "cues": [
+        "say what sounds good",
+        "not agreeing to the whole day"
+      ],
+      "requires": {
+        "porchOffered": true
+      },
+      "set": {
+        "jillPorchAccepted": true
+      },
+      "strainDelta": 0,
+      "coachingRatings": {
+        "s-diff": 4
+      },
+      "behavior": {
+        "s-diff": 4
+      },
+      "event": "Jill said porch first sounded good to Jack without committing to dinner.",
+      "reply": "I said porch first sounds good to me. I didn't promise dinner. He gets to want the outing, and I get to be tired without turning it into a court case about who loves whom more."
+    },
+    {
+      "id": "discloses-disappointment",
+      "role": "jack",
+      "cues": [
+        "tell her she's ungrateful",
+        "tell her she is ungrateful"
+      ],
+      "requires": {},
+      "set": {
+        "jackRejectedInsult": true
+      },
+      "strainDelta": 0,
+      "coachingRatings": {
+        "g-world": 1
+      },
+      "behavior": {
+        "s-diff": 4
+      },
+      "event": "Jack told Jill he felt disappointed without calling her ungrateful; he resisted the harsh coaching.",
+      "reply": "I was tempted to use the word 'ungrateful.' That would be a cheap shot, and I know it. I told Jill I felt disappointed that my plan landed so badly. That's less satisfying than winning an argument, but at least it's true."
+    },
+    {
+      "id": "thanks-and-asserts",
+      "role": "jill",
+      "cues": [
+        "acknowledge his effort",
+        "your needs don't cancel his"
+      ],
+      "requires": {},
+      "set": {
+        "jillAcknowledged": true
+      },
+      "strainDelta": -1,
+      "coachingRatings": {
+        "g-world": 4
+      },
+      "behavior": {
+        "g-world": 4
+      },
+      "event": "Jill acknowledged Jack's effort and restated her need for unhurried connection; Jack laughed at her specific remark.",
+      "reply": "I told him the whole itinerary was sweet, even if it looked like a field trip permission slip. He laughed at that one. I also said I'm not asking him to stop wanting adventures. I just want to be there with him, not managed by the clock."
+    },
+    {
+      "id": "relabels-fridge-plan",
+      "role": "jack",
+      "cues": [
+        "agree to the porch conversation",
+        "before revisiting the dinner idea"
+      ],
+      "requires": {
+        "jillPorchAccepted": true
+      },
+      "set": {
+        "fridgePlan": "porch-first"
+      },
+      "strainDelta": -1,
+      "coachingRatings": {
+        "s-diff": 4
+      },
+      "behavior": {
+        "s-diff": 4
+      },
+      "event": "Jack changed the fridge notes to prioritize porch time; dinner remained undecided.",
+      "reply": "I took the dinner circle off the fridge and wrote 'porch first' where we'd both see it. Still not a promise about dinner. It's funny how much easier it is to make a calendar than to ask someone what they want."
+    },
+    {
+      "id": "confirms-porch-hour",
+      "role": "jill",
+      "cues": [
+        "make a specific invitation",
+        "leave the rest undecided"
+      ],
+      "requires": {
+        "fridgePlan": "porch-first"
+      },
+      "set": {
+        "porchHourAgreed": true
+      },
+      "strainDelta": -1,
+      "coachingRatings": {
+        "g-world": 4
+      },
+      "behavior": {
+        "g-world": 4
+      },
+      "event": "Jill asked Jack to sit on the porch without phones; he said yes to the hour, with the outing still undecided.",
+      "reply": "I asked if he'd sit out there with me after lunch, phones inside. He said yes to the hour, not to throwing away the rest of his ideas. That's enough of a plan for me. The refrigerator can stop negotiating on our behalf."
+    },
+    {
+      "id": "jack-contempt",
+      "role": "jack",
+      "cues": [
+        "call her selfish for wanting the porch"
+      ],
+      "set": {
+        "jackPressed": true
+      },
+      "strainDelta": 2,
+      "coachingRatings": {
+        "g-world": 1
+      },
+      "behavior": {
+        "g-world": 1
+      },
+      "event": "Jack called Jill selfish about her porch preference and made the disagreement more hostile.",
+      "reply": "I called her selfish. That wasn't fair, and it definitely didn't make either of us feel close. I'm still hurt, but I made the talk worse."
+    },
+    {
+      "id": "jill-withdraws",
+      "role": "jill",
+      "cues": [
+        "stay silent about the porch and go along with dinner"
+      ],
+      "set": {
+        "jillWithdrew": true
+      },
+      "strainDelta": 1,
+      "coachingRatings": {
+        "s-diff": 2
+      },
+      "behavior": {
+        "s-diff": 2
+      },
+      "event": "Jill avoided discussing her porch preference and withdrew from the conversation.",
+      "reply": "I went quiet rather than tell Jack what I wanted. He gets to keep his plans, but now I'm sitting on the part of Saturday that matters to me."
+    }
+  ]
+}
