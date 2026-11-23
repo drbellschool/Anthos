@@ -108,6 +108,8 @@ export async function registerPilotSms({origin,roomId,husbandCustomerId,invitati
   {id:"eq."+roomId,select:"id,stage,expires_at,episode,updated_at",limit:"1"})||[];
  const room=records[0];
  const open43=isOpen43(room)&&room.episode?.authored42?.timedPilot===true&&!room.episode.authored42.fastForward;
+ if(open43&&!process.env.OPENAI_API_KEY?.trim())
+  throw Object.assign(new Error("Real OpenAI provider unavailable; SMS 4.3 pilot cannot start with a scripted fallback."),{status:503});
  if(!room||["retired","complete"].includes(room.stage)||Date.parse(room.expires_at)<=Date.now()||
     (!open43&&room.episode?.authored41?.version!=="4.1.0")||room.episode?.pilotMode!=="shared")
   throw Object.assign(new Error("Select an active two-person 4.1 or timed 4.3 SMS pilot."),{status:409});
@@ -385,7 +387,7 @@ async function handleReply(row,txt,eventId){
   if(current.finished){await sendSms(row.phone_e164,"This Deep Dive is complete.");return;}
   if(!current.canText){await sendSms(row.phone_e164,"The story is paused or changing days. Please try again shortly.");return;}
   const requestKey=stableUuid(eventId+"-open43");
-  const result=await textCharacter(token,txt,requestKey);
+  const result=await textCharacter(token,txt,requestKey,{requireLiveProvider:true});
   if(result.safetyNotice){await sendSms(row.phone_e164,result.safetyNotice);return;}
   if(result.paused){await sendSms(row.phone_e164,"Your pilot is paused. Reply RESUME to continue or STOP to opt out.");return;}
   const reaction=(result.messages||[]).find(x=>x.kind==="reply"&&String(x.id).includes(requestKey))?.body||latestCharacterReply(result);
