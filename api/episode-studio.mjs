@@ -86,6 +86,9 @@ export function preserveLockedText(generated,source){
  result.locks=normalizeLocks(source.locks);
  result.toneApproach=source.toneApproach;result.toneIntensity=source.toneIntensity;
  result.developmentalFlow=source.developmentalFlow;
+ // AI-assisted editorial drafting must NEVER replace or discard the saved
+ // approved 4.3 story graph. Only deliberate graph edits may change canon.
+ if(source.scenarioGraph)result.scenarioGraph=structuredClone(source.scenarioGraph);
  return result;
 }
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
