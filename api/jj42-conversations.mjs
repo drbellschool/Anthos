@@ -660,7 +660,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   try{
    const r=await fetchImpl("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
-    body:JSON.stringify({model,store:false,max_output_tokens:330,
+    body:JSON.stringify({model,store:false,max_output_tokens:440,
      instructions:instructions+(attempt===2?
       " PRIOR RESPONSE REJECTED: "+lastIssue+". Repair those problems; do not reword the same fabricated fact.":""),
      input:JSON.stringify({...context,
@@ -677,9 +677,18 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
     priorReplies,coachReference:candidate.coachReference,replyReference:candidate.replyReference,
     humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence
    });
-   if(verdict.ok)return {reply:candidate.message.trim(),source:"model-validated",
-    reason:null,attempts:attempt,coachReference:candidate.coachReference,
-    humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence};
+   if(verdict.ok){
+    // Real Responses API IDs are retained for protected quality-audit tracing.
+    // A test fixture can imitate an ID, so the reviewer must still check its
+    // associated protected execution evidence before certifying a release.
+    if(requireModelVoice&&(!/^resp_[A-Za-z0-9_-]{6,}$/.test(data.id||"")||!data.model)){
+     lastIssue="missing-provider-response-receipt";continue;
+    }
+    return {reply:candidate.message.trim(),source:"model-validated",
+     reason:null,attempts:attempt,coachReference:candidate.coachReference,
+     humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence,
+     providerResponseId:data.id||null,providerModel:data.model||model};
+   }
    lastIssue=verdict.issues.join(", ");
   }catch(e){lastIssue="model-generation-error";}
  }
@@ -811,6 +820,8 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
   replyValidationIssue:rendered.reason,
   replyHumorResponse:rendered.humorResponse||"not_applicable",
   replyHumorEvidence:rendered.humorEvidence||"",
+  replyProviderResponseId:rendered.providerResponseId||null,
+  replyProviderModel:rendered.providerModel||null,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
   eventCode:r.event?candidateEventCode:null,duplicateCoaching:priorSameCoach,
   contextOnlyReport:contextOnly,
