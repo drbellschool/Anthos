@@ -191,3 +191,18 @@ test("Mandatory live QA refuses two invalid or unavailable model drafts",async()
   {requireModelVoice:true,apiKey:"mock-existing",fetchImpl:fakeAI([])}),
   /ANTHOS LIVE QA FAILED/);
 });
+
+test("Live generator repairs a model's imprecise self-quotation without rewriting genuine character speech",async()=>{
+ const {episode,history}=context();
+ const message="I finally owned those missed Saturdays. I told Jill I should have handled it sooner. That's uncomfortable to admit, but she deserved to hear it.";
+ const t=await prepareOpenTurn43(episode,"jack",0,history,
+  "Own the delays and apologize.","00000000-0000-4000-8000-900000000190",{
+   apiKey:"mock-existing",fetchImpl:fakeAI([{
+    message,coachReference:"apologize",replyReference:"I finally owned the delays" 
+   }])
+  });
+ assert.equal(t.replySource,"model-validated");
+ assert.equal(t.reply,message);
+ assert.equal(t.replyModelAttempts,1);
+ assert.equal(t.eventCode,"jack:own");
+});
