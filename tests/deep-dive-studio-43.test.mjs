@@ -83,3 +83,24 @@ test("Original approved 4.3 world survives old AI editor generation and remains 
   ...scenario,id:"some-other-episode"
  }),/graph ID mismatch/);
 });
+
+test("Previously saved 4.3 episode launches after Save completes, and draft state cannot silently disable it",()=>{
+ assert.match(ui,/function setBusy\(on\)\{[\s\S]*?updatePilotControls43\(\);\n\}/);
+ assert.match(ui,/function canLaunch43\(\)\{\n if\(!current\|\|current\.mode!=="shared"\)/);
+ assert.doesNotMatch(ui,/if\(!current\|\|current\.dirty\|\|!current\.hasSaved\|\|current\.mode!=="shared"\)/);
+ assert.match(ui,/if\(current\.dirty\|\|!current\.hasSaved\)\{\n  note\("Saving your 4\.3 episode before launching/);
+ assert.match(ui,/if\(!await save\(\)\)return;/);
+ assert.match(ui,/renderReadiness\(\);\n  return true;\n \}catch\(error\)/);
+ assert.doesNotMatch(ui,/\bvoid autoDraftMissingDetails\(\);/);
+ const verified=normalizeStudio({
+  title:episode.title,premise:episode.premise,learningObjective:episode.learningObjective,
+  primarySkill:episode.primarySkill,supportingSkills:episode.supportingSkills,
+  scenarioGraph
+ },{id:episode.id,title:episode.title,opening_scene:episode.premise,mode:"shared"});
+ const skills=[verified.primarySkill,...verified.supportingSkills].filter(Boolean);
+ assert.equal(verified.scenarioGraph.version,"anthos-4.3-scenario-graph-v1");
+ assert.equal(verified.scenarioGraph.episodeId,episode.id);
+ assert.equal(verified.scenarioGraph.days.length,5);
+ assert.equal(verified.scenarioGraph.rules.length,12);
+ assert.ok(skills.every(skill=>verified.scenarioGraph.days.some(day=>day.skills.includes(skill))));
+});
