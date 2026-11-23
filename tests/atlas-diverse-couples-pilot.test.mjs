@@ -1,6 +1,6 @@
 import test from "node:test";
 import {readFileSync,writeFileSync} from "node:fs";
-import {verifyLivePilot43} from "../lib/atlas-live-qa-contract.mjs";
+import {verifyLivePilot43,assertLivePilotKey43} from "../lib/atlas-live-qa-contract.mjs";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {buildConversation43,renderConversation42,prepareOpenTurn43,parseLedger42,sophiaConversation42} from "../api/jj42-conversations.mjs";
@@ -561,8 +561,7 @@ async function simulate(config){
 }
 test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns",async()=>{
  // Mandatory live QA is not allowed to silently become a fallback simulation.
- if(LIVE_QA&&!process.env.OPENAI_API_KEY?.trim())
-  throw Error("ANTHOS LIVE QA BLOCKED: existing OpenAI key unavailable in protected test environment.");
+ if(LIVE_QA)assertLivePilotKey43(process.env.OPENAI_API_KEY);
  const reports=await Promise.all(CASES.map(c=>simulate(c)));
  const incomplete=reports.filter(x=>!x.completed);
  const critical=reports.filter(x=>x.errors.length);
