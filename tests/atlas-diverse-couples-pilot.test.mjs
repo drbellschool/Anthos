@@ -1,4 +1,6 @@
 import test from "node:test";
+import {readFileSync,writeFileSync} from "node:fs";
+import {verifyLivePilot43} from "../lib/atlas-live-qa-contract.mjs";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {buildConversation43,renderConversation42,prepareOpenTurn43,parseLedger42,sophiaConversation42} from "../api/jj42-conversations.mjs";
@@ -402,6 +404,7 @@ const CASES=[
   }
 ];
 
+const LIVE_QA=process.env.ANTHOS_QA_LIVE==="1";
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday"];
 const focus=["s-decisions","g-start","g-influence"];
 const codes=[...new Set(SKILLS.map(s=>s.id).concat(focus))];
@@ -449,7 +452,10 @@ async function simulate(config){
    if(!advice)throw Error("Missing "+stage);
    const key=refKey(config,day,role);
    const turn=await prepareOpenTurn43(episode,role,day,history,advice,key,
-    {atlasContext:context(scores,memories,role)});
+    {atlasContext:context(scores,memories,role),
+     requireModelVoice:LIVE_QA,
+     apiKey:LIVE_QA?process.env.OPENAI_API_KEY:undefined,
+     model:process.env.ANTHOS_JJ4_MODEL||process.env.OPENAI_MODEL||"gpt-4.1-mini"});
    episode.authored43.turns.push(turn);
    const eventIdentity=role+"|"+String(turn.event||"").toLowerCase().replace(/[^a-z0-9]/g,"");
    const replyIdentity=role+"|"+String(turn.reply||"").toLowerCase().replace(/[^a-z0-9]/g,"");
@@ -496,7 +502,12 @@ async function simulate(config){
      quote:obs.quote,sourceRef:ref});
    }
    if(turn.event)memories.push({id:config.id+"-"+day+"-"+role,turn:key,event:turn.event});
-   texts.push({role,advice,prompt:opened.recipient===role?
+   texts.push({role,advice,replySource:turn.replySource,
+    replyModelAttempts:turn.replyModelAttempts,
+    replyValidationIssue:turn.replyValidationIssue,
+    replyHumorResponse:turn.replyHumorResponse,
+    replyHumorEvidence:turn.replyHumorEvidence,
+    prompt:opened.recipient===role?
     role==="jack"?opened.jackPrompt:opened.jillPrompt:"",
     proposed:turn.assessment?.recommended||null,enacted:turn.assessment?.enacted||null,
     eventCode:turn.eventCode||null,event:turn.event||"",reply:turn.reply,
@@ -547,8 +558,10 @@ async function simulate(config){
  }
 }
 test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns",async()=>{
- const reports=[];
- for(const c of CASES)reports.push(await simulate(c));
+ // Mandatory live QA is not allowed to silently become a fallback simulation.
+ if(LIVE_QA&&!process.env.OPENAI_API_KEY?.trim())
+  throw Error("ANTHOS LIVE QA BLOCKED: existing OpenAI key unavailable in protected test environment.");
+ const reports=await Promise.all(CASES.map(c=>simulate(c)));
  const incomplete=reports.filter(x=>!x.completed);
  const critical=reports.filter(x=>x.errors.length);
  const rows=reports.map(x=>({id:x.id,type:x.name,completed:x.completed,
@@ -572,9 +585,17 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
   qualityPass:uniqueReplies/allReplies.length>=0.60&&humorAddressed,
   note:"Canned offline fallback lines may satisfy state invariants while failing humanlike voices. These measures are a minimum smoke gate, not an 8/10 model-content certification."
  };
+ const liveReviews=LIVE_QA&&process.env.ANTHOS_QA_HUMAN_REVIEWS_PATH?
+  JSON.parse(readFileSync(process.env.ANTHOS_QA_HUMAN_REVIEWS_PATH,"utf8")):[];
+ const liveVerification=LIVE_QA?verifyLivePilot43({couples:reports,reviews:liveReviews}):null;
+ if(LIVE_QA&&process.env.ANTHOS_QA_OUTPUT_PATH)
+  writeFileSync(process.env.ANTHOS_QA_OUTPUT_PATH,
+   JSON.stringify({runKind:"real-model-required",couples:reports,reviews:liveReviews,
+    verification:liveVerification},null,2));
  console.log("ANTHOS_DIVERSE_COUPLES_BEGIN");
  console.log(JSON.stringify({method:"Existing offline Anthos 4.3 open-conversation engine, no new API, no database writes; fixed saved microwave opening.",count:reports.length,
-  turnsExpected:CASES.length*10,summary:rows,qualityAudit,couples:reports},null,2));
+  turnsExpected:CASES.length*10,runKind:LIVE_QA?"real-model-required":"offline-deterministic",
+  liveVerification,summary:rows,qualityAudit,couples:reports},null,2));
  console.log("ANTHOS_DIVERSE_COUPLES_END");
  assert.equal(CASES.length,10);
  assert.deepEqual(incomplete.map(x=>({type:x.name,errors:x.errors})),[],
@@ -585,6 +606,11 @@ test("DIVERSE PILOT: 10 independent couple dynamics and 100 total coaching turns
   "At least one incidental consequence should be evidenced.");
  assert.ok(new Set(reports.map(r=>r.final.strain)).size>=2,
   "Different couple dynamics should not all have the same relationship pressure.");
- assert.equal(qualityAudit.qualityPass,true,
-  "DIVERSE COUPLE QUALITY GATE FAILED: "+JSON.stringify(qualityAudit));
+ if(LIVE_QA){
+  assert.equal(liveVerification.passed,true,
+   "LIVE AI + HUMAN 8/10 QUALITY GATE FAILED: "+JSON.stringify(liveVerification));
+ }else{
+  assert.equal(qualityAudit.qualityPass,true,
+   "OFFLINE FALLBACK QUALITY GATE FAILED (does not certify AI): "+JSON.stringify(qualityAudit));
+ }
 });
