@@ -656,6 +656,8 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Write the ENTIRE next private SMS text in the FIRST PERSON as "+(role==="jack"?"Jack":"Jill")+" to their trusted friend, not a reaction prefix and not canned dialogue.",
   "Stay inside the before/after world facts. The only NEW enacted event permitted is verifiedEventThisTurn. If null, you may reflect, resist, wonder, plan in thought, or joke to your friend, but not claim an action happened.",
   "This character is a specific, flawed person with agency, not a marriage instructor. Respond in a way that unmistakably engages this particular coach message.",
+  "The recipient is your trusted friend, never 'the coach'. Never use AI, authoring, scoring or assessment language.",
+  "Established facts remain true in jokes, metaphors and casual implications. Do not imply a completed purchase still needs to happen.",
   "CRITICAL: newSpouseConversationAllowed="+spouseConversationCommitted+
    ". When FALSE, the character has NOT talked or texted their spouse as a result of this advice. Never write I told him/her, I asked my spouse, he/she responded, or anything implying an offscreen conversation. Speak only to YOUR private coach about what you feel, think, intend, resist or might say in the future.",
   "If the coach suggests harmless humor, attempt a situational joke in your TEXT TO THE FRIEND, or decline the joke in your own voice and explain why. Do NOT imply you told the joke to Jill or Jack unless the verified event says so.",
@@ -706,7 +708,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
      responseText.slice(0,Math.min(85,responseText.length)):"";
    const verdict=validateOpenReply43(candidate.message,{
     role,coachText:text,before,after:turn.state,event:turn.event,
-    priorReplies,coachReference,replyReference,
+    priorReplies,coachReference,replyReference,storyQualityContract:approved,
     humorResponse:candidate.humorResponse,humorEvidence
    });
    if(verdict.ok){
@@ -721,6 +723,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
      anchorCorrected:coachReference!==rawCoachQuote||replyReference!==quoted||
       humorEvidence!==rawHumor,
      humorResponse:candidate.humorResponse,humorEvidence,
+     qualityAdvisories:verdict.advisory||[],
      providerResponseId:data.id||null,providerModel:data.model||model};
    }
    lastIssue=verdict.issues.join(", ");
@@ -819,8 +822,14 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
  if(!r.event&&openTurns43(episode).some(t=>t.role===role&&t.reply===r.reply))
   r.reply=followUp43(role,day,before,"repeated");
  if(report)r.reply=(role==="jack"?"Wait, our spouses are talking about the microwave now? ":"Oh, so this microwave has become a group discussion? ")+r.reply;
+ const isApprovedMicrowave=episode?.title?.trim().toLowerCase()==="the four-hundred-dollar surprise"&&
+  episode?.authored43?.timeline==="post-purchase";
+ const storyQualityContract=options.storyQualityContract||
+  (isApprovedMicrowave?MICROWAVE_STORY_QUALITY:null);
+ assertStoryQualityContract(storyQualityContract);
  const [rendered,incidentalObservations]=await Promise.all([
-  phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),options),
+  phraseOpenReply43(role,text,before,r,openTurns43(episode).filter(t=>t.role===role),
+   {...options,storyQualityContract}),
   classifyIncidental43(contextOnly?"":text,r.event,{
    ...options,selected:episode.authored43?.selectedSkills||SKILL_IDS43
   })
@@ -855,6 +864,9 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
   replyHumorResponse:rendered.humorResponse||"not_applicable",
   replyHumorEvidence:rendered.humorEvidence||"",
   replyAnchorCorrected:!!rendered.anchorCorrected,
+  replyQualityAdvisories:rendered.qualityAdvisories||[],
+  storyQualityContractVersion:storyQualityContract.version,
+  storyQualityEpisodeId:storyQualityContract.episodeId,
   replyProviderResponseId:rendered.providerResponseId||null,
   replyProviderModel:rendered.providerModel||null,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
