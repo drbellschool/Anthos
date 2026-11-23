@@ -5,6 +5,8 @@ import {createHash,randomBytes,createCipheriv,createDecipheriv,createPublicKey,v
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
 import {status,join,advance,choose,coach,sophia,pause,resume,textCharacter} from "./jj4-core.mjs";
 import {isOpen43} from "./jj42-conversations.mjs";
+import {parseHumanSms43,addHumanSmsReview43,reviewSmsHelp43,
+ humanSmsReviewStatus43} from "./jj43-sms-human-review.mjs";
 export const PILOT_DAY_MS=10*60*1000;
 export const timedSchedule43=(start=Date.now())=>Array.from({length:6},(_,i)=>new Date(start+i*PILOT_DAY_MS).toISOString());
 
@@ -230,7 +232,7 @@ async function deliverOpen43(row,st){
   await sendSms(row.phone_e164,st.character+" (PRIVATE): "+prompt);
  if(st.finished&&st.hasSophia&&!row.last_sent_sophia&&await claimSms(row,"last_sent_sophia",true)){
   const end=(st.scenes||[]).find(x=>x.kind==="sophia")?.body||"";
-  await sendLongSms(row.phone_e164,end+"\nAnthos 4.3 pilot complete. Reply STOP to opt out.");
+  await sendLongSms(row.phone_e164,end+"\nAnthos 4.3 pilot complete. Optional human review: text QA LIST to see ten quality categories. Reply STOP to opt out.");
  }
 }
 async function deliverShared(row,st){
@@ -363,8 +365,42 @@ async function resendCurrentSmsContext(row,st){
  for(const message of await smsRecoveryMessages(st))
   await sendSms(row.phone_e164,message);
 }
+async function saveSmsHumanRating43(row,parsed,eventId){
+ for(let attempt=0;attempt<3;attempt++){
+  const rooms=await sql("anthos_jj4_rooms",{
+   id:"eq."+row.room_id,select:"id,episode,updated_at",limit:"1"})||[];
+  const room=rooms[0];
+  if(!room||!isOpen43(room))throw Error("This is not a 4.3 SMS review room.");
+  const next=addHumanSmsReview43(room.episode,row.role,parsed,eventId);
+  if(next.duplicate)return "That SMS rating was already recorded.";
+  const changed=new Date(Math.max(Date.now(),Date.parse(room.updated_at||"")||0)+1).toISOString();
+  const updated=await sql("anthos_jj4_rooms",{
+   id:"eq."+room.id,updated_at:"eq."+room.updated_at},
+   {episode:next.episode,updated_at:changed},"PATCH");
+  if(updated?.length)return "Review saved: "+parsed.dimensionNumber+"/10, score "+parsed.score+
+   "/10. Optional QA STATUS for progress. This does not certify the release.";
+ }
+ throw Error("The review record changed. Retry your QA text.");
+}
 async function handleReply(row,txt,eventId){
  const token=unprotectSmsToken(row.encrypted_token),st=await status(token);
+ const qa=st.openConversation?parseHumanSms43(txt):null;
+ if(qa){
+  if(qa.kind==="list"||qa.kind==="invalid"){
+   await sendLongSms(row.phone_e164,reviewSmsHelp43());return;
+  }
+  if(qa.kind==="status"){
+   const rooms=await sql("anthos_jj4_rooms",{id:"eq."+row.room_id,
+    select:"episode",limit:"1"})||[];
+   await sendSms(row.phone_e164,humanSmsReviewStatus43(rooms[0]?.episode,row.role));return;
+  }
+  try{await sendSms(row.phone_e164,await saveSmsHumanRating43(row,qa,eventId));}
+  catch(e){await sendSms(row.phone_e164,
+   e.message==="No real character message to review yet."?
+   "There is no verified OpenAI character response to score yet.":
+   "This review could not be saved. No rating was counted; please try again.");}
+  return;
+ }
  if(st.paused){
   if(/^RESUME$/i.test(txt.trim())){await resume(token);await sendSms(row.phone_e164,"Resumed Anthos.");await progressRoom(row.room_id)}
   else await sendSms(row.phone_e164,"Your pilot is paused. Reply RESUME to continue or STOP to opt out.");
