@@ -124,6 +124,34 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
   note:weekly?"Private weekly conversation rehearsal. No SMS is sent; QA fast-forward can skip Monday–Saturday waits.":
   "Private browser pilot. No actual text messages will be sent."};
 }
+// Authenticated administrator-only read model for the 4.3 Studio review.
+// Neither invite tokens nor customer phone numbers are part of this response.
+export async function adminPilotReview43(roomId){
+ if(!UUID.test(roomId||""))error("Select a real 4.3 pilot room.",400);
+ const room=(await db(R,{id:"eq."+roomId,select:"id,title,scenario_id,stage,phase_index,episode,updated_at",limit:"1"}))?.[0];
+ if(!room||!isOpen43(room))error("The 4.3 pilot room does not exist.",404);
+ const turns=Array.isArray(room.episode?.authored43?.turns)?room.episode.authored43.turns:[];
+ const reviews=room.episode.authored43.smsHumanReviews||{};
+ const cleanRating=role=>Object.entries(reviews[role]||{}).map(([dimension,x])=>({
+  dimension,score:x.score,comment:x.comment||"",
+  sourceTurnKey:x.sourceTurnKey,sourceQuote:x.sourceQuote,
+  provenance:x.provenance,reviewedAt:x.reviewedAt
+ }));
+ return {ok:true,roomId,title:room.title,stage:room.stage,day:room.phase_index,
+  scenarioId:room.scenario_id,engine:"4.3.0",timedPilot:!!room.episode?.authored42?.timedPilot,
+  focus:room.episode.authored43.selectedSkills||[],
+  counts:{coachingTurns:turns.length,validatedOpenAI:turns.filter(t=>t.replySource==="model-validated").length,
+   fallbacks:turns.filter(t=>t.replySource!=="model-validated").length,
+   participantRatings:cleanRating("jack").length+cleanRating("jill").length},
+  turns:turns.slice(-120).map(t=>({
+   day:t.day,role:t.role,advice:String(t.body||"").slice(0,900),
+   reply:String(t.reply||"").slice(0,1300),event:String(t.event||"").slice(0,1100),
+   source:t.replySource,model:t.replyProviderModel||null,
+   responseId:t.replyProviderResponseId||null,createdAt:t.at
+  })),
+  participantReviews:{jack:cleanRating("jack"),jill:cleanRating("jill")},
+  certification:"not-independent-human-reviewed"};
+}
 async function messages(room,role){
  const [scenes,mine,people]=await Promise.all([
   db(M,{room_id:"eq."+room.id,role:"eq.shared",order:"id.asc",limit:"40",select:"id,kind,body,phase_index,created_at"}),
