@@ -1,0 +1,69 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {LIVE43_DIMENSIONS,verifyLivePilot43} from "../lib/atlas-live-qa-contract.mjs";
+
+function fixture(n=10){
+ const couples=Array.from({length:n},(_,i)=>({
+  id:"c"+i,completed:true,errors:[],focusCoverage:{complete:true},
+  days:Array.from({length:5},(_,d)=>({turns:["jack","jill"].map(role=>({
+   role,advice:"Coach "+role+" to observe the microwaved noodles tonight, day "+d,
+   reply:"I noticed our broken microwave was inconvenient again, so I asked a practical question about the decision "+i+"-"+d+"-"+role+".",
+   replySource:"model-validated",replyModelAttempts:1,
+   replyValidationIssue:null,replyHumorResponse:"not_applicable",replyHumorEvidence:""
+  }))}))
+ }));
+ const reviews=couples.map(c=>({coupleId:c.id,provenance:"human-reviewed-live-transcript",
+  reviewer:"Quality Lab reviewer",reviewedAt:"2026-11-22T18:00:00Z",
+  scores:Object.fromEntries(LIVE43_DIMENSIONS.map(d=>[d,8.2])),
+  evidence:Object.fromEntries(["coachingResponsiveness","characterVoice",
+   "storyContinuity","humorAndPlayfulness"].map(d=>[d,c.days[0].turns[0].reply.slice(0,35)])),
+  criticalFailure:false
+ }));
+ return {couples,reviews};
+}
+test("Real-model ten-couple quality contract accepts complete grounded human review",()=>{
+ const r=verifyLivePilot43(fixture());
+ assert.equal(r.passed,true,JSON.stringify(r.problems));
+ assert.equal(r.metrics.liveValidatedTurns,100);
+ assert.equal(r.metrics.humanReviews,10);
+});
+test("Mock/offline dialogue and absent real-model calls fail, even with perfect reviews",()=>{
+ const x=fixture();
+ x.couples[0].days[0].turns[0].replySource="offline-template";
+ const r=verifyLivePilot43(x);
+ assert.equal(r.passed,false);
+ assert.ok(r.problems.includes("c0:day-0-jack-not-validated-live-model"));
+});
+test("Human ratings require ten dimensions, 8 mean, 7 floor, direct transcript citations and zero critical failures",()=>{
+ const x=fixture();
+ x.reviews[0].scores.humorAndPlayfulness=6.5;
+ x.reviews[1].scores.characterAgency=0;
+ x.reviews[2].criticalFailure=true;
+ x.reviews[3].evidence.storyContinuity="fictional quotation nowhere in the transcript";
+ x.reviews[4].scores.dialogueNaturalness=undefined;
+ const r=verifyLivePilot43(x);
+ assert.equal(r.passed,false);
+ assert.ok(r.problems.some(p=>p.includes("dimension-below-7")));
+ assert.ok(r.problems.some(p=>p.includes("mean-below-8")));
+ assert.ok(r.problems.includes("c2:critical-quality-failure"));
+ assert.ok(r.problems.includes("c3:missing-cited-quality-evidence-storyContinuity"));
+ assert.ok(r.problems.includes("c4:missing-rubric-dimensions"));
+});
+test("Ten complete distinct couples and one Jack and Jill turn per day are mandatory",()=>{
+ const x=fixture();
+ x.couples[0].days[2].turns.pop();
+ x.couples[1].completed=false;
+ x.couples[2].errors.push("invented repair");
+ x.couples[3].focusCoverage.complete=false;
+ const r=verifyLivePilot43(x);
+ assert.equal(r.passed,false);
+ assert.ok(r.problems.includes("c0:day-2-invalid-coaching-pair"));
+ assert.ok(r.problems.includes("c1:incomplete-five-day-story"));
+ assert.ok(r.problems.includes("c2:canonical-violations"));
+ assert.ok(r.problems.includes("c3:missing-focus-opportunities"));
+});
+test("Missing report is not a green quality test",()=>{
+ const r=verifyLivePilot43({});
+ assert.equal(r.passed,false);
+ assert.ok(r.problems.includes("expected-10-completed-couples"));
+});
