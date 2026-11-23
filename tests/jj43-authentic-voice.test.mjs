@@ -13,9 +13,11 @@ const context=()=>{
  const history=[{role:"shared",kind:"scene",phase_index:0,body:opened.scene}];
  return {episode,history};
 };
-function aiReply(message,coachReference,replyReference){
+function aiReply(message,coachReference,replyReference,humorResponse="not_applicable",humorEvidence=""){
  return {ok:true,json:async()=>({
-  output:[{content:[{type:"output_text",text:JSON.stringify({message,coachReference,replyReference})}]}]
+  output:[{content:[{type:"output_text",text:JSON.stringify({
+   message,coachReference,replyReference,humorResponse,humorEvidence
+  })}]}]
  })};
 }
 const fakeAI=(script,requests=[])=>async(url,options)=>{
@@ -23,7 +25,8 @@ const fakeAI=(script,requests=[])=>async(url,options)=>{
  requests.push(req);
  if(req.text?.format?.name==="jj43_full_character_text"){
   const next=script.shift();
-  if(next)return aiReply(next.message,next.coachReference,next.replyReference);
+  if(next)return aiReply(next.message,next.coachReference,next.replyReference,
+   next.humorResponse||"not_applicable",next.humorEvidence||"");
  }
  // Existing coaching/intent/incidental classifiers fall back to known rules.
  return {ok:false,status:503};
@@ -102,7 +105,7 @@ test("Harmless humor is addressed in a full message without an invented talk wit
   "00000000-0000-4000-8000-900000000102",{
    apiKey:"mock-existing",fetchImpl:fakeAI([{
     message:joke,coachReference:"national microwave repair holiday",
-    replyReference:"ceremonial apology"
+    replyReference:"ceremonial apology",humorResponse:"attempted",humorEvidence:"ceremonial apology to a very patient calendar"
    }])
   });
  assert.equal(turn.reply,joke);
@@ -160,4 +163,31 @@ test("A reply must link its stated engagement to real coach text",async()=>{
   });
  assert.equal(turn.replySource,"verified-fallback");
  assert.match(turn.replyValidationIssue,/unproven-coach-reference/);
+});
+
+test("Natural dry humor need not contain the words joke, holiday or funny",()=>{
+ const line="I'd need a calendar with a warning label just to keep track of those three Saturdays. Not exactly my proudest invention.";
+ const r=validateOpenReply43(line,{role:"jack",
+  coachText:"Make a joke about the microwave breaking every weekend.",
+  after:{purchase:"bought_unannounced",box:"sealed",repair:"broken",repairCalled:false},
+  humorResponse:"attempted",humorEvidence:"calendar with a warning label"});
+ assert.equal(r.ok,true,JSON.stringify(r.issues));
+ const bad=validateOpenReply43("I'm still thinking about our budget and haven't figured it out.",{
+  role:"jack",coachText:"Make a joke about the microwave.",
+  after:{purchase:"bought_unannounced",box:"sealed",repair:"broken",repairCalled:false},
+  humorResponse:"attempted",humorEvidence:"");
+ assert.ok(bad.issues.includes("unverified-humor-evidence"));
+});
+test("Mandatory live QA refuses to silently switch to fallback without a key",async()=>{
+ const {episode,history}=context();
+ await assert.rejects(prepareOpenTurn43(episode,"jack",0,history,
+  "Own those three missed Saturdays.","00000000-0000-4000-8000-900000000106",
+  {requireModelVoice:true}),/ANTHOS LIVE QA BLOCKED/);
+});
+test("Mandatory live QA refuses two invalid or unavailable model drafts",async()=>{
+ const {episode,history}=context();
+ await assert.rejects(prepareOpenTurn43(episode,"jack",0,history,
+  "Own those three missed Saturdays.","00000000-0000-4000-8000-900000000107",
+  {requireModelVoice:true,apiKey:"mock-existing",fetchImpl:fakeAI([])}),
+  /ANTHOS LIVE QA FAILED/);
 });
