@@ -146,7 +146,9 @@ export function buildConversation43(draft,options={}){
   const selected=[draft.primarySkill,...draft.supportingSkills];
   return {...draft,authored42:{
    version:JJ42_VERSION,mode:"scenario-conversations",
-   fastForward:options.fastForward===true,schedule:nextWeekSchedule(options.now),
+   fastForward:options.timedPilot===true?false:options.fastForward===true,
+   schedule:options.timedPilot===true?[]:nextWeekSchedule(options.now),
+   ...(options.timedPilot===true?{timedPilot:true}:{}),
    narrator:false,sourcePremise:draft.premise,
    weekFraming:Object.values(graph.qualityContract.world).join(" "),
    primarySkill:draft.primarySkill,supportingSkills:[...draft.supportingSkills],
