@@ -2,7 +2,7 @@
   "contractVersion": "anthos-4.3-release-gate-v1",
   "releaseAllowed": false,
   "lastReviewed": "2026-11-23",
-  "note": "Feature PR #135 now executes a second saved shared 4.3 episode via Episode Studio-approved scenario graph in the existing JJ4 engine. 116 focused CI checks pass and preview build READY; a ten-turn mocked model replay and Supabase editorial-draft graph persistence are verified. No live OpenAI second-episode run or human 8/10 certification exists. G1-G7 remain partial, G8 blocked; production release forbidden.",
+  "note": "Existing 4.3 engine now supports a second saved Episode Studio world in a signed two-person Telnyx SMS integration test, with strict real-OpenAI-receipt requirement and optional source-linked participant SMS quality scores. 123 focused tests passed on GH Actions run 45230591263. Live OpenAI+handset test has NOT run: branch preview lacks production-only OpenAI/Telnyx server secrets, and SMS sender/webhook is explicitly production-only. Never promote or count participant SMS ratings as the independent 8/10 review; G1-G7 partial, G8 blocked.",
   "gates": [
     {
       "id": "G1",
@@ -79,7 +79,7 @@
   "qualityHardening": {
     "lockedAt": "2026-11-23",
     "engine": "4.3",
-    "status": "second-episode-integrated-mock-qa-passed-live-qa-pending",
+    "status": "preview-sms-flow-mocked-pass-live-provider-and-handset-blocked",
     "commitments": [
       "humanlike-role-grounded-conversation",
       "episode-specific-semantic-continuity",
@@ -97,15 +97,19 @@
       "episode-studio-graph-read-save-and-room-creation-path",
       "five-days-ten-two-role-mocked-model-handler-transcript-and-closed-Sophia",
       "contradictory-coaching-divergence-and-semantic-repair-regressions",
-      "preview-branch-READY-deployment"
+      "preview-branch-READY-deployment",
+      "verified-consented-couple-confirmed-in-existing-directory",
+      "sms-provider-no-fallback-release-check",
+      "per-role-signed-sms-human-rating-anchored-to-verified-response",
+      "second-episode-verified-couple-sms-handler-and-review-mock-test",
+      "timed-pilot-flag-for-scenario-graph-worlds"
     ],
     "unverified": [
-      "real-OpenAI-second-episode-ten-turn-live-pilot",
-      "ten-couple-human-reviewed-quality-8-10",
-      "30-combination-reliability",
-      "remaining-119-episode-world-graphs-and-validation",
-      "production-couple-and-SMS-end-to-end",
-      "1000-couple-scalability-and-operational-readiness"
+      "real-OpenAI-live-reply-receipts-from-second-episode",
+      "live-Telnyx-two-handset-delivery-and-inbound-webhook",
+      "ten-dimension-independent-human-8-10-certification",
+      "all-complete-100-turn-live-provider-pilots",
+      "G8-production-release-approval"
     ]
   }
 }
