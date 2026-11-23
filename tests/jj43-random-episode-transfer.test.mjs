@@ -118,7 +118,8 @@ test("REAL 4.3 PATH with mocked provider: 5 days, 2 coach lanes, 10 sourced even
     "00000000-0000-4000-8000-"+String(day).padStart(2,"0")+
      (script.role==="jack"?"01":"02")+"0000000",
     {apiKey:"mock-do-not-use",fetchImpl:fakeVoice([mockOf(script)],requests)});
-   assert.equal(turn.replySource,"model-validated");
+   assert.equal(turn.replySource,"model-validated",
+    "failed "+script.day+" "+script.role+"; validator="+turn.replyValidationIssue);
    assert.equal(turn.reply,script.reply);
    assert.equal(turn.eventCode,script.eventCode);
    assert.equal(turn.event,script.event);
