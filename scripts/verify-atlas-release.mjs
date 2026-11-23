@@ -1,7 +1,8 @@
 // Anthos 4.3 has a deliberate fail-closed release gate.
 // A preview or green unit test cannot substitute for confirmed annual score
-// persistence, mutually authorized transcript review and real-model QA.
+// persistence, shared authenticated couple access and real-model QA.
 import {readFileSync} from "node:fs";
+import {verifyLivePilot43} from "../lib/atlas-live-qa-contract.mjs";
 import {fileURLToPath} from "node:url";
 const file=new URL("../docs/atlas-release-status.json",import.meta.url);
 const current=JSON.parse(readFileSync(file,"utf8"));
@@ -19,4 +20,17 @@ if(!release){
  console.error("Do not merge/deploy the 4.3 skill-driven system or claim 8/10 production quality.");
  process.exit(1);
 }
-console.log("All 8 release gates contain documented evidence; human approval and live QA remain mandatory.");
+// Even if someone marks all gates as verified, G8 cannot become green from
+// a unit-test screenshot, a deterministic pilot, or subjective claims alone.
+const reportPath=process.env.ANTHOS_QA_REPORT_PATH;
+if(!reportPath){console.error("4.3 release blocked: no protected real-model QA report.");process.exit(1)}
+let report;
+try{report=JSON.parse(readFileSync(reportPath,"utf8"));}
+catch{console.error("4.3 release blocked: unreadable real-model QA report.");process.exit(1)}
+if(report.runKind!=="real-model-required"){
+ console.error("4.3 release blocked: offline model/fallback report is not live certification.");
+ process.exit(1);
+}
+const quality=verifyLivePilot43({couples:report.couples,reviews:report.reviews});
+if(!quality.passed){console.error("4.3 release blocked: real-model or human 8/10 review missing.",quality.problems);process.exit(1)}
+console.log("All eight gates verified, with independent human-reviewed real-model dialogue evidence.");
