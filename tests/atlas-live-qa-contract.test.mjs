@@ -9,6 +9,8 @@ function fixture(n=10){
    role,advice:"Coach "+role+" to observe the microwaved noodles tonight, day "+d,
    reply:"I noticed our broken microwave was inconvenient again, so I asked a practical question about the decision "+i+"-"+d+"-"+role+".",
    replySource:"model-validated",replyModelAttempts:1,
+   replyProviderResponseId:"resp_realfixture_"+i+"_"+d+"_"+role,
+   replyProviderModel:"gpt-4.1-mini",
    replyValidationIssue:null,replyHumorResponse:"not_applicable",replyHumorEvidence:""
   }))}))
  }));
