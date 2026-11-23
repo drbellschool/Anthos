@@ -206,3 +206,23 @@ test("Live generator repairs a model's imprecise self-quotation without rewritin
  assert.equal(t.replyModelAttempts,1);
  assert.equal(t.eventCode,"jack:own");
 });
+
+test("An opened box does not authorize invented conversations or partner reactions",()=>{
+ const w={role:"jill",coachText:"Open the box.",
+ after:{purchase:"bought_unannounced",box:"opened",repair:"broken",repairCalled:false},
+ event:"Jill opened the purchased replacement before a shared decision."};
+ const a=validateOpenReply43("I opened the box, then told Jack the joke wasn't funny. He shot that down quick and stormed out.",w);
+ assert.ok(a.issues.includes("invented-interpersonal-event"));
+ assert.ok(a.issues.includes("invented-partner-reaction"));
+});
+test("Model coach-reference paraphrase is corrected into a literal coach excerpt locally",async()=>{
+ const {episode,history}=context();
+ const m="I did miss those Saturdays, and it's time to admit that rather than make another promise to Jill. I am not proud of it.";
+ const t=await prepareOpenTurn43(episode,"jack",0,history,
+  "Own the missed repair promises and apologize.","00000000-0000-4000-8000-900000000191",{
+   apiKey:"mock-existing",fetchImpl:fakeAI([{message:m,coachReference:"take responsibility for failing",replyReference:"I did miss those Saturdays"}])
+  });
+ assert.equal(t.replySource,"model-validated");
+ assert.equal(t.replyAnchorCorrected,true);
+ assert.equal(t.reply,m);
+});
