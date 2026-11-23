@@ -1,4 +1,5 @@
 import test from "node:test";
+import {MICROWAVE_STORY_QUALITY} from "../lib/anthos-story-quality.mjs";
 import assert from "node:assert/strict";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {
@@ -228,4 +229,40 @@ test("Model coach-reference paraphrase is corrected into a literal coach excerpt
  assert.equal(t.replySource,"model-validated");
  assert.equal(t.replyAnchorCorrected,true);
  assert.equal(t.reply,m);
+});
+
+test("A subtle canon-breaking joke is rejected and repaired before sending",async()=>{
+ const {episode,history}=context(),calls=[];
+ const bad="A national microwave repair holiday might finally get it fixed before we need a new one. The calendar would laugh at my three missed Saturdays.";
+ const good="A national microwave repair holiday is exactly what my three missed Saturdays deserve. The awkward part is Jill already bought the new one; my calendar is still collecting excuses.";
+ const turn=await prepareOpenTurn43(episode,"jack",0,history,
+  "Make a joke about a national microwave repair holiday.",
+  "00000000-0000-4000-8000-900000000601",{
+   apiKey:"mock-existing",fetchImpl:fakeAI([
+    {message:bad,coachReference:"national microwave repair holiday",
+     replyReference:"before we need a new one",humorResponse:"attempted",
+     humorEvidence:"The calendar would laugh at my three missed Saturdays"},
+    {message:good,coachReference:"national microwave repair holiday",
+     replyReference:"Jill already bought the new one",humorResponse:"attempted",
+     humorEvidence:"my calendar is still collecting excuses"}
+   ],calls)
+  });
+ assert.equal(turn.reply,good);
+ assert.equal(turn.replySource,"model-validated");
+ assert.equal(turn.replyModelAttempts,2);
+ assert.equal(turn.storyQualityEpisodeId,"four-hundred-dollar-surprise:post-purchase");
+ assert.deepEqual(turn.replyQualityAdvisories,[]);
+ const prompts=calls.filter(x=>x.text?.format?.name==="jj43_full_character_text");
+ assert.equal(prompts.length,2);
+ assert.match(prompts[1].instructions,/canonical-implication:purchase-already-completed/);
+ assert.ok(prompts[0].input.includes("canonicalNarrativeInvariants"));
+});
+
+test("Fourth-wall friend-as-coach text is rejected by the actual open-turn voice gate",()=>{
+ const r=validateOpenReply43("I told the coach I'm frustrated about the broken microwave, and she said I ought to stand my ground.",{
+  role:"jill",coachText:"How are you feeling?",after:{
+   purchase:"bought_unannounced",box:"sealed",repair:"broken",repairCalled:false
+  },storyQualityContract:MICROWAVE_STORY_QUALITY
+ });
+ assert.ok(r.issues.includes("fourth-wall-role-leak"));
 });
