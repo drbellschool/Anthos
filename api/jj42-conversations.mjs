@@ -598,8 +598,12 @@ export function validateOpenReply43(candidate,{
  if(/\b(?:confirmed (?:repair )?(?:price|estimate|appointment)|the (?:shop|technician) (?:quoted|told us|said it would cost)|we have (?:a )?(?:refund|appointment|repair quote)|(?:received|got) (?:the )?refund|(?:returned|exchanged) the microwave)\b/i.test(m))
   issues.push("unverified-external-fact");
  // Conversations with Jack/Jill must be canonical events, not invented dialogue.
- if(!event&&/\b(?:i|we)\s+(?:just |already )?(?:told|asked|texted|apologized to|talked to|confronted)\s+(?:jack|jill|him|her|my (?:husband|wife))\b/i.test(m))
+ const actionMentionsSpeech=/\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|confronted|informed)\b/i.test(String(event||""));
+ if(!actionMentionsSpeech&&/\b(?:i|we)\s+(?:just |already |finally )?(?:told|asked|texted|apologized to|talked to|confronted)\s+(?:jack|jill|him|her|my (?:husband|wife))\b/i.test(m))
   issues.push("invented-interpersonal-event");
+ if(!/\b(?:responded|replied|rejected|laughed|shouted|yelled|refused|stormed|snapped|forgave|shut down|shot down)\b/i.test(String(event||""))&&
+    /\b(?:she|he|jill|jack)\s+(?:shot (?:that|it|me) down|shut (?:that|it|me) down|snapped|refused|laughed|stormed out|rolled (?:his|her|their) eyes)\b/i.test(m))
+  issues.push("invented-partner-reaction");
  if(state.jackOwnsDelay===false&&role==="jack"&&!event&&/\bi (?:already |finally )?apologized\b/i.test(m))
   issues.push("invented-apology");
  if(/\b(?:she said|he said|jill said|jack said)\b/i.test(m)&&
@@ -679,10 +683,17 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
    const quoted=String(candidate.replyReference||"").trim();
    const replyReference=quoted&&words(responseText).includes(words(quoted))?
     quoted:responseText.slice(0,Math.min(85,responseText.length));
+   const rawCoachQuote=String(candidate.coachReference||"").trim();
+   const coachReference=rawCoachQuote&&words(text).includes(words(rawCoachQuote))?
+    rawCoachQuote:String(text).trim().slice(0,Math.min(85,String(text).length));
+   const rawHumor=String(candidate.humorEvidence||"").trim();
+   const humorEvidence=rawHumor&&responseText.includes(rawHumor)?rawHumor:
+    ["attempted","declined"].includes(candidate.humorResponse)?
+     responseText.slice(0,Math.min(85,responseText.length)):"";
    const verdict=validateOpenReply43(candidate.message,{
     role,coachText:text,before,after:turn.state,event:turn.event,
-    priorReplies,coachReference:candidate.coachReference,replyReference,
-    humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence
+    priorReplies,coachReference,replyReference,
+    humorResponse:candidate.humorResponse,humorEvidence
    });
    if(verdict.ok){
     // Real Responses API IDs are retained for protected quality-audit tracing.
@@ -692,8 +703,10 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
      lastIssue="missing-provider-response-receipt";continue;
     }
     return {reply:candidate.message.trim(),source:"model-validated",
-     reason:null,attempts:attempt,coachReference:candidate.coachReference,
-     humorResponse:candidate.humorResponse,humorEvidence:candidate.humorEvidence,
+     reason:null,attempts:attempt,coachReference,
+     anchorCorrected:coachReference!==rawCoachQuote||replyReference!==quoted||
+      humorEvidence!==rawHumor,
+     humorResponse:candidate.humorResponse,humorEvidence,
      providerResponseId:data.id||null,providerModel:data.model||model};
    }
    lastIssue=verdict.issues.join(", ");
@@ -827,6 +840,7 @@ export async function prepareOpenTurn43(episode,role,day,history,text,requestKey
   replyValidationIssue:rendered.reason,
   replyHumorResponse:rendered.humorResponse||"not_applicable",
   replyHumorEvidence:rendered.humorEvidence||"",
+  replyAnchorCorrected:!!rendered.anchorCorrected,
   replyProviderResponseId:rendered.providerResponseId||null,
   replyProviderModel:rendered.providerModel||null,
   // Persisted semantic commitment, not a message ID or an AI-generated label.
