@@ -7,6 +7,7 @@ import {DEVELOPMENTAL_PHASES,MICROWAVE_RUBRICS,SKILL_IDS43,normalizeDevelopmenta
 import {repeatedAnnouncement,incidentalIntimacyReview,memoryContext} from "./insight-atlas-model.mjs";
 import {weeklyOpportunity} from "./atlas-opportunities.mjs";
 import {classifyIncidental43} from "./atlas-incidental.mjs";
+import {assertStoryQualityContract,reviewStoryReply,MICROWAVE_STORY_QUALITY} from "../lib/anthos-story-quality.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
 export const JJ42_DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -549,7 +550,7 @@ const verifiedOnly43=(text,yes)=>yes?null:text;
 // facts, not every possible nuance of human phrasing. Failure gets one retry.
 export function validateOpenReply43(candidate,{
  role,coachText,before,after,event,priorReplies=[],coachReference,replyReference,
- humorResponse,humorEvidence
+ humorResponse,humorEvidence,storyQualityContract=null
 }={}){
  const m=String(candidate||"").trim();
  const issues=[];
@@ -612,16 +613,19 @@ export function validateOpenReply43(candidate,{
     !/\b(?:she said|he said|jill said|jack said)\b/i.test(String(event||""))&&
     !/\b(?:you said|you told me|heard|apparently|supposedly|rumor)\b/i.test(m))
   issues.push("unverified-quote");
- return {ok:issues.length===0,issues,wordCount:m?m.split(/\s+/).length:0};
+ const generic=storyQualityContract?reviewStoryReply(m,{role,contract:storyQualityContract,priorReplies}):null;
+ if(generic)issues.push(...generic.critical);
+ return {ok:issues.length===0,issues:[...new Set(issues)],advisory:generic?.advisory||[],wordCount:m?m.split(/\s+/).length:0};
 }
 async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null,
- requireModelVoice=false,replyTimeoutMs=18000
+ requireModelVoice=false,replyTimeoutMs=18000,storyQualityContract=null
 }={}){
  if(!apiKey){
   if(requireModelVoice)throw Error("ANTHOS LIVE QA BLOCKED: existing OpenAI key is unavailable; scripted fallback forbidden.");
   return {reply:turn.reply,source:"offline-template",reason:"model-not-configured",attempts:0};
  }
+ const approved=assertStoryQualityContract(storyQualityContract);
  const safeTimeout=Math.max(8500,Math.min(30000,Number(replyTimeoutMs)||18000));
  const act=speechAct43(text);
  const priorReplies=ownHistory.map(x=>x.reply).filter(Boolean);
@@ -629,7 +633,9 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   /\b(?:told|asked|discussed|raised|consulted|acknowledged|apologized|spoke|explained|said|informed)\b/i.test(turn.event)&&
   !/\b(?:chose not to|declined to|refused to)\b/i.test(turn.event);
  const context={
-  character:role,identity:characterVoice43(role),
+  character:role,identity:approved.characterVoices[role],
+  establishedEpisodeWorld:approved.world,trackedObjects:approved.objects,
+  canonicalNarrativeInvariants:approved.invariants.map(x=>({id:x.id,fact:x.fact})),
   coachMessage:String(text||"").slice(0,900),coachSpeechAct:act,
   priorCharacterMessages:ownHistory.slice(-10).map(x=>({
    messageFromCoach:x.body,replyToCoach:x.reply,verifiedAction:x.event||null
