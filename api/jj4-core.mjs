@@ -22,6 +22,7 @@ import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./j
 import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,buildConversation43,isConversation43,isOpen43,openTurns43,prepareOpenTurn43,parseLedger42,due42,renderCharacterMessage42,sophiaOrientation42,reactionConversation42,reaction43,sophiaConversation42} from "./jj42-conversations.mjs";
 
 
+import {STORYBOOK_VERSION,STORYBOOK_DAYS,isStorybook44,buildStorybook44,dueStorybook44,parsePage44,writeStorybookPage44,closeStorybook44} from "./jj44-storybook.mjs";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
 const ROLE=["jack","jill"];
 const PHASES4=PHASES.map(x=>x.id);
@@ -75,11 +76,14 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
   if(!previous||previous.scenario_id!==scenario.id)
    error("Previous test does not belong to this saved episode.",409);
  }
+ const storybook=pilotVersion===STORYBOOK_VERSION;
+ if(storybook&&scenario.mode!=="shared")error("4.4 currently supports shared couple episodes only.",409);
  const authored=pilotVersion==="4.1.0",developmental=pilotVersion==="4.3.0",weekly=pilotVersion==="4.2.0"||developmental;
- if(!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
+ if(!storybook&&!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
+ if(storybook)Object.assign(draft,buildStorybook44(draft,{fastForward:options.fastForward===true}));
  if(authored)Object.assign(draft,buildAuthored41(draft));
  if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true,openConversation:developmental,timedPilot:developmental&&options.timedPilot===true}));
- if(!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
+ if(!storybook&&!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
   error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
  if(!draft.primarySkill||(!developmental&&!PHASES4.every(p=>draft.phases[p]?.trim().length>=30)))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
@@ -89,7 +93,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  if(seed&&typeof seed==="object")draft.simulationSeed=seed;
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0,
-  ...(authored||weekly?{}:{simulation_state:initialSimulation(draft)})
+  ...(storybook||authored||weekly?{}:{simulation_state:initialSimulation(draft)})
  },"POST"))?.[0];
  if(!created?.id)error("Could not create the pilot room.",502);
  const invitations={};
@@ -111,10 +115,11 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
    previousRetired=Array.isArray(affected)&&affected.length===1;
   }catch{previousRetired=false}
  }
- return {ok:true,engine:developmental?"4.3.0":weekly?"4.2.0":authored?"4.1.0":"4.0.0",title:draft.title,roomId:created.id,
+ return {ok:true,engine:storybook?STORYBOOK_VERSION:developmental?"4.3.0":weekly?"4.2.0":authored?"4.1.0":"4.0.0",title:draft.title,roomId:created.id,
   invitations,mode:scenario.mode,soloCoach:draft.soloCoach,expiresAt:created.expires_at,previousRetired,
   ...(weekly?{fastForward:draft.authored42.fastForward,timedPilot:!!draft.authored42.timedPilot,daySchedule:draft.authored42.schedule}:{}),
-  note:weekly?"Private weekly conversation rehearsal. No SMS is sent; QA fast-forward can skip Monday–Saturday waits.":
+  ...(storybook?{fastForward:draft.storybook44.fastForward,daySchedule:draft.storybook44.schedule}:{}),
+  note:storybook?"4.4 shared storybook browser rehearsal. No SMS or live image generation.":weekly?"Private weekly conversation rehearsal. No SMS is sent; QA fast-forward can skip Monday–Saturday waits.":
   "Private browser pilot. No actual text messages will be sent."};
 }
 async function messages(room,role){
@@ -141,18 +146,22 @@ export async function status(token){
  const bothJoined=expected.every(role=>people.some(p=>p.role===role&&p.joined_at));
  const pausedBy=people.filter(p=>expected.includes(p.role)&&p.paused_at).map(p=>p.role);
  const paused=pausedBy.includes(person.role);
- const weekly=isConversation42(room),openConversation=isOpen43(room);
+ const weekly=isConversation42(room),openConversation=isOpen43(room),storybook=isStorybook44(room);
  const hasSophia=scenes.some(x=>x.kind==="sophia");
   // The opening is a read-only, room-snapshot editorial message. It is not the
   // research-based closing and never needs an extra DB row or outbound SMS.
   // A negative ID guarantees it precedes the first generated scene.
-  const opening=weekly?sophiaOrientation42(room.episode):room.episode?.sophiaIntro?.trim();
+  const opening=storybook?"Welcome to The Adventures of Jack & Jill! You are the co-authors. Each day, read the next shared scene and guide your character. On Sunday, enjoy your finished chapter and a reflection with Sophia.":weekly?sophiaOrientation42(room.episode):room.episode?.sophiaIntro?.trim();
   if(joined&&opening)scenes.unshift({id:-1,kind:"introduction",
    body:weekly?opening:personalizeIntroduction(opening,people),
    phase_index:-1,created_at:room.created_at});
  // 4.2's intro and final Sophia closing are the ONLY shared customer-facing
  // messages; the canonical "scene" JSON is never shown to either partner.
- const visibleScenes=weekly?scenes.filter(x=>x.kind==="sophia"||x.kind==="introduction"):scenes;
+ const visibleScenes=storybook?scenes.flatMap(x=>{
+  if(x.kind!=="scene")return [x];
+  const p=parsePage44(x.body,x.phase_index);
+  return p?[{...x,body:p.title+"\n\n"+p.story+"\n\nSophia: "+p.sophia,storyTitle:p.title,storyText:p.story,sophiaText:p.sophia}]:[];
+ }):weekly?scenes.filter(x=>x.kind==="sophia"||x.kind==="introduction"):scenes;
  // An immediate character-to-friend reaction follows the private advice in
  // the browser. It expresses uncertainty, NOT a completed fictional action.
  // Existing JJ4 coach rows remain the only source of event transitions.
@@ -170,11 +179,14 @@ export async function status(token){
  const authored41=isAuthored41(room);
  const selected41=authored41?selectedAuthoredChoice(room.episode,person.role,room.phase_index,
   mine.map(x=>({...x,role:person.role}))):null;
- return {ok:true,version:isConversation43(room)?"4.3.0":weekly?"4.2.0":authored41?"4.1.0":"4.0.0",title:room.title,role:person.role,
+ return {ok:true,version:storybook?STORYBOOK_VERSION:isConversation43(room)?"4.3.0":weekly?"4.2.0":authored41?"4.1.0":"4.0.0",title:room.title,role:person.role,
   character:person.role==="jack"?"Jack":"Jill",firstName:person.first_name||"",
   joined,bothJoined,phaseIndex:room.phase_index,phase:PHASES[room.phase_index]?.title||"Reflection",
   stage:room.stage,needsReply:openConversation?false:needsReply,submitted:person.submitted_phase===room.phase_index,
   ...(openConversation?{openConversation:true,timedPilot:!!room.episode.authored42.timedPilot,nextDayAt:room.episode.authored42.schedule?.[room.phase_index+1]||null,canText:joined&&bothJoined&&!pausedBy.length&&room.stage==="flow"&&room.phase_index<5}:{}),
+  ...(storybook?{weekDay:STORYBOOK_DAYS[hasSophia?6:room.phase_index],fastForward:room.episode.storybook44.fastForward,
+   nextAvailableAt:room.episode.storybook44.schedule[room.stage==="flow"?room.phase_index+1:room.phase_index],
+   sundayAvailableAt:room.episode.storybook44.schedule[6],closureDue:dueStorybook44(room.episode,6)}:{}),
   ...(weekly?{weekDay:JJ42_DAYS[room.phase_index],fastForward:room.episode.authored42.fastForward,
    nextAvailableAt:room.episode.authored42.schedule[room.phase_index]}:{}),
   coachChoices:authored41&&needsReply&&!selected41?authoredOptions(room.episode,person.role,room.phase_index):[],
@@ -182,12 +194,13 @@ export async function status(token){
   paused,pausedBy,
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage)&&
-   (!weekly||due42(room.episode,room.phase_index+(room.stage==="flow"?1:0))),
+   (!weekly||due42(room.episode,room.phase_index+(room.stage==="flow"?1:0)))&&
+   (!storybook||dueStorybook44(room.episode,room.phase_index+(room.stage==="flow"?1:0))),
   scenes:visibleScenes,messages:[...visiblePrivate,...privateTurns],finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
   researchSources:hasSophia?(weekly?JJ42_RESEARCH_SOURCES:
    authored41?RESEARCH_SOURCES.filter(x=>/Gottman/.test(x.label)):RESEARCH_SOURCES):[],
-  info:"Testing in browser only. Participants' private advice remains in their own private conversations."};
+  info:storybook?"Shared storybook rehearsal. Each spouse sees the story and their own contribution, not the other spouse’s private text.": "Testing in browser only. Participants' private advice remains in their own private conversations."};
 }
 export async function join(token,name){
  const {person}=await participant(token);
@@ -221,7 +234,18 @@ async function generateStructured({model,key,name,schema,input,instructions,maxT
  }catch{error("The story AI returned an incomplete response. Retry this scene.",502)}
  return value;
 }
+function storybookGenerator44(){
+ const key=process.env.OPENAI_API_KEY?.trim();
+ if(!key)error("OpenAI is not configured for this pilot.",503);
+ const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
+ return args=>generateStructured({...args,key,model,maxTokens:2500,timeout:23000});
+}
 async function directScene(room,phaseIndex){
+ if(isStorybook44(room)){
+  const rows=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",select:"role,kind,phase_index,body"});
+  const page=await writeStorybookPage44(room.episode,phaseIndex,rows||[],storybookGenerator44());
+  return {scene:JSON.stringify(page),jackPrompt:page.jackPrompt,jillPrompt:page.jillPrompt};
+ }
  if(isConversation42(room)){
   const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
    select:"role,kind,phase_index,body"});
@@ -684,6 +708,7 @@ export async function advance(token){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join the episode first.",403);
  if(!["needs_scene","flow"].includes(room.stage))return status(token);
+ if(isStorybook44(room)&&!dueStorybook44(room.episode,room.phase_index+(room.stage==="flow"?1:0)))return status(token);
  if(isConversation42(room)&&!due42(room.episode,room.phase_index+(room.stage==="flow"?1:0)))return status(token);
  const people=await db(P,{room_id:"eq."+room.id,select:"role,joined_at,paused_at"});
  if(!people||!activeRoles(room).every(role=>people.some(p=>p.role===role&&p.joined_at&&!p.paused_at)))return status(token);
@@ -702,7 +727,7 @@ export async function advance(token){
    const assigned=await db(R,{id:"eq."+room.id,processing_token:"eq."+claim,stage:"eq.generating",phase_index:"eq."+phase},{episode},"PATCH");
    if(!Array.isArray(assigned)||assigned.length!==1)error("4.3 scene claim changed. Retry.",409);
   }
-  const useSimulation=simulationEnabled(latest);
+  const useSimulation=!isStorybook44(latest)&&simulationEnabled(latest);
   if(useSimulation&&(!rendered.simulationState||!rendered.simulationEvent))
    error("The scene did not preserve the characters' decisions. Retry this scene.",502);
   const saved=await db(useSimulation?"rpc/anthos_jj4_commit_simulated_scene":
@@ -724,6 +749,7 @@ export async function sophia(token){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join the episode before Sophia's closing reflection.",403);
  if(room.stage!=="complete")return status(token);
+ if(isStorybook44(room)&&!dueStorybook44(room.episode,6))return status(token);
  const claim=randomUUID();
  const acquired=await db("rpc/anthos_jj4_claim_closure",{},
   {p_room:room.id,p_claim:claim},"POST");
@@ -745,7 +771,7 @@ export async function sophia(token){
    }
    return {...scene,body};
   });
-  const closure=isConversation42(room)?sophiaConversation42(room.episode,scenes||[]):
+  const closure=isStorybook44(room)?await closeStorybook44(room.episode,(scenes||[]).map(s=>({...s,role:"shared",kind:"scene"})),storybookGenerator44()):isConversation42(room)?sophiaConversation42(room.episode,scenes||[]):
    isAuthored41(room)?composeAuthored41Closure(room.episode,sanitized):
    await draftSophiaClosure(room.episode,sanitized);
   const committed=await db("rpc/anthos_jj4_commit_closure",{},
@@ -883,7 +909,7 @@ export async function coach(token,body,requestKey){
   const state=await pause(token);
   return {...state,safetyNotice:"Your episode is paused. Your safety comes before the story. If you are in immediate danger, contact local emergency services. In the U.S., call or text 988 for a mental-health crisis, or call 800-799-7233 / text START to 88788 for domestic-abuse support."};
  }
- if(isConversation42(room)){
+ if(isStorybook44(room)||isConversation42(room)){
   if(person.paused_at||!targetRoles(room).includes(person.role)||
      person.submitted_phase===room.phase_index)return status(token);
   if(!UUID.test(requestKey||""))error("Invalid coaching request.",400);
