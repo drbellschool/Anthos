@@ -693,6 +693,8 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   !/\b(?:chose not to|declined to|refused to)\b/i.test(turn.event);
  const context={
   character:role,identity:approved.characterVoices[role],
+  textAddress:{sender:role==="jack"?"Jack":"Jill",recipient:"trusted friend outside the fictional marriage",
+   spouse:role==="jack"?"Jill":"Jack",rule:"In the SMS, YOU is the friend. The spouse is a third person."},
   establishedEpisodeWorld:approved.world,trackedObjects:approved.objects,
   ...(creativeStyle?{episodeCreativeStyle:creativeStyle}:{}),
   canonicalNarrativeInvariants:approved.invariants.map(x=>({id:x.id,fact:x.fact})),
@@ -722,6 +724,9 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Use episodeCreativeStyle, when present, for a natural voice, suitable humor, tone and callbacks. This creative direction NEVER overrides verified story facts, consent, or independent character choices.",
   "Address your trusted friend directly as you. The recipient is NOT Jack's or Jill's spouse. If an approved event includes talking to your spouse, report it to your friend in the third person or say 'I told [spouse] ...'; never send the actual spousal message as your private reply. Never say Coach says, the coach, my coach, or refer to the recipient as a coaching role. Never use AI, authoring, scoring or assessment language.",
   "Established facts remain true in jokes, metaphors and casual implications. Do not imply a completed purchase still needs to happen.",
+  ...(spouseConversationCommitted?[
+   "The verified event includes speaking to your spouse. The SMS is a report BACK to your friend AFTER that conversation, NOT the words you spoke to your spouse. Make this unmistakable in the first sentence: refer to the spouse as a third person by name or pronoun and report what you actually did or said. For example, use a form like I told "+(role==="jack"?"Jill":"Jack")+" that..., or I asked "+(role==="jack"?"her":"him")+"...; vary natural wording. Do NOT start by thanking or apologizing to YOU for the spouse's action, and do NOT address YOU as the person you married. The friend did not plan your date, buy your appliance, or argue with you about this marital dilemma."
+  ]:[]),
   "CRITICAL: newSpouseConversationAllowed="+spouseConversationCommitted+
    ". When FALSE, the character has NOT talked or texted their spouse as a result of this advice. Never write I told him/her, I asked my spouse, he/she responded, or anything implying an offscreen conversation. Speak only to YOUR private coach about what you feel, think, intend, resist or might say in the future.",
   "If the coach suggests harmless humor, attempt a situational joke in your TEXT TO THE FRIEND, or decline the joke in your own voice and explain why. Do NOT imply you told the joke to Jill or Jack unless the verified event says so.",
@@ -742,16 +747,17 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
    properties:{message:{type:"string"},coachReference:{type:"string"},replyReference:{type:"string"},
     humorResponse:{type:"string",enum:["attempted","declined","not_applicable"]},
     humorEvidence:{type:"string"}}}};
- let lastIssue="generation-unavailable";
+ let lastIssue="generation-unavailable",rejectedMessage="",rejectedRecipientEvidence="";
  for(let attempt=1;attempt<=2;attempt++){
   try{
    const r=await fetchImpl("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
     body:JSON.stringify({model,store:false,max_output_tokens:440,
      instructions:instructions+(attempt===2?
-      " PRIOR RESPONSE REJECTED: "+lastIssue+". Fix the identified issue. Address the friend, not the spouse. Report verified actions as past events; do not erase them. Never claim another completed conversation or partner reaction outside the verified event. If no action occurred, express it as an intention, resistance or private thought.":""),
+      " PRIOR RESPONSE REJECTED: "+lastIssue+". You must REPAIR the supplied rejectedDraft rather than answer the advice afresh. If the addressee was wrong or mixed, transform the rejected spouse-directed wording into a first-person report to the friend. Name the spouse as a third person in the opening sentence. Change direct 'you/your' referring to the spouse into his/her or their name; preserve the actual verified action, not the exact bad phrasing. Do not speak to the spouse. Do not erase actual events or add new conversations. Return the full repaired JSON.":""),
      input:JSON.stringify({...context,
-      ...(attempt===2?{validationFeedback:lastIssue}:{} )}),text:{format}}),
+      ...(attempt===2?{validationFeedback:lastIssue,rejectedDraft:rejectedMessage,
+       rejectedAddresseeEvidence:rejectedRecipientEvidence}:{} )}),text:{format}}),
     signal:AbortSignal.timeout(safeTimeout)
    });
    if(!r.ok){lastIssue="model-http-"+r.status;continue}
@@ -763,6 +769,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
    // slightly misquotes ITS OWN message, extract a literal span locally
    // rather than rejecting otherwise valid dialogue or falsely scoring it.
    const responseText=String(candidate.message||"").trim();
+   rejectedMessage=responseText;
    const quoted=String(candidate.replyReference||"").trim();
    const replyReference=quoted&&words(responseText).includes(words(quoted))?
     quoted:responseText.slice(0,Math.min(85,responseText.length));
@@ -788,7 +795,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
     let recipientReview=null;
     if(requireModelVoice&&turn.characterDecision){
      recipientReview=await reviewPrivateRecipient43(role,responseText,turn.event,{apiKey,model,fetchImpl});
-     if(!recipientReview.ok){lastIssue=recipientReview.reason;continue;}
+     if(!recipientReview.ok){lastIssue=recipientReview.reason;rejectedRecipientEvidence=recipientReview.evidence||"";continue;}
     }
     return {reply:candidate.message.trim(),source:"model-validated",recipientReview,
      reason:null,attempts:attempt,coachReference,
