@@ -754,7 +754,7 @@ export async function advance(token){
    if(!["jack","jill"].includes(rendered.recipient))error("4.3 did not select a private recipient.",502);
    const episode={...latest.episode,
     ...(isOpen43(latest)&&latest.episode.authored42.timedPilot?
-     {authored43:{...latest.episode.authored43,dayOpenedAt:new Date().toISOString()}}:{}),
+     {authored43:{...latest.episode.authored43,dayOpenedAt:new Date(Date.now()).toISOString()}}:{}),
     checkpoints:latest.episode.checkpoints.map((cp,i)=>
     i===phase?{...cp,audience:rendered.recipient,waitForReply:!isOpen43(latest)}:cp)};
    // Persist only under the current scene claim, before the existing atomic
