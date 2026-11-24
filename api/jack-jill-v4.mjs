@@ -18,7 +18,7 @@ export default {async fetch(request){
    case "join":return json(await join(token,body.name));
    case "advance":return json(await advance(token));
    case "choice":return json(await choose(token,body.optionId,body.requestKey));
-   case "coach":return json(await coach(token,body.message,body.requestKey));
+   case "coach":return json(await coach(token,body.message,body.requestKey,body.phaseIndex));
    case "text":return json(await textCharacter(token,body.message,body.requestKey));
    case "ask":return json(await ask(token,body.message,body.requestKey));
    case "pause":return json(await pause(token));
