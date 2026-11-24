@@ -2,7 +2,7 @@
   "contractVersion": "anthos-4.3-release-gate-v1",
   "releaseAllowed": false,
   "lastReviewed": "2026-11-23",
-  "note": "Nov 23 live Telnyx + OpenAI second-episode pilot exposed severe A-to-Z exchange failure: 6 auto-advanced fictional days, 1 validated live model character turn, 0 canonical actions, 0 Sophia closing messages, 1 inbound error, no Atlas couple binding. Focused 132/132 source tests still passed and therefore do not constitute live customer-readiness. P0: conversation-dependent pacing, meaningful natural-language action/agency, durable failed-message recovery, actual event-driven next check-in, second-episode Sophia close. Historical pilot SMS sessions retired without deleting records or revoking registration consent. No new pilot until exact failure path and real SMS round trip are demonstrated; G1-G7 partial and G8 blocked.",
+  "note": "Nov 23 corrected production 4.3 exchange mechanics. Deployed cc7ed0727e8bcd8d8705324bf8659e8d394defcd: 136/136 focused tests passed; protected real OpenAI graph exchange completed 10/10 unique provider replies, 10 verified actions, 10/10 independent recipient validations, 58 source-backed room-only observations, and Sophia closing. Two drafts rejected/repaired. Signed SMS and encrypted durable retry regression pass with mock providers, not real handsets. Production database inbox migration verified, no active SMS routes or queued messages. Next deliberate one-couple engineering handset pilot may proceed; independent human 8/10, actual carrier delivery/retry and authenticated annual Atlas linkage are not certified. Broad CI and G8 release gate remain red. Do not claim general production readiness.",
   "gates": [
     {
       "id": "G1",
@@ -117,7 +117,7 @@
       "full-two-coach-human-reviewed-8-10-live-model-qualification"
     ]
   },
-  "nextPilotAllowed": false,
+  "nextPilotAllowed": true,
   "livePilotIncident": {
     "date": "2026-11-23",
     "episode": "What Makes Us Feel Close",
@@ -144,5 +144,30 @@
       "atlas-not-couple-bound-in-real-run",
       "untested-live-handoff-and-stale-8-of-10-certification"
     ]
+  },
+  "recoveryVerification": {
+    "deployedCommit": "cc7ed0727e8bcd8d8705324bf8659e8d394defcd",
+    "deployment": "dpl_BxYe4kSxA52i1RcWMMDu3aUTEmKM",
+    "focusedTests": {
+      "passed": 136,
+      "failed": 0,
+      "workflowRun": 45319194745
+    },
+    "liveOpenAI": {
+      "fictional": true,
+      "handsetSMS": false,
+      "realReplies": 10,
+      "distinctProviderReceipts": 10,
+      "verifiedActions": 10,
+      "verifiedRecipients": 10,
+      "sourceBackedRoomObservations": 58,
+      "repairedDrafts": 2,
+      "sophiaCompleted": true
+    },
+    "roomScope": "current-pilot-only; SMS directory pair lacks authenticated Atlas account membership",
+    "smsDurableInboxMigration": "applied and verified",
+    "episodeNarrativeChanged": false,
+    "nextPilot": "deliberate one-couple controlled handset verification; no automatic send",
+    "fullRelease": "blocked"
   }
 }
