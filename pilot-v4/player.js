@@ -81,11 +81,13 @@ function mount(root,invite,options={}){
    const isScene=item.kind==="scene",isSophia=item.kind==="sophia",isIntro=item.kind==="introduction";
    const row=el("article","jj4-entry "+(isScene?"scene":isSophia||isIntro?"sophia":["coach","question","reply"].includes(item.kind)?item.kind:"prompt"));
    row.append(el("span","jj4-entry-label",isIntro?"SOPHIA · YOUR EPISODE OBJECTIVE":isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
-    isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
+    isScene?(state.version==="4.4.0"?["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][item.phase_index]:"SCENE · "+(item.phase_index+1)):item.kind==="coach"?"YOUR PRIVATE ADVICE":
     item.kind==="question"?questionLabel:item.kind==="reply"?(state.character||"Character").toUpperCase()+" · PRIVATE ANSWER":
     (state.character||"Character").toUpperCase()+" → "+
     (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));
-   row.append(el("p","",item.body));
+   if(state.version==="4.4.0"&&isScene){
+    row.append(el("h3","jj44-page-title",item.storyTitle||""),el("p","jj44-story-text",item.storyText||""),el("div","jj44-sophia","Sophia · "+(item.sophiaText||"")));
+   }else row.append(el("p","",item.body));
    if(isSophia&&Array.isArray(state.researchSources)){
     const sourceList=el("div","jj4-sources");
     for(const source of state.researchSources){
@@ -102,8 +104,8 @@ function mount(root,invite,options={}){
  }
  function render(state){
   current=state;
-  title.textContent=(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
-  phase.textContent=["4.2.0","4.3.0"].includes(state.version)?state.weekDay+" · Day "+(state.phaseIndex+1)+"/6":
+  title.textContent=state.version==="4.4.0"?"The Adventures of Jack & Jill":(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
+  phase.textContent=state.version==="4.4.0"?state.weekDay+" · Day "+(state.hasSophia?7:state.phaseIndex+1)+"/7":["4.2.0","4.3.0"].includes(state.version)?state.weekDay+" · Day "+(state.phaseIndex+1)+"/6":
    state.phase+" · "+(state.phaseIndex+1)+"/6";
   transcript(state);
   // A background status poll can return every five seconds while a participant
@@ -115,7 +117,7 @@ function mount(root,invite,options={}){
    !!state.paused,(state.pausedBy||[]).join(","),
    // Another coach submitting is not a reason to steal this coach's focus.
    state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,
-   state.hasSophia,state.closing,autoFailed
+   state.hasSophia,state.closing,state.closureDue,autoFailed
   ].join("|");
   if(nextKey===controlsKey)return;
   controlsKey=nextKey;
@@ -129,6 +131,7 @@ function mount(root,invite,options={}){
   if(state.finished){
    draftAdvice="";
    if(!state.hasSophia){
+    if(state.version==="4.4.0"&&!state.closureDue){message("Your chapter is complete. Sophia’s reflection unlocks Sunday.");oneAction("Refresh",refresh);return;}
     message(state.closing?"Sophia is preparing your research-based closing reflection…":
      "The six scenes are finished. Sophia's separate closing reflection is next.");
     oneAction("Hear Sophia's closing reflection",async()=>act("closure"),true);
@@ -172,7 +175,7 @@ function mount(root,invite,options={}){
     oneAction("Pause episode",async()=>act("pause"));
     return;
    }
-   message(["4.2.0","4.3.0"].includes(state.version)?
+   message(state.version==="4.4.0"?"Guide your character. Both contributions shape the next page.":["4.2.0","4.3.0"].includes(state.version)?
     "Text "+(state.character||"your character")+" privately. Your advice will shape what happens next.":
     state.version==="4.1.0"?"Respond to your character's concern. Their reply and your coaching will shape the next scene.":
     (state.character||"Your character")+" needs your advice before the next phase.");
@@ -186,17 +189,17 @@ function mount(root,invite,options={}){
    field.value=draftAdvice;
    field.addEventListener("input",()=>{draftAdvice=field.value});
    controls.append(field);
-   const send=oneAction("Send private advice",async()=>{
+   const send=oneAction(state.version==="4.4.0"?"Submit story contribution":"Send private advice",async()=>{
     const words=field.value.trim();
     if(words.length<2){message("Write a suggestion or question to your character.",true);return}
     await act("coach",{message:words,requestKey:crypto.randomUUID()});
    },true);
-   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0"].includes(state.version))oneAction("Ask "+(state.character||"character"),async()=>{
+   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0","4.4.0"].includes(state.version))oneAction("Ask "+(state.character||"character"),async()=>{
     const words=field.value.trim();
     if(words.length<2){message("Enter a private question first.",true);return}
     await act("ask",{message:words,requestKey:crypto.randomUUID()});
    });
-   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0"].includes(state.version))oneAction("No advice this time",async()=>
+   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0","4.4.0"].includes(state.version))oneAction("No advice this time",async()=>
     act("coach",{message:"I have no advice right now.",requestKey:crypto.randomUUID()}));
    oneAction("Pause episode",async()=>act("pause"));
    field.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();send.click()}});
@@ -230,7 +233,7 @@ function mount(root,invite,options={}){
    },1200);
    return;
   }
-  if(["4.2.0","4.3.0"].includes(state.version)&&state.nextAvailableAt&&["flow","needs_scene"].includes(state.stage)){
+  if(["4.2.0","4.3.0","4.4.0"].includes(state.version)&&state.nextAvailableAt&&["flow","needs_scene"].includes(state.stage)){
    message("Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
    oneAction("Refresh",refresh);return;
   }
