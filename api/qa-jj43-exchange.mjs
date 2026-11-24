@@ -1,5 +1,7 @@
 // Protected, bounded real-provider QA. No SMS, Supabase or customer records.
-// Temporarily enabled on the protected preview branch; NEVER active in production.
+// Temporary fixed-input QA, accessible only via the deployment-specific
+// Vercel URL behind the project's authentication, NEVER on the public alias.
+// No arbitrary prompt input, database writes, SMS or credentials returned.
 import {randomUUID} from "node:crypto";
 import {buildConversation43,renderConversation42,prepareOpenTurn43,sophiaConversation42} from "./jj42-conversations.mjs";
 import {roomAtlas43,slimAtlasContext} from "./atlas-runtime.mjs";
@@ -20,8 +22,10 @@ const advice=[
 ];
 const json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{"Content-Type":"application/json","Cache-Control":"no-store","X-Robots-Tag":"noindex"}});
 export default {async fetch(request){
- if(request.method!=="GET"||process.env.VERCEL_ENV!=="preview"||
-  process.env.ANTHOS_QA_BRIDGE_ENABLED!=="1"||!process.env.OPENAI_API_KEY||
+ const host=new URL(request.url).hostname;
+ const protectedDeployment=process.env.VERCEL_ENV==="production"&&
+  !!process.env.VERCEL_URL&&host===process.env.VERCEL_URL&&host.endsWith(".vercel.app");
+ if(request.method!=="GET"||!protectedDeployment||!process.env.OPENAI_API_KEY||
   Date.now()>Date.parse("2026-11-24T04:00:00Z"))return json({error:"disabled"},404);
  const ep=buildConversation43({...episode,pilotMode:"shared"},{fastForward:true,openConversation:true,scenarioGraph});
  const history=[],turns=[];
