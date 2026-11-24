@@ -8,7 +8,7 @@ import {repeatedAnnouncement,incidentalIntimacyReview,memoryContext} from "./ins
 import {weeklyOpportunity} from "./atlas-opportunities.mjs";
 import {classifyIncidental43} from "./atlas-incidental.mjs";
 import {validateScenarioGraph43,scenarioWorld43,renderScenarioDay43,
- classifyScenarioAction43,enactScenarioAction43,closeScenario43} from "./jj43-scenario-graph.mjs";
+ classifyScenarioDecision43,enactScenarioAction43,closeScenario43} from "./jj43-scenario-graph.mjs";
 import {assertStoryQualityContract,reviewStoryReply,MICROWAVE_STORY_QUALITY} from "../lib/anthos-story-quality.mjs";
 export const JJ42_VERSION="4.2.0";
 export const JJ43_VERSION="4.3.0";
@@ -675,6 +675,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   })),
   factsBefore:before,factsAfter:turn.state,
   verifiedEventThisTurn:turn.event||null,
+  ...(turn.characterDecision?{characterDecision:turn.characterDecision}:{}),
   newSpouseConversationAllowed:spouseConversationCommitted,
   enactedAction:turn.event?"one bounded event was committed":"no new physical or interpersonal action committed",
   // Keep model context from accumulating unverified coach claims as facts.
@@ -692,14 +693,14 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Stay inside the before/after world facts. The only NEW enacted event permitted is verifiedEventThisTurn. If null, you may reflect, resist, wonder, plan in thought, or joke to your friend, but not claim an action happened.",
   "This character is a specific, flawed person with agency, not a marriage instructor. Respond in a way that unmistakably engages this particular coach message.",
   "Use episodeCreativeStyle, when present, for a natural voice, suitable humor, tone and callbacks. This creative direction NEVER overrides verified story facts, consent, or independent character choices.",
-  "The recipient is your trusted friend, never 'the coach'. Never use AI, authoring, scoring or assessment language.",
+  "Address your trusted friend directly as you. Never say Coach says, the coach, my coach, or refer to the recipient as a coaching role. Never use AI, authoring, scoring or assessment language.",
   "Established facts remain true in jokes, metaphors and casual implications. Do not imply a completed purchase still needs to happen.",
   "CRITICAL: newSpouseConversationAllowed="+spouseConversationCommitted+
    ". When FALSE, the character has NOT talked or texted their spouse as a result of this advice. Never write I told him/her, I asked my spouse, he/she responded, or anything implying an offscreen conversation. Speak only to YOUR private coach about what you feel, think, intend, resist or might say in the future.",
   "If the coach suggests harmless humor, attempt a situational joke in your TEXT TO THE FRIEND, or decline the joke in your own voice and explain why. Do NOT imply you told the joke to Jill or Jack unless the verified event says so.",
   "If the coach suggests pressure, blame or transactional intimacy, show the verified character choice and its real emotional consequence without normalizing coercion.",
   "An attributed rumor is not a fact or command. A question is not permission to fabricate a completed event.",
-  "Do not mechanically agree with advice. Include defensiveness, doubt, stubbornness or embarrassment when supported by temperament and current tension.",
+  "Do not mechanically agree with advice. Include defensiveness, doubt, stubbornness or embarrassment when supported by temperament and current tension. Honor characterDecision when supplied: explain a refusal, partial adoption or genuine clarification in first person, without converting private thoughts into an unverified public action.",
   "No role label, scene directions, therapy jargon, skill names, scores, invented offscreen conversations, or unverified external events.",
   approved.episodeId===MICROWAVE_STORY_QUALITY.episodeId?
    "Microwave facts: no invented repairs, price quotes, refunds or newly bought appliances.":
@@ -840,11 +841,13 @@ async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKe
  const prior=openTurns43(episode).filter(t=>t.role===role);
  const repeatedCoach=prior.some(t=>normEvent43(t.body)===normEvent43(text));
  const report=reportedOnly43(text);
- const rule=(repeatedCoach||report)?null:
-  await classifyScenarioAction43(episode,role,text,before,options);
- const outcome=enactScenarioAction43(episode,role,rule,before);
+ const decision=(repeatedCoach||report)?
+  {rule:null,recommended:null,stance:report?"context":"clarify",reason:"",source:"context-only"}:
+  await classifyScenarioDecision43(episode,role,text,before,options);
+ const outcome=enactScenarioAction43(episode,role,decision.rule,before);
  const state=outcome.state,focus=episode.authored43.selectedSkills;
- const change={state,event:outcome.event,reply:outcome.reply,behavior:outcome.behavior};
+ const change={state,event:outcome.event,reply:outcome.reply,behavior:outcome.behavior,
+  characterDecision:{recommended:decision.recommended,stance:decision.stance,reason:decision.reason,source:decision.source}};
  const [rendered,incidentalObservations]=await Promise.all([
   phraseOpenReply43(role,text,before,change,prior,
    {...options,storyQualityContract:graph.qualityContract,
@@ -866,7 +869,7 @@ async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKe
  // No new scored behavior without a committed, unique and sourced event.
  const allowedCoaching=outcome.event&&!repeatedCoach?outcome.coaching:{};
  const assessment=outcome.event?{
-  role,recommended:outcome.recommended,enacted:outcome.enacted,
+  role,recommended:decision.recommended||outcome.recommended,enacted:outcome.enacted,
   coaching:allowedCoaching,behavior:outcome.behavior,
   coachingStrength:weightedSkillRating(allowedCoaching,
    episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis),
@@ -887,6 +890,8 @@ async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKe
   storyQualityEpisodeId:graph.qualityContract.episodeId,
   selectedSkills:[...focus],stateBefore:structuredClone(before),stateAfter:state,
   event:outcome.event,eventCode:outcome.eventCode,assessment,duplicateCoaching:repeatedCoach,
+  characterDecision:{recommended:decision.recommended,stance:decision.stance,reason:decision.reason,
+   source:decision.source,providerResponseId:decision.responseId||null},
   contextOnlyReport:report,reportedByCoach:report,
   incidentalObservations:repeatedCoach?incidentalObservations.filter(x=>x.lane!=="coaching"):
    incidentalObservations};
@@ -1368,10 +1373,12 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
   }:null;
  const context={
   character,day:JJ42_DAYS[phase],
-  problemStatement:episode.authored42.weekFraming||JJ42_WEEK_FRAMING,
+  problemStatement:episode.authored43?.scenarioGraph?
+   episode.authored43.scenarioGraph.qualityContract.world.what:
+   episode.authored42.weekFraming||JJ42_WEEK_FRAMING,
   skills:episode.authored42.primarySkill==="s-decisions"?
    ["Face hard decisions","Use a gentle startup","Accept influence"]:[],
-  canonicalFacts:prior.state,verifiedLatestEvent:prior.event,
+  canonicalFacts:prior.state,verifiedLatestEvent:authored.latestEvent||prior.event,
   ...(developmental?{developmentalObjective:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].objective,
    skillEmphasis:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].emphasis,
    observableEvidenceGoal:episode.authored43.flow[DEVELOPMENTAL_PHASES[phase].id].evidence,
@@ -1427,9 +1434,13 @@ export async function renderCharacterMessage42(episode,phase,history=[],{
   const candidate=JSON.parse(raw).message;
   const ownPrior=ownHistory.filter(x=>x.kind==="prompt").map(x=>x.body);
   if(!validCharacterMessage42(candidate,prior.state,phase)||
-    (developmental&&repeatedAnnouncement(candidate,ownPrior).length))return authored;
-  return {...authored,jackPrompt:role==="jack"?candidate:"",
-   jillPrompt:role==="jill"?candidate:""};
+    (developmental&&repeatedAnnouncement(candidate,ownPrior).length)||
+    (episode.authored43?.scenarioGraph&&!reviewStoryReply(candidate,{
+      role,contract:episode.authored43.scenarioGraph.qualityContract,priorReplies:ownPrior,
+      verifiedEvent:authored.latestEvent||prior.event
+    }).ok))return authored;
+  return {...authored,jackPrompt:role==="jack"?candidate:authored.jackPrompt,
+   jillPrompt:role==="jill"?candidate:authored.jillPrompt};
  }catch{
   return authored;
  }

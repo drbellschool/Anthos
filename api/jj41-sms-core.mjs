@@ -223,7 +223,7 @@ async function sendLongSms(phone,message){
 async function deliverOpen43(row,st){
  if(row.stopped_at||row.superseded_at||!row.signup_consent_at)return;
  if(!row.welcome_sent_at&&await claimSms(row,"welcome_sent_at",new Date().toISOString())){
-  await sendSms(row.phone_e164,"Anthos 4.3 pilot: "+st.character+" is your private fictional friend. Each day lasts 10 minutes; text "+st.character+" whenever you want. You opted in during registration. Reply STOP to opt out, HELP for help. Message/data rates may apply.");
+  await sendSms(row.phone_e164,"Anthos 4.3 pilot: "+st.character+" is your private fictional friend. Each day lasts at least 10 minutes and moves after a real story decision; text "+st.character+" whenever you want. You opted in during registration. Reply STOP to opt out, HELP for help. Message/data rates may apply.");
   const opening=(st.scenes||[]).find(x=>x.kind==="introduction")?.body;
   if(opening)await sendLongSms(row.phone_e164,opening);
  }
@@ -418,16 +418,18 @@ async function handleReply(row,txt,eventId){
  if(st.openConversation){
   const pair=await currentSessions(row.room_id);
   if(pair.length!==2||pair.some(x=>x.stopped_at||x.superseded_at||!x.signup_consent_at))return;
-  await progressRoom(row.room_id);
+  // Process the incoming advice against the current day before the clock
+  // can move it. A provider retry can retrieve its original saved reply.
   const current=await status(token);
   if(current.finished){await sendSms(row.phone_e164,"This Deep Dive is complete.");return;}
-  if(!current.canText){await sendSms(row.phone_e164,"The story is paused or changing days. Please try again shortly.");return;}
+  if(!current.canText)throw Error("4.3 story is temporarily unavailable; retry signed event.");
   const requestKey=stableUuid(eventId+"-open43");
   const result=await textCharacter(token,txt,requestKey,{requireLiveProvider:true});
   if(result.safetyNotice){await sendSms(row.phone_e164,result.safetyNotice);return;}
   if(result.paused){await sendSms(row.phone_e164,"Your pilot is paused. Reply RESUME to continue or STOP to opt out.");return;}
-  const reaction=(result.messages||[]).find(x=>x.kind==="reply"&&String(x.id).includes(requestKey))?.body||latestCharacterReply(result);
-  if(reaction)await sendSms(row.phone_e164,result.character+" (PRIVATE): "+reaction);
+  const reaction=(result.messages||[]).find(x=>x.kind==="reply"&&String(x.id)==="open-"+requestKey+"-reply")?.body;
+  if(!reaction)throw Error("The exact committed 4.3 reply is unavailable; retry.");
+  await sendSms(row.phone_e164,result.character+" (PRIVATE): "+reaction);
   return;
  }
  if(!st.needsReply){await progressRoom(row.room_id);return}
@@ -464,10 +466,16 @@ export async function receivePilotSms({event,raw,headers}){
  if(!PHONE.test(phone||"")||target!==process.env.TELNYX_FROM_NUMBER||
   !eventId||eventId.length>160||message.length>900)return {ok:true,ignored:true};
  // Do not store private SMS contents in the event log.
- const claimed=await sql(EVENTS,{on_conflict:"provider_event_id"},
+ let claimed=await sql(EVENTS,{on_conflict:"provider_event_id"},
   {provider_event_id:eventId,phone_e164:phone,processing_state:"started"},
   "POST","resolution=ignore-duplicates,return=representation");
- if(!claimed?.length)return {ok:true,duplicate:true};
+ if(!claimed?.length){
+  // The carrier may retry a signed event after our 503. Recover only the
+  // matching failed event; never claim completed or currently running work.
+  claimed=await sql(EVENTS,{provider_event_id:"eq."+eventId,phone_e164:"eq."+phone,
+   processing_state:"eq.error"},{processing_state:"started",updated_at:new Date().toISOString()},"PATCH");
+  if(!claimed?.length)return {ok:true,duplicate:true};
+ }
  const row=await findActivePhone(phone);
  try{
   if(!row){ // Unknown senders never gain a pilot or receive private data.

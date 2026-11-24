@@ -172,6 +172,15 @@ export function personalizeIntroduction(opening,participants=[]){
  const wife=participants.find(x=>x.role==="jill"&&x.joined_at)?.first_name?.trim()||"wife";
  return String(opening||"").replace(/<<husband>>/gi,husband).replace(/<<wife>>/gi,wife);
 }
+// A clock may open a day but cannot manufacture a completed conversation.
+export function open43CanAdvance(room,now=Date.now()){
+ if(!isOpen43(room)||!room.episode.authored42.timedPilot||room.stage!=="flow")return true;
+ const turn=openTurns43(room.episode).filter(t=>t.day===room.phase_index&&
+  t.replySource==="model-validated"&&!!t.replyProviderResponseId);
+ const changed=turn.some(t=>!!t.event||["resist","decline"].includes(t.characterDecision?.stance));
+ const opened=Date.parse(room.episode.authored43.dayOpenedAt||room.episode.authored42.schedule?.[room.phase_index]||"");
+ return changed&&Number.isFinite(opened)&&now>=opened+10*60*1000;
+}
 export async function status(token){
  const {person,room}=await participant(token);
  const joined=!!person.joined_at;
@@ -225,7 +234,7 @@ export async function status(token){
   paused,pausedBy,
   waitingFor:room.stage==="awaiting"?targets.filter(role=>!people.find(x=>x.role===role&&x.submitted_phase===room.phase_index)):[],
   canContinue:bothJoined&&!pausedBy.length&&["needs_scene","flow"].includes(room.stage)&&
-   (!weekly||due42(room.episode,room.phase_index+(room.stage==="flow"?1:0))),
+   (!weekly||due42(room.episode,room.phase_index+(room.stage==="flow"?1:0)))&&open43CanAdvance(room),
   scenes:visibleScenes,messages:[...visiblePrivate,...privateTurns],finished:room.stage==="complete",
   hasSophia,closing:room.stage==="complete"&&!hasSophia&&!!room.processing_token,
   researchSources:hasSophia?(weekly?JJ42_RESEARCH_SOURCES:
@@ -729,6 +738,7 @@ export async function advance(token){
  if(!person.joined_at)error("Join the episode first.",403);
  if(!["needs_scene","flow"].includes(room.stage))return status(token);
  if(isConversation42(room)&&!due42(room.episode,room.phase_index+(room.stage==="flow"?1:0)))return status(token);
+ if(!open43CanAdvance(room))return status(token);
  const people=await db(P,{room_id:"eq."+room.id,select:"role,joined_at,paused_at"});
  if(!people||!activeRoles(room).every(role=>people.some(p=>p.role===role&&p.joined_at&&!p.paused_at)))return status(token);
  const claim=randomUUID();
@@ -742,7 +752,10 @@ export async function advance(token){
   const rendered=await directScene(latest,phase);
   if(isConversation43(latest)&&phase<5){
    if(!["jack","jill"].includes(rendered.recipient))error("4.3 did not select a private recipient.",502);
-   const episode={...latest.episode,checkpoints:latest.episode.checkpoints.map((cp,i)=>
+   const episode={...latest.episode,
+    ...(isOpen43(latest)&&latest.episode.authored42.timedPilot?
+     {authored43:{...latest.episode.authored43,dayOpenedAt:new Date().toISOString()}}:{}),
+    checkpoints:latest.episode.checkpoints.map((cp,i)=>
     i===phase?{...cp,audience:rendered.recipient,waitForReply:!isOpen43(latest)}:cp)};
    // Persist only under the current scene claim, before the existing atomic
    // commit RPC. No private prompt is visible until that RPC commits it.
@@ -778,7 +791,7 @@ export async function sophia(token){
  try{
   const [scenes,people]=await Promise.all([
    db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",
-    order:"phase_index.asc",limit:"6",select:"body,phase_index"}),
+    order:"phase_index.asc",limit:"6",select:"role,kind,body,phase_index"}),
    db(P,{room_id:"eq."+room.id,select:"role,first_name"})
   ]);
   const sanitized=(scenes||[]).map(scene=>{
