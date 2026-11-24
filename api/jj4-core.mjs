@@ -186,6 +186,7 @@ export async function status(token){
   ...(openConversation?{openConversation:true,timedPilot:!!room.episode.authored42.timedPilot,nextDayAt:room.episode.authored42.schedule?.[room.phase_index+1]||null,canText:joined&&bothJoined&&!pausedBy.length&&room.stage==="flow"&&room.phase_index<5}:{}),
   ...(storybook?{weekDay:STORYBOOK_DAYS[hasSophia?6:room.phase_index],fastForward:room.episode.storybook44.fastForward,
    nextAvailableAt:room.episode.storybook44.schedule[room.stage==="flow"?room.phase_index+1:room.phase_index],
+   nextStoryDay:STORYBOOK_DAYS[room.stage==="flow"?room.phase_index+1:room.phase_index],
    sundayAvailableAt:room.episode.storybook44.schedule[6],closureDue:dueStorybook44(room.episode,6)}:{}),
   ...(weekly?{weekDay:JJ42_DAYS[room.phase_index],fastForward:room.episode.authored42.fastForward,
    nextAvailableAt:room.episode.authored42.schedule[room.phase_index]}:{}),
@@ -805,6 +806,7 @@ export async function resume(token){
 // the required intervention. Answers are visible only to that token's role.
 export async function ask(token,body,requestKey){
  const {person,room}=await participant(token);
+ if(isStorybook44(room))error("4.4 uses shared story contributions, not private character conversations.",409);
  if(!person.joined_at)error("Join the episode first.",403);
  if(room.stage!=="awaiting"||!targetRoles(room).includes(person.role)||
     person.submitted_phase===room.phase_index||person.paused_at)
@@ -897,9 +899,10 @@ export async function textCharacter(token,body,requestKey){
  }
  error("Another conversation moved the story. Please retry your message.",409);
 }
-export async function coach(token,body,requestKey){
+export async function coach(token,body,requestKey,expectedPhase){
  const {person,room}=await participant(token);
  if(!person.joined_at)error("Join before advising your character.",403);
+ if(isStorybook44(room)&&expectedPhase!==room.phase_index)error("That story page has changed. Refresh before submitting.",409);
  if(room.stage!=="awaiting")return status(token);
  const words=brief(body,900);
  if(words.length<2)error("Write a short suggestion to your character.");
