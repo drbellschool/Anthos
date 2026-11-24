@@ -56,3 +56,14 @@ test("Repeated generic closing filler is reviewable without inventing a hard err
   contract:MICROWAVE_STORY_QUALITY,priorReplies:["Well, baby steps."]});
  assert.equal(r.ok,true);assert.ok(r.advisory.includes("recycled-conversational-filler"));
 });
+
+test("Private replies never address the fictional spouse instead of the trusted friend",()=>{
+ const c=fixture("couple-outing",{id:"plans",fact:"Jack planned a day; Jill prefers quiet time.",forbiddenImplications:["we booked dinner"]});
+ const leaked="Hey, just wanted to say thanks for trying to make our day special—it means a lot. But what I really need is a quiet hour on the porch.";
+ assert.ok(reviewStoryReply(leaked,{role:"jill",contract:c}).critical.includes("wrong-private-recipient"));
+ assert.ok(reviewStoryReply("Hey Jack, I know you want us to go out.",{role:"jill",contract:c}).critical.includes("wrong-private-recipient"));
+ assert.ok(reviewStoryReply("Jill, I really appreciate your efforts.",{role:"jack",contract:c}).critical.includes("wrong-private-recipient"));
+ assert.equal(reviewStoryReply("Jack planned a lovely day. I told Jack, thanks for planning our day; I'd prefer a quiet hour.",{role:"jill",contract:c,verifiedEvent:"Jill thanked Jack and expressed her porch preference."}).ok,true);
+ assert.equal(reviewStoryReply("Thanks for helping me think through how to talk to Jack.",{role:"jill",contract:c}).ok,true);
+ assert.ok(reviewStoryReply("Coach says I need to apologize.",{role:"jack",contract:c}).critical.includes("fourth-wall-role-leak"));
+});

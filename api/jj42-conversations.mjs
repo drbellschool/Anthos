@@ -693,7 +693,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
   "Stay inside the before/after world facts. The only NEW enacted event permitted is verifiedEventThisTurn. If null, you may reflect, resist, wonder, plan in thought, or joke to your friend, but not claim an action happened.",
   "This character is a specific, flawed person with agency, not a marriage instructor. Respond in a way that unmistakably engages this particular coach message.",
   "Use episodeCreativeStyle, when present, for a natural voice, suitable humor, tone and callbacks. This creative direction NEVER overrides verified story facts, consent, or independent character choices.",
-  "Address your trusted friend directly as you. Never say Coach says, the coach, my coach, or refer to the recipient as a coaching role. Never use AI, authoring, scoring or assessment language.",
+  "Address your trusted friend directly as you. The recipient is NOT Jack's or Jill's spouse. If an approved event includes talking to your spouse, report it to your friend in the third person or say 'I told [spouse] ...'; never send the actual spousal message as your private reply. Never say Coach says, the coach, my coach, or refer to the recipient as a coaching role. Never use AI, authoring, scoring or assessment language.",
   "Established facts remain true in jokes, metaphors and casual implications. Do not imply a completed purchase still needs to happen.",
   "CRITICAL: newSpouseConversationAllowed="+spouseConversationCommitted+
    ". When FALSE, the character has NOT talked or texted their spouse as a result of this advice. Never write I told him/her, I asked my spouse, he/she responded, or anything implying an offscreen conversation. Speak only to YOUR private coach about what you feel, think, intend, resist or might say in the future.",
@@ -722,7 +722,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
     method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
     body:JSON.stringify({model,store:false,max_output_tokens:440,
      instructions:instructions+(attempt===2?
-      " PRIOR RESPONSE REJECTED: "+lastIssue+". The original reply made an unsupported factual claim. If it claimed any discussion or partner reaction, rewrite the private message WITHOUT any new completed conversation or spouse response. Express the concern as an intention or private thought instead.":""),
+      " PRIOR RESPONSE REJECTED: "+lastIssue+". Fix the identified issue. Address the friend, not the spouse. Report verified actions as past events; do not erase them. Never claim another completed conversation or partner reaction outside the verified event. If no action occurred, express it as an intention, resistance or private thought.":""),
      input:JSON.stringify({...context,
       ...(attempt===2?{validationFeedback:lastIssue}:{} )}),text:{format}}),
     signal:AbortSignal.timeout(safeTimeout)
