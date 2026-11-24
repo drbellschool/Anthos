@@ -678,7 +678,7 @@ export async function reviewPrivateRecipient43(role,message,event,{apiKey,model=
 }
 async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  apiKey,model="gpt-4.1-mini",fetchImpl=fetch,atlasContext=null,
- requireModelVoice=false,replyTimeoutMs=18000,storyQualityContract=null,creativeStyle=null
+ requireModelVoice=false,replyTimeoutMs=18000,storyQualityContract=null,creativeStyle=null,qaDiagnostic=null
 }={}){
  if(!apiKey){
   if(requireModelVoice)throw Error("ANTHOS LIVE QA BLOCKED: existing OpenAI key is unavailable; scripted fallback forbidden.");
@@ -750,14 +750,22 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
  let lastIssue="generation-unavailable",rejectedMessage="",rejectedRecipientEvidence="";
  for(let attempt=1;attempt<=2;attempt++){
   try{
+   const repairingRecipient=attempt===2&&/recipient/.test(lastIssue)&&!!rejectedMessage;
+   const spouse=role==="jack"?"Jill":"Jack";
+   const repairInstructions="EDIT a rejected private text. Do not answer the original marriage advice. The sender is "+(role==="jack"?"Jack":"Jill")+", writing to an external friend, not "+spouse+". The rejected draft accidentally addresses "+spouse+" directly. Convert it into an original first-person REPORT about "+spouse+" to the friend, keeping the actual verified event and the sender's feeling. Start with a sentence like 'I told "+spouse+"...' or 'I thanked "+spouse+"...' if that is the verified action. All references to the spouse must be third-person. Avoid direct second-person pronouns entirely in this repair; that cannot accidentally address the spouse. Do not fabricate any event, do not repeat the bad draft as a quotation, do not invent a new spouse response. Preserve natural personal voice. One short SMS, 25–80 words. Return the required JSON; the source references are metadata.";
+   const requestInstructions=repairingRecipient?repairInstructions:instructions+(attempt===2?
+      " PRIOR RESPONSE REJECTED: "+lastIssue+". REPAIR the rejectedDraft. Address your friend, preserve verified facts, and do not invent a conversation.":"");
+   const requestInput=repairingRecipient?{
+    sender:role,spouse,intendedRecipient:"external friend",characterIdentity:approved.characterVoices[role],
+    verifiedEvent:turn.event||null,worldFacts:turn.state,
+    rejectedDraft:rejectedMessage,rejectedAddresseeEvidence:rejectedRecipientEvidence,
+    coachReference:String(text).slice(0,85)
+   }:{...context,...(attempt===2?{validationFeedback:lastIssue,rejectedDraft:rejectedMessage,
+       rejectedAddresseeEvidence:rejectedRecipientEvidence}:{})};
    const r=await fetchImpl("https://api.openai.com/v1/responses",{
     method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},
     body:JSON.stringify({model,store:false,max_output_tokens:440,
-     instructions:instructions+(attempt===2?
-      " PRIOR RESPONSE REJECTED: "+lastIssue+". You must REPAIR the supplied rejectedDraft rather than answer the advice afresh. If the addressee was wrong or mixed, transform the rejected spouse-directed wording into a first-person report to the friend. Name the spouse as a third person in the opening sentence. Change direct 'you/your' referring to the spouse into his/her or their name; preserve the actual verified action, not the exact bad phrasing. Do not speak to the spouse. Do not erase actual events or add new conversations. Return the full repaired JSON.":""),
-     input:JSON.stringify({...context,
-      ...(attempt===2?{validationFeedback:lastIssue,rejectedDraft:rejectedMessage,
-       rejectedAddresseeEvidence:rejectedRecipientEvidence}:{} )}),text:{format}}),
+     instructions:requestInstructions,input:JSON.stringify(requestInput),text:{format}}),
     signal:AbortSignal.timeout(safeTimeout)
    });
    if(!r.ok){lastIssue="model-http-"+r.status;continue}
@@ -795,7 +803,11 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
     let recipientReview=null;
     if(requireModelVoice&&turn.characterDecision){
      recipientReview=await reviewPrivateRecipient43(role,responseText,turn.event,{apiKey,model,fetchImpl});
-     if(!recipientReview.ok){lastIssue=recipientReview.reason;rejectedRecipientEvidence=recipientReview.evidence||"";continue;}
+     if(!recipientReview.ok){
+      lastIssue=recipientReview.reason;rejectedRecipientEvidence=recipientReview.evidence||"";
+      if(typeof qaDiagnostic==="function")qaDiagnostic({role,attempt,issue:lastIssue,message:responseText,evidence:rejectedRecipientEvidence});
+      continue;
+     }
     }
     return {reply:candidate.message.trim(),source:"model-validated",recipientReview,
      reason:null,attempts:attempt,coachReference,
@@ -806,6 +818,7 @@ async function phraseOpenReply43(role,text,before,turn,ownHistory,{
      providerResponseId:data.id||null,providerModel:data.model||model};
    }
    lastIssue=verdict.issues.join(", ");
+   if(typeof qaDiagnostic==="function")qaDiagnostic({role,attempt,issue:lastIssue,message:responseText});
   }catch(e){lastIssue="model-generation-error";}
  }
  // Production can use the verified fallback for service continuity; QA must
