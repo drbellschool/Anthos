@@ -2,7 +2,7 @@
   "contractVersion": "anthos-4.3-release-gate-v1",
   "releaseAllowed": false,
   "lastReviewed": "2026-11-23",
-  "note": "Existing 4.3 engine now supports a second saved Episode Studio world in a signed two-person Telnyx SMS integration test, with strict real-OpenAI-receipt requirement and optional source-linked participant SMS quality scores. 123 focused tests passed on GH Actions run 45230591263. Live OpenAI+handset test has NOT run: branch preview lacks production-only OpenAI/Telnyx server secrets, and SMS sender/webhook is explicitly production-only. Never promote or count participant SMS ratings as the independent 8/10 review; G1-G7 partial, G8 blocked.",
+  "note": "Nov 23 live Telnyx + OpenAI second-episode pilot exposed severe A-to-Z exchange failure: 6 auto-advanced fictional days, 1 validated live model character turn, 0 canonical actions, 0 Sophia closing messages, 1 inbound error, no Atlas couple binding. Focused 132/132 source tests still passed and therefore do not constitute live customer-readiness. P0: conversation-dependent pacing, meaningful natural-language action/agency, durable failed-message recovery, actual event-driven next check-in, second-episode Sophia close. Historical pilot SMS sessions retired without deleting records or revoking registration consent. No new pilot until exact failure path and real SMS round trip are demonstrated; G1-G7 partial and G8 blocked.",
   "gates": [
     {
       "id": "G1",
@@ -79,7 +79,7 @@
   "qualityHardening": {
     "lockedAt": "2026-11-23",
     "engine": "4.3",
-    "status": "preview-sms-flow-mocked-pass-live-provider-and-handset-blocked",
+    "status": "live-second-episode-sms-failed-full-process-audit-complete",
     "commitments": [
       "humanlike-role-grounded-conversation",
       "episode-specific-semantic-continuity",
@@ -109,7 +109,40 @@
       "live-Telnyx-two-handset-delivery-and-inbound-webhook",
       "ten-dimension-independent-human-8-10-certification",
       "all-complete-100-turn-live-provider-pilots",
-      "G8-production-release-approval"
+      "G8-production-release-approval",
+      "real-Telnyx-SMS-event-failure-recovery",
+      "conversation-dependent-advance-through-six-phases",
+      "second-episode-Sophia-closing-in-production",
+      "incident-replay-without-stale-premise-repetition",
+      "full-two-coach-human-reviewed-8-10-live-model-qualification"
+    ]
+  },
+  "nextPilotAllowed": false,
+  "livePilotIncident": {
+    "date": "2026-11-23",
+    "episode": "What Makes Us Feel Close",
+    "environment": "production",
+    "deployedCommit": "f50f83b0fe3dbb73aa4a1c7a4cc1c709a95c595b",
+    "outcome": "failed-end-to-end",
+    "narrativeChanged": false,
+    "sixDaysAdvanced": 6,
+    "successfulRealModelTurns": 1,
+    "committedCharacterActions": 0,
+    "signedInboundEventsCompleted": 1,
+    "signedInboundEventsErrored": 1,
+    "sophiaMessagesStored": 0,
+    "atlasCoupleRoomClaims": 0,
+    "pausedRoutingForFailedRoom": true,
+    "auditPath": "docs/4.3-A-TO-Z-PRODUCTION-SMS-FORENSIC-AUDIT-2026-11-23.md",
+    "blockers": [
+      "time-only-auto-day-completion-without-coaching",
+      "unrecognized-ordinary-advice-no-character-action",
+      "no-character-choice-outside-fixed-classified-action",
+      "daily-unchanged-opening-prompt-recycling",
+      "sms-error-events-never-requeued",
+      "second-episode-Sophia-scene-query-omits-role-and-kind",
+      "atlas-not-couple-bound-in-real-run",
+      "untested-live-handoff-and-stale-8-of-10-certification"
     ]
   }
 }
