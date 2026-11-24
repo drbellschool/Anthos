@@ -61,9 +61,25 @@ test("Private replies never address the fictional spouse instead of the trusted 
  const c=fixture("couple-outing",{id:"plans",fact:"Jack planned a day; Jill prefers quiet time.",forbiddenImplications:["we booked dinner"]});
  const leaked="Hey, just wanted to say thanks for trying to make our day special—it means a lot. But what I really need is a quiet hour on the porch.";
  assert.ok(reviewStoryReply(leaked,{role:"jill",contract:c}).critical.includes("wrong-private-recipient"));
+ const leaked2="Hey, thanks for doing the dinner idea, I really appreciate the effort. It’s how I feel closest to you, you know?";
+ assert.ok(reviewStoryReply(leaked2,{role:"jill",contract:c}).critical.includes("wrong-private-recipient"));
  assert.ok(reviewStoryReply("Hey Jack, I know you want us to go out.",{role:"jill",contract:c}).critical.includes("wrong-private-recipient"));
  assert.ok(reviewStoryReply("Jill, I really appreciate your efforts.",{role:"jack",contract:c}).critical.includes("wrong-private-recipient"));
  assert.equal(reviewStoryReply("Jack planned a lovely day. I told Jack, thanks for planning our day; I'd prefer a quiet hour.",{role:"jill",contract:c,verifiedEvent:"Jill thanked Jack and expressed her porch preference."}).ok,true);
  assert.equal(reviewStoryReply("Thanks for helping me think through how to talk to Jack.",{role:"jill",contract:c}).ok,true);
  assert.ok(reviewStoryReply("Coach says I need to apologize.",{role:"jack",contract:c}).critical.includes("fourth-wall-role-leak"));
+});
+
+test("Live semantic recipient reviewer requires real evidence and rejects a mixed or spouse-directed message",async()=>{
+ const {reviewPrivateRecipient43}=await import("../api/jj42-conversations.mjs");
+ const message="I feel closest to you when we sit together.";
+ const stub=recipient=>async()=>({ok:true,json:async()=>({id:"resp_recipient_review_fixture",
+  output:[{content:[{type:"output_text",text:JSON.stringify({recipient,evidence:"closest to you"})}]}]})});
+ assert.equal((await reviewPrivateRecipient43("jill",message,"",{apiKey:"fixture",fetchImpl:stub("spouse")})).ok,false);
+ assert.equal((await reviewPrivateRecipient43("jill",message,"",{apiKey:"fixture",fetchImpl:stub("mixed")})).ok,false);
+ const safe="I told Jack that I want to sit on the porch with him.";
+ const good=async()=>({ok:true,json:async()=>({id:"resp_recipient_review_fixture",
+  output:[{content:[{type:"output_text",text:JSON.stringify({recipient:"friend",evidence:"I told Jack"})}]}]})});
+ assert.equal((await reviewPrivateRecipient43("jill",safe,"Jill told Jack she wants porch time.",{apiKey:"fixture",fetchImpl:good})).ok,true);
+ assert.equal((await reviewPrivateRecipient43("jill",safe,"",{apiKey:"fixture",fetchImpl:stub("friend")})).ok,false);
 });

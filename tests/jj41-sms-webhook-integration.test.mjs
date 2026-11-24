@@ -99,6 +99,11 @@ function fixture(open43=false,alternate=false){
   }
   if(u.hostname==="api.openai.com"){
    assert.equal(u.pathname,"/v1/responses");
+   if(body?.text?.format?.name==="jj43_recipient_review"){
+    const context=JSON.parse(body.input),candidate=context.candidate;
+    return respond({id:"resp_recipient_mock_"+randomUUID().replace(/-/g,""),
+     output:[{content:[{type:"output_text",text:JSON.stringify({recipient:"friend",evidence:candidate.slice(0,32)})}]}]});
+   }
    if(body?.text?.format?.name==="jj43_scenario_action"){
     if(failNextDecision){failNextDecision=false;return respond({error:"Synthetic transient outage"},503);}
     const context=JSON.parse(body.input),text=context.coach.toLowerCase();
