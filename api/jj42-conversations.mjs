@@ -867,8 +867,9 @@ async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKe
  if(!reply||prior.some(t=>normEvent43(t.reply)===normEvent43(reply)))
   throw Error("STORY BLOCKED: repeated or missing scenario character reply.");
  // No new scored behavior without a committed, unique and sourced event.
- const allowedCoaching=outcome.event&&!repeatedCoach?outcome.coaching:{};
- const assessment=outcome.event?{
+ const recommendation=graph.rules.find(r=>r.role===role&&r.id===decision.recommended);
+ const allowedCoaching=!repeatedCoach&&!report&&recommendation?recommendation.coachingRatings||{}:{};
+ const assessment=(outcome.event||Object.keys(allowedCoaching).length)?{
   role,recommended:decision.recommended||outcome.recommended,enacted:outcome.enacted,
   coaching:allowedCoaching,behavior:outcome.behavior,
   coachingStrength:weightedSkillRating(allowedCoaching,
@@ -877,7 +878,7 @@ async function prepareScenarioOpenTurn43(episode,role,day,history,text,requestKe
    episode.authored43.flow[DEVELOPMENTAL_PHASES[day].id].emphasis),
   consequence:state.strain>before.strain?"Tension":
    state.strain<before.strain?"Opening for discussion":"Unresolved",
-  evidence:outcome.event
+  evidence:outcome.event||null
  }:null;
  return {key:requestKey,role,day,at:new Date().toISOString(),body:text,reply,
   replySource:rendered.source,replyModelAttempts:rendered.attempts,

@@ -41,6 +41,27 @@ export function unprotectSmsToken(cipherText){
  dec.setAuthTag(Buffer.from(tag,"base64url"));
  return Buffer.concat([dec.update(Buffer.from(body,"base64url")),dec.final()]).toString("utf8");
 }
+function inboxKey43(){
+ const secret=process.env.THREEFOLD_SESSION_SECRET||"";
+ if(secret.length<24)throw Error("SMS inbox encryption unavailable");
+ return createHash("sha256").update("Anthos-JJ43-SMS-inbox-v1:").update(secret).digest();
+}
+function sealInbox43(message,eventId,sessionId){
+ const iv=randomBytes(12),cipher=createCipheriv("aes-256-gcm",inboxKey43(),iv);
+ cipher.setAAD(Buffer.from(eventId+":"+sessionId));
+ const data=Buffer.concat([cipher.update(message,"utf8"),cipher.final()]);
+ return [iv.toString("base64url"),cipher.getAuthTag().toString("base64url"),data.toString("base64url")].join(".");
+}
+function readInbox43(row){
+ const [iv,tag,data]=String(row.encrypted_payload||"").split(".");
+ const dec=createDecipheriv("aes-256-gcm",inboxKey43(),Buffer.from(iv,"base64url"));
+ dec.setAAD(Buffer.from(row.provider_event_id+":"+row.session_id));
+ dec.setAuthTag(Buffer.from(tag,"base64url"));
+ return Buffer.concat([dec.update(Buffer.from(data,"base64url")),dec.final()]).toString("utf8");
+}
+const stamp43=()=>new Date(Date.now()).toISOString();
+const retryAt43=ms=>new Date(Date.now()+ms).toISOString();
+const MAX_SMS_ATTEMPTS43=4;
 function stableUuid(value){
  const x=hash("anthos-jj41-sms:"+value);
  return x.slice(0,8)+"-"+x.slice(8,12)+"-4"+x.slice(13,16)+"-a"+
@@ -172,7 +193,8 @@ async function sendSms(phone,text){
   signal:AbortSignal.timeout(9000)
  });
  if(!response.ok)throw new Error("Telnyx did not accept the SMS (HTTP "+response.status+").");
- return true; // Provider accepted, not necessarily delivered.
+ const accepted=await response.json().catch(()=>null);
+ return {accepted:true,providerMessageId:accepted?.data?.id||null}; // Acceptance is not handset delivery.
 }
 function signingKey(){
  const key=String(process.env.TELNYX_PUBLIC_KEY||"").trim();
@@ -274,7 +296,9 @@ async function progressRoom(roomId){
  const initial=await status(jt);
  if(initial.openConversation){
   // One real-time check-in per invocation; reply count never drives time.
-  if(initial.canContinue)await advance(jt);
+  const pending=await sql(EVENTS,{room_id:"eq."+roomId,
+   processing_state:"neq.complete",select:"provider_event_id",limit:"1"})||[];
+  if(initial.canContinue&&!pending.length)await advance(jt);
   let current=await status(jt);
   if(current.finished&&!current.hasSophia){await sophia(jt);current=await status(jt);}
   await deliverOpen43(jack,current);
@@ -317,10 +341,11 @@ export async function tickPilotSms(roomId){
 }
 export async function tickActivePilotSms(){
  if(!pilotSmsReady())return {ok:true,active:0};
+ const recovery=await drainSmsRetries43();
  const rows=await sql(SESS,{stopped_at:"is.null",superseded_at:"is.null",last_sent_sophia:"eq.false",select:"room_id",limit:"100"})||[];
  const rooms=[...new Set(rows.map(r=>r.room_id))];let active=0,errors=0;
  for(const id of rooms){try{const result=await tickPilotSms(id);if(result.active)active++;}catch{errors++;}}
- return {ok:errors===0,active,errors};
+ return {ok:errors===0,active,errors,recovery};
 }
 async function findActivePhone(phone){
  const matches=await sql(SESS,{phone_e164:"eq."+phone,stopped_at:"is.null",
@@ -384,6 +409,17 @@ async function saveSmsHumanRating43(row,parsed,eventId){
 }
 async function handleReply(row,txt,eventId){
  const token=unprotectSmsToken(row.encrypted_token),st=await status(token);
+ // A committed turn can be awaiting delivery even after a process restart.
+ // Never generate a second action or substitute a later reply during retry.
+ if(st.openConversation){
+  const key=stableUuid(eventId+"-open43");
+  const saved=(st.messages||[]).find(x=>x.kind==="reply"&&String(x.id)==="open-"+key+"-reply")?.body;
+  if(saved){
+   const pair=await currentSessions(row.room_id);
+   if(pair.length!==2||pair.some(x=>x.stopped_at||x.superseded_at||!x.signup_consent_at))return;
+   return await sendSms(row.phone_e164,st.character+" (PRIVATE): "+saved);
+  }
+ }
  const qa=st.openConversation?parseHumanSms43(txt):null;
  if(qa){
   if(qa.kind==="list"||qa.kind==="invalid"){
@@ -429,8 +465,7 @@ async function handleReply(row,txt,eventId){
   if(result.paused){await sendSms(row.phone_e164,"Your pilot is paused. Reply RESUME to continue or STOP to opt out.");return;}
   const reaction=(result.messages||[]).find(x=>x.kind==="reply"&&String(x.id)==="open-"+requestKey+"-reply")?.body;
   if(!reaction)throw Error("The exact committed 4.3 reply is unavailable; retry.");
-  await sendSms(row.phone_e164,result.character+" (PRIVATE): "+reaction);
-  return;
+  return await sendSms(row.phone_e164,result.character+" (PRIVATE): "+reaction);
  }
  if(!st.needsReply){await progressRoom(row.room_id);return}
  if(st.coachChoices.length){
@@ -453,52 +488,103 @@ async function handleReply(row,txt,eventId){
   await sendSms(row.phone_e164,"Your coaching is saved privately. Waiting for your spouse's response.");
  await progressRoom(row.room_id);
 }
+async function finishInbox43(event,receipt=null){
+ await sql(EVENTS,{provider_event_id:"eq."+event.provider_event_id,
+  processing_state:"eq.started",attempt_count:"eq."+event.attempt_count},
+  {processing_state:"complete",encrypted_payload:null,next_retry_at:null,
+   provider_message_id:receipt?.providerMessageId||null,
+   delivery_state:receipt?.accepted?"accepted":null,last_error_code:null,updated_at:stamp43()},"PATCH");
+}
+async function processInbox43(event,row,message){
+ const eventId=event.provider_event_id,phone=event.phone_e164;
+ try{
+  if(!row||row.stopped_at||row.superseded_at||!row.signup_consent_at||
+     (event.session_id&&String(row.id)!==String(event.session_id))){
+   await finishInbox43(event);return {ok:true,ignored:true};
+  }
+  let receipt=null;
+  if(/^STOP(?:ALL)?$/i.test(message)){
+   await sql("anthos_jj41_sms_suppression",{on_conflict:"phone_e164"},
+    {phone_e164:phone,stopped_at:stamp43()},"POST",
+    "resolution=merge-duplicates,return=representation");
+   await sql(SESS,{phone_e164:"eq."+phone},
+    {stopped_at:stamp43(),updated_at:stamp43()},"PATCH");
+   await sendSms(phone,"Anthos: You're opted out of Deep Dive texts. To restore texts, update your consent through your Anthos account. No more coaching texts will be sent.");
+  }else if(/^HELP$/i.test(message)){
+   await sendSms(phone,"Anthos Deep Dive: Help at anthos.love. Reply RECAP to repeat your current scene and private coaching instructions, PAUSE/RESUME to control your experience, or STOP to opt out. Message/data rates may apply.");
+  }else receipt=await handleReply(row,message,eventId);
+  await finishInbox43(event,receipt);
+  return {ok:true};
+ }catch(e){
+  // Never store exception text, prompts, keys or message bodies in logs.
+  const code=/decision unavailable|action provider unavailable/i.test(e.message)?"decision-provider":
+   /Telnyx/i.test(e.message)?"sms-provider":/LIVE QA FAILED|OpenAI response not verified/i.test(e.message)?"character-provider":"processing-error";
+  await sql(EVENTS,{provider_event_id:"eq."+eventId,processing_state:"eq.started",
+   attempt_count:"eq."+event.attempt_count},
+   {processing_state:"error",last_error_code:code,
+    next_retry_at:event.attempt_count<MAX_SMS_ATTEMPTS43?retryAt43(15000*event.attempt_count):null,
+    updated_at:stamp43()},"PATCH").catch(()=>{});
+  throw e;
+ }
+}
+async function retryInboxClaim43(existing,force=false){
+ if(!existing.encrypted_payload||!existing.session_id||!existing.room_id||
+  existing.attempt_count>=MAX_SMS_ATTEMPTS43||existing.processing_state==="complete")return null;
+ if(existing.processing_state==="started"&&Date.parse(existing.next_retry_at||"")>Date.now())return null;
+ if(!force&&(!existing.next_retry_at||Date.parse(existing.next_retry_at)>Date.now()))return null;
+ const [claimed]=await sql(EVENTS,{provider_event_id:"eq."+existing.provider_event_id,
+  processing_state:"eq."+existing.processing_state,attempt_count:"eq."+existing.attempt_count},
+  {processing_state:"started",attempt_count:existing.attempt_count+1,
+   next_retry_at:retryAt43(120000),updated_at:stamp43()},"PATCH")||[];
+ return claimed?{...existing,...claimed,processing_state:"started",attempt_count:existing.attempt_count+1}:null;
+}
+async function retryStoredInbox43(event){
+ const [route]=await sql(SESS,{id:"eq."+event.session_id,room_id:"eq."+event.room_id,
+  phone_e164:"eq."+event.phone_e164,select:"*",limit:"1"})||[];
+ // A retry is pinned to the original room/session, never to a new active
+ // story that happens to use the same phone number.
+ if(!route||route.stopped_at||route.superseded_at||!route.signup_consent_at){
+  await finishInbox43(event);return {ok:true,ignored:true};
+ }
+ return processInbox43(event,route,readInbox43(event));
+}
+export async function drainSmsRetries43(){
+ if(!pilotSmsReady())return {processed:0,failed:0};
+ // Existing minute cron recovers failed or abandoned work; bounded batch.
+ const rows=await sql(EVENTS,{next_retry_at:"lte."+stamp43(),
+  encrypted_payload:"not.is.null",processing_state:"neq.complete",
+  order:"received_at.asc",limit:"3"})||[];
+ let processed=0,failed=0;
+ for(const row of rows){
+  const claimed=await retryInboxClaim43(row);
+  if(!claimed)continue;
+  try{await retryStoredInbox43(claimed);processed++;}catch{failed++;}
+ }
+ return {processed,failed};
+}
 export async function receivePilotSms({event,raw,headers}){
  needConfig();
  if(!verifyTelnyxWebhook({body:raw,headers}))
   throw Object.assign(new Error("Unverified Telnyx webhook."),{status:401});
  if(event?.data?.event_type!=="message.received")return {ok:true,ignored:true};
- const payload=event?.data?.payload||{};
- const phone=payload.from?.phone_number;
- const target=payload.to?.[0]?.phone_number;
- const message=String(payload.text||"").trim();
+ const payload=event?.data?.payload||{},phone=payload.from?.phone_number;
+ const target=payload.to?.[0]?.phone_number,message=String(payload.text||"").trim();
  const eventId=String(event.data.id||payload.id||"");
  if(!PHONE.test(phone||"")||target!==process.env.TELNYX_FROM_NUMBER||
   !eventId||eventId.length>160||message.length>900)return {ok:true,ignored:true};
- // Do not store private SMS contents in the event log.
- let claimed=await sql(EVENTS,{on_conflict:"provider_event_id"},
-  {provider_event_id:eventId,phone_e164:phone,processing_state:"started"},
+ const row=await findActivePhone(phone);
+ const record={provider_event_id:eventId,phone_e164:phone,processing_state:"started",
+  attempt_count:1,room_id:row?.room_id||null,session_id:row?.id||null,
+  encrypted_payload:row?sealInbox43(message,eventId,row.id):null,
+  next_retry_at:row?retryAt43(120000):null,updated_at:stamp43()};
+ const claimed=await sql(EVENTS,{on_conflict:"provider_event_id"},record,
   "POST","resolution=ignore-duplicates,return=representation");
  if(!claimed?.length){
-  // The carrier may retry a signed event after our 503. Recover only the
-  // matching failed event; never claim completed or currently running work.
-  claimed=await sql(EVENTS,{provider_event_id:"eq."+eventId,phone_e164:"eq."+phone,
-   processing_state:"eq.error"},{processing_state:"started",updated_at:new Date().toISOString()},"PATCH");
-  if(!claimed?.length)return {ok:true,duplicate:true};
+  const [existing]=await sql(EVENTS,{provider_event_id:"eq."+eventId,phone_e164:"eq."+phone,select:"*",limit:"1"})||[];
+  if(!existing)return {ok:true,duplicate:true};
+  const retry=await retryInboxClaim43(existing,true);
+  if(!retry)return {ok:true,duplicate:true};
+  return retryStoredInbox43(retry);
  }
- const row=await findActivePhone(phone);
- try{
-  if(!row){ // Unknown senders never gain a pilot or receive private data.
-   await sql(EVENTS,{provider_event_id:"eq."+eventId},{processing_state:"complete"},"PATCH");
-   return {ok:true,unknown:true};
-  }
-  if(/^STOP(?:ALL)?$/i.test(message)){
-   await sql("anthos_jj41_sms_suppression",{on_conflict:"phone_e164"},
-    {phone_e164:phone,stopped_at:new Date().toISOString()},"POST",
-    "resolution=merge-duplicates,return=representation");
-   await sql(SESS,{phone_e164:"eq."+phone},
-    {stopped_at:new Date().toISOString(),updated_at:new Date().toISOString()},"PATCH");
-   await sendSms(phone,"Anthos: You're opted out of Deep Dive texts. To restore texts, update your consent through your Anthos account. No more coaching texts will be sent.");
-  }else if(/^HELP$/i.test(message)){
-   await sendSms(phone,"Anthos Deep Dive: Help at anthos.love. Reply RECAP to repeat your current scene and private coaching instructions, PAUSE/RESUME to control your experience, or STOP to opt out. Message/data rates may apply.");
-  }else if(!row.signup_consent_at||row.stopped_at||row.superseded_at){
-   // Never use texting as a back door around verified registration or STOP.
-   return {ok:true,blocked:true};
-  }else await handleReply(row,message,eventId);
-  await sql(EVENTS,{provider_event_id:"eq."+eventId},{processing_state:"complete",updated_at:new Date().toISOString()},"PATCH");
- }catch(e){
-  await sql(EVENTS,{provider_event_id:"eq."+eventId},{processing_state:"error",updated_at:new Date().toISOString()},"PATCH").catch(()=>{});
-  throw e;
- }
- return {ok:true};
+ return processInbox43({...record,...claimed[0]},row,message);
 }

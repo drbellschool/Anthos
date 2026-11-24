@@ -19,7 +19,7 @@ import {simulationEnabled,initialSimulation,SIMULATION_SCENE_SCHEMA,checkSimulat
 import {sceneFactsForAI} from "./jj4-scene-facts.mjs";
 import {checkSceneProgression,sceneProgressionHints} from "./jj4-progress-guards.mjs";
 import {classifyCoachTurn,privateQuestionPrompt,PRIVATE_ANSWER_SCHEMA} from "./jj4-response-router.mjs";
-import {atlasForRoom,reconcileAtlasOpenTurns,slimAtlasContext} from "./atlas-runtime.mjs";
+import {atlasForRoom,reconcileAtlasOpenTurns,slimAtlasContext,roomAtlas43} from "./atlas-runtime.mjs";
 import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,buildConversation43,isConversation43,isOpen43,openTurns43,prepareOpenTurn43,parseLedger42,due42,renderCharacterMessage42,sophiaOrientation42,reactionConversation42,reaction43,sophiaConversation42} from "./jj42-conversations.mjs";
 
 
@@ -278,7 +278,7 @@ async function directScene(room,phaseIndex){
   const history=await db(M,{room_id:"eq."+room.id,order:"id.asc",limit:"100",
    select:"role,kind,phase_index,body"});
   return renderCharacterMessage42(room.episode,phaseIndex,history||[],{
-   atlas:isConversation43(room)?await atlasForRoom(room.id):null,
+   atlas:isConversation43(room)?(await atlasForRoom(room.id)||roomAtlas43(room)):null,
    apiKey:process.env.OPENAI_API_KEY?.trim(),
    model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini"
   });
@@ -923,7 +923,7 @@ export async function textCharacter(token,body,requestKey,{requireLiveProvider=f
   const history=await db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",order:"id.asc",select:"role,kind,phase_index,body"});
   const turn=await prepareOpenTurn43(room.episode,person.role,room.phase_index,history||[],words,requestKey,{
    apiKey:process.env.OPENAI_API_KEY?.trim(),model:process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini",
-   atlasContext:slimAtlasContext(existingAtlas?.atlas,person.role,
+   atlasContext:slimAtlasContext(existingAtlas?.atlas||roomAtlas43(room),person.role,
     room.episode.authored43?.selectedSkills||["s-decisions","g-start","g-influence","i-nontransactional","i-sexual-respect"]),
    requireModelVoice:requireLiveProvider
   });

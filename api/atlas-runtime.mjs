@@ -2,7 +2,7 @@
 // explicitly linked to a verified couple. Never guess a couple from an invite,
 // name, phone, or email; never use unbound pilots as yearlong memory sources.
 import {storySupabaseBase,storySupabaseHeaders} from "./jj4-database-config.mjs";
-import {incidentalIntimacyReview,memoryContext} from "./insight-atlas-model.mjs";
+import {incidentalIntimacyReview,memoryContext,skillMovement} from "./insight-atlas-model.mjs";
 import {openTurns43} from "./jj42-conversations.mjs";
 import {SKILL_IDS43} from "./jj43-developmental.mjs";
 
@@ -98,6 +98,28 @@ export function atlasTurnObservations(turn){
    fallback.interpretation==="joke-with-instruction"?"joke":"observed",fallback.safetyFlag);
  }
  return result;
+}
+// An unlinked handset pilot still needs an actual within-room developmental
+// feedback loop. Derive it deterministically from committed, cited turns.
+// Never copy this into an annual profile without verified account binding.
+export function roomAtlas43(room){
+ const scores={husband:{},wife:{},jack:{},jill:{}},seen=new Set(),memories=[];
+ for(const turn of openTurns43(room.episode||{})){
+  if(turn.replySource!=="model-validated"||!turn.replyProviderResponseId)continue;
+  const observations=atlasTurnObservations(turn);
+  for(const o of observations){
+   const id=[o.subject,o.skillId,o.sourceRef].join("|");
+   if(seen.has(id))continue;seen.add(id);
+   const change=skillMovement({oldScore:scores[o.subject][o.skillId]??3,
+    observedRating:o.observedRating,confidence:o.confidence,sourceRef:o.sourceRef,
+    subject:o.subject,skillId:o.skillId});
+   if(change.recordable)scores[o.subject][o.skillId]=change.newScore;
+  }
+  if(turn.event)memories.push({memoryKey:"turn:"+turn.key,summary:turn.event,
+   skillIds:[...new Set(observations.map(o=>o.skillId))],salience:3,
+   originatingEvidenceId:turn.key});
+ }
+ return {scores,memories:memories.slice(-12),scope:"current-pilot-only",evidenceCount:seen.size};
 }
 async function applyOne(atlas,o,fetchImpl){
  return atlasDb("rpc/anthos_atlas_record_observation",{},{

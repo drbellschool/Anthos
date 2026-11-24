@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,generateKeyPairSync,sign,randomUUID} from "node:crypto";
 import {buildAuthored41} from "../api/jj4-authored41.mjs";
-import {registerPilotSms,receivePilotSms,tickPilotSms,PILOT_DAY_MS} from "../api/jj41-sms-core.mjs";
+import {registerPilotSms,receivePilotSms,tickPilotSms,drainSmsRetries43,PILOT_DAY_MS} from "../api/jj41-sms-core.mjs";
 import {buildConversation43} from "../api/jj42-conversations.mjs";
 import {savedMicrowaveStudio} from "./fixtures/jj41-microwave-saved-studio.mjs";
 import {episode as closeEpisode} from "./fixtures/jj43-what-makes-us-feel-close.mjs";
@@ -75,6 +75,9 @@ function fixture(open43=false,alternate=false){
    if(["select","order","limit","on_conflict"].includes(key))continue;
    if(value.startsWith("eq."))out=out.filter(x=>String(x[key])===value.slice(3));
    else if(value==="is.null")out=out.filter(x=>x[key]===null||x[key]===undefined);
+   else if(value==="not.is.null")out=out.filter(x=>x[key]!==null&&x[key]!==undefined);
+   else if(value.startsWith("neq."))out=out.filter(x=>String(x[key])!==value.slice(4));
+   else if(value.startsWith("lte."))out=out.filter(x=>x[key]!=null&&Date.parse(x[key])<=Date.parse(value.slice(4)));
   }
   const order=u.searchParams.get("order");
   if(order){const [col,dir]=order.split(".");out.sort((a,b)=>String(a[col]).localeCompare(String(b[col]))*(dir==="desc"?-1:1))}
@@ -420,4 +423,30 @@ test("Second graph: five earned days, two free-text lanes, state changes, and re
   assert.ok(!/microwave|\$400/i.test(closings[0].body));
   assert.ok(fx.lists.anthos_jj41_sms_participants.every(x=>x.last_sent_sophia));
  }finally{globalThis.fetch=beforeFetch;Date.now=realNow;fx.restore()}
+});
+
+test("4.3 durable encrypted inbox recovers without a second carrier webhook and never repeats a committed action",async()=>{
+ const fx=fixture(true,true),before=globalThis.fetch,realNow=Date.now,started=Date.now();
+ let clock=started;Date.now=()=>clock;fx.configure();process.env.OPENAI_API_KEY="synthetic-openai-test-only";globalThis.fetch=fx.mockFetch;
+ try{
+  await registerPilotSms({origin:"https://anthos.love",roomId:fx.roomId,husbandCustomerId:fx.husbandCustomerId,invitations:{
+   jack:"https://anthos.love/pilot-v4/?invite="+fx.tokenJack,jill:"https://anthos.love/pilot-v4/?invite="+fx.tokenJill}});
+  const room=fx.lists.anthos_jj4_rooms[0],key=randomUUID(),advice="I'd try asking her directly about what closeness means.";
+  fx.failOneDecision();
+  await assert.rejects(fx.inbound(fx.phoneJack,advice,key),/decision unavailable/);
+  const event=fx.lists.anthos_jj41_sms_webhook_events.find(x=>x.provider_event_id===key);
+  assert.equal(event.processing_state,"error");
+  assert.ok(event.encrypted_payload&&!event.encrypted_payload.includes(advice));
+  clock+=16000;
+  assert.equal((await drainSmsRetries43()).processed,1);
+  assert.equal(event.processing_state,"complete");
+  assert.equal(event.encrypted_payload,null);
+  assert.ok(event.provider_message_id);
+  assert.equal(event.delivery_state,"accepted");
+  assert.equal(room.episode.authored43.turns.length,1);
+  assert.equal(room.episode.authored43.turns[0].stateAfter.jackAsked,true);
+  const count=fx.outbox.length;
+  await drainSmsRetries43();await fx.inbound(fx.phoneJack,advice,key);
+  assert.equal(fx.outbox.length,count);assert.equal(room.episode.authored43.turns.length,1);
+ }finally{globalThis.fetch=before;Date.now=realNow;fx.restore()}
 });

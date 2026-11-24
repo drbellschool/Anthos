@@ -1,4 +1,5 @@
 import {pilotSmsReady,receivePilotSms} from "./jj41-sms-core.mjs";
+export const config={maxDuration:60};
 const HEAD={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store",
  "X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const response=(status,data)=>new Response(JSON.stringify(data),{status,headers:HEAD});
