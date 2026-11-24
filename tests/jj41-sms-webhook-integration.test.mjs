@@ -43,7 +43,8 @@ function fixture(open43=false,alternate=false){
   anthos_customer_directory:customers,anthos_atlas_episodes:[],
    anthos_jj41_sms_suppression:[],
   anthos_jj4_messages:[],anthos_jj41_sms_participants:[],anthos_jj41_sms_webhook_events:[]};
- const outbox=[],keypair=generateKeyPairSync("ed25519");let counter=0;
+ const outbox=[],keypair=generateKeyPairSync("ed25519");let counter=0,failNextDecision=false;
+ const failOneDecision=()=>{failNextDecision=true};
  const previous={};
  const names=["TELNYX_API_KEY","TELNYX_FROM_NUMBER","TELNYX_PUBLIC_KEY",
   "TELNYX_PILOT_MESSAGING_ENABLED","THREEFOLD_10DLC_APPROVED",
@@ -95,11 +96,30 @@ function fixture(open43=false,alternate=false){
   }
   if(u.hostname==="api.openai.com"){
    assert.equal(u.pathname,"/v1/responses");
+   if(body?.text?.format?.name==="jj43_scenario_action"){
+    if(failNextDecision){failNextDecision=false;return respond({error:"Synthetic transient outage"},503);}
+    const context=JSON.parse(body.input),text=context.coach.toLowerCase();
+    const selected=context.options.find(x=>
+      (text.includes("asking her directly")&&x.cues.some(c=>c.includes("actually enjoy")))||
+      (text.includes("acknowledge his effort")&&x.cues.some(c=>c.includes("acknowledge his effort")))||
+      (text.includes("offer a porch hour first")&&x.cues.some(c=>c.includes("offer a porch hour first")))||
+      (text.includes("say what sounds good")&&x.cues.some(c=>c.includes("say what sounds good")))||
+      (text.includes("agree to the porch conversation")&&x.cues.some(c=>c.includes("agree to the porch conversation")))||
+      (text.includes("make a specific invitation")&&x.cues.some(c=>c.includes("make a specific invitation")))||
+      (text.includes("actually enjoy")&&x.cues.some(c=>c.includes("actually enjoy"))));
+    const a=selected?.id||"reflect";
+    return respond({id:"resp_decision_mock_"+randomUUID().replace(/-/g,""),
+     output:[{content:[{type:"output_text",text:JSON.stringify({
+      recommended:a,action:a,stance:selected?"follow":"decline",
+      reason:selected?"I want to try understanding their perspective.":"I'm not ready to make a new decision about that."
+     })}]}]});
+   }
    if(body?.text?.format?.name!=="jj43_full_character_text")
     return respond({error:"Test classifier unavailable"},503);
    const context=JSON.parse(body.input),coach=String(context.coachMessage||"");
    const isOther=String(context.establishedEpisodeWorld?.what||"").includes("porch");
-   const msg=isOther?(context.character==="jack"?
+   const graphRule=isOther&&context.verifiedEventThisTurn?closeGraph.rules.find(x=>x.event===context.verifiedEventThisTurn):null;
+   const msg=graphRule?graphRule.reply:isOther?(context.character==="jack"?
     "I put thought into the dinner idea, but Jill wants time on the porch. It's hard not to take that personally. I need to understand her version of closeness before booking anything.":
     "Jack planned a lot, but I would feel close sitting on the porch together. Nothing about dinner is settled, and I want him to understand the quiet hour is important to me."):
     context.character==="jack"?
@@ -195,7 +215,7 @@ function fixture(open43=false,alternate=false){
    "telnyx-timestamp":stamp,"telnyx-signature-ed25519":signature})});
  }
  return {configure,restore,mockFetch,inbound,roomId,phoneJack,phoneJill,
-  tokenJack,tokenJill,lists,outbox,sender,husbandCustomerId:customers[0].id};
+  tokenJack,tokenJill,lists,outbox,sender,failOneDecision,husbandCustomerId:customers[0].id};
 }
 test("verified signup consent starts independent private SMS coaches automatically, including reply/dedupe/STOP",async()=>{
  const fx=fixture(),fetchBefore=globalThis.fetch;
@@ -299,17 +319,16 @@ test("4.3 signed SMS pilot has ten-minute day gates, unsolicited replies, privat
   clock=started+PILOT_DAY_MS-1;
   await tickPilotSms(fx.roomId);
   assert.equal(room.phase_index,0);
-  for(let day=1;day<=5;day++){
-   clock=started+day*PILOT_DAY_MS;
-   await tickPilotSms(fx.roomId);
-   assert.equal(room.phase_index,day);
-  }
-  assert.equal(room.stage,"complete");
-  assert.equal(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.includes("WHAT THE SKILLS SHOWED")),true);
-  assert.equal(fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.includes("WHAT THE SKILLS SHOWED")),true);
-  const completed=fx.outbox.length;
+  clock=started+PILOT_DAY_MS;
   await tickPilotSms(fx.roomId);
-  assert.equal(fx.outbox.length,completed);
+  const firstAdvance=room.phase_index;
+  assert.ok(firstAdvance<=1);
+  // The clock alone cannot finish the other four days.
+  clock=started+10*PILOT_DAY_MS;
+  await tickPilotSms(fx.roomId);
+  assert.equal(room.phase_index,firstAdvance);
+  assert.notEqual(room.stage,"complete");
+  assert.equal(fx.lists.anthos_jj4_messages.filter(x=>x.kind==="sophia").length,0);
   const eventCount=room.episode.authored43.turns.length;
   assert.ok(eventCount>=2,"SMS pilot needs real-model receipts for review.");
   assert.ok(room.episode.authored43.turns.every(t=>t.replySource==="model-validated"));
@@ -340,7 +359,18 @@ test("Second saved 4.3 episode registers verified phones and captures SMS human 
   assert.ok(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.includes("porch")));
   assert.ok(!fx.outbox.some(x=>/microwave|repair shop|\$400/i.test(x.text)));
   const prior=fx.outbox.length;
-  await fx.inbound(fx.phoneJack,"Ask what she'd actually enjoy instead of seeing rejection.");
+  const key=randomUUID();
+  const advice="I'd try just sitting down and asking her directly instead of theorizing false realities.";
+  fx.failOneDecision();
+  await assert.rejects(fx.inbound(fx.phoneJack,advice,key),/decision unavailable/);
+  assert.equal(fx.lists.anthos_jj41_sms_webhook_events.find(x=>x.provider_event_id===key).processing_state,"error");
+  assert.equal(room.episode.authored43.turns.length,0);
+  await fx.inbound(fx.phoneJack,advice,key);
+  assert.equal(room.episode.authored43.turns[0].stateAfter.jackAsked,true);
+  assert.equal(fx.lists.anthos_jj41_sms_webhook_events.find(x=>x.provider_event_id===key).processing_state,"complete");
+  const delivered=fx.outbox.length;
+  await fx.inbound(fx.phoneJack,advice,key);
+  assert.equal(fx.outbox.length,delivered);
   const sent=fx.outbox.slice(prior).filter(x=>x.to===fx.phoneJack);
   assert.ok(sent.some(x=>x.text.startsWith("Jack (PRIVATE):")),JSON.stringify(sent));
   assert.ok(sent.some(x=>x.text.includes("porch")));
@@ -351,4 +381,43 @@ test("Second saved 4.3 episode registers verified phones and captures SMS human 
   assert.equal(room.episode.authored43.smsHumanReviews.jack.characterVoice.score,8);
   assert.equal(room.episode.authored43.smsHumanReviews.jill,undefined);
  }finally{globalThis.fetch=priorFetch;fx.restore()}
+});
+
+test("Second graph: five earned days, two free-text lanes, state changes, and real handler Sophia closure (mock providers)",async()=>{
+ const fx=fixture(true,true),beforeFetch=globalThis.fetch,realNow=Date.now,started=Date.now();
+ let clock=started;Date.now=()=>clock;fx.configure();process.env.OPENAI_API_KEY="synthetic-openai-test-only";
+ globalThis.fetch=fx.mockFetch;
+ try{
+  await registerPilotSms({origin:"https://anthos.love",roomId:fx.roomId,husbandCustomerId:fx.husbandCustomerId,invitations:{
+   jack:"https://anthos.love/pilot-v4/?invite="+fx.tokenJack,
+   jill:"https://anthos.love/pilot-v4/?invite="+fx.tokenJill}});
+  const room=fx.lists.anthos_jj4_rooms[0];
+  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJack&&x.text.startsWith("Jack (PRIVATE):")));
+  assert.ok(fx.outbox.some(x=>x.to===fx.phoneJill&&x.text.startsWith("Jill (PRIVATE):")));
+  clock=started+PILOT_DAY_MS*5;
+  await tickPilotSms(fx.roomId);
+  assert.equal(room.phase_index,0,"silence must not skip days");
+  const steps=[
+   [fx.phoneJack,"I'd try just sitting down and asking her directly instead of theorizing false realities."],
+   [fx.phoneJill,"Acknowledge his effort, but explain what you want."],
+   [fx.phoneJack,"Offer a porch hour first and leave dinner optional."],
+   [fx.phoneJill,"Say what sounds good without agreeing to the whole day."],
+   [fx.phoneJack,"Agree to the porch conversation before revisiting the dinner idea."]
+  ];
+  for(let day=0;day<5;day++){
+   await fx.inbound(steps[day][0],steps[day][1]);
+   assert.ok(room.episode.authored43.turns.at(-1).event,"a real authored action must be selected");
+   clock+=PILOT_DAY_MS;
+   await tickPilotSms(fx.roomId);
+   assert.equal(room.phase_index,day+1);
+  }
+  assert.equal(room.stage,"complete");
+  assert.equal(room.episode.authored43.turns.length,5);
+  assert.equal(room.episode.authored43.turns.at(-1).stateAfter.fridgePlan,"porch-first");
+  const closings=fx.lists.anthos_jj4_messages.filter(x=>x.kind==="sophia");
+  assert.equal(closings.length,1);
+  assert.match(closings[0].body,/What Makes Us Feel Close/);
+  assert.ok(!/microwave|\$400/i.test(closings[0].body));
+  assert.ok(fx.lists.anthos_jj41_sms_participants.every(x=>x.last_sent_sophia));
+ }finally{globalThis.fetch=beforeFetch;Date.now=realNow;fx.restore()}
 });
