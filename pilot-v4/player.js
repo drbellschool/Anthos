@@ -117,7 +117,7 @@ function mount(root,invite,options={}){
    !!state.paused,(state.pausedBy||[]).join(","),
    // Another coach submitting is not a reason to steal this coach's focus.
    state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,
-   state.hasSophia,state.closing,state.closureDue,autoFailed
+   state.hasSophia,state.closing,state.closureDue,state.nextStoryDay,autoFailed
   ].join("|");
   if(nextKey===controlsKey)return;
   controlsKey=nextKey;
@@ -192,7 +192,7 @@ function mount(root,invite,options={}){
    const send=oneAction(state.version==="4.4.0"?"Submit story contribution":"Send private advice",async()=>{
     const words=field.value.trim();
     if(words.length<2){message("Write a suggestion or question to your character.",true);return}
-    await act("coach",{message:words,requestKey:crypto.randomUUID()});
+    await act("coach",{message:words,requestKey:crypto.randomUUID(),...(state.version==="4.4.0"?{phaseIndex:state.phaseIndex}:{})});
    },true);
    if(state.version!=="4.1.0"&&!["4.2.0","4.3.0","4.4.0"].includes(state.version))oneAction("Ask "+(state.character||"character"),async()=>{
     const words=field.value.trim();
@@ -234,7 +234,7 @@ function mount(root,invite,options={}){
    return;
   }
   if(["4.2.0","4.3.0","4.4.0"].includes(state.version)&&state.nextAvailableAt&&["flow","needs_scene"].includes(state.stage)){
-   message("Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
+   message(state.version==="4.4.0"?"Next story page: "+state.nextStoryDay+". Both contributions are saved.":"Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
    oneAction("Refresh",refresh);return;
   }
   message("Updating the episode…");
@@ -283,7 +283,7 @@ function mount(root,invite,options={}){
  refresh();
  const timer=setInterval(()=>{
   if(destroyed||inFlight||!current?.joined||(current.finished&&current.hasSophia))return;
-  if(current.openConversation||current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined||
+  if(current.version==="4.4.0"||current.openConversation||current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined||
      (current.finished&&!current.hasSophia))refresh();
  },5000);
  return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);root.replaceChildren()},refresh};
