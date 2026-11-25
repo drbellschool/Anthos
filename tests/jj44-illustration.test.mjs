@@ -88,3 +88,14 @@ test("4.4 preview cannot fall back to production database",()=>{
  assert.throws(()=>storySupabaseBase({...config,SUPABASE_URL:PRODUCTION_URL,ANTHOS_QA_STRICT_ISOLATION:"1"}),/Quality Lab/);
  assert.equal(storySupabaseBase({...config,...env}),env.SUPABASE_URL+"/rest/v1/");
 });
+
+test("authenticated production room setup may provision only the fixed private image bucket",async()=>{
+ const env={SUPABASE_SECRET_KEY:"synthetic",VERCEL_ENV:"production"};
+ let calls=0;
+ await ensureArtBucket44({env,allowCreate:true,fetchImpl:async(url,o)=>{
+  calls++;if(calls===1)return json({},404);
+  if(calls===2){assert.equal(o.method,"POST");assert.match(url,/storage\/v1\/bucket$/);assert.deepEqual(JSON.parse(o.body),{id:"anthos-jj44-art",name:"anthos-jj44-art",public:false,file_size_limit:3145728,allowed_mime_types:["image/jpeg"]});return json({})}
+  return json({public:false});
+ }});
+ assert.equal(calls,3);
+});
