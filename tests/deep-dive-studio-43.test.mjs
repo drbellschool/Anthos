@@ -11,11 +11,12 @@ const ui=source("admin/episode-studio.js");
 const css=source("admin/episode-studio.css");
 const api=source("api/admin.mjs");
 
-test("The visible Anthos Deep Dive Studio is 4.3 only",()=>{
- assert.match(html,/ANTHOS 4\.3 · DEEP DIVE OPERATIONS/);
- assert.match(html,/ANTHOS · DEEP DIVE STUDIO 4\.3/);
+test("The visible Anthos Deep Dive Studio identifies 4.4 and retains legacy pilot controls",()=>{
+ assert.match(html,/ANTHOS 4\.4 · DEEP DIVE OPERATIONS/);
+ assert.match(html,/ANTHOS · DEEP DIVE STUDIO 4\.4/);
  for(const id of ["episodeLaunchPilot","episodeLaunchPilot41","episodeLaunchPilot42"])
   assert.match(html,new RegExp('id="'+id+'"[^>]*hidden'));
+ assert.match(html,/id="episodeLaunchPilot44"/);
  assert.match(html,/id="episodeLaunchPilot43"/);
  assert.match(html,/id="episodeLaunchPilot43Timed"/);
  assert.match(html,/Deep Dive 4\.3 · Text the registered couple/);
