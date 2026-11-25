@@ -41,3 +41,30 @@ test("Sunday requires six committed story pages",async()=>{
  const final=await closeStorybook44(episode,Array.from({length:6},(_,i)=>row(i)),async()=>({reflection:"They discussed the issue openly during the chapter.",question:"What did you notice in their conversation?"}));
  assert.match(final,/What did you notice/);
 });
+
+import {createRoom} from "../api/jj4-core.mjs";
+test("4.4 launches a shared episode with a primary skill and premise but no six scripted phase summaries",async()=>{
+ const id="99000000-0000-4000-8000-000000000001";
+ const scenario={id,title:"What Makes Us Feel Close",mode:"shared",opening_scene:"Jack and Jill have different ideas about what makes an evening together feel meaningful.",learning_objective:"Recognize invitations for connection.",episode_studio:{primarySkill:"g-bids",premise:"Jack and Jill have different ideas about what makes an evening together feel meaningful.",phases:{}}};
+ const oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ let created=0,participants=0;
+ globalThis.fetch=async(input,options={})=>{
+  const path=new URL(String(input)).pathname;
+  const json=x=>new Response(JSON.stringify(x));
+  if(path.endsWith("/anthos_jj2_scenarios"))return json([scenario]);
+  if(path.endsWith("/bucket/anthos-jj44-art"))return json({public:false});
+  if(path.endsWith("/anthos_jj4_rooms")&&options.method==="POST"){
+   const body=JSON.parse(options.body);assert.equal(body.episode.storybook44.version,"4.4.0");assert.equal(body.episode.primarySkill,"g-bids");created++;return json([{id,expires_at:"2099-01-01T00:00:00Z"}]);
+  }
+  if(path.endsWith("/anthos_jj4_participants")&&options.method==="POST"){participants++;return json([])}
+  throw Error("Unexpected route "+path);
+ };
+ process.env.SUPABASE_SECRET_KEY="synthetic-only";process.env.OPENAI_API_KEY="synthetic-only";
+ try{
+  const result=await createRoom("https://anthos.test",id,null,"4.4.0",{fastForward:true});
+  assert.equal(result.engine,"4.4.0");assert.equal(created,1);assert.equal(participants,2);
+  await assert.rejects(createRoom("https://anthos.test",id,null,"4.0.0"),/opening introduction|six phase summaries/);
+  scenario.episode_studio.primarySkill="";
+  await assert.rejects(createRoom("https://anthos.test",id,null,"4.4.0"),/primary relationship objective/);
+ }finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}
+});
