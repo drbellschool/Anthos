@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f6f2eb">
+  <title>Private Account Pilot | Anthos</title>
+  <style>
+    :root{color-scheme:light;--ink:#25372c;--sage:#647b67;--gold:#ad9371;--paper:#f8f5ef;--line:#dcd9d0}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{max-width:650px;margin:0 auto;padding:35px 20px 80px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:45px}
+    .brand{font:37px/1 Georgia,serif;text-decoration:none;color:var(--ink);letter-spacing:-.055em}
+    .back{font-size:13px;color:var(--sage)}
+    .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:var(--sage)}
+    h1{font:normal clamp(36px,7vw,55px)/1.14 Georgia,serif;letter-spacing:-.035em;margin:10px 0 16px}
+    .intro{color:#647066;max-width:590px;margin:0 0 27px}
+    .panel{padding:clamp(22px,5vw,40px);background:#fffdfa;border:1px solid var(--line);box-shadow:0 15px 40px #3b45330e}
+    .field{display:grid;gap:7px;margin:0 0 17px}label{font-weight:650;font-size:13px}
+    input{font:16px system-ui;width:100%;padding:13px 14px;border:1px solid #b7c1b9;border-radius:5px;background:white;color:var(--ink)}
+    input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    button{font:700 14px system-ui;cursor:pointer;border-radius:28px;padding:13px 20px;border:1px solid var(--ink)}
+    button.primary{background:var(--ink);color:white}button.secondary{background:transparent;color:var(--ink)}
+    button:disabled{opacity:.65;cursor:wait}
+    .actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+    .note{font-size:12px;color:#667168;margin-top:14px}
+    .check{display:flex;align-items:flex-start;gap:10px;font-weight:400;line-height:1.5}
+    .check input{width:18px;height:18px;flex-shrink:0;margin-top:2px}
+    #status{margin:18px 0;padding:13px 16px;background:#ebf1eb;color:#2b5a3b;border-left:3px solid #6d9774}
+    #status.error{background:#f9eeee;color:#923d39;border-left-color:#aa605a}
+    #status:empty{display:none}
+    [hidden]{display:none!important}
+    .profile-summary{padding:15px 18px;background:#eef1e9;margin-top:16px}
+    footer{margin-top:30px;font-size:12px;color:#71786e}footer a,.check a{color:inherit}
+  </style>
+  <script type="module" src="/account/account.js"></script>
+</head>
+<body>
+<main>
+  <header><a class="brand" href="/" aria-label="Anthos home">✳ anthos</a><a class="back" href="/">Back to Anthos</a></header>
+  <div class="eyebrow">A PRIVATE DEVELOPMENT PILOT</div>
+  <h1>Your story begins here.</h1>
+  <p class="intro">Each spouse will have an individual private account, even when you're sharing a journey. These accounts are separate from SMS enrollment.</p>
+
+  <div id="status" role="status" aria-live="polite"></div>
+  <section id="unavailable" class="panel" hidden>
+    <h2>Not accepting accounts yet</h2>
+    <p>We're putting the privacy and account systems in place before opening this experience to couples.</p>
+    <a href="/experience/">Explore the interactive demo</a>
+  </section>
+
+  <section id="authPanel" class="panel" hidden>
+    <h2 id="authHeading">Welcome back</h2>
+    <form id="authForm">
+      <div class="field"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" required maxlength="254"></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" minlength="12" maxlength="256" required></div>
+      <label class="check" id="termsRow" hidden><input id="terms" type="checkbox"> I agree to the <a href="/terms/" target="_blank" rel="noopener noreferrer">terms</a> and acknowledge the <a href="/privacy/" target="_blank" rel="noopener noreferrer">privacy policy</a>. SMS requires its own separate opt-in.</label>
+      <div class="actions"><button id="authSubmit" type="submit" class="primary">Sign in</button><button id="switchMode" type="button" class="secondary">Create an account</button></div>
+    </form>
+    <p class="note">Email confirmation may be required. Never share your password or a confirmation link with anyone.</p>
+  </section>
+
+  <section id="profilePanel" class="panel" hidden>
+    <div class="eyebrow">STEP 1 OF 2 · YOU</div>
+    <h2 id="profileHeading">Welcome to Anthos</h2>
+    <p id="signedInAs" class="note"></p>
+    <p>Only you can read these personal details. Your wedding date will be proposed for your shared couple record later, after both accounts agree to link.</p>
+    <form id="profileForm">
+      <div class="field"><label for="displayName">What should Sophia call you?</label><input id="displayName" maxlength="80" required autocomplete="given-name"></div>
+      <div class="field"><label for="birthDate">Your date of birth</label><input id="birthDate" type="date" required autocomplete="bday"></div>
+      <div class="field"><label for="weddingDate">Wedding date</label><input id="weddingDate" type="date" required></div>
+      <div class="actions"><button id="profileSubmit" class="primary" type="submit">Save my private profile</button><button id="signOut" class="secondary" type="button">Sign out</button></div>
+    </form>
+    <div id="profileSummary" class="profile-summary" hidden>
+      <strong>Your private profile is saved.</strong>
+      <p>Next: invite your spouse with a secure, single-use link. Partner linking is not enabled in this pilot yet.</p>
+    </div>
+    <p class="note">Your information is not sent by text or shown to your spouse. Dates are self-reported; this is not identity verification.</p>
+  </section>
+
+  <footer>Anthos is relationship education and shared adventure, not counseling or emergency support. <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></footer>
+</main>
+</body>
+</html>
