@@ -100,7 +100,10 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  }));
  if(!storybook&&!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
   error("Draft and save Sophia’s opening introduction before launching a new pilot.",409);
- if(!draft.primarySkill||(!developmental&&!PHASES4.every(p=>draft.phases[p]?.trim().length>=30)))
+ if(storybook){
+  if(!draft.primarySkill)error("Choose a primary relationship objective for this storybook.",409);
+  if(!draft.premise?.trim())error("Add a story premise before launching the storybook.",409);
+ }else if(!draft.primarySkill||(!developmental&&!PHASES4.every(p=>draft.phases[p]?.trim().length>=30)))
   error("Finish the primary objective and all six phase summaries before piloting.",409);
  // All NEW v4 pilots pin the existing actor, object, and event state.
  // Previously created rooms retain their recorded engine version.
