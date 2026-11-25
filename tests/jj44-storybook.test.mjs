@@ -68,3 +68,37 @@ test("4.4 launches a shared episode with a primary skill and premise but no six 
   await assert.rejects(createRoom("https://anthos.test",id,null,"4.4.0"),/primary relationship objective/);
  }finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}
 });
+
+test("Monday is an opening with no coaching; exact shape errors and candidate drive a corrective retry",async()=>{
+ let attempts=0,reviewed=0;
+ const long={...page(0),artBrief:"A".repeat(251),events:["One","Two","Three","Four","Five"]};
+ const result=await writeStorybookPage44(episode,0,[],async args=>{
+  if(args.name==="jj44_storyboard"){
+   attempts++;assert.match(args.instructions,/no prior pages or coach contributions/);
+   assert.deepEqual(args.input.contributions,{});
+   assert.match(args.input.formatRules,/2500 characters/);
+   if(attempts===1)return long;
+   assert.deepEqual(args.input.previousCandidate,long);
+   assert.ok(args.input.revisionIssues.some(s=>s.includes("artBrief")));
+   assert.ok(args.input.revisionIssues.some(s=>s.includes("events")));
+   return page(0);
+  }
+  reviewed++;assert.match(args.instructions,/Do not require advice/);
+  assert.match(args.instructions,/Reject ONLY concrete material/);
+  return {pass:true,issues:[]};
+ });
+ assert.deepEqual(result,page(0));assert.equal(attempts,2);assert.equal(reviewed,1);
+});
+test("editor feedback revises the same draft, not an unrelated fresh start",async()=>{
+ let attempts=0,reviews=0;
+ const first=page(0),second={...first,title:"Revised opening"};
+ const result=await writeStorybookPage44(episode,0,[],async args=>{
+  if(args.name==="jj44_storyboard"){
+   attempts++;if(attempts===1)return first;
+   assert.deepEqual(args.input.previousCandidate,first);
+   assert.deepEqual(args.input.revisionIssues,["Clarify the appliance location."]);return second;
+  }
+  reviews++;return reviews===1?{pass:false,issues:["Clarify the appliance location."]}:{pass:true,issues:[]};
+ });
+ assert.deepEqual(result,second);assert.equal(attempts,2);
+});
