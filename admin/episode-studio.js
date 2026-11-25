@@ -633,7 +633,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
   $("episodePilotStatus").textContent=
    (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
    "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
-   "Each private coach starts at Hook; no SMS is sent. Invitations expire "+new Date(room.expiresAt).toLocaleDateString()+".";
+   (room.engine==="4.4.0"?"Each spouse starts on Monday and can guide the story. No SMS is sent. Invitations expire ":"Each private coach starts at Hook; no SMS is sent. Invitations expire ")+new Date(room.expiresAt).toLocaleDateString()+".";
   const husbandPanel=$("episodeHusbandPlayer"),wifePanel=$("episodeWifePlayer");
   husbandPanel.hidden=!room.invitations.jack;wifePanel.hidden=!room.invitations.jill;
   pilotPlayers=[];
@@ -648,6 +648,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
 async function refreshPilotReview43(){
  const host=$("episodeReviewReport43");if(!host)return;
  host.replaceChildren();
+ if(pilot?.engine==="4.4.0"){host.append(node("p","episode-editorial-note","4.4: use the two storybook panels above to review the shared scenes and artwork. The legacy SMS transcript report does not apply."));return;}
  if(!pilot?.roomId){
   host.append(node("p","episode-editorial-note","Start a 4.3 browser or SMS pilot to see real character dialogue, verified events and human ratings here."));
   return;
