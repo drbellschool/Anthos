@@ -7,12 +7,14 @@ function mount(root,invite,options={}){
  let current=null,inFlight=false,lastFingerprint="",destroyed=false,autoFailed=false,autoTimer=null;
  // Polling must never destroy an in-progress message or move keyboard focus.
  // Keep drafts scoped to this private participant; do not send or disclose until Submit.
+ const artUrls=new Map(),artLoads=new Map();
  let controlsKey="",draftName=options.defaultName||"",draftAdvice="",draftPhase=-1;
  root.replaceChildren();
  root.classList.add("jj4-player");
  const top=el("div","jj4-top"),status=el("div","jj4-state","Connecting…");
  const title=el("strong","jj4-player-title","Private Coach"),phase=el("span","jj4-phase","");
  top.append(title,phase);root.append(top,status);
+ const week=el("div","jj44-week");week.hidden=true;root.append(week);
  const area=el("div","jj4-scroll");area.setAttribute("aria-live","polite");root.append(area);
  const controls=el("div","jj4-controls");root.append(controls);
  function message(text,isError=false){status.textContent=text;status.classList.toggle("error",isError)}
@@ -56,6 +58,39 @@ function mount(root,invite,options={}){
    }
   });
  }
+ function attachArt44(row,item,state){
+  const holder=el("div","jj44-art");row.append(holder);
+  const day=item.phase_index;
+  if(item.artState==="ready"){
+   const img=el("img","jj44-art-image");img.alt="Watercolor illustration for "+item.storyTitle;holder.append(img);
+   const load=async()=>{
+    try{
+     if(!artUrls.has(day)){
+      if(!artLoads.has(day))artLoads.set(day,(async()=>{
+       const response=await fetch("/api/jack-jill-v4?artDay="+day,{headers:{"x-anthos-v4-invite":token},credentials:"omit",cache:"no-store"});
+       if(!response.ok||!response.headers.get("content-type")?.startsWith("image/jpeg"))throw Error("Illustration unavailable.");
+       const blob=await response.blob();
+       if(destroyed)return;
+       artUrls.set(day,URL.createObjectURL(blob));
+      })().finally(()=>artLoads.delete(day)));
+      await artLoads.get(day);
+     }
+     if(!destroyed&&artUrls.has(day))img.src=artUrls.get(day);
+    }catch{if(!destroyed&&holder.isConnected){
+     holder.replaceChildren(el("p","jj44-art-note","Could not load illustration."));
+     const retry=el("button","jj4-button","Retry image");retry.type="button";retry.onclick=()=>{holder.replaceChildren(img);load()};holder.append(retry);
+    }}
+   };
+   load();return;
+  }
+  if(item.artState==="generating"){holder.append(el("p","jj44-art-note","The illustrator is working on this page…"));return;}
+  if(item.artState==="unavailable"){holder.append(el("p","jj44-art-note","Illustration could not be approved. Your story remains saved."));return;}
+  const prior=state.scenes.filter(x=>x.kind==="scene"&&x.phase_index<day);
+  if(prior.some(x=>x.artState!=="ready")){holder.append(el("p","jj44-art-note","Illustrate the earlier pages first."));return;}
+  const button=el("button","jj4-button",item.artState==="retry"?"Retry illustration":"Illustrate this page");button.type="button";
+  button.onclick=async()=>{if(inFlight||destroyed)return;button.disabled=true;await act("illustrate",{phaseIndex:day});button.disabled=false;};
+  holder.append(button);
+ }
  function transcript(state){
   const seen=new Set(),entries=[];
   for(const x of [...state.scenes,...state.messages].sort((a,b)=>state.openConversation?
@@ -65,7 +100,7 @@ function mount(root,invite,options={}){
    seen.add(x.id+"-"+x.kind);entries.push(x);
   }
   const presented=state.version==="4.1.0"?entries.filter(x=>x.kind!=="coach"):entries;
-  const fp=presented.map(x=>x.id+":"+x.body.length).join("|");
+  const fp=presented.map(x=>x.id+":"+x.body.length+":"+(x.artState||"")).join("|");
   if(fp===lastFingerprint)return;
   lastFingerprint=fp;
   area.replaceChildren();
@@ -86,7 +121,8 @@ function mount(root,invite,options={}){
     (state.character||"Character").toUpperCase()+" → "+
     (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));
    if(state.version==="4.4.0"&&isScene){
-    row.append(el("h3","jj44-page-title",item.storyTitle||""),el("p","jj44-story-text",item.storyText||""),el("div","jj44-sophia","Sophia · "+(item.sophiaText||"")));
+    row.append(el("h3","jj44-page-title",item.storyTitle||""));attachArt44(row,item,state);
+    row.append(el("p","jj44-story-text",item.storyText||""),el("div","jj44-sophia","Sophia · "+(item.sophiaText||"")));
    }else row.append(el("p","",item.body));
    if(isSophia&&Array.isArray(state.researchSources)){
     const sourceList=el("div","jj4-sources");
@@ -107,6 +143,11 @@ function mount(root,invite,options={}){
   title.textContent=state.version==="4.4.0"?"The Adventures of Jack & Jill":(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
   phase.textContent=state.version==="4.4.0"?state.weekDay+" · Day "+(state.hasSophia?7:state.phaseIndex+1)+"/7":["4.2.0","4.3.0"].includes(state.version)?state.weekDay+" · Day "+(state.phaseIndex+1)+"/6":
    state.phase+" · "+(state.phaseIndex+1)+"/6";
+  root.classList.toggle("jj44-book",state.version==="4.4.0");
+  week.hidden=state.version!=="4.4.0";
+  if(!week.hidden){week.replaceChildren();for(const [i,day] of ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].entries()){
+   const mark=el("span","jj44-day",day);if(i<(state.hasSophia?6:state.phaseIndex))mark.classList.add("done");if(i===(state.hasSophia?6:state.phaseIndex))mark.classList.add("active");week.append(mark);
+  }}
   transcript(state);
   // A background status poll can return every five seconds while a participant
   // is typing. Only rebuild controls when their *meaningful* state changes;
@@ -256,7 +297,7 @@ function mount(root,invite,options={}){
   inFlight=true;
   const buttons=controls.querySelectorAll("button");
   buttons.forEach(x=>x.disabled=true);
-  message(action==="advance"?"Writing the next scene…":
+  message(action==="illustrate"?"Creating and checking your illustration…":action==="advance"?"Writing the next scene…":
    action==="coach"?"Saving your advice…":
    action==="text"?"Sending your private text…":
    action==="ask"?"Asking privately…":
@@ -282,11 +323,11 @@ function mount(root,invite,options={}){
  }
  refresh();
  const timer=setInterval(()=>{
-  if(destroyed||inFlight||!current?.joined||(current.finished&&current.hasSophia))return;
+  if(destroyed||inFlight||!current?.joined||(current.finished&&current.hasSophia&&current.version!=="4.4.0"))return;
   if(current.version==="4.4.0"||current.openConversation||current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined||
      (current.finished&&!current.hasSophia))refresh();
  },5000);
- return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);root.replaceChildren()},refresh};
+ return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);for(const url of artUrls.values())URL.revokeObjectURL(url);artUrls.clear();root.replaceChildren()},refresh};
 }
 window.Anthos4Player={mount};
 })();
