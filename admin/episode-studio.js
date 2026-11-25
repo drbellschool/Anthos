@@ -350,6 +350,7 @@ function canLaunch43(){
 }
 function updatePilotControls43(){
  const okay=canLaunch43();
+ const storybookButton=$("episodeLaunchPilot44");if(storybookButton)storybookButton.disabled=!current||current.mode!=="shared"||busy;
  for(const id of ["episodeLaunchPilot43","episodeLaunchPilot43Timed"]){
   const button=$(id);if(!button)continue;
   button.disabled=!okay||busy;
@@ -553,7 +554,7 @@ function closePilot(clearRoom=false){
 }
 async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
  if(!current||busy)return;
- if(pilotVersion==="4.3.0"&&current.mode!=="shared"){
+ if(["4.3.0","4.4.0"].includes(pilotVersion)&&current.mode!=="shared"){
   note("The live 4.3 pilot supports a shared two-coach episode. Individual episode editing remains available, but solo SMS launching is not yet supported.",true);return;
  }
  if(current.dirty||!current.hasSaved){
@@ -581,7 +582,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
   const previousRoomId=pilot?.roomId||null;
   const room=await request("episode-studio-pilot-v4",{
    scenarioId:current.id,previousRoomId,pilotVersion,
-   fastForward:!timedPilot&&["4.2.0","4.3.0"].includes(pilotVersion),timedPilot
+   fastForward:!timedPilot&&["4.2.0","4.3.0","4.4.0"].includes(pilotVersion),timedPilot
   });
   closePilot();
   pilot=room;
@@ -597,6 +598,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
   if(pilotVersion==="4.2.0"){
    plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
+  if(pilotVersion==="4.4.0")plan.append(node("li","episode-pilot-plan-item","4.4: six shared storyboards with both spouses guiding their character Monday–Friday, Saturday resolution and Sunday Sophia reflection. Illustrated browser pilot: each published scene has an illustration control and both spouses see the same approved artwork. No SMS."));
   if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: each coach privately advises a fictional character. Verified decisions affect the same story while time passes separately from coaching frequency. "+(timedPilot?"Each fictional day lasts ten minutes; messages start only when you select the registered couple.":"Browser review only; no SMS.")));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
@@ -620,7 +622,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
   jack.parentElement.hidden=!room.invitations.jack;jill.parentElement.hidden=!room.invitations.jill;
   if(room.invitations.jack)jack.href=room.invitations.jack;
   if(room.invitations.jill)jill.href=room.invitations.jill;
-  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=isSolo?"4.3 · Individual coach review":"4.3 · Two private coaching streams";
+  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=room.engine==="4.4.0"?"4.4 · Shared illustrated storybook":isSolo?"4.3 · Individual coach review":"4.3 · Two private coaching streams";
   const smsEligible=!!room.timedPilot;
   $("episodePilotClock").textContent=room.timedPilot?"Clock not started. Choose your verified couple to begin Monday.":"";
   $("episodePilotSmsStatus").textContent=!smsEligible?
@@ -1244,8 +1246,9 @@ function setup(){
  $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
  $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
  $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.3.0"));
+ $("episodeLaunchPilot44").addEventListener("click",()=>pilotEpisode(false,"4.4.0"));
  $("episodeLaunchPilot43Timed").addEventListener("click",()=>pilotEpisode(false,"4.3.0",true));
- $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,"4.3.0",!!pilot?.timedPilot));
+ $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.4.0",!!pilot?.timedPilot));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
