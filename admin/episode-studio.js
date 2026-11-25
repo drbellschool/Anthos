@@ -350,7 +350,7 @@ function canLaunch43(){
 }
 function updatePilotControls43(){
  const okay=canLaunch43();
- const storybookButton=$("episodeLaunchPilot44");if(storybookButton)storybookButton.disabled=!current||current.mode!=="shared"||busy;
+ const storybookButton=$("episodeLaunchPilot44");if(storybookButton)storybookButton.disabled=!current||current.mode!=="shared"||busy||!current.studio.primarySkill||!current.studio.premise?.trim();
  for(const id of ["episodeLaunchPilot43","episodeLaunchPilot43Timed"]){
   const button=$(id);if(!button)continue;
   button.disabled=!okay||busy;
@@ -361,13 +361,7 @@ function updatePilotControls43(){
    "This episode needs an approved shared 4.3 story graph with matching skills.";
  }
  const hint=$("episodePilotEmpty");
- if(hint)hint.textContent=!current?
-  "Choose a 4.3 shared episode to begin.":
-  !okay?
-  "This episode needs an approved 4.3 story graph and matching relationship skills before it can launch.":
-  current.dirty||!current.hasSaved?
-  "Ready: the pilot will save your pending edits first, then create the private room. It will not send SMS automatically.":
-  "Ready for browser or SMS pilot. Real texts begin only after choosing the verified couple and clicking Start private SMS coaching.";
+ if(hint)hint.textContent=!current?"Choose a shared episode to begin.":current.mode!=="shared"?"4.4 requires a shared episode.":!current.studio.primarySkill?"Choose a primary relationship objective.":!current.studio.premise?.trim()?"Add a story premise.":"4.4 is available: six illustrated scenes and Sunday reflection. No scripted phase summaries required. Pending edits are saved before launch.";
 }
 function renderWorld43(){
  const host=$("episodeWorld43");if(!host||!current)return;
@@ -488,9 +482,9 @@ function populate(){
  $("episodeSoloWrap").hidden=current.mode!=="individual";
  $("episodeSoloRole").value=s.soloCoach||"jack";
  $("episodeStudioTitle").textContent=s.title||"Untitled episode";
- $("episodeMeta").textContent=(current.mode==="shared"?"SHARED · Jack and Jill / two private coaches":
+ $("episodeMeta").textContent=(current.mode==="shared"?"SHARED · Jack and Jill / two co-authors":
  "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
- " · Deep Dive engine 4.3";
+ " · Deep Dive storybook 4.4";
  $("episodePetal").textContent=current.petal;
  const scenePetal=$("episodeScenePetalLabel");if(scenePetal)scenePetal.textContent=current.petal.replaceAll("-"," ");
  const reviewSelect=$("episodeStatusSelect");if(reviewSelect)reviewSelect.value=current.status||"draft";
@@ -543,7 +537,7 @@ function renderReadiness(){
  box.append(node("p","episode-editorial-note",
   current.studio.scenarioGraph?
    "4.3 world controls the shared story; only recorded actions count toward coaching and behavior evidence.":
-   "4.3 pilot unavailable until this episode has an approved, saved story graph."));
+   "4.4 storybooks do not require a legacy 4.3 graph or scripted phase summaries."));
 }
 function closePilot(clearRoom=false){
  if(timedClock){clearInterval(timedClock);timedClock=null;}
@@ -1188,12 +1182,12 @@ function setup(){
  const board=$("episodePilotBoard");
  panels.pilot.append(board);
  const pilotActions=node("div","episode-v43-pilot-actions");
- pilotActions.append($("episodeLaunchPilot43"),$("episodeLaunchPilot43Timed"));
+ pilotActions.append($("episodeLaunchPilot44"),$("episodeLaunchPilot43"),$("episodeLaunchPilot43Timed"));
  panels.pilot.insertBefore(pilotActions,board);
  const help=node("p","episode-v43-pilot-help",
-  "Browser QA opens private test links without texting. SMS sends real messages to the previously verified, opted-in couple using OpenAI for Jack and Jill.");
+  "Launch 4.4 for an illustrated shared chapter with two co-authors. The older 4.3 browser and SMS modes are retained for existing pilot workflows.");
  panels.pilot.insertBefore(help,board);
- const pilotEmpty=node("p","episode-v43-empty","Choose and save an episode with an approved 4.3 story world, then run browser QA or start a timed SMS pilot.");
+ const pilotEmpty=node("p","episode-v43-empty","Choose a shared episode with a primary skill and premise to launch 4.4.");
  pilotEmpty.id="episodePilotEmpty";
  panels.pilot.insertBefore(pilotEmpty,board);
  const reviewPanel=node("section","episode-v43-review");
