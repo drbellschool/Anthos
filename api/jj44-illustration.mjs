@@ -79,11 +79,24 @@ export async function ensureArtBucket44({env=process.env,fetchImpl=fetch,allowCr
  const get=()=>fetchImpl(base+"bucket/"+ART_BUCKET,{headers,signal:AbortSignal.timeout(10000)});
  let r=await get();
  // Production provisioning is allowed only from the authenticated admin room-creation path.
- if(r.status===404&&((env.VERCEL_ENV==="production"&&allowCreate===true)||(env.VERCEL_ENV==="preview"&&env.ANTHOS_QA_STRICT_ISOLATION==="1"))){
-  await fetchImpl(base+"bucket",{method:"POST",headers,body:JSON.stringify({id:ART_BUCKET,name:ART_BUCKET,public:false,file_size_limit:3145728,allowed_mime_types:["image/jpeg"]}),signal:AbortSignal.timeout(10000)});
-  r=await get();
+ const canCreate=(env.VERCEL_ENV==="production"&&allowCreate===true)||(env.VERCEL_ENV==="preview"&&env.ANTHOS_QA_STRICT_ISOLATION==="1");
+ // Hosted Storage can respond HTTP 400 for a missing bucket (legacy error format).
+ // On 400, verify absence through the authenticated bucket list before creating.
+ let missing=r.status===404;
+ if(r.status===400&&canCreate){
+  const listed=await fetchImpl(base+"bucket",{headers,signal:AbortSignal.timeout(10000)});
+  if(listed.ok){
+   const buckets=await listed.json();
+   missing=Array.isArray(buckets)&&!buckets.some(b=>b.id===ART_BUCKET||b.name===ART_BUCKET);
+  }
  }
- if(!r.ok)fail("Private illustration bucket is not configured.");
+ if(missing&&canCreate){
+  const created=await fetchImpl(base+"bucket",{method:"POST",headers,body:JSON.stringify({id:ART_BUCKET,name:ART_BUCKET,public:false,file_size_limit:3145728,allowed_mime_types:["image/jpeg"]}),signal:AbortSignal.timeout(10000)});
+  // Another admin launch may have created it concurrently; re-read the exact bucket.
+  r=await get();
+  if(!r.ok)fail("Private illustration bucket setup failed (HTTP "+created.status+"/"+r.status+").");
+ }
+ if(!r.ok)fail("Private illustration bucket is not configured (HTTP "+r.status+").");
  const data=await r.json();
  if(data.public!==false)fail("Artwork bucket must be private.");
 }
