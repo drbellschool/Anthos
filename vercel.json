@@ -69,7 +69,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; connect-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; connect-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; upgrade-insecure-requests"
         }
       ]
     },
@@ -123,6 +123,27 @@
           "value": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; connect-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; upgrade-insecure-requests"
         }
       ]
+    },
+    {
+      "source": "/pilot-v4/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; upgrade-insecure-requests"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -140,5 +161,10 @@
       "path": "/api/jj43-sms-clock",
       "schedule": "* * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/jack-jill-v4.mjs": {
+      "maxDuration": 300
+    }
+  }
 }
