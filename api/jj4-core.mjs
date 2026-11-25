@@ -23,6 +23,7 @@ import {JJ42_DAYS,JJ42_RESEARCH_SOURCES,buildConversation42,isConversation42,bui
 
 
 import {STORYBOOK_VERSION,STORYBOOK_DAYS,isStorybook44,buildStorybook44,dueStorybook44,parsePage44,writeStorybookPage44,closeStorybook44} from "./jj44-storybook.mjs";
+import {digestArt44,artPath44,artClaim44,publicArt44,generateIllustration44,ensureArtBucket44,saveArt44,readArt44} from "./jj44-illustration.mjs";
 const R="anthos_jj4_rooms",P="anthos_jj4_participants",M="anthos_jj4_messages";
 const ROLE=["jack","jill"];
 const PHASES4=PHASES.map(x=>x.id);
@@ -119,7 +120,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
   invitations,mode:scenario.mode,soloCoach:draft.soloCoach,expiresAt:created.expires_at,previousRetired,
   ...(weekly?{fastForward:draft.authored42.fastForward,timedPilot:!!draft.authored42.timedPilot,daySchedule:draft.authored42.schedule}:{}),
   ...(storybook?{fastForward:draft.storybook44.fastForward,daySchedule:draft.storybook44.schedule}:{}),
-  note:storybook?"4.4 shared storybook browser rehearsal. No SMS or live image generation.":weekly?"Private weekly conversation rehearsal. No SMS is sent; QA fast-forward can skip Monday–Saturday waits.":
+  note:storybook?"4.4 shared storybook browser rehearsal. On-demand reviewed illustrations; no SMS.":weekly?"Private weekly conversation rehearsal. No SMS is sent; QA fast-forward can skip Monday–Saturday waits.":
   "Private browser pilot. No actual text messages will be sent."};
 }
 async function messages(room,role){
@@ -160,7 +161,7 @@ export async function status(token){
  const visibleScenes=storybook?scenes.flatMap(x=>{
   if(x.kind!=="scene")return [x];
   const p=parsePage44(x.body,x.phase_index);
-  return p?[{...x,body:p.title+"\n\n"+p.story+"\n\nSophia: "+p.sophia,storyTitle:p.title,storyText:p.story,sophiaText:p.sophia}]:[];
+  return p?[{...x,body:p.title+"\n\n"+p.story+"\n\nSophia: "+p.sophia,storyTitle:p.title,storyText:p.story,sophiaText:p.sophia,artState:publicArt44(room.episode.storybook44.artwork?.[x.phase_index],digestArt44(x.body))}]:[];
  }):weekly?scenes.filter(x=>x.kind==="sophia"||x.kind==="introduction"):scenes;
  // An immediate character-to-friend reaction follows the private advice in
  // the browser. It expresses uncertainty, NOT a completed fictional action.
@@ -971,4 +972,74 @@ export async function coach(token,body,requestKey,expectedPhase){
   {p_room:room.id,p_participant:person.id,p_phase:room.phase_index,p_message:words,p_key:requestKey},"POST");
  if(saved!==true)return status(token);
  return status(token);
+}
+
+// Images are generated independently of the story's scene claim. A failed
+// artist cannot rewrite a chapter, consume coaching, or advance the day.
+async function artPage44(room,day){
+ if(!Number.isInteger(day)||day<0||day>5)error("Invalid story page.",400);
+ const rows=await db(M,{room_id:"eq."+room.id,role:"eq.shared",kind:"eq.scene",phase_index:"eq."+day,select:"body,phase_index",limit:"2"});
+ const page=rows?.length===1?parsePage44(rows[0].body,day):null;
+ if(!page)error("This story page is not published.",404);
+ return {page,digest:digestArt44(rows[0].body)};
+}
+async function artParticipant44(token){
+ const {person,room}=await participant(token);
+ if(!person.joined_at||!isStorybook44(room))error("Join a storybook episode first.",403);
+ return {person,room};
+}
+async function patchArt44(room,day,entry){
+ const episode={...room.episode,storybook44:{...room.episode.storybook44,
+  artwork:{...room.episode.storybook44.artwork,[day]:entry}}};
+ const updated=new Date(Math.max(Date.now(),(Date.parse(room.updated_at)||0)+1)).toISOString();
+ const changed=await db(R,{id:"eq."+room.id,updated_at:"eq."+room.updated_at,stage:"eq."+room.stage},
+  {episode,updated_at:updated},"PATCH");
+ return Array.isArray(changed)&&changed.length===1;
+}
+async function finishArt44(token,day,lease,state){
+ for(let retry=0;retry<4;retry++){
+  const {room}=await artParticipant44(token);
+  const old=room.episode.storybook44.artwork?.[day];
+  if(old?.lease!==lease||old.state!=="generating")return false;
+  if(await patchArt44(room,day,{...old,state}))return true;
+ }
+ return false;
+}
+export async function illustrate44(token,day){
+ const {room}=await artParticipant44(token);
+ const {page,digest}=await artPage44(room,day);
+ const lease=randomUUID();
+ const claim=artClaim44(room.episode.storybook44.artwork?.[day],digest,lease);
+ if(!claim)return status(token);
+ const key=process.env.OPENAI_API_KEY?.trim();
+ if(!key)error("Illustration AI is not configured in this environment.",503);
+ // The first approved illustration and previous scene establish visual canon.
+ const references=[];
+ for(const prior of [...new Set(day===0?[]:[0,day-1])]){
+  const p=await artPage44(room,prior);
+  const entry=room.episode.storybook44.artwork?.[prior];
+  if(publicArt44(entry,p.digest)!=="ready")error("Illustrate the earlier pages first to preserve character consistency.",409);
+  references.push(await readArt44(artPath44(room.id,prior,p.digest,entry.lease)));
+ }
+ await ensureArtBucket44();
+ if(!await patchArt44(room,day,claim))return status(token);
+ try{
+  const bytes=await generateIllustration44({page,references,apiKey:key,
+   imageModel:process.env.ANTHOS_JJ44_IMAGE_MODEL?.trim()||"gpt-image-2",
+   visionModel:process.env.ANTHOS_JJ44_VISION_MODEL?.trim()||"gpt-4.1-mini"});
+  await saveArt44(artPath44(room.id,day,digest,lease),bytes);
+  if(!await finishArt44(token,day,lease,"ready"))error("The artwork claim changed. Refresh the story.",409);
+ }catch(e){
+  await finishArt44(token,day,lease,"failed").catch(()=>{});
+  error("Illustration could not be approved or saved. The story is unchanged; retry when available.",502);
+ }
+ return status(token);
+}
+export async function illustration44(token,day){
+ const {room}=await artParticipant44(token);
+ const {digest}=await artPage44(room,day);
+ const entry=room.episode.storybook44.artwork?.[day];
+ if(publicArt44(entry,digest)!=="ready")error("Illustration not yet available.",404);
+ const bytes=await readArt44(artPath44(room.id,day,digest,entry.lease));
+ return new Response(bytes,{headers:{"Content-Type":"image/jpeg","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"}});
 }
