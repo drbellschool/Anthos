@@ -1,11 +1,15 @@
-import {status,join,advance,coach,choose,ask,textCharacter,pause,resume,sophia} from "./jj4-core.mjs";
+import {status,join,advance,coach,choose,ask,textCharacter,pause,resume,sophia,illustrate44,illustration44} from "./jj4-core.mjs";
 const HEADERS={"Content-Type":"application/json; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"};
 const json=(value,statusCode=200)=>new Response(JSON.stringify(value),{status:statusCode,headers:HEADERS});
 export default {async fetch(request){
  if(!["GET","POST"].includes(request.method))return json({error:"Method not allowed."},405);
  const token=request.headers.get("x-anthos-v4-invite")||"";
  try{
-  if(request.method==="GET")return json(await status(token));
+  if(request.method==="GET"){
+   const artDay=new URL(request.url).searchParams.get("artDay");
+   if(artDay!==null)return await illustration44(token,/^[0-5]$/.test(artDay)?Number(artDay):-1);
+   return json(await status(token));
+  }
   if(request.headers.get("origin")!==new URL(request.url).origin)
    return json({error:"Request origin mismatch."},403);
   if(!(request.headers.get("content-type")||"").toLowerCase().startsWith("application/json"))
@@ -23,6 +27,7 @@ export default {async fetch(request){
    case "ask":return json(await ask(token,body.message,body.requestKey));
    case "pause":return json(await pause(token));
    case "resume":return json(await resume(token));
+   case "illustrate":return json(await illustrate44(token,body.phaseIndex));
    case "closure":return json(await sophia(token));
    default:return json({error:"Unknown pilot action."},400);
   }
