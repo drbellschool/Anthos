@@ -433,7 +433,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   const previousRoomId=pilot?.roomId||null;
   const room=await request("episode-studio-pilot-v4",{
    scenarioId:current.id,previousRoomId,pilotVersion,
-   fastForward:!timedPilot&&["4.2.0","4.3.0"].includes(pilotVersion),timedPilot
+   fastForward:!timedPilot&&["4.2.0","4.3.0","4.4.0"].includes(pilotVersion),timedPilot
   });
   closePilot();
   pilot=room;
@@ -446,6 +446,7 @@ async function pilotEpisode(reset=false,pilotVersion="4.1.0",timedPilot=false){
   if(pilotVersion==="4.2.0"){
    plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
   }
+  if(pilotVersion==="4.4.0")plan.append(node("li","episode-pilot-plan-item","4.4: six shared storyboards with both spouses guiding their character Monday–Friday, Saturday resolution and Sunday Sophia reflection. Illustrated browser pilot: each published scene has an illustration control and both spouses see the same approved artwork. No SMS."));
   if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: either coach can text their character throughout the week, even before a check-in. Shared fictional actions affect both conversations. Calendar advancement is separate from texting. Skill emphasis and observed behavior stay behind the scenes. "+(timedPilot?"10 minutes per day; SMS starts only after selecting a verified couple.":"Fast-forward browser QA only; NO SMS.")));
   for(const [index,phase] of current.phases.entries()){
    const row=node("li","episode-pilot-plan-item");
@@ -989,7 +990,8 @@ function setup(){
  $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false,"4.0.0"));
  $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
  $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
- $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.3.0"));
+ $("episodeLaunchPilot43").textContent="Launch 4.4 Storybook Pilot";
+ $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.4.0"));
  $("episodeLaunchPilot43Timed").addEventListener("click",()=>pilotEpisode(false,"4.3.0",true));
  $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.1.0",!!pilot?.timedPilot));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));

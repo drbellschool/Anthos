@@ -9,12 +9,13 @@ import {buildConversation42,buildConversation43,parseLedger42} from "../api/jj42
 // Two-role integration against the ACTUAL JJ4 HTTP handler, with an in-memory
 // stand-in for the 4.0 Supabase RPC semantics. No customer records, API tokens,
 // OpenAI calls, database changes, or unrelated stories.
+import {buildStorybook44} from "../api/jj44-storybook.mjs";
 const url="https://anthos.test/api/jack-jill-v4";
 const roomId="99000000-0000-4000-8000-000000000001";
 const sha=x=>createHash("sha256").update(x).digest("hex");
-function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null,version42=false,version43=false,open43=false}={}){
+function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surprise",studio=null,version42=false,version43=false,open43=false,storybook44=false,modelFixture=null}={}){
  const tokens={jack:"J".repeat(43),jill:"L".repeat(43)};
- const episode=version42||version43||open43?
+ const episode=storybook44?{...structuredClone(studio||savedMicrowaveStudio),title,pilotMode:"shared",...buildStorybook44({}, {fastForward:true})}:version42||version43||open43?
   (version43||open43?buildConversation43:buildConversation42)({...structuredClone(studio||savedMicrowaveStudio),title,pilotMode:"shared"},{fastForward:true,openConversation:open43}):
   buildAuthored41(studio?{...structuredClone(studio),title,pilotMode:"shared"}:{
    title,pilotMode:"shared",
@@ -55,7 +56,7 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
  }
  async function fakeFetch(input,options={}){
   const u=new URL(String(input)), name=u.pathname.split("/rest/v1/")[1];
-  if(!name){externalCalls++;throw Error("Unexpected outside-service network call: "+u.hostname)}
+  if(!name){externalCalls++;if(modelFixture&&u.hostname==="api.openai.com")return modelFixture(JSON.parse(options.body));throw Error("Unexpected outside-service network call: "+u.hostname)}
   const method=options.method||"GET",body=options.body?JSON.parse(options.body):{};
   if(method==="GET")return respond(filtered(name,u));
   if(method==="PATCH"){
@@ -73,7 +74,7 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
    assert.equal(room.phase_index,body.p_phase);
    assert.equal(room.processing_token,body.p_claim);
    add("shared","scene",room.phase_index,body.p_story);
-   if(room.phase_index<(version42||version43||open43?5:4)){
+   if(room.phase_index<(storybook44||version42||version43||open43?5:4)){
     if(body.p_jack)add("jack","prompt",room.phase_index,body.p_jack);
     if(body.p_jill)add("jill","prompt",room.phase_index,body.p_jill);
     room.stage=open43?"flow":"awaiting";
@@ -112,7 +113,7 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
   }
   throw Error("Unimplemented fake store operation: "+name+" "+method);
  }
- async function request(role,action,details){
+ async function request(role,action,details,expectedStatus=200){
   const r=await api.fetch(new Request(url,{
    method:action?"POST":"GET",
    headers:{"x-anthos-v4-invite":tokens[role],
@@ -120,8 +121,8 @@ function makeFixture({failSubmitOnce=false,title="The Four-Hundred-Dollar Surpri
    ...(action?{body:JSON.stringify({action,...details})}:{})
   }));
   const body=await r.json();
-  assert.equal(r.status,200,JSON.stringify(body));
-  assert.equal(body.ok,true,JSON.stringify(body));
+  assert.equal(r.status,expectedStatus,JSON.stringify(body));
+  if(expectedStatus===200)assert.equal(body.ok,true,JSON.stringify(body));
   return body;
  }
  return {tokens,room,people,messages,request,fakeFetch,getExternalCalls:()=>externalCalls};
@@ -517,4 +518,119 @@ test("open 4.3: unsolicited husband text, repeated private replies, simultaneous
   if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;
   if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;
  }
+});
+
+// The approved microwave pilot, with a scripted model response at each step.
+// This exercises the actual HTTP handler and persistence contract, not live AI quality.
+test("4.4 microwave week: both authors, rejection and retry, stale submissions, shared pages and Sunday closure",async()=>{
+ const title="The Great Microwave Disaster";
+ const stories=[
+  ["A brewing problem","Jack found the broken microwave blocking his coffee maker. He had missed three Saturdays. Jill asked whether he remembered his promise. He set his mug down and looked at the appliance.","Jack has missed three Saturday repair promises."],
+  ["A man of his word","Jack promised to deal with the microwave Saturday at nine. That evening Dave offered a free ticket to a game, leaving at eight. Jack stared at his phone. Jill noticed his hesitation.","Jack promised Saturday at nine; Dave offered a conflicting game ticket."],
+  ["The fourth Saturday","Jack asked Jill if he could delay the repair again. She asked him directly whether that meant a fourth missed Saturday. The next morning a cupcake sat by the microwave, celebrating a month of being broken. Dave needed an answer by noon.","Jack asked to postpone; Jill addressed the delay directly."],
+  ["The retirement party","Jack declined Dave's ticket before noon. Jill suggested buying a replacement within their budget. They compared a 149-dollar microwave with a 229-dollar model against their 180-dollar budget. Jack conceded they did not need a banana dehydrator.","Jack declined the ticket; they agreed on the affordable replacement."],
+  ["Movie night","Jack brought home the 149-dollar microwave and installed it Friday before Jill arrived. He bought popcorn. Jill changed into her favorite evening outfit and invited him to watch a movie together. The old microwave waited in a box for recycling.","The new microwave was installed Friday; Jill invited Jack to movie night."],
+  ["More than a microwave","Saturday morning Jack and Jill talked over coffee. Jack admitted he had relied on reminders, and Jill explained how exhausting they were. They agreed to discuss future commitments sooner. Neither remembered the movie ending. They took the old microwave to the recycling center.","Jack and Jill talked and recycled the old appliance."]
+ ];
+ const advice=[["Fix it and stop delaying the inevitable.","Ask if Saturday will really happen."],["Ask Jill if he can delay another weekend.","Ask him directly."],["Tell Dave no and honor the promise.","Suggest buying a new one if they can afford it."],["Install it and buy popcorn.","Wear something attractive and invite him to a movie in the bedroom."],["Talk honestly about what happened.","Talk honestly about what happened."]];
+ let rejected=false,authors=0,reviewed=0,failTuesday=true;
+ const modelFixture=payload=>{
+  const name=payload.text.format.name,input=JSON.parse(payload.input);
+  const respond=value=>new Response(JSON.stringify({output:[{content:[{type:"output_text",text:JSON.stringify(value)}]}]}));
+  if(name==="jj44_sunday"){assert.equal(input.pages.length,6);return respond({reflection:"Jack declined the ticket and followed through. Jill proposed a practical solution, and they both talked about the reminders.",question:"What commitment could you discuss together this week?"})}
+  const day=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].indexOf(input.day);
+  assert.ok(day>=0);assert.equal(input.pages.length,day);
+  if(day>0)assert.deepEqual(input.contributions,{jack:advice[day-1][0],jill:advice[day-1][1]});
+  if(name==="jj44_editor"){reviewed++;if(day===1&&failTuesday){rejected=true;return respond({pass:false,issues:["Retry the timeline."]})}return respond({pass:true,issues:[]})}
+  assert.equal(name,"jj44_storyboard");authors++;
+  const [title,story,event]=stories[day];
+  return respond({title,story,sophia:"Notice the choices that led to this moment.",jackPrompt:day<5?"What should Jack choose to do next?":"",jillPrompt:day<5?"How should Jill respond to this moment?":"",events:[event],openThreads:day<5?["The next choice remains open."]:[],artBrief:"Watercolor scene of the characters, with no lettering or text."});
+ };
+ const fx=makeFixture({storybook44:true,title,modelFixture}),oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ globalThis.fetch=fx.fakeFetch;process.env.SUPABASE_SECRET_KEY="synthetic-test-key";process.env.OPENAI_API_KEY="synthetic-test-key";
+ try{
+  await fx.request("jack","join",{name:"Husband"});await fx.request("jill","join",{name:"Wife"});
+  let state=await fx.request("jack","advance");assert.equal(state.version,"4.4.0");
+  for(let day=0;day<5;day++){
+   assert.equal(state.phaseIndex,day);assert.equal(state.weekDay,["Monday","Tuesday","Wednesday","Thursday","Friday"][day]);
+   assert.equal(state.scenes.filter(x=>x.kind==="scene").length,day+1);
+   assert.deepEqual(state.scenes,(await fx.request("jill")).scenes);
+   assert.equal(state.needsReply,true);
+   await fx.request("jack","ask",{message:"Can we chat?",requestKey:randomUUID()},409);
+   await fx.request("jack","coach",{message:"Stale submission",phaseIndex:day-1,requestKey:randomUUID()},409);
+   await fx.request("jack","coach",{message:advice[day][0],phaseIndex:day,requestKey:randomUUID()});
+   assert.equal(fx.room.stage,"awaiting");assert.equal((await fx.request("jack","advance")).phaseIndex,day);
+   assert.ok(!(await fx.request("jill")).messages.some(x=>x.kind==="coach"&&x.body===advice[day][0]&&x.phase_index===day));
+   await fx.request("jill","coach",{message:advice[day][1],phaseIndex:day,requestKey:randomUUID()});
+   assert.equal(fx.room.stage,"flow");
+   if(day===0){await fx.request("jack","advance",{},500);assert.equal(fx.room.phase_index,1);assert.equal(fx.room.stage,"needs_scene");assert.equal(fx.messages.filter(x=>x.kind==="scene").length,1);failTuesday=false}
+   state=await fx.request("jill","advance");
+  }
+  assert.equal(state.finished,true);assert.equal(state.weekDay,"Saturday");assert.equal(state.hasSophia,false);
+  fx.room.episode.storybook44.fastForward=false;fx.room.episode.storybook44.schedule[6]="2099-01-01T00:00:00.000Z";
+  assert.equal((await fx.request("jack","closure")).hasSophia,false);
+  fx.room.episode.storybook44.fastForward=true;
+  state=await fx.request("jack","closure");assert.equal(state.hasSophia,true);assert.equal(state.weekDay,"Sunday");
+  assert.equal(fx.messages.filter(x=>x.kind==="scene").length,6);assert.equal(fx.messages.filter(x=>x.kind==="coach").length,10);
+  assert.equal(fx.messages.filter(x=>x.kind==="sophia").length,1);assert.equal(rejected,true);assert.equal(authors,9);assert.equal(reviewed,9);
+  assert.match(state.scenes.find(x=>x.kind==="scene"&&x.phase_index===4).storyText,/installed it Friday/);
+ }finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}
+});
+
+test("4.4 HTTP artwork: rejected image never stored; both partners see one approved image and next page uses it",async()=>{
+ const bytes=Buffer.from([255,216,11,255,217]),approved=Buffer.from([255,216,22,255,217]);
+ const modelFixture=p=>{
+  const name=p.text.format.name;
+  const val=name==="jj44_editor"?{pass:true,issues:[]}:{
+   title:"A kitchen conversation",story:"Jack and Jill sat at the kitchen table and discussed their broken microwave. They agreed to talk about their options before spending any money.",
+   sophia:"Notice how they listen to one another.",jackPrompt:"What should Jack choose to do next?",jillPrompt:"How should Jill respond to this moment?",
+   events:["They discussed the broken microwave."],openThreads:["They still need a decision."],artBrief:"Watercolor of Jack and Jill sitting at the kitchen table."};
+  return new Response(JSON.stringify({output:[{content:[{type:"output_text",text:JSON.stringify(val)}]}]}));
+ };
+ const fx=makeFixture({storybook44:true,title:"The Great Microwave Disaster",modelFixture}),oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ const files=new Map();let gen=0,edits=0,reviews=0;
+ const json=x=>new Response(JSON.stringify(x));
+ globalThis.fetch=async(input,o={})=>{
+  const u=new URL(String(input));
+  if(u.pathname.includes("/storage/v1/bucket/"))return json({public:false});
+  if(u.pathname.startsWith("/storage/v1/object/authenticated/")){
+   const path=u.pathname.replace("/storage/v1/object/authenticated/","");
+   return files.has(path)?new Response(files.get(path)):new Response("",{status:404});
+  }
+  if(u.pathname.startsWith("/storage/v1/object/")){
+   assert.equal(o.method,"POST");const path=u.pathname.replace("/storage/v1/object/","");
+   assert.ok(!files.has(path));files.set(path,Buffer.from(o.body));return json({});
+  }
+  if(u.pathname==="/v1/images/generations"){gen++;return json({data:[{b64_json:(gen===1?bytes:approved).toString("base64")}]})}
+  if(u.pathname==="/v1/images/edits"){edits++;assert.equal(o.body.getAll("image[]").length,1);return json({data:[{b64_json:approved.toString("base64")}]})}
+  if(u.hostname==="api.openai.com"&&JSON.parse(o.body).text.format.name==="jj44_art_review"){
+   reviews++;const pass=reviews>1;
+   return json({output:[{content:[{type:"output_text",text:JSON.stringify({pass,issues:pass?[]:["Wrong appliance state"]})}]}]});
+  }
+  return fx.fakeFetch(input,o);
+ };
+ process.env.SUPABASE_SECRET_KEY="synthetic-test-key";process.env.OPENAI_API_KEY="synthetic-test-key";
+ const getArt=(role,day)=>api.fetch(new Request(url+"?artDay="+day,{headers:{"x-anthos-v4-invite":fx.tokens[role]||""}}));
+ try{
+  await fx.request("jack","join",{name:"Husband"});await fx.request("jill","join",{name:"Wife"});
+  const first=await fx.request("jack","advance"),before=structuredClone(fx.messages);
+  assert.equal(first.scenes.find(x=>x.kind==="scene").artState,"missing");
+  assert.equal((await getArt("jack",0)).status,404);
+  assert.equal((await getArt("unknown",0)).status,401);
+  await fx.request("jack","illustrate",{phaseIndex:1},404);
+  const illustrated=await fx.request("jack","illustrate",{phaseIndex:0});
+  assert.equal(illustrated.scenes.find(x=>x.kind==="scene").artState,"ready");
+  assert.equal(fx.room.stage,"awaiting");assert.deepEqual(fx.messages,before);
+  assert.equal(gen,2);assert.equal(reviews,2);assert.equal(files.size,1);
+  for(const role of ["jack","jill"]){
+   const r=await getArt(role,0);assert.equal(r.status,200);assert.equal(r.headers.get("cache-control"),"private, no-store");assert.deepEqual(Buffer.from(await r.arrayBuffer()),approved);
+  }
+  await fx.request("jill","illustrate",{phaseIndex:0});assert.equal(gen,2);
+  await fx.request("jack","coach",{phaseIndex:0,message:"Talk about the options.",requestKey:randomUUID()});
+  await fx.request("jill","coach",{phaseIndex:0,message:"Agree on the budget.",requestKey:randomUUID()});
+  await fx.request("jack","advance");
+  const second=await fx.request("jill","illustrate",{phaseIndex:1});
+  assert.equal(second.scenes.filter(x=>x.kind==="scene").at(-1).artState,"ready");
+  assert.equal(edits,1);assert.equal(files.size,2);
+ }finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}
 });
