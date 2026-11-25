@@ -7,12 +7,14 @@ function mount(root,invite,options={}){
  let current=null,inFlight=false,lastFingerprint="",destroyed=false,autoFailed=false,autoTimer=null;
  // Polling must never destroy an in-progress message or move keyboard focus.
  // Keep drafts scoped to this private participant; do not send or disclose until Submit.
+ const artUrls=new Map(),artLoads=new Map();
  let controlsKey="",draftName=options.defaultName||"",draftAdvice="",draftPhase=-1;
  root.replaceChildren();
  root.classList.add("jj4-player");
  const top=el("div","jj4-top"),status=el("div","jj4-state","Connecting…");
  const title=el("strong","jj4-player-title","Private Coach"),phase=el("span","jj4-phase","");
  top.append(title,phase);root.append(top,status);
+ const week=el("div","jj44-week");week.hidden=true;root.append(week);
  const area=el("div","jj4-scroll");area.setAttribute("aria-live","polite");root.append(area);
  const controls=el("div","jj4-controls");root.append(controls);
  function message(text,isError=false){status.textContent=text;status.classList.toggle("error",isError)}
@@ -56,6 +58,39 @@ function mount(root,invite,options={}){
    }
   });
  }
+ function attachArt44(row,item,state){
+  const holder=el("div","jj44-art");row.append(holder);
+  const day=item.phase_index;
+  if(item.artState==="ready"){
+   const img=el("img","jj44-art-image");img.alt="Watercolor illustration for "+item.storyTitle;holder.append(img);
+   const load=async()=>{
+    try{
+     if(!artUrls.has(day)){
+      if(!artLoads.has(day))artLoads.set(day,(async()=>{
+       const response=await fetch("/api/jack-jill-v4?artDay="+day,{headers:{"x-anthos-v4-invite":token},credentials:"omit",cache:"no-store"});
+       if(!response.ok||!response.headers.get("content-type")?.startsWith("image/jpeg"))throw Error("Illustration unavailable.");
+       const blob=await response.blob();
+       if(destroyed)return;
+       artUrls.set(day,URL.createObjectURL(blob));
+      })().finally(()=>artLoads.delete(day)));
+      await artLoads.get(day);
+     }
+     if(!destroyed&&artUrls.has(day))img.src=artUrls.get(day);
+    }catch{if(!destroyed&&holder.isConnected){
+     holder.replaceChildren(el("p","jj44-art-note","Could not load illustration."));
+     const retry=el("button","jj4-button","Retry image");retry.type="button";retry.onclick=()=>{holder.replaceChildren(img);load()};holder.append(retry);
+    }}
+   };
+   load();return;
+  }
+  if(item.artState==="generating"){holder.append(el("p","jj44-art-note","The illustrator is working on this page…"));return;}
+  if(item.artState==="unavailable"){holder.append(el("p","jj44-art-note","Illustration could not be approved. Your story remains saved."));return;}
+  const prior=state.scenes.filter(x=>x.kind==="scene"&&x.phase_index<day);
+  if(prior.some(x=>x.artState!=="ready")){holder.append(el("p","jj44-art-note","Illustrate the earlier pages first."));return;}
+  const button=el("button","jj4-button",item.artState==="retry"?"Retry illustration":"Illustrate this page");button.type="button";
+  button.onclick=async()=>{if(inFlight||destroyed)return;button.disabled=true;await act("illustrate",{phaseIndex:day});button.disabled=false;};
+  holder.append(button);
+ }
  function transcript(state){
   const seen=new Set(),entries=[];
   for(const x of [...state.scenes,...state.messages].sort((a,b)=>state.openConversation?
@@ -65,7 +100,7 @@ function mount(root,invite,options={}){
    seen.add(x.id+"-"+x.kind);entries.push(x);
   }
   const presented=state.version==="4.1.0"?entries.filter(x=>x.kind!=="coach"):entries;
-  const fp=presented.map(x=>x.id+":"+x.body.length).join("|");
+  const fp=presented.map(x=>x.id+":"+x.body.length+":"+(x.artState||"")).join("|");
   if(fp===lastFingerprint)return;
   lastFingerprint=fp;
   area.replaceChildren();
@@ -81,11 +116,14 @@ function mount(root,invite,options={}){
    const isScene=item.kind==="scene",isSophia=item.kind==="sophia",isIntro=item.kind==="introduction";
    const row=el("article","jj4-entry "+(isScene?"scene":isSophia||isIntro?"sophia":["coach","question","reply"].includes(item.kind)?item.kind:"prompt"));
    row.append(el("span","jj4-entry-label",isIntro?"SOPHIA · YOUR EPISODE OBJECTIVE":isSophia?"SOPHIA · THE RESEARCH & THE TAKEAWAY":
-    isScene?"SCENE · "+(item.phase_index+1):item.kind==="coach"?"YOUR PRIVATE ADVICE":
+    isScene?(state.version==="4.4.0"?["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][item.phase_index]:"SCENE · "+(item.phase_index+1)):item.kind==="coach"?"YOUR PRIVATE ADVICE":
     item.kind==="question"?questionLabel:item.kind==="reply"?(state.character||"Character").toUpperCase()+" · PRIVATE ANSWER":
     (state.character||"Character").toUpperCase()+" → "+
     (state.role==="jack"?"HUSBAND":"WIFE")+" · PRIVATE MESSAGE"));
-   row.append(el("p","",item.body));
+   if(state.version==="4.4.0"&&isScene){
+    row.append(el("h3","jj44-page-title",item.storyTitle||""));attachArt44(row,item,state);
+    row.append(el("p","jj44-story-text",item.storyText||""),el("div","jj44-sophia","Sophia · "+(item.sophiaText||"")));
+   }else row.append(el("p","",item.body));
    if(isSophia&&Array.isArray(state.researchSources)){
     const sourceList=el("div","jj4-sources");
     for(const source of state.researchSources){
@@ -102,9 +140,14 @@ function mount(root,invite,options={}){
  }
  function render(state){
   current=state;
-  title.textContent=(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
-  phase.textContent=["4.2.0","4.3.0"].includes(state.version)?state.weekDay+" · Day "+(state.phaseIndex+1)+"/6":
+  title.textContent=state.version==="4.4.0"?"The Adventures of Jack & Jill":(state.role==="jack"?"Husband · coaching Jack":"Wife · coaching Jill");
+  phase.textContent=state.version==="4.4.0"?state.weekDay+" · Day "+(state.hasSophia?7:state.phaseIndex+1)+"/7":["4.2.0","4.3.0"].includes(state.version)?state.weekDay+" · Day "+(state.phaseIndex+1)+"/6":
    state.phase+" · "+(state.phaseIndex+1)+"/6";
+  root.classList.toggle("jj44-book",state.version==="4.4.0");
+  week.hidden=state.version!=="4.4.0";
+  if(!week.hidden){week.replaceChildren();for(const [i,day] of ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].entries()){
+   const mark=el("span","jj44-day",day);if(i<(state.hasSophia?6:state.phaseIndex))mark.classList.add("done");if(i===(state.hasSophia?6:state.phaseIndex))mark.classList.add("active");week.append(mark);
+  }}
   transcript(state);
   // A background status poll can return every five seconds while a participant
   // is typing. Only rebuild controls when their *meaningful* state changes;
@@ -115,7 +158,7 @@ function mount(root,invite,options={}){
    !!state.paused,(state.pausedBy||[]).join(","),
    // Another coach submitting is not a reason to steal this coach's focus.
    state.needsReply?"":(state.waitingFor?.join(",")||""),state.scenes?.length||0,
-   state.hasSophia,state.closing,autoFailed
+   state.hasSophia,state.closing,state.closureDue,state.nextStoryDay,autoFailed
   ].join("|");
   if(nextKey===controlsKey)return;
   controlsKey=nextKey;
@@ -129,6 +172,7 @@ function mount(root,invite,options={}){
   if(state.finished){
    draftAdvice="";
    if(!state.hasSophia){
+    if(state.version==="4.4.0"&&!state.closureDue){message("Your chapter is complete. Sophia’s reflection unlocks Sunday.");oneAction("Refresh",refresh);return;}
     message(state.closing?"Sophia is preparing your research-based closing reflection…":
      "The six scenes are finished. Sophia's separate closing reflection is next.");
     oneAction("Hear Sophia's closing reflection",async()=>act("closure"),true);
@@ -174,7 +218,7 @@ function mount(root,invite,options={}){
     oneAction("Pause episode",async()=>act("pause"));
     return;
    }
-   message(["4.2.0","4.3.0"].includes(state.version)?
+   message(state.version==="4.4.0"?"Guide your character. Both contributions shape the next page.":["4.2.0","4.3.0"].includes(state.version)?
     "Text "+(state.character||"your character")+" privately. Your advice will shape what happens next.":
     state.version==="4.1.0"?"Respond to your character's concern. Their reply and your coaching will shape the next scene.":
     (state.character||"Your character")+" needs your advice before the next phase.");
@@ -188,17 +232,17 @@ function mount(root,invite,options={}){
    field.value=draftAdvice;
    field.addEventListener("input",()=>{draftAdvice=field.value});
    controls.append(field);
-   const send=oneAction("Send private advice",async()=>{
+   const send=oneAction(state.version==="4.4.0"?"Submit story contribution":"Send private advice",async()=>{
     const words=field.value.trim();
     if(words.length<2){message("Write a suggestion or question to your character.",true);return}
-    await act("coach",{message:words,requestKey:crypto.randomUUID()});
+    await act("coach",{message:words,requestKey:crypto.randomUUID(),...(state.version==="4.4.0"?{phaseIndex:state.phaseIndex}:{})});
    },true);
-   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0"].includes(state.version))oneAction("Ask "+(state.character||"character"),async()=>{
+   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0","4.4.0"].includes(state.version))oneAction("Ask "+(state.character||"character"),async()=>{
     const words=field.value.trim();
     if(words.length<2){message("Enter a private question first.",true);return}
     await act("ask",{message:words,requestKey:crypto.randomUUID()});
    });
-   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0"].includes(state.version))oneAction("No advice this time",async()=>
+   if(state.version!=="4.1.0"&&!["4.2.0","4.3.0","4.4.0"].includes(state.version))oneAction("No advice this time",async()=>
     act("coach",{message:"I have no advice right now.",requestKey:crypto.randomUUID()}));
    oneAction("Pause episode",async()=>act("pause"));
    field.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();send.click()}});
@@ -232,8 +276,8 @@ function mount(root,invite,options={}){
    },1200);
    return;
   }
-  if(["4.2.0","4.3.0"].includes(state.version)&&state.nextAvailableAt&&["flow","needs_scene"].includes(state.stage)){
-   message("Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
+  if(["4.2.0","4.3.0","4.4.0"].includes(state.version)&&state.nextAvailableAt&&["flow","needs_scene"].includes(state.stage)){
+   message(state.version==="4.4.0"?"Next story page: "+state.nextStoryDay+". Both contributions are saved.":"Next private check-in: "+state.weekDay+". The story will not skip ahead until that day.");
    oneAction("Refresh",refresh);return;
   }
   message("Updating the episode…");
@@ -255,7 +299,7 @@ function mount(root,invite,options={}){
   inFlight=true;
   const buttons=controls.querySelectorAll("button");
   buttons.forEach(x=>x.disabled=true);
-  message(action==="advance"?"Writing the next scene…":
+  message(action==="illustrate"?"Creating and checking your illustration…":action==="advance"?"Writing the next scene…":
    action==="coach"?"Saving your advice…":
    action==="text"?"Sending your private text…":
    action==="ask"?"Asking privately…":
@@ -281,11 +325,11 @@ function mount(root,invite,options={}){
  }
  refresh();
  const timer=setInterval(()=>{
-  if(destroyed||inFlight||!current?.joined||(current.finished&&current.hasSophia))return;
-  if(current.openConversation||current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined||
+  if(destroyed||inFlight||!current?.joined||(current.finished&&current.hasSophia&&current.version!=="4.4.0"))return;
+  if(current.version==="4.4.0"||current.openConversation||current.stage==="generating"||current.stage==="awaiting"||!current.bothJoined||
      (current.finished&&!current.hasSophia))refresh();
  },5000);
- return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);root.replaceChildren()},refresh};
+ return {destroy(){destroyed=true;clearInterval(timer);clearTimeout(autoTimer);for(const url of artUrls.values())URL.revokeObjectURL(url);artUrls.clear();root.replaceChildren()},refresh};
 }
 window.Anthos4Player={mount};
 })();
