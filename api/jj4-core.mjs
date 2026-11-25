@@ -81,7 +81,9 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  if(storybook&&scenario.mode!=="shared")error("4.4 currently supports shared couple episodes only.",409);
  const authored=pilotVersion==="4.1.0",developmental=pilotVersion==="4.3.0",weekly=pilotVersion==="4.2.0"||developmental;
  if(!storybook&&!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
- if(storybook)Object.assign(draft,buildStorybook44(draft,{fastForward:options.fastForward===true}));
+ if(storybook){
+  Object.assign(draft,buildStorybook44(draft,{fastForward:options.fastForward===true}));
+ }
  if(authored)Object.assign(draft,buildAuthored41(draft));
  if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{fastForward:options.fastForward===true,openConversation:developmental,timedPilot:developmental&&options.timedPilot===true}));
  if(!storybook&&!weekly&&(!draft.sophiaIntro?.trim()||draft.sophiaIntro.trim().length<80))
@@ -92,6 +94,10 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  // Previously created rooms retain their recorded engine version.
  const seed=scenario.episode_studio?.simulationSeed;
  if(seed&&typeof seed==="object")draft.simulationSeed=seed;
+ if(storybook){
+  if(!process.env.OPENAI_API_KEY?.trim())error("The storybook AI is not configured in this environment.",503);
+  try{await ensureArtBucket44({allowCreate:true});}catch{error("The private storybook illustration storage is not ready.",503);}
+ }
  const created=(await db(R,{},{
   title:draft.title,scenario_id:scenario.id,episode:draft,stage:"needs_scene",phase_index:0,
   ...(storybook||authored||weekly?{}:{simulation_state:initialSimulation(draft)})
