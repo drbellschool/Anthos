@@ -74,12 +74,12 @@ function storageConfig(env){
  delete headers.Prefer;
  return {base:new URL(storySupabaseBase(env)).origin+"/storage/v1/",headers};
 }
-export async function ensureArtBucket44({env=process.env,fetchImpl=fetch}={}){
+export async function ensureArtBucket44({env=process.env,fetchImpl=fetch,allowCreate=false}={}){
  const {base,headers}=storageConfig(env);
  const get=()=>fetchImpl(base+"bucket/"+ART_BUCKET,{headers,signal:AbortSignal.timeout(10000)});
  let r=await get();
- // Only an explicitly isolated QA deployment may create its own bucket.
- if(r.status===404&&env.VERCEL_ENV==="preview"&&env.ANTHOS_QA_STRICT_ISOLATION==="1"){
+ // Production provisioning is allowed only from the authenticated admin room-creation path.
+ if(r.status===404&&((env.VERCEL_ENV==="production"&&allowCreate===true)||(env.VERCEL_ENV==="preview"&&env.ANTHOS_QA_STRICT_ISOLATION==="1"))){
   await fetchImpl(base+"bucket",{method:"POST",headers,body:JSON.stringify({id:ART_BUCKET,name:ART_BUCKET,public:false,file_size_limit:3145728,allowed_mime_types:["image/jpeg"]}),signal:AbortSignal.timeout(10000)});
   r=await get();
  }
