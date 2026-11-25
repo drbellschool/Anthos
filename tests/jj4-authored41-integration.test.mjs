@@ -576,3 +576,61 @@ test("4.4 microwave week: both authors, rejection and retry, stale submissions, 
   assert.match(state.scenes.find(x=>x.kind==="scene"&&x.phase_index===4).storyText,/installed it Friday/);
  }finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}
 });
+
+test("4.4 HTTP artwork: rejected image never stored; both partners see one approved image and next page uses it",async()=>{
+ const bytes=Buffer.from([255,216,11,255,217]),approved=Buffer.from([255,216,22,255,217]);
+ const modelFixture=p=>{
+  const name=p.text.format.name;
+  const val=name==="jj44_editor"?{pass:true,issues:[]}:{
+   title:"A kitchen conversation",story:"Jack and Jill sat at the kitchen table and discussed their broken microwave. They agreed to talk about their options before spending any money.",
+   sophia:"Notice how they listen to one another.",jackPrompt:"What should Jack choose to do next?",jillPrompt:"How should Jill respond to this moment?",
+   events:["They discussed the broken microwave."],openThreads:["They still need a decision."],artBrief:"Watercolor of Jack and Jill sitting at the kitchen table."};
+  return new Response(JSON.stringify({output:[{content:[{type:"output_text",text:JSON.stringify(val)}]}]}));
+ };
+ const fx=makeFixture({storybook44:true,title:"The Great Microwave Disaster",modelFixture}),oldFetch=globalThis.fetch,oldKey=process.env.SUPABASE_SECRET_KEY,oldAI=process.env.OPENAI_API_KEY;
+ const files=new Map();let gen=0,edits=0,reviews=0;
+ const json=x=>new Response(JSON.stringify(x));
+ globalThis.fetch=async(input,o={})=>{
+  const u=new URL(String(input));
+  if(u.pathname.includes("/storage/v1/bucket/"))return json({public:false});
+  if(u.pathname.startsWith("/storage/v1/object/authenticated/")){
+   const path=u.pathname.replace("/storage/v1/object/authenticated/","");
+   return files.has(path)?new Response(files.get(path)):new Response("",{status:404});
+  }
+  if(u.pathname.startsWith("/storage/v1/object/")){
+   assert.equal(o.method,"POST");const path=u.pathname.replace("/storage/v1/object/","");
+   assert.ok(!files.has(path));files.set(path,Buffer.from(o.body));return json({});
+  }
+  if(u.pathname==="/v1/images/generations"){gen++;return json({data:[{b64_json:(gen===1?bytes:approved).toString("base64")}]})}
+  if(u.pathname==="/v1/images/edits"){edits++;assert.equal(o.body.getAll("image[]").length,1);return json({data:[{b64_json:approved.toString("base64")}]})}
+  if(u.hostname==="api.openai.com"&&JSON.parse(o.body).text.format.name==="jj44_art_review"){
+   reviews++;const pass=reviews>1;
+   return json({output:[{content:[{type:"output_text",text:JSON.stringify({pass,issues:pass?[]:["Wrong appliance state"]})}]}]});
+  }
+  return fx.fakeFetch(input,o);
+ };
+ process.env.SUPABASE_SECRET_KEY="synthetic-test-key";process.env.OPENAI_API_KEY="synthetic-test-key";
+ const getArt=(role,day)=>api.fetch(new Request(url+"?artDay="+day,{headers:{"x-anthos-v4-invite":fx.tokens[role]||""}}));
+ try{
+  await fx.request("jack","join",{name:"Husband"});await fx.request("jill","join",{name:"Wife"});
+  const first=await fx.request("jack","advance"),before=structuredClone(fx.messages);
+  assert.equal(first.scenes.find(x=>x.kind==="scene").artState,"missing");
+  assert.equal((await getArt("jack",0)).status,404);
+  assert.equal((await getArt("unknown",0)).status,401);
+  await fx.request("jack","illustrate",{phaseIndex:1},404);
+  const illustrated=await fx.request("jack","illustrate",{phaseIndex:0});
+  assert.equal(illustrated.scenes.find(x=>x.kind==="scene").artState,"ready");
+  assert.equal(fx.room.stage,"awaiting");assert.deepEqual(fx.messages,before);
+  assert.equal(gen,2);assert.equal(reviews,2);assert.equal(files.size,1);
+  for(const role of ["jack","jill"]){
+   const r=await getArt(role,0);assert.equal(r.status,200);assert.equal(r.headers.get("cache-control"),"private, no-store");assert.deepEqual(Buffer.from(await r.arrayBuffer()),approved);
+  }
+  await fx.request("jill","illustrate",{phaseIndex:0});assert.equal(gen,2);
+  await fx.request("jack","coach",{phaseIndex:0,message:"Talk about the options.",requestKey:randomUUID()});
+  await fx.request("jill","coach",{phaseIndex:0,message:"Agree on the budget.",requestKey:randomUUID()});
+  await fx.request("jack","advance");
+  const second=await fx.request("jill","illustrate",{phaseIndex:1});
+  assert.equal(second.scenes.filter(x=>x.kind==="scene").at(-1).artState,"ready");
+  assert.equal(edits,1);assert.equal(files.size,2);
+ }finally{globalThis.fetch=oldFetch;if(oldKey===undefined)delete process.env.SUPABASE_SECRET_KEY;else process.env.SUPABASE_SECRET_KEY=oldKey;if(oldAI===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldAI;}
+});
