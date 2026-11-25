@@ -99,3 +99,20 @@ test("authenticated production room setup may provision only the fixed private i
  }});
  assert.equal(calls,3);
 });
+
+ test("production legacy HTTP 400 missing bucket is verified through list and provisioned privately",async()=>{
+ const env={SUPABASE_SECRET_KEY:"synthetic",VERCEL_ENV:"production"};
+ let calls=0;
+ await ensureArtBucket44({env,allowCreate:true,fetchImpl:async(url,o)=>{
+  calls++;if(calls===1)return json({statusCode:"404",message:"Bucket not found"},400);
+  if(calls===2){assert.match(url,/storage\/v1\/bucket$/);assert.equal(o.method,undefined);return json([{id:"unrelated"}])}
+  if(calls===3){assert.equal(o.method,"POST");assert.equal(JSON.parse(o.body).public,false);return json({})}
+  return json({public:false});
+ }});assert.equal(calls,4);
+ });
+ test("400 does not create a bucket if the list fails or already contains it",async()=>{
+ const env={SUPABASE_SECRET_KEY:"synthetic",VERCEL_ENV:"production"};
+ for(const result of [()=>json({},403),()=>json([{id:"anthos-jj44-art",public:true}])]){
+ let calls=0;await assert.rejects(ensureArtBucket44({env,allowCreate:true,fetchImpl:async(url,o)=>{calls++;assert.notEqual(o.method,"POST");return calls===1?json({},400):result()}}),/not configured/);assert.equal(calls,2);
+ }
+ });
