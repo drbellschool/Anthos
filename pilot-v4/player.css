@@ -39,3 +39,18 @@
 .jj4-entry.question .jj4-entry-label{color:#3555a4}
 .jj4-entry.reply .jj4-entry-label{color:#24668e}
 .jj4-controls .jj4-button{min-width:0;white-space:normal}
+
+/* 4.4: storybook presentation, actual text remains independent from the artwork. */
+.jj44-book{background:#f8f3e8;border-color:#d5c3a3}
+.jj44-book .jj4-scroll{background:#f4eee1;padding:14px;gap:14px}
+.jj44-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:9px 10px;background:#f7f2e7;border-bottom:1px solid #ded1ba}
+.jj44-week[hidden]{display:none}
+.jj44-day{text-align:center;font-size:10px;font-weight:700;padding:7px 0;border-radius:20px;color:#8a8172;background:#ede7db}
+.jj44-day.done{color:#276048;background:#e1eee4}.jj44-day.active{color:#fff;background:#28664a}
+.jj44-book .jj4-entry.scene{padding:15px;background:#fffaf0;border:1px solid #d9c9ac;box-shadow:0 2px 5px #463b2010}
+.jj44-page-title{font:600 24px/1.15 Georgia,serif;color:#294d3c;margin:8px 0 12px}
+.jj44-art{border-radius:9px;overflow:hidden;background:#ede5d4;min-height:68px;margin:0 0 14px;display:grid;place-items:center;padding:0}
+.jj44-art-image{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}
+.jj44-art-note{padding:12px;text-align:center;color:#645e52}.jj44-art .jj4-button{margin:12px}
+.jj44-book .jj4-entry p.jj44-story-text{font:16px/1.7 Georgia,serif;color:#3d382f;white-space:pre-wrap}
+.jj44-sophia{font-size:13px;line-height:1.6;margin-top:16px;padding:12px;background:#edf4e9;border-left:3px solid #538166;color:#305642;border-radius:4px}
