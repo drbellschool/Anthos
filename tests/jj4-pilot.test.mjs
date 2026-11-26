@@ -11,18 +11,11 @@ const endpoint=file("api/jack-jill-v4.mjs");
 const core=file("api/jj4-core.mjs");
 const sql=file("supabase/migrations/20261109233000_jj4_browser_pilot.sql");
 const admin=file("api/admin.mjs");
-test("Episode Studio displays two independent private coaches and links inside the admin",()=>{
- for(const id of ["episodeLaunchPilot","episodePilotBoard","episodeHusbandLink","episodeWifeLink",
- "episodeHusbandPlayer","episodeWifePlayer","episodeCopyHusband","episodeCopyWife"]){
-  assert.ok(html.includes('id="'+id+'"'),"missing "+id);
- }
- assert.match(html,/\/pilot-v4\/player\.js/);
- assert.match(html,/\/pilot-v4\/player\.css/);
+test("Episode Studio displays one shared storybook and two independent invitations",()=>{
+ for(const id of ["episodeLaunchPilot44","episodePilotBoard","episodeHusbandLink","episodeWifeLink","episodeSharedPlayer","episodeCopyHusband","episodeCopyWife"])assert.ok(html.includes('id="'+id+'"'));
+ assert.doesNotMatch(html,/id="episodeHusbandPlayer"|id="episodeWifePlayer"/);
  assert.match(editor,/episode-studio-pilot-v4/);
- assert.match(editor,/if\(room\.invitations\.jack\)pilotPlayers\.push\(window\.Anthos4Player\.mount\(husbandPanel/);
- assert.match(editor,/if\(room\.invitations\.jill\)pilotPlayers\.push\(window\.Anthos4Player\.mount\(wifePanel/);
- assert.match(editor,/husbandPanel\.hidden=!room\.invitations\.jack/);
- assert.match(editor,/wifePanel\.hidden=!room\.invitations\.jill/);
+ assert.match(editor,/secondInvite:new URL/);
  assert.match(editor,/current\.dirty\|\|!current\.hasSaved/);
 });
 test("4.0 runs on distinct token route without sending SMS or accessing 3.3 live players",()=>{
@@ -66,23 +59,15 @@ test("Private intervention audiences and wait flags drive state transitions",()=
  assert.match(sql,/stage='generating',processing_token=p_claim/);
  assert.match(sql,/r\.processing_token is distinct from p_claim/);
 });
-test("Rehearsal progresses automatically between checkpoints without scripted coach turns",()=>{
- assert.match(player,/autoTimer=setTimeout/);
- assert.match(player,/act\("advance"\)/);
- assert.match(player,/state\.needsReply/);
- assert.match(player,/state\.finished/);
+test("Storybook advances automatically only when the server authorizes the next page",()=>{
+ assert.match(player,/queue\(key,"advance"\)/);
+ assert.match(player,/if\(s\.canContinue\)/);
+ assert.match(player,/st\.needsReply/);
+ assert.match(player,/s\.finished/);
 });
 
-test("Both private coach name fields submit on Enter and Join remains enabled after initial fetch",()=>{
- // The same mounted component serves husband and wife; verify its join panel
- // handles Enter without a form and its buttons are never left disabled.
- assert.match(player,/const join=oneAction\("Join "/);
- assert.match(player,/inp\.addEventListener\("keydown",event=>\{/);
- assert.match(player,/event\.key==="Enter"&&!event\.isComposing/);
- assert.match(player,/event\.preventDefault\(\)/);
- assert.match(player,/join\.click\(\)/);
- assert.match(player,/btn\.disabled=false/);
- assert.doesNotMatch(player,/btn\.disabled=inFlight/);
- assert.match(player,/if\(!inFlight&&!destroyed\)callback\(\)/);
- assert.match(player,/if\(!name\)\{message\("Enter your first name to join\."/);
+test("Both authors can join by keyboard",()=>{
+ assert.match(player,/const join=button\(card,"Join the story"/);
+ assert.match(player,/e\.key==="Enter"&&!e\.isComposing/);
+ assert.match(player,/join\.onclick\(\)/);
 });
