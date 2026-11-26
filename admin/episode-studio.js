@@ -304,7 +304,7 @@ function renderStoryboard(){
 }
 // Historical metadata is retained for compatibility.
 // decision rules consumed by the engine—not a separate screenplay or mock-up.
-function canLaunch44(){return !!current&&current.mode==="shared"&&!!current.studio.primarySkill&&!!current.studio.premise?.trim()}
+function canLaunch44(){return !!current&&current.mode==="shared"&&!!current.studio.primarySkill&&!!(field("premise")?.value||current.studio.premise)?.trim()}
 function updatePilotControls43(){
  const button=$("episodeLaunchPilot44");if(button)button.disabled=busy||!canLaunch44();
  const hint=$("episodePilotEmpty");if(hint)hint.textContent=!current?"Choose a shared episode to begin.":current.mode!=="shared"?"Individual episodes can be edited; this pilot is for two co-authors.":!current.studio.primarySkill?"Choose a primary relationship objective.":!current.studio.premise?.trim()?"Add a story premise.":"Ready to create your illustrated chapter. Both contributions unlock the next page.";
@@ -377,7 +377,7 @@ function closePilot(clearRoom=false){
 async function pilotEpisode(reset=false){
  if(!current||busy)return;
  if(current.mode!=="shared"){note("This storybook pilot needs two co-authors.",true);return}
- if(current.dirty||!current.hasSaved){note("Saving your story guidance…");if(!await save())return}
+ if(current.dirty||!current.hasSaved){note("Saving your story guidance…");if(!await save())return;}
  if(!canLaunch44()){note("Choose a primary relationship skill and add a story premise.",true);return}
  if(!window.Anthos4Player){note("Storybook reader did not load. Refresh the page.",true);return}
  if(pilot&&!confirm("Start a new chapter? The previous invitation links will be retired, but its story remains archived."))return;
@@ -389,7 +389,7 @@ async function pilotEpisode(reset=false){
   const board=$("episodePilotBoard");board.hidden=false;
   const jack=$("episodeHusbandLink"),jill=$("episodeWifeLink");
   jack.href=room.invitations.jack;jill.href=room.invitations.jill;
-  $("episodePilotStatus").textContent="One shared chapter · two contributions · automatic illustrations. Fast-forward preview.";
+  $("episodePilotStatus").textContent=(previousRoomId?(room.previousRetired?"Previous test archived and its links retired. ":"Previous chapter preserved; its links may remain valid. "):"")+"One shared chapter · two contributions · automatic illustrations. Fast-forward preview.";
   pilotPlayers=[window.Anthos4Player.mount($("episodeSharedPlayer"),new URL(jack.href).searchParams.get("invite"),{secondInvite:new URL(jill.href).searchParams.get("invite")})];
   board.scrollIntoView({behavior:"smooth",block:"start"});note("Your storybook is open. Join both roles below, or share the individual links.");
  }catch(e){note(e.message,true)}finally{setBusy(false);updatePilotControls43();$("episodePilotReset").disabled=false}
@@ -490,7 +490,7 @@ async function save(){
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
   $("episodeSavedState").classList.remove("modified");
-  note("Story guidance saved. Existing chapters are unchanged.");
+  note("Story guidance saved. Existing chapters are unchanged. No SMS was sent.");
   renderReadiness();
   return true;
  }catch(error){note(error.message,true);return false}finally{setBusy(false)}
