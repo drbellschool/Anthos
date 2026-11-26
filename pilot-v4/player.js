@@ -48,10 +48,15 @@ function mount(root,invite,options={}){
   if(fp!==signature){
    signature=fp;title.textContent=s.title;week.replaceChildren();
    for(let i=0;i<7;i++){const available=scenes.some(x=>x.phase_index===i)||(i===6&&s.hasSophia);const b=el("button","jj44-day"+(i===view?" active":available?" done":""),days[i].slice(0,3));b.type="button";b.disabled=!available;b.setAttribute("aria-label",days[i]);if(i===view)b.setAttribute("aria-current","page");b.onclick=()=>{selected=i===active?null:i;render()};week.append(b)}
+   const focused=document.activeElement;const focusKey=focused?.getAttribute?.("data-draft-key");const selection=focusKey?[focused.selectionStart,focused.selectionEnd]:null;
    page.replaceChildren();inputs.replaceChildren();
-   if(view===6&&reflection){
+   if(view==="chapter"&&reflection){
+    page.append(el("p","jj44-kicker","YOUR COMPLETED CHAPTER"));
+    for(const scene of scenes){const section=el("article","jj44-chapter-page");section.append(el("p","jj44-kicker",days[scene.phase_index]),el("h3","jj44-page-title",scene.storyTitle));const holder=el("div","jj44-art");section.append(holder);if(scene.artState==="ready")image(holder,key,scene);else holder.append(el("p","jj44-art-note","Illustration unavailable."));section.append(el("p","jj44-story-text",scene.storyText));page.append(section)}
+    page.append(el("h3","jj44-page-title","Sunday · A moment with Sophia"),el("p","jj44-story-text",reflection.body));
+   }else if(view===6&&reflection){
     page.append(el("p","jj44-kicker","SUNDAY · YOUR COMPLETED CHAPTER"),el("h3","jj44-page-title","A moment with Sophia"),el("p","jj44-story-text",reflection.body));
-    button(page,"Read the chapter from Monday",()=>{selected=0;render()});
+    button(page,"Read the complete chapter",()=>{selected="chapter";render()});
    }else if(item){
     page.append(el("p","jj44-kicker",days[view].toUpperCase()+" · PAGE "+(view+1)),el("h3","jj44-page-title",item.storyTitle));
     const holder=el("div","jj44-art");page.append(holder);
@@ -65,7 +70,7 @@ function mount(root,invite,options={}){
     const st=states[k];if(!st)continue;
     const character=st.character||(st.role==="jack"?"Jack":"Jill"),card=el("div","jj44-contribution");
     if(safetyNotices[k])card.append(el("p","jj44-notice error",safetyNotices[k]));
-    if(!st.joined){card.append(el("strong","","Guide "+character));const name=el("input","jj4-name");name.placeholder="Your first name";name.maxLength=32;name.value=drafts[k+":name"]||"";name.oninput=()=>{drafts[k+":name"]=name.value};card.append(name);const join=button(card,"Join the story",()=>{if(name.value.trim())perform(k,"join",{name:name.value.trim()});else say("Enter your first name.",true)},true);name.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();join.onclick()}};inputs.append(card);continue}
+    if(!st.joined){card.append(el("strong","","Guide "+character));const name=el("input","jj4-name");name.placeholder="Your first name";name.maxLength=32;name.setAttribute("data-draft-key",k+":name");name.value=drafts[k+":name"]||"";name.oninput=()=>{drafts[k+":name"]=name.value};card.append(name);const join=button(card,"Join the story",()=>{if(name.value.trim())perform(k,"join",{name:name.value.trim()});else say("Enter your first name.",true)},true);name.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();join.onclick()}};inputs.append(card);continue}
     if(!item||view!==active||s.finished||st.phaseIndex!==s.phaseIndex)continue;
     const prompt=(st.messages||[]).filter(m=>m.kind==="prompt"&&m.phase_index===view).at(-1);
     if(!prompt)continue;
@@ -74,7 +79,7 @@ function mount(root,invite,options={}){
     else if(s.pausedBy?.length)card.append(el("p","jj44-art-note","The story is paused."));
     else if(item.artState==="ready"||item.artState==="unavailable"){
      const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;field.placeholder="What should "+character+" do next?";field.setAttribute("aria-label","Your contribution for "+character);
-     const dk=k+":"+view;field.value=drafts[dk]||"";field.oninput=()=>{drafts[dk]=field.value};card.append(field);
+     const dk=k+":"+view;field.setAttribute("data-draft-key",dk);field.value=drafts[dk]||"";field.oninput=()=>{drafts[dk]=field.value};card.append(field);
      button(card,"Contribute to the next page",()=>{if(field.value.trim().length<2){say("Write a suggestion for "+character+".",true);return}perform(k,"coach",{phaseIndex:view,message:field.value.trim(),requestKey:crypto.randomUUID()})},true);
     }else card.append(el("p","jj44-art-note","Your turn opens when the illustration is ready."));
     inputs.append(card);
@@ -84,6 +89,7 @@ function mount(root,invite,options={}){
    else if(s.joined&&!s.finished)button(inputs,"Pause story",()=>perform(key,"pause"));
    if(failed&&s.canContinue)button(inputs,"Retry writing the page",()=>perform(key,"advance"),true);
    if(failed&&s.finished&&!s.hasSophia)button(inputs,"Retry Sophia's reflection",()=>perform(key,"closure"),true);
+   if(focusKey){const field=Array.from(inputs.querySelectorAll?.("[data-draft-key]")||[]).find(x=>x.getAttribute("data-draft-key")===focusKey);if(field){field.focus();if(selection&&typeof field.setSelectionRange==="function")field.setSelectionRange(...selection)}}
   }
   if(busy)return;
   if(failed){say(failed,true);return}
