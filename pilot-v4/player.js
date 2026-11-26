@@ -5,7 +5,7 @@ const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunda
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n};
 function mount(root,invite,options={}){
  const tokens={jack:String(invite||"")};if(options.secondInvite)tokens.jill=String(options.secondInvite);
- const combined=!!options.secondInvite,states={},drafts={},urls=new Map(),requested=new Set();
+ const states={},drafts={},safetyNotices={},urls=new Map(),requested=new Set();
  let dead=false,busy=false,failed="",signature="",selected=null,auto=null,refreshing=false,syncEpoch=0;
  root.replaceChildren();root.classList.add("jj44-reader");
  const heading=el("header","jj44-heading"),brand=el("p","jj44-kicker","THE ADVENTURES OF JACK & JILL"),title=el("h2","jj44-chapter","Your storybook"),week=el("nav","jj44-week"),notice=el("p","jj44-notice","Opening your chapter…"),page=el("section","jj44-sheet"),inputs=el("section","jj44-contributions");
@@ -23,7 +23,7 @@ function mount(root,invite,options={}){
   if(busy||dead)return;busy=true;++syncEpoch;failed="";root.setAttribute("aria-busy","true");
   const labels={advance:"Writing the next page…",illustrate:"Our illustrator is painting this page…",coach:"Saving your contribution…",closure:"Sophia is preparing the final reflection…",join:"Opening your chapter…"};
   say(labels[action]||"Updating the storybook…");
-  try{await api(key,action,details);if(action==="coach")delete drafts[key+":"+details.phaseIndex];await sync()}
+  try{const result=await api(key,action,details);if(result.safetyNotice)safetyNotices[key]=result.safetyNotice;if(action==="resume")delete safetyNotices[key];if(action==="coach"&&result.submitted)delete drafts[key+":"+details.phaseIndex];await sync()}
   catch(e){failed=e.message;say(failed,true);signature=""}
   finally{busy=false;root.removeAttribute("aria-busy");if(!dead)render()}
  }
@@ -44,7 +44,7 @@ function mount(root,invite,options={}){
   if(dead)return;const keys=Object.keys(tokens),key=keys.find(k=>states[k]?.joined)||keys[0],s=states[key];if(!s)return;
   const scenes=(s.scenes||[]).filter(x=>x.kind==="scene"),last=scenes.at(-1),reflection=(s.scenes||[]).find(x=>x.kind==="sophia"),active=s.hasSophia?6:(last?.phase_index??0);
   const view=selected===null?active:selected;const item=scenes.find(x=>x.phase_index===view);
-  const fp=JSON.stringify([view,s.title,s.stage,s.phaseIndex,s.canContinue,s.hasSophia,s.closureDue,s.pausedBy,scenes.map(x=>[x.id,x.artState]),keys.map(k=>[states[k]?.joined,states[k]?.firstName,states[k]?.phaseIndex,states[k]?.needsReply,states[k]?.submitted,states[k]?.messages?.filter(m=>m.kind==="prompt").map(m=>m.id)]),failed]);
+  const fp=JSON.stringify([view,s.title,s.stage,s.phaseIndex,s.canContinue,s.hasSophia,s.closureDue,s.pausedBy,keys.map(k=>safetyNotices[k]),scenes.map(x=>[x.id,x.artState]),keys.map(k=>[states[k]?.joined,states[k]?.firstName,states[k]?.phaseIndex,states[k]?.needsReply,states[k]?.submitted,states[k]?.messages?.filter(m=>m.kind==="prompt").map(m=>m.id)]),failed]);
   if(fp!==signature){
    signature=fp;title.textContent=s.title;week.replaceChildren();
    for(let i=0;i<7;i++){const available=scenes.some(x=>x.phase_index===i)||(i===6&&s.hasSophia);const b=el("button","jj44-day"+(i===view?" active":available?" done":""),days[i].slice(0,3));b.type="button";b.disabled=!available;b.setAttribute("aria-label",days[i]);if(i===view)b.setAttribute("aria-current","page");b.onclick=()=>{selected=i===active?null:i;render()};week.append(b)}
@@ -64,12 +64,14 @@ function mount(root,invite,options={}){
    for(const k of keys){
     const st=states[k];if(!st)continue;
     const character=st.character||(st.role==="jack"?"Jack":"Jill"),card=el("div","jj44-contribution");
-    if(!st.joined){card.append(el("strong","","Guide "+character));const name=el("input","jj4-name");name.placeholder="Your first name";name.maxLength=32;name.value=drafts[k+":name"]||"";name.oninput=()=>{drafts[k+":name"]=name.value};card.append(name);button(card,"Join the story",()=>{if(name.value.trim())perform(k,"join",{name:name.value.trim()});else say("Enter your first name.",true)},true);inputs.append(card);continue}
+    if(safetyNotices[k])card.append(el("p","jj44-notice error",safetyNotices[k]));
+    if(!st.joined){card.append(el("strong","","Guide "+character));const name=el("input","jj4-name");name.placeholder="Your first name";name.maxLength=32;name.value=drafts[k+":name"]||"";name.oninput=()=>{drafts[k+":name"]=name.value};card.append(name);const join=button(card,"Join the story",()=>{if(name.value.trim())perform(k,"join",{name:name.value.trim()});else say("Enter your first name.",true)},true);name.onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();join.onclick()}};inputs.append(card);continue}
     if(!item||view!==active||s.finished||st.phaseIndex!==s.phaseIndex)continue;
     const prompt=(st.messages||[]).filter(m=>m.kind==="prompt"&&m.phase_index===view).at(-1);
     if(!prompt)continue;
     card.append(el("h4","",(st.firstName||"Your turn")+" — Guide "+character),el("p","jj44-question",prompt.body));
     if(st.submitted||!st.needsReply)card.append(el("p","jj44-saved","✓ Contribution saved"));
+    else if(s.pausedBy?.length)card.append(el("p","jj44-art-note","The story is paused."));
     else if(item.artState==="ready"||item.artState==="unavailable"){
      const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;field.placeholder="What should "+character+" do next?";field.setAttribute("aria-label","Your contribution for "+character);
      const dk=k+":"+view;field.value=drafts[dk]||"";field.oninput=()=>{drafts[dk]=field.value};card.append(field);
