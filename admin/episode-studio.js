@@ -253,7 +253,7 @@ function paintDevelopmentalFlow(){
    select.addEventListener("change",()=>{v.emphasis[skillId]=Number(select.value);markDirty()});
    label.append(select);row.append(label);body.append(row);
   }
-  body.append(node("small","episode-editorial-note",i===5?"Sophia reflects on evidence. No extra coaching required.":"Recipient: selected by the engine according to the unresolved dilemma; each spouse has meaningful opportunities."));
+  body.append(node("small","episode-editorial-note",i===5?"Saturday resolves the chapter. Sunday Sophia reflects with both authors.":"Both authors contribute to the next page; each spouse has meaningful opportunities."));
   detail.append(body);host.append(detail);
  }
  current.studio.developmentalFlow=normalized;
@@ -316,7 +316,7 @@ function renderStoryboard(){
   const detail=node("div","episode-intervention-details");
   detail.append(
    labeledTextarea("Why this is a meaningful turning point","checkpointPurpose",p.id,600,
-      "A concrete dilemma requiring a useful coaching decision."),
+      "A concrete dilemma inviting the authors to shape what happens next."),
    labeledTextarea("Your humor cue at this moment (optional)","checkpointHumor",p.id,700,
       "A funny complication or callback; never a forced SMS punchline.")
   );
@@ -335,7 +335,7 @@ function renderStoryboard(){
  }
  wireLocks();
 }
-// 4.3 canonical world editor. These are the actual serialized facts and
+// Historical metadata is retained for compatibility.
 // decision rules consumed by the engine—not a separate screenplay or mock-up.
 function canLaunch44(){return !!current&&current.mode==="shared"&&!!current.studio.primarySkill&&!!current.studio.premise?.trim()}
 function updatePilotControls43(){
@@ -369,14 +369,14 @@ function populate(){
  $("episodeSoloRole").value=s.soloCoach||"jack";
  $("episodeStudioTitle").textContent=s.title||"Untitled episode";
  $("episodeMeta").textContent=(current.mode==="shared"?"SHARED · Jack and Jill / two co-authors":
- "INDIVIDUAL · one private coach; two-coach check-ins unavailable")+
+ "INDIVIDUAL · editorial draft; shared storybook preview unavailable")+
  " · Deep Dive storybook 4.4";
  $("episodePetal").textContent=current.petal;
  const scenePetal=$("episodeScenePetalLabel");if(scenePetal)scenePetal.textContent=current.petal.replaceAll("-"," ");
  const reviewSelect=$("episodeStatusSelect");if(reviewSelect)reviewSelect.value=current.status||"draft";
  const status=$("episodeStatusLabel");if(status)status.textContent=(current.status||"draft").replaceAll("_"," ");
  for(const badge of document.querySelectorAll("[data-mode-choice]")){const selected=badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack");badge.classList.toggle("active",selected);badge.setAttribute("aria-pressed",String(selected))}
- $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia introduces both clients; Jack and Jill coach privately.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
+ $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia welcomes both authors; each guides one character.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
  $("episodeToneApproach").value=s.toneApproach||"balanced";$("episodeIntensity").value=s.toneIntensity||3;$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";
  $("episodeFoundationLock").textContent=FOUNDATION_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock foundation":"✓ Approve & lock foundation";
  $("episodeSceneLock").textContent=SCENE_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock scene and tone":"✓ Approve & lock scene and tone";
@@ -576,7 +576,7 @@ async function draftPhasesOnly(){
  try{
   const result=await request("episode-studio-generate",{
    id:current.id,mode:current.mode,
-   direction:"Draft cohesive six-phase story directions with meaningful, optional private coaching interventions. Do not change the skills, premise, characters or approved creative details.",
+   direction:"Draft optional weekly story guidance, never a fixed plot or ending. Do not change the skills, premise, characters or approved creative details.",
    studio:before
   });
   const next={...before,phases:{...before.phases},checkpoints:before.checkpoints.map(x=>({...x}))};
