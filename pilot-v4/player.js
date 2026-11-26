@@ -6,7 +6,7 @@ const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className
 function mount(root,invite,options={}){
  const tokens={jack:String(invite||"")};if(options.secondInvite)tokens.jill=String(options.secondInvite);
  const combined=!!options.secondInvite,states={},drafts={},urls=new Map(),requested=new Set();
- let dead=false,busy=false,failed="",signature="",selected=null,auto=null;
+ let dead=false,busy=false,failed="",signature="",selected=null,auto=null,refreshing=false,syncEpoch=0;
  root.replaceChildren();root.classList.add("jj44-reader");
  const heading=el("header","jj44-heading"),brand=el("p","jj44-kicker","THE ADVENTURES OF JACK & JILL"),title=el("h2","jj44-chapter","Your storybook"),week=el("nav","jj44-week"),notice=el("p","jj44-notice","Opening your chapter…"),page=el("section","jj44-sheet"),inputs=el("section","jj44-contributions");
  notice.setAttribute("role","status");heading.append(brand,title,week);root.append(heading,notice,page,inputs);
@@ -18,9 +18,9 @@ function mount(root,invite,options={}){
   return data;
  }
  function button(parent,text,fn,primary=false){const b=el("button","jj4-button"+(primary?" primary":""),text);b.type="button";b.onclick=()=>{if(!busy&&!dead)fn()};parent.append(b);return b}
- async function sync(){const entries=await Promise.all(Object.keys(tokens).map(async k=>[k,await api(k)]));if(dead)return;for(const [k,v] of entries)states[k]=v;render()}
+ async function sync(){const epoch=++syncEpoch;const entries=await Promise.all(Object.keys(tokens).map(async k=>[k,await api(k)]));if(dead||epoch!==syncEpoch)return;for(const [k,v] of entries)states[k]=v;render()}
  async function perform(key,action,details={}){
-  if(busy||dead)return;busy=true;failed="";root.setAttribute("aria-busy","true");
+  if(busy||dead)return;busy=true;++syncEpoch;failed="";root.setAttribute("aria-busy","true");
   const labels={advance:"Writing the next page…",illustrate:"Our illustrator is painting this page…",coach:"Saving your contribution…",closure:"Sophia is preparing the final reflection…",join:"Opening your chapter…"};
   say(labels[action]||"Updating the storybook…");
   try{await api(key,action,details);if(action==="coach")delete drafts[key+":"+details.phaseIndex];await sync()}
@@ -88,7 +88,7 @@ function mount(root,invite,options={}){
   if(!s.bothJoined){say("Both co-authors need to join before Monday begins.");return}
   if(s.pausedBy?.length){say("The story is paused.");return}
   const needsArt=scenes.find(x=>x.artState==="missing");
-  if(needsArt&&!requested.has(needsArt.phase_index)&&scenes.filter(x=>x.phase_index<needsArt.phase_index).every(x=>x.artState==="ready")){
+  if(needsArt&&!requested.has(needsArt.phase_index)&&scenes.filter(x=>x.phase_index<needsArt.phase_index).every(x=>["ready","unavailable"].includes(x.artState))){
    requested.add(needsArt.phase_index);say("Creating your illustration…");queue(key,"illustrate",{phaseIndex:needsArt.phase_index});return;
   }
   if(last&&["missing","generating","retry"].includes(last.artState)){say(last.artState==="retry"?"The illustration needs another try.":"The illustrator is preparing your page…");return}
@@ -97,7 +97,7 @@ function mount(root,invite,options={}){
   if(s.stage==="generating"){say("The next page is being written…");return}
   say(s.waitingFor?.length?"Both contributions shape tomorrow’s page.":"Your next page will open on "+(s.nextStoryDay||"the scheduled day")+".");
  }
- async function refresh(){if(busy||dead)return;try{await sync()}catch(e){say(e.message,true)}}
+ async function refresh(){if(busy||dead||refreshing)return;refreshing=true;try{await sync()}catch(e){if(!busy&&!dead)say(e.message,true)}finally{refreshing=false}}
  refresh();const timer=setInterval(refresh,4000);
  return {refresh,destroy(){dead=true;clearInterval(timer);clearTimeout(auto);for(const u of urls.values())URL.revokeObjectURL(u);root.replaceChildren()}};
 }
