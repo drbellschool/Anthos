@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="/admin/admin.css">
 <link rel="stylesheet" href="/admin/customers.css">
 <link rel="stylesheet" href="/admin/jj2-manager.css">
-<link rel="stylesheet" href="/admin/episode-studio.css">
-<link rel="stylesheet" href="/pilot-v4/player.css">
+<link rel="stylesheet" href="/admin/episode-studio.css?v=44book">
+<link rel="stylesheet" href="/pilot-v4/player.css?v=44book">
 <script src="/content.js" defer></script>
 <script src="/admin/studio-blueprint.js" defer></script>
 <script src="/admin/admin.js" defer></script>
@@ -18,8 +18,8 @@
 <script src="/admin/couples.js" defer></script>
 <script src="/admin/progress.js" defer></script>
 <script src="/admin/jj2-manager.js" defer></script>
-<script src="/pilot-v4/player.js" defer></script>
-<script src="/admin/episode-studio.js" defer></script>
+<script src="/pilot-v4/player.js?v=44book" defer></script>
+<script src="/admin/episode-studio.js?v=44book" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -238,7 +238,7 @@
                         </div>
                       </details>
                     </div>
-                    <div class="episode-intro"><div class="episode-problem-head"><strong>💜 Sophia · Group Introduction</strong><button type="button" id="episodeIntroDraft" class="episode-problem-generate">✦ AI draft</button></div><p>Sophia welcomes both co-authors to the story. Use &lt;&lt;husband&gt;&gt; and &lt;&lt;wife&gt;&gt; for their names. Keep it human, vivid and brief.</p><label>Opening message<textarea data-episode-field="sophiaIntro" maxlength="1600" rows="5" placeholder="Sophia welcomes the participants, explains the relationship objective and sets the scene..."></textarea></label></div><div class="episode-scene-grid"><details class="episode-more"><summary>🎬 Scene, Setting &amp; Situation</summary><div class="episode-more-fields"><label>Setting<textarea data-episode-field="sceneSetting" maxlength="650" rows="2"></textarea></label><label>Stress<textarea data-episode-field="sceneStress" maxlength="650" rows="2"></textarea></label><label>Triggering situation<textarea data-episode-field="sceneTrigger" maxlength="650" rows="2"></textarea></label></div></details><details class="episode-more"><summary>🎭 Tone &amp; Style</summary><div class="episode-more-fields"><label>Approach<select id="episodeToneApproach"><option value="balanced">Balanced</option><option value="humor">Humor-led</option><option value="serious">Serious-led</option></select></label><label>Intensity · <span id="episodeIntensityValue">3 / 5</span><input id="episodeIntensity" type="range" min="1" max="5" value="3"></label><label>Humor or serious element<textarea data-episode-field="toneElement" maxlength="700" rows="3"></textarea></label></div></details></div><div class="episode-flow-heading"><strong>▱ Six-Phase Story Flow</strong><span>Historical storyboard fields are retained but not used for 4.3 coaching.</span></div>
+                    <div class="episode-intro"><div class="episode-problem-head"><strong>💜 Sophia · Group Introduction</strong><button type="button" id="episodeIntroDraft" class="episode-problem-generate">✦ AI draft</button></div><p>Sophia welcomes both co-authors to the story. Use &lt;&lt;husband&gt;&gt; and &lt;&lt;wife&gt;&gt; for their names. Keep it human, vivid and brief.</p><label>Opening message<textarea data-episode-field="sophiaIntro" maxlength="1600" rows="5" placeholder="Sophia welcomes the participants, explains the relationship objective and sets the scene..."></textarea></label></div><div class="episode-scene-grid"><details class="episode-more"><summary>🎬 Scene, Setting &amp; Situation</summary><div class="episode-more-fields"><label>Setting<textarea data-episode-field="sceneSetting" maxlength="650" rows="2"></textarea></label><label>Stress<textarea data-episode-field="sceneStress" maxlength="650" rows="2"></textarea></label><label>Triggering situation<textarea data-episode-field="sceneTrigger" maxlength="650" rows="2"></textarea></label></div></details><details class="episode-more"><summary>🎭 Tone &amp; Style</summary><div class="episode-more-fields"><label>Approach<select id="episodeToneApproach"><option value="balanced">Balanced</option><option value="humor">Humor-led</option><option value="serious">Serious-led</option></select></label><label>Intensity · <span id="episodeIntensityValue">3 / 5</span><input id="episodeIntensity" type="range" min="1" max="5" value="3"></label><label>Humor or serious element<textarea data-episode-field="toneElement" maxlength="700" rows="3"></textarea></label></div></details></div><div class="episode-flow-heading"><strong>▱ Six-Phase Story Flow</strong><span>Optional story guidance; the authors shape the outcome.</span></div>
                     <div class="episode-scene-approval"><button type="button" id="episodeSceneDraft" class="episode-problem-generate">✦ AI fill unlocked scene details</button><button type="button" id="episodeSceneLock" class="episode-problem-generate">✓ Approve &amp; lock scene and tone</button><button type="button" id="episodeFlowDraft" class="episode-problem-generate">✦ Draft unlocked story phases</button></div><div class="episode-flow-actions"><button type="button" id="episodeExpandAll">Expand all</button><button type="button" id="episodeCollapseAll">Collapse all</button></div><div id="episodePhases" class="episode-phase-list"></div>
                     <details class="episode-more episode-final-notes">
                       <summary>Ending &amp; reflection guardrails</summary>
