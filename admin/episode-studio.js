@@ -259,7 +259,7 @@ function paintDevelopmentalFlow(){
  current.studio.developmentalFlow=normalized;
  const anchors=node("details","episode-phase-fold");
  anchors.append(node("summary","episode-phase-head","Behind the scenes · behavioral rating scale"),
- node("p","episode-editorial-note","1 Counterproductive · 2 Resistant · 3 Developing · 4 Constructive · 5 Highly constructive · Not observed if evidence is missing. Coaching, observed behavior and consequence are separate; never a grade on the real couple."));
+ node("p","episode-editorial-note","Optional relationship guidance for the story author; never a grade on the real couple."));
  for(const id of ids){
   const skill=current.skills.find(x=>x.id===id);
   anchors.append(node("strong","",skill?.title||id));
@@ -642,9 +642,9 @@ function setup(){
  const stage=document.createElement("div");stage.className="episode-panel-stage";
  const specs=[
   ["01","Foundation","foundation","♡","Primary skill, supporting skills and conflict"],
-  ["02","Story Design","story","⌖","Scene, characters, verified decisions and humor"],
-  ["03","Weekly Rhythm","flow","▤","Six learning phases, observed behavior and ending"],
-  ["04","Storybook Preview","pilot","✉","Browser QA, real SMS and human quality review"]
+  ["02","Story Design","story","⌖","Premise, character voices, setting and humor"],
+  ["03","Weekly Rhythm","flow","▤","Six daily pages and Sunday reflection"],
+  ["04","Storybook Preview","pilot","▤","One illustrated chapter, two authors"]
  ];
  const panels={};
  for(const [number,title,key,symbol,description] of specs){
@@ -892,7 +892,7 @@ function setup(){
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
  $("episodeGenerate").addEventListener("click",generate);
- $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Write a lively, SHORT Sophia message to the actual clients using literal <<husband>> and <<wife>> tokens in shared episodes (only the applicable token in solo episodes). This message is delivered after scene preparation but before Jack or Jill contacts their coach. Introduce Jack and Jill as characters, describe a vivid awkward moment, and define emotional bid plainly as a little attempt to connect, such as asking to sit together. Avoid academic jargon and bullet points."));
+ $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Write a lively, SHORT Sophia message to the actual clients using literal <<husband>> and <<wife>> tokens in shared episodes (only the applicable token in solo episodes). This welcomes both co-authors before the first story page. Speak as Sophia, not as either character. Introduce Jack and Jill as characters, describe a vivid awkward moment, and define emotional bid plainly as a little attempt to connect, such as asking to sit together. Avoid academic jargon and bullet points."));
  $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Write short, distinct, believable Jack and Jill examples as lived moments: physical action, specific household detail, an awkward misunderstanding and a consequential reaction. No therapy-speak, no skill names, no academic descriptions. Respect boundaries and original premise."));
  $("episodeFoundationLock").addEventListener("click",()=>toggleEditorialLock(FOUNDATION_FIELDS,$("episodeFoundationLock"),"🔓 Unlock foundation","✓ Approve & lock foundation"));
  $("episodeSceneLock").addEventListener("click",()=>toggleEditorialLock(SCENE_FIELDS,$("episodeSceneLock"),"🔓 Unlock scene and tone","✓ Approve & lock scene and tone"));
