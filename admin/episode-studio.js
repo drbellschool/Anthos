@@ -221,57 +221,24 @@ const DEVELOPMENT_OBJECTIVES=["Identify the concrete problem and competing legit
 const DEVELOPMENT_EVIDENCE=["Identifies a need or ignores it; notices the decision before acting.","Checks an assumption or substitutes blame for understanding.","Listens, proposes, dismisses or acts unilaterally.","Remains engaged, takes a practical step, attacks or withdraws.","Owns a choice, respects autonomy or demands surrender.","Names a concrete consequence and a voluntary next step."];
 const DEVELOPMENT_WEIGHTS=[[5,3,4],[5,5,4],[5,3,5],[5,4,3],[5,3,5],[5,4,5]];
 function paintDevelopmentalFlow(){
- const host=$("episodeDevelopmentalFlow");if(!host||!current)return;
- host.replaceChildren();
- const ids=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
- const prior=current.studio.developmentalFlow||{};
- const normalized={};
- host.append(node("h5","","Weekly story rhythm"),node("p","episode-editorial-note","Set a learning opportunity, not a scripted outcome. Emphasis (1–5) is importance, not performance. Jack and Jill choose independently; only verified actions count as evidence."));
- for(const [i,id] of PHASE_IDS.entries()){
-  const old=prior[id]||{};
-  const v={objective:old.objective||DEVELOPMENT_OBJECTIVES[i],evidence:old.evidence||DEVELOPMENT_EVIDENCE[i],emphasis:{}};
-  normalized[id]=v;
-  const detail=node("details","episode-phase-fold");detail.open=i===0;
-  const title=node("summary","episode-phase-head");title.append(node("span","episode-phase-number",i+1),node("strong","",DEVELOPMENT_NAMES[i]));detail.append(title);
-  const body=node("div");
-  for(const [key,label] of [["objective","Developmental objective"],["evidence","Observable effective / ineffective behavior"]]){
-   const wrap=node("label","",label),area=node("textarea");area.rows=2;area.maxLength=600;area.value=v[key];
-   area.setAttribute("aria-label",DEVELOPMENT_NAMES[i]+" "+label);
-   area.addEventListener("input",()=>{v[key]=area.value;markDirty()});
-   wrap.append(area);body.append(wrap);
+ const host=$("episodeDevelopmentalFlow");if(!host||!current)return;host.replaceChildren();
+ const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+ const beats=["Meet the dilemma","See both perspectives","Choices have consequences","Find a turning point","Explore connection","Resolve the story","Reflect with Sophia"];
+ const normalized={};const prior=current.studio.developmentalFlow||{};
+ host.append(node("h5","","Seven-day chapter"),node("p","episode-editorial-note","These are optional author directions. The actual story grows from both spouses' contributions, not a prewritten script."));
+ for(const [index,day] of days.entries()){
+  const detail=node("details","episode-phase-fold");detail.open=index===0;
+  const title=node("summary","episode-phase-head");title.append(node("span","episode-phase-number",index+1),node("strong","",day+" — "+beats[index]));detail.append(title);
+  if(index<6){
+   const id=PHASE_IDS[index],old=prior[id]||{};
+   const v={objective:old.objective||DEVELOPMENT_OBJECTIVES[index],evidence:old.evidence||DEVELOPMENT_EVIDENCE[index],emphasis:{...(old.emphasis||{})}};normalized[id]=v;
+   const wrap=node("label","","Optional story direction"),area=node("textarea");area.rows=2;area.maxLength=600;area.value=v.objective;
+   area.addEventListener("input",()=>{v.objective=area.value;markDirty()});wrap.append(area);detail.append(wrap);
   }
-  body.append(node("strong","","Skill emphasis · 1–5"));
-  if(!ids.length)body.append(node("p","episode-editorial-note","Select skills in Relationship Foundation first."));
-  for(const [j,skillId] of ids.entries()){
-   const skill=current.skills.find(s=>s.id===skillId);
-   const weight=old.emphasis?.[skillId];v.emphasis[skillId]=Number.isInteger(weight)&&weight>=1&&weight<=5?weight:DEVELOPMENT_WEIGHTS[i][j]||3;
-   const label=node("label","", (skill?.title||skillId)+(j===0?" · primary":""));
-   const row=node("div","episode-intervention-top");
-   const select=node("select");select.setAttribute("aria-label",DEVELOPMENT_NAMES[i]+" emphasis for "+(skill?.title||skillId));
-   for(const n of [1,2,3,4,5]){const o=node("option","",n+" · "+["Low","Minor","Moderate","High","Essential"][n-1]);o.value=String(n);select.append(o)}
-   select.value=String(v.emphasis[skillId]);
-   select.addEventListener("change",()=>{v.emphasis[skillId]=Number(select.value);markDirty()});
-   label.append(select);row.append(label);body.append(row);
-  }
-  body.append(node("small","episode-editorial-note",i===5?"Saturday resolves the chapter. Sunday Sophia reflects with both authors.":"Both authors contribute to the next page; each spouse has meaningful opportunities."));
-  detail.append(body);host.append(detail);
+  detail.append(node("p","episode-editorial-note",index<5?"Illustration, short story, Sophia, and both authors' next-page contributions.":index===5?"The final scene resolves what the authors have created.":"A completed chapter and a warm reflection from Sophia."));host.append(detail);
  }
  current.studio.developmentalFlow=normalized;
- const anchors=node("details","episode-phase-fold");
- anchors.append(node("summary","episode-phase-head","Behind the scenes · behavioral rating scale"),
- node("p","episode-editorial-note","Optional relationship guidance for the story author; never a grade on the real couple."));
- for(const id of ids){
-  const skill=current.skills.find(x=>x.id===id);
-  anchors.append(node("strong","",skill?.title||id));
-  const rubric=current.behaviorRubrics?.[id];
-  if(!rubric){anchors.append(node("p","episode-editorial-note","Skill-specific behavior anchors are not yet validated for this pilot. Emphasis can still be saved."));continue;}
-  const list=node("ol");
-  rubric.forEach((criteria,i)=>list.append(node("li","",(current.behaviorScale[i]||String(i+1))+" — "+criteria)));
-  anchors.append(list);
- }
- host.append(anchors);
 }
-
 function renderStoryboard(){
  const root=$("episodePhases");root.replaceChildren();
  for(const [index,p] of current.phases.entries()){
@@ -376,7 +343,7 @@ function populate(){
  const reviewSelect=$("episodeStatusSelect");if(reviewSelect)reviewSelect.value=current.status||"draft";
  const status=$("episodeStatusLabel");if(status)status.textContent=(current.status||"draft").replaceAll("_"," ");
  for(const badge of document.querySelectorAll("[data-mode-choice]")){const selected=badge.dataset.modeChoice===(current.mode==="shared"?"shared":s.soloCoach||"jack");badge.classList.toggle("active",selected);badge.setAttribute("aria-pressed",String(selected))}
- $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia welcomes both authors; each guides one character.":"👤 Individual episode · Sophia introduces the participating client; private check-ins stay single-recipient.";
+ $("episodeModeBanner").textContent=current.mode==="shared"?"👥 Couple episode · Sophia welcomes both authors; each guides one character.":"👤 Individual editorial draft · shared preview requires two authors.";
  $("episodeToneApproach").value=s.toneApproach||"balanced";$("episodeIntensity").value=s.toneIntensity||3;$("episodeIntensityValue").textContent=$("episodeIntensity").value+" / 5";
  $("episodeFoundationLock").textContent=FOUNDATION_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock foundation":"✓ Approve & lock foundation";
  $("episodeSceneLock").textContent=SCENE_FIELDS.every(k=>(s.locks||[]).includes(k))?"🔓 Unlock scene and tone":"✓ Approve & lock scene and tone";
