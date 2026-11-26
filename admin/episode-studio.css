@@ -666,7 +666,7 @@
  .episode-scene-fields .episode-more-fields>label{grid-template-columns:1fr}
 }
 
-/* Anthos Deep Dive Studio 4.3 · one navigable workspace, not six stacked
+/* Anthos Deep Dive Storybook Studio · one navigable workspace, not six stacked
    versions. These overrides apply ONLY within the Deep Dive Studio. */
 .episode-studio .episode-archived-fields,
 .episode-studio .episode-workflow[hidden],
@@ -824,3 +824,9 @@
  .episode-studio .episode-side-panel[data-panel="story"] .episode-metadata-editor .episode-basics{grid-template-columns:1fr}
  .episode-studio .episode-v43-pilot-actions .button{flex:1;min-width:140px}
 }
+
+/* Storybook preview is one full-width document, never a fixed-height chat. */
+#episodeSharedPlayer{width:100%;min-width:0;max-width:100%;margin:12px auto 0}
+.episode-studio .episode-pilot-lab{min-width:0;max-width:100%;overflow:visible}
+.episode-studio .episode-pilot-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media(max-width:650px){.episode-studio .episode-pilot-links{grid-template-columns:1fr}.episode-studio .episode-header-controls,.episode-studio .episode-pilot-buttons{max-width:100%;flex-wrap:wrap}.episode-studio select{min-width:0;max-width:100%}.episode-studio .episode-side-panel{min-width:0}}
