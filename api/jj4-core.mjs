@@ -1102,7 +1102,9 @@ export async function illustrate44(token,day){
  for(const prior of [...new Set(day===0?[]:[0,day-1])]){
   const p=await artPage44(room,prior);
   const entry=room.episode.storybook44.artwork?.[prior];
-  if(publicArt44(entry,p.digest)!=="ready")error("Illustrate the earlier pages first to preserve character consistency.",409);
+  const artState=publicArt44(entry,p.digest);
+  if(artState==="unavailable")continue;
+  if(artState!=="ready")error("Illustrate the earlier pages first to preserve character consistency.",409);
   references.push(await readArt44(artPath44(room.id,prior,p.digest,entry.lease)));
  }
  await ensureArtBucket44();
