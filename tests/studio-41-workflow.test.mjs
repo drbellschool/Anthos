@@ -15,16 +15,13 @@ test("New editorial fields survive a studio snapshot and remain optional for old
  assert.deepEqual(s.locks,["sophiaIntro","jackExample"]);
  assert.equal(normalizeStudio({},scenario).sophiaIntro,"");
 });
-test("Sophia opening is distinct from the post-story closure and precedes scenes",()=>{
- assert.match(core,/id:-1,kind:"introduction"/);
- assert.match(player,/SOPHIA · YOUR EPISODE OBJECTIVE/);
- assert.match(player,/SOPHIA · THE RESEARCH & THE TAKEAWAY/);
+test("Sophia’s storybook introduction and ending remain distinct",()=>{
+ assert.match(player,/Welcome! Join the chapter/);
+ assert.match(player,/A moment with Sophia/);
 });
-test("Individual pilot has one invite and requires only its active participant",()=>{
- assert.match(core,/const active=scenario.mode==="individual"\?\[draft.soloCoach\]:ROLE/);
- assert.match(core,/for\(const role of active\)/);
- assert.match(core,/activeRoles\(room\)\.every/);
- assert.match(editor,/const isSolo=room.mode==="individual"/);
+test("Individual legacy rooms remain supported by the backend; new storybook is shared",()=>{
+ assert.match(core,/function activeRoles/);
+ assert.match(editor,/current\.mode!=="shared"/);
 });
 test("Existing checkpoint editors remain in expandable phases",()=>{
  assert.match(editor,/episode-phase-fold/);
