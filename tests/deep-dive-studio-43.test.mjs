@@ -11,55 +11,40 @@ const ui=source("admin/episode-studio.js");
 const css=source("admin/episode-studio.css");
 const api=source("api/admin.mjs");
 
-test("The visible Anthos Deep Dive Studio identifies 4.4 and retains legacy pilot controls",()=>{
- assert.match(html,/ANTHOS 4\.4 · DEEP DIVE OPERATIONS/);
+test("The visible studio offers only the shared storybook launch",()=>{
  assert.match(html,/ANTHOS · DEEP DIVE STUDIO 4\.4/);
- for(const id of ["episodeLaunchPilot","episodeLaunchPilot41","episodeLaunchPilot42"])
-  assert.match(html,new RegExp('id="'+id+'"[^>]*hidden'));
  assert.match(html,/id="episodeLaunchPilot44"/);
- assert.match(html,/id="episodeLaunchPilot43"/);
- assert.match(html,/id="episodeLaunchPilot43Timed"/);
- assert.match(html,/Deep Dive 4\.3 · Text the registered couple/);
- assert.doesNotMatch(html,/ANTHOS 4\.0 · CURRICULUM|VERSION 4\.0 · BROWSER|Deep Dive 4\.1 · Text/);
+ assert.match(html,/id="episodeSharedPlayer"/);
+ assert.doesNotMatch(html,/4\.3|id="episodeLaunchPilot43|id="episodePilotSms|id="episodeHusbandPlayer"|id="episodeWifePlayer"/);
+ assert.doesNotMatch(ui,/4\.3|episode-studio-live-review|episode-studio-sms-setup/);
 });
-test("Four organized panels replace the previous six scattered version-specific editors",()=>{
- for(const section of [
-  '"Foundation","foundation"',
-  '"Story World","story"',
-  '"Coaching & Evidence","flow"',
-  '"Pilot & Review","pilot"'
- ])assert.ok(ui.includes(section));
- assert.doesNotMatch(ui,/"Six-Phase Developmental Flow","flow"/);
+test("Four organized panels support storybook editorial guidance and preview",()=>{
+ for(const section of ['"Foundation","foundation"','"Story Design","story"','"Weekly Rhythm","flow"','"Storybook Preview","pilot"'])assert.ok(ui.includes(section));
  assert.match(ui,/showStudioSection=key=>/);
  assert.match(ui,/panels\.pilot\.append\(board\)/);
  assert.match(ui,/legacyFlow\.hidden=true/);
  assert.match(css,/\.episode-studio \.episode-archived-fields/);
  assert.match(ui,/panels\.flow\.prepend\(readinessHost\)/);
 });
-test("Canon, five days, action consequences and both private openings are editable in one world panel",()=>{
- for(const key of ["who","what","where","when","why"])
-  assert.match(ui,new RegExp('"'+key+'"'));
- assert.match(ui,/episodeWorld43/);
- assert.match(ui,/graph\.qualityContract/);
- assert.match(ui,/graph\.roleOpenings/);
- assert.match(ui,/graph\.days/);
- assert.match(ui,/graph\.rules/);
- assert.match(ui,/rule\.set/);
- assert.match(ui,/markDirty\(\)/);
- assert.match(ui,/sourceQuote/);
+test("One shared reader uses both participant invitations and no chat panels",()=>{
+ assert.match(ui,/Anthos4Player\.mount\(\$\("episodeSharedPlayer"\)/);
+ assert.match(ui,/secondInvite:new URL\(jill\.href\)/);
+ assert.match(ui,/pilotVersion:"4\.4\.0"/);
+ assert.match(ui,/function canLaunch44/);
+ assert.match(ui,/if\(!await save\(\)\)return;/);
+ const player=source("pilot-v4/player.js");
+ assert.match(player,/jj44-sheet/);assert.match(player,/jj44-contributions/);
+ assert.match(player,/queue\(key,"illustrate"/);
+ assert.doesNotMatch(player,/PRIVATE MESSAGE|Send text|private conversation/);
 });
-test("Only real, protected 4.3 SMS transcripts are exposed to signed-in administrators",()=>{
- assert.match(ui,/episode-studio-live-review/);
- assert.match(ui,/source==="model-validated"/);
- assert.match(ui,/Independent 8\/10 human certification: not yet established/);
+test("Historical SMS transcript backend remains authenticated",()=>{
  assert.match(api,/action==="episode-studio-live-review"/);
  assert.match(api,/adminPilotReview43/);
  assert.match(api,/if\(!isAdmin\(request\)\)return json\(\{error:"Administrator sign-in required\."\},401\)/);
  const service=source("api/jj4-core.mjs");
  assert.match(service,/export async function adminPilotReview43/);
  assert.match(service,/isOpen43\(room\)/);
- assert.doesNotMatch(service.slice(service.indexOf("export async function adminPilotReview43"),
-  service.indexOf("async function messages(room,role)")),/encrypted_token|phone_e164|token_hash/);
+ assert.doesNotMatch(service.slice(service.indexOf("export async function adminPilotReview43"),service.indexOf("async function messages(room,role)")),/encrypted_token|phone_e164|token_hash/);
 });
 test("Original approved 4.3 world survives old AI editor generation and remains episode-specific",()=>{
  const scenario={
@@ -85,13 +70,10 @@ test("Original approved 4.3 world survives old AI editor generation and remains 
  }),/graph ID mismatch/);
 });
 
-test("Previously saved 4.3 episode launches after Save completes, and draft state cannot silently disable it",()=>{
- assert.match(ui,/function setBusy\(on\)\{[\s\S]*?updatePilotControls43\(\);\n\}/);
- assert.match(ui,/function canLaunch43\(\)\{\n if\(!current\|\|current\.mode!=="shared"\)/);
- assert.doesNotMatch(ui,/if\(!current\|\|current\.dirty\|\|!current\.hasSaved\|\|current\.mode!=="shared"\)/);
- assert.match(ui,/if\(current\.dirty\|\|!current\.hasSaved\)\{\n  note\("Saving your 4\.3 episode before launching/);
+test("Previously saved episodes retain their historical metadata while the storybook saves pending edits",()=>{
+ assert.match(ui,/function canLaunch44/);
+ assert.match(ui,/if\(current\.dirty\|\|!current\.hasSaved\)/);
  assert.match(ui,/if\(!await save\(\)\)return;/);
- assert.match(ui,/renderReadiness\(\);\n  return true;\n \}catch\(error\)/);
  assert.doesNotMatch(ui,/\bvoid autoDraftMissingDetails\(\);/);
  const verified=normalizeStudio({
   title:episode.title,premise:episode.premise,learningObjective:episode.learningObjective,
