@@ -51,9 +51,8 @@ test("The AI has an explicit character-to-coach voice contract plus server valid
  assert.match(core,/fallbackPrivateCheckin\(role,cp\)/);
  assert.match(core,/const \[jackPrompt,jillPrompt\]=await Promise\.all\(/);
 });
-test("Both private panels identify the actual sender and coach role clearly",()=>{
- assert.match(player,/Husband · coaching Jack/);
- assert.match(player,/Wife · coaching Jill/);
- assert.match(player,/· PRIVATE MESSAGE/);
- assert.match(player,/Reply privately to /);
+test("The storybook identifies each author and character without chat labels",()=>{
+ assert.match(player,/st\.firstName/);
+ assert.match(player,/Guide "\+character/);
+ assert.doesNotMatch(player,/PRIVATE MESSAGE|Reply privately to/);
 });
