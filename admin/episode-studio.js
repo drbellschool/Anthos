@@ -1,4 +1,4 @@
-// Anthos 4.3 Studio: one editorial workflow and one protected live SMS pilot.
+// Anthos 4.4 Studio: story guidance and one shared illustrated chapter.
 // Archived fields stay mounted only for old draft compatibility.
 (()=>{
 "use strict";
@@ -226,7 +226,7 @@ function paintDevelopmentalFlow(){
  const ids=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
  const prior=current.studio.developmentalFlow||{};
  const normalized={};
- host.append(node("h5","","4.3 · Developmental flow"),node("p","episode-editorial-note","Set a learning opportunity, not a scripted outcome. Emphasis (1–5) is importance, not performance. Jack and Jill choose independently; only verified actions count as evidence."));
+ host.append(node("h5","","Weekly story rhythm"),node("p","episode-editorial-note","Set a learning opportunity, not a scripted outcome. Emphasis (1–5) is importance, not performance. Jack and Jill choose independently; only verified actions count as evidence."));
  for(const [i,id] of PHASE_IDS.entries()){
   const old=prior[id]||{};
   const v={objective:old.objective||DEVELOPMENT_OBJECTIVES[i],evidence:old.evidence||DEVELOPMENT_EVIDENCE[i],emphasis:{}};
@@ -337,126 +337,12 @@ function renderStoryboard(){
 }
 // 4.3 canonical world editor. These are the actual serialized facts and
 // decision rules consumed by the engine—not a separate screenplay or mock-up.
-function canLaunch43(){
- if(!current||current.mode!=="shared")return false;
- const graph=current.studio?.scenarioGraph;
- const focus=[current.studio.primarySkill,...current.studio.supportingSkills].filter(Boolean);
- const graphReady=graph?.version==="anthos-4.3-scenario-graph-v1"&&
-  graph.episodeId===current.id&&Array.isArray(graph.days)&&graph.days.length===5&&
-  Array.isArray(graph.rules)&&graph.rules.length>=4&&
-  focus.every(skill=>graph.days.some(day=>(day.skills||[]).includes(skill)));
- return graphReady||
-  String(current.studio?.title||"").trim().toLowerCase()==="the four-hundred-dollar surprise";
-}
+function canLaunch44(){return !!current&&current.mode==="shared"&&!!current.studio.primarySkill&&!!current.studio.premise?.trim()}
 function updatePilotControls43(){
- const okay=canLaunch43();
- const storybookButton=$("episodeLaunchPilot44");if(storybookButton)storybookButton.disabled=!current||current.mode!=="shared"||busy||!current.studio.primarySkill||!current.studio.premise?.trim();
- for(const id of ["episodeLaunchPilot43","episodeLaunchPilot43Timed"]){
-  const button=$(id);if(!button)continue;
-  button.disabled=!okay||busy;
-  button.title=okay?
-   (current.dirty||!current.hasSaved?
-    "Start 4.3: save pending edits first, then create a private pilot. Real texts need a separate Start action.":
-    "Create a private 4.3 pilot; no SMS until a registered couple is selected."):
-   "This episode needs an approved shared 4.3 story graph with matching skills.";
- }
- const hint=$("episodePilotEmpty");
- if(hint)hint.textContent=!current?"Choose a shared episode to begin.":current.mode!=="shared"?"4.4 requires a shared episode.":!current.studio.primarySkill?"Choose a primary relationship objective.":!current.studio.premise?.trim()?"Add a story premise.":"4.4 is available: six illustrated scenes and Sunday reflection. No scripted phase summaries required. Pending edits are saved before launch.";
+ const button=$("episodeLaunchPilot44");if(button)button.disabled=busy||!canLaunch44();
+ const hint=$("episodePilotEmpty");if(hint)hint.textContent=!current?"Choose a shared episode to begin.":current.mode!=="shared"?"Individual episodes can be edited; this pilot is for two co-authors.":!current.studio.primarySkill?"Choose a primary relationship objective.":!current.studio.premise?.trim()?"Add a story premise.":"Ready to create your illustrated chapter. Both contributions unlock the next page.";
 }
-function renderWorld43(){
- const host=$("episodeWorld43");if(!host||!current)return;
- host.replaceChildren();
- const graph=current.studio?.scenarioGraph;
- const valid=graph?.version==="anthos-4.3-scenario-graph-v1"&&
-  graph.episodeId===current.id&&Array.isArray(graph.rules)&&
-  Array.isArray(graph.days)&&graph.days.length===5;
- if(!valid){
-  const notice=node("div","episode-v43-world-missing");
-  notice.append(node("strong","","No approved 4.3 story world saved"),
-   node("p","","This episode has editorial notes but no verified event graph. Older scripts are not substituted. Build and approve an episode-specific graph before launching a live pilot."));
-  host.append(notice);
-  return;
- }
- const head=node("div","episode-v43-world-summary");
- head.append(node("strong","","4.3 world attached"),
-  node("span","",graph.days.length+" daily opportunities"),
-  node("span","",graph.rules.length+" approved choices"),
-  node("span","",(graph.qualityContract?.objects||[]).length+" tracked objects"));
- host.append(head);
- const hint=node("p","episode-editorial-note",
-  "These exact facts, character voices and verified consequences govern both private coaches. Edits affect NEW pilots after Save; existing conversations keep their original snapshot.");
- host.append(hint);
- const edit=(labelText,value,update,rows=2,max=900)=>{
-  const label=node("label","episode-v43-edit",labelText);
-  const field=document.createElement("textarea");
-  field.value=String(value||"");field.rows=rows;field.maxLength=max;
-  field.addEventListener("input",()=>{update(field.value);markDirty()});
-  label.append(field);return label;
- };
- const fold=(title,open=false)=>{
-  const item=node("details","episode-v43-fold");
-  item.open=open;item.append(node("summary","",title));
-  host.append(item);return item;
- };
- const world=graph.qualityContract?.world||{};
- const canon=fold("Who, what, where, when & why",true);
- const canonGrid=node("div","episode-v43-world-grid");
- for(const key of ["who","what","where","when","why"])
-  canonGrid.append(edit(key.charAt(0).toUpperCase()+key.slice(1),
-   world[key],value=>{world[key]=value},2,600));
- canon.append(canonGrid);
- const character=fold("Jack & Jill · first private messages");
- const openings=node("div","episode-v43-world-grid");
- for(const role of ["jack","jill"])
-  openings.append(edit(role==="jack"?"Jack's opening":"Jill's opening",
-   graph.roleOpenings?.[role],value=>{graph.roleOpenings[role]=value},3,800));
- character.append(openings);
- const personas=fold("Character agency, personality & distinct needs");
- for(const role of ["jack","jill"]){
-  const voice=graph.qualityContract?.characterVoices?.[role];if(!voice)continue;
-  const card=node("div","episode-v43-rule");
-  card.append(node("strong","",role==="jack"?"Jack · character contract":"Jill · character contract"));
-  for(const [key,label] of [
-   ["voice","Natural speaking voice & humor"],
-   ["coreNeed","Legitimate personal need"],
-   ["flaw","Flaw / difficult reaction"],
-   ["relationship","Independent relationship motivation"]
-  ])card.append(edit(label,voice[key],v=>{voice[key]=v},2,650));
-  personas.append(card);
- }
- const tracked=fold("Tracked objects & unchangeable facts");
- for(const object of graph.qualityContract?.objects||[])
-  tracked.append(node("p","episode-v43-world-line",object.id.replaceAll("-"," ")+": "+object.state));
- for(const invariant of graph.qualityContract?.invariants||[])
-  tracked.append(node("p","episode-v43-world-line","Guardrail: "+invariant.fact));
- const days=fold("Five learning opportunities");
- for(const [index,day] of graph.days.entries()){
-  const box=node("div","episode-v43-rule");
-  box.append(node("strong","","Day "+(index+1)+" · "+(day.skills||[]).join(" / ")),
-   edit("Focus question",day.cue,v=>{day.cue=v},2,450),
-   edit("Character prompt",day.prompt,v=>{day.prompt=v},2,650));
-  days.append(box);
- }
- const choices=fold("Approved decisions & consequences");
- for(const rule of graph.rules){
-  const detail=node("details","episode-v43-rule");
-  detail.append(node("summary","",rule.role.toUpperCase()+" · "+rule.id.replaceAll("-"," ")));
-  const content=node("div","episode-v43-rule-body");
-  content.append(
-   edit("Recognizable coaching advice (one cue per line)",rule.cues.join("\n"),v=>{
-    rule.cues=v.split("\n").map(s=>s.trim()).filter(Boolean)
-   },3,900),
-   edit("Verified character action",rule.event,v=>{rule.event=v},3,750),
-   edit("Browser-only safety reply",rule.reply,v=>{rule.reply=v},3,900),
-   node("p","episode-editorial-note",
-    "Canon changes: "+Object.entries(rule.set||{}).map(([k,v])=>k+" → "+String(v)).join(", ")+
-    (Object.keys(rule.requires||{}).length?
-     " · Requires "+Object.entries(rule.requires).map(([k,v])=>k+"="+String(v)).join(", "):"")+
-    " · Emotional pressure "+(rule.strainDelta||0))
-  );
-  detail.append(content);choices.append(detail);
- }
-}
+function renderWorld43(){}
 function populate(){
  if(!current)return;
  opening=true;
@@ -505,39 +391,14 @@ function populate(){
 }
 function validation(){
  const s=collect();if(!s)return [];
- const graph=s.scenarioGraph;
- const focus=[s.primarySkill,...s.supportingSkills].filter(Boolean);
- const graphAttached=graph?.version==="anthos-4.3-scenario-graph-v1"&&graph.episodeId===current.id;
- const graphComplete=graphAttached&&graph.days?.length===5&&
-  graph.rules?.length>=4&&Object.keys(graph.fieldDomains||{}).length>=3;
- const focusMatched=graphComplete&&focus.every(skill=>
-  graph.days.some(day=>(day.skills||[]).includes(skill)));
- return [
-  ["Primary and supporting skills selected",focus.length>=1&&focus.length<=3],
-  ["Clear story premise and learning objective",s.title.trim().length>=5&&s.premise.trim().length>=75&&s.learningObjective.trim().length>=12],
-  ["Jack and Jill have distinct motivations",s.jackMotivation.trim().length>=20&&s.jillMotivation.trim().length>=20],
-  ["Episode-specific 4.3 story world attached",!!graphAttached],
-  ["Five real opportunities and approved actions",!!graphComplete],
-  ["All selected skills covered by the world",!!focusMatched],
-  ["Developmental objectives established",PHASE_IDS.every(id=>!!s.developmentalFlow?.[id]?.objective?.trim())],
-  ["Earned ending and research notes",s.closureCriteria.trim().length>=20&&s.researchNotes.trim().length>=15],
-  ["Voluntary reflection invitation",s.reflectionPrompt.trim().length>=15]
- ];
+ return [["Primary relationship skill",!!s.primarySkill],["Story premise",!!s.premise.trim()],["Distinct character motivations",!!s.jackMotivation.trim()&&!!s.jillMotivation.trim()],["Setting and opening situation",!!s.sceneSetting.trim()&&!!s.sceneTrigger.trim()],["Tone and humor direction",!!s.tone.trim()||!!s.humorNotes.trim()],["Ending and reflection guidance",!!s.closureCriteria.trim()&&!!s.reflectionPrompt.trim()]];
 }
 function renderReadiness(){
- if(!current)return;
- const checks=validation(),box=$("episodeReadiness");box.replaceChildren();
- const n=checks.filter(x=>x[1]).length;
- box.append(node("p","episode-summary",n+" of "+checks.length+" editorial checks complete"));
- const headline=$("episodeReadinessHeadline");if(headline)headline.textContent=n+" / "+checks.length+" checks complete · "+(current.mode==="shared"?"Couple":"Individual")+" episode";
- for(const [label,passed] of checks){
-  const row=node("div","episode-check"+(passed?" ok":""));
-  row.append(node("span","",passed?"✓":"○"),node("span","",label));box.append(row);
- }
- box.append(node("p","episode-editorial-note",
-  current.studio.scenarioGraph?
-   "4.3 world controls the shared story; only recorded actions count toward coaching and behavior evidence.":
-   "4.4 storybooks do not require a legacy 4.3 graph or scripted phase summaries."));
+ if(!current)return;const checks=validation(),box=$("episodeReadiness");box.replaceChildren();
+ const n=checks.filter(x=>x[1]).length;box.append(node("p","episode-summary",n+" of "+checks.length+" editorial checks complete"));
+ const headline=$("episodeReadinessHeadline");if(headline)headline.textContent=n+" / "+checks.length+" editorial checks complete";
+ for(const [label,passed] of checks){const row=node("div","episode-check"+(passed?" ok":""));row.append(node("span","",passed?"✓":"○"),node("span","",label));box.append(row)}
+ box.append(node("p","episode-editorial-note","Only a primary skill and premise are required for a shared chapter. Other guidance is optional; the authors' choices determine the outcome."));
 }
 function closePilot(clearRoom=false){
  if(timedClock){clearInterval(timedClock);timedClock=null;}
@@ -546,227 +407,25 @@ function closePilot(clearRoom=false){
  if(clearRoom)pilot=null;
  const board=$("episodePilotBoard");if(board)board.hidden=true;
 }
-async function pilotEpisode(reset=false,pilotVersion="4.3.0",timedPilot=false){
+async function pilotEpisode(reset=false){
  if(!current||busy)return;
- if(["4.3.0","4.4.0"].includes(pilotVersion)&&current.mode!=="shared"){
-  note("The live 4.3 pilot supports a shared two-coach episode. Individual episode editing remains available, but solo SMS launching is not yet supported.",true);return;
- }
- if(current.dirty||!current.hasSaved){
-  note("Saving your 4.3 episode before launching the private pilot…");
-  if(!await save())return;
- }
- const approved41=new Set(["the four-hundred-dollar surprise","can we talk later?","a fight on vacation","one of us loves mountains","changing seasons of desire"]);
- const pilotTitle=String(current.studio?.title||current.title||"").trim().toLowerCase();
- const originalMicrowave=pilotTitle==="the four-hundred-dollar surprise";
- const approvedScenarioGraph=pilotVersion==="4.3.0"&&
-  current.studio?.scenarioGraph?.version==="anthos-4.3-scenario-graph-v1"&&
-  current.studio.scenarioGraph.episodeId===current.id;
- if((pilotVersion==="4.2.0"&&!originalMicrowave)||
-    (pilotVersion==="4.3.0"&&!originalMicrowave&&!approvedScenarioGraph)){
-  note("This episode needs a saved, approved 4.3 story graph before starting its real two-person pilot. No microwave plot will be substituted.",true);return;
- }
- if(pilotVersion==="4.1.0"&&!approved41.has(String(current.studio?.title||current.title||"").trim().toLowerCase())){
-  note("4.1 currently supports five approved episodes. Select one of the five authored pilots.",true);return;
- }
- if(!window.Anthos4Player){note("Pilot player failed to load. Refresh the admin page.",true);return}
- if(pilot&&(!confirm("Start a fresh "+pilotVersion+" test using your SAVED episode edits? The previous husband and wife invitation links will be retired. Its messages remain archived.")))return;
- setBusy(true);$("episodeLaunchPilot").disabled=true;$("episodeLaunchPilot41").disabled=true;$("episodeLaunchPilot42").disabled=true;$("episodeLaunchPilot43").disabled=true;$("episodeLaunchPilot43Timed").disabled=true;$("episodePilotReset").disabled=true;
- note("Creating a new, private "+pilotVersion+" episode rehearsal…");
+ if(current.mode!=="shared"){note("This storybook pilot needs two co-authors.",true);return}
+ if(current.dirty||!current.hasSaved){note("Saving your story guidance…");if(!await save())return}
+ if(!canLaunch44()){note("Choose a primary relationship skill and add a story premise.",true);return}
+ if(!window.Anthos4Player){note("Storybook reader did not load. Refresh the page.",true);return}
+ if(pilot&&!confirm("Start a new chapter? The previous invitation links will be retired, but its story remains archived."))return;
+ setBusy(true);note("Opening your shared storybook…");
  try{
   const previousRoomId=pilot?.roomId||null;
-  const room=await request("episode-studio-pilot-v4",{
-   scenarioId:current.id,previousRoomId,pilotVersion,
-   fastForward:!timedPilot&&["4.2.0","4.3.0","4.4.0"].includes(pilotVersion),timedPilot
-  });
-  closePilot();
-  pilot=room;
-  $("episodePilotEmpty").hidden=true;
-  showStudioSection("pilot");
-  refreshPilotReview43();
-  const board=$("episodePilotBoard");
-  board.hidden=false;
-  const plan=$("episodePilotPlan");
-  plan.replaceChildren();
-  const snapshot=collect();
-  if(pilotVersion==="4.1.0")plan.append(node("li","episode-pilot-plan-item","4.1 uses four authored coaching checkpoints with separate Jack/Jill choices and follow-ups; the published 4.0 draft is unchanged."));
-  if(pilotVersion==="4.2.0"){
-   plan.append(node("li","episode-pilot-plan-item","4.2: Sophia introduces the three saved skills before Monday. Jill → wife Monday, Jack → husband Tuesday, alternate through Friday, then Sophia evaluates the actual choices against each skill on Saturday. No narrator or midweek Sophia; fast-forward QA only; NO SMS."));
-  }
-  if(pilotVersion==="4.4.0")plan.append(node("li","episode-pilot-plan-item","4.4: six shared storyboards with both spouses guiding their character Monday–Friday, Saturday resolution and Sunday Sophia reflection. Illustrated browser pilot: each published scene has an illustration control and both spouses see the same approved artwork. No SMS."));
-  if(pilotVersion==="4.3.0")plan.append(node("li","episode-pilot-plan-item","4.3: each coach privately advises a fictional character. Verified decisions affect the same story while time passes separately from coaching frequency. "+(timedPilot?"Each fictional day lasts ten minutes; messages start only when you select the registered couple.":"Browser review only; no SMS.")));
-  for(const [index,phase] of current.phases.entries()){
-   const row=node("li","episode-pilot-plan-item");
-   if(pilotVersion==="4.3.0"){
-    const config=snapshot.developmentalFlow[phase.id];
-    row.append(node("strong","",DEVELOPMENT_NAMES[index]+" — "),node("span","",config.objective),node("small","","Evidence: "+config.evidence+" · "+Object.entries(config.emphasis).map(([id,w])=>(current.skills.find(x=>x.id===id)?.title||id)+" "+w+"/5").join(" · ")));
-    plan.append(row);continue;
-   }
-   row.append(node("strong","",phase.title+" — "));
-   row.append(node("span","",snapshot.phases?.[phase.id]||"No summary saved."));
-   if(index<5){
-    const cp=snapshot.checkpoints.find(x=>x.afterPhase===phase.id);
-    const role=cp?.audience==="both"?"Both private coaches":
-      cp?.audience==="jack"?"Jack → husband":cp?.audience==="jill"?"Jill → wife":"No intervention";
-    row.append(node("small","",role+" · "+(cp?.purpose||"Story continues")));
-   }
-   plan.append(row);
-  }
+  const room=await request("episode-studio-pilot-v4",{scenarioId:current.id,previousRoomId,pilotVersion:"4.4.0",fastForward:true});
+  closePilot();pilot=room; $("episodePilotEmpty").hidden=true;showStudioSection("pilot");
+  const board=$("episodePilotBoard");board.hidden=false;
   const jack=$("episodeHusbandLink"),jill=$("episodeWifeLink");
-  const isSolo=room.mode==="individual";
-  jack.parentElement.hidden=!room.invitations.jack;jill.parentElement.hidden=!room.invitations.jill;
-  if(room.invitations.jack)jack.href=room.invitations.jack;
-  if(room.invitations.jill)jill.href=room.invitations.jill;
-  $("episodePilotBoard").querySelector(".episode-pilot-heading h4").textContent=room.engine==="4.4.0"?"4.4 · Shared illustrated storybook":isSolo?"4.3 · Individual coach review":"4.3 · Two private coaching streams";
-  const smsEligible=!!room.timedPilot;
-  $("episodePilotClock").textContent=room.timedPilot?"Clock not started. Choose your verified couple to begin Monday.":"";
-  $("episodePilotSmsStatus").textContent=!smsEligible?
-   "This is a browser-only fast-forward quality pilot. Real weekly SMS is disabled until the delivery/scheduling tests pass.":
-   "Checking existing registered couple consent for private texting…";
-  $("episodePilotSmsCouple").disabled=!smsEligible;
-  $("episodePilotSmsSetup").disabled=!smsEligible;
-  $("episodePilotStatus").textContent=
-   (previousRoomId?(room.previousRetired===true?"Previous test archived and its links retired. ":"New room created, but old invitations may still be valid. "):"")+
-   "Fresh "+room.engine+" "+(isSolo?"single-coach":"two-coach")+" private test uses your latest SAVED six-phase plan. "+
-   (room.engine==="4.4.0"?"Each spouse starts on Monday and can guide the story. No SMS is sent. Invitations expire ":"Each private coach starts at Hook; no SMS is sent. Invitations expire ")+new Date(room.expiresAt).toLocaleDateString()+".";
-  const husbandPanel=$("episodeHusbandPlayer"),wifePanel=$("episodeWifePlayer");
-  husbandPanel.hidden=!room.invitations.jack;wifePanel.hidden=!room.invitations.jill;
-  pilotPlayers=[];
-  if(room.invitations.jack)pilotPlayers.push(window.Anthos4Player.mount(husbandPanel,new URL(room.invitations.jack).searchParams.get("invite")));
-  if(room.invitations.jill)pilotPlayers.push(window.Anthos4Player.mount(wifePanel,new URL(room.invitations.jill).searchParams.get("invite")));
-  board.scrollIntoView({behavior:"smooth",block:"start"});
-  note("Version "+room.engine+" test room created. Both private coach panels are ready below.");
-  if(smsEligible)await loadSmsEligible();
- }catch(e){note(e.message,true)}
- finally{setBusy(false);$("episodeLaunchPilot").disabled=false;$("episodeLaunchPilot41").disabled=false;$("episodeLaunchPilot42").disabled=false;updatePilotControls43();$("episodePilotReset").disabled=false}
-}
-async function refreshPilotReview43(){
- const host=$("episodeReviewReport43");if(!host)return;
- host.replaceChildren();
- if(pilot?.engine==="4.4.0"){host.append(node("p","episode-editorial-note","4.4: use the two storybook panels above to review the shared scenes and artwork. The legacy SMS transcript report does not apply."));return;}
- if(!pilot?.roomId){
-  host.append(node("p","episode-editorial-note","Start a 4.3 browser or SMS pilot to see real character dialogue, verified events and human ratings here."));
-  return;
- }
- host.append(node("p","episode-editorial-note","Loading the protected transcript and SMS feedback…"));
- try{
-  const result=await request("episode-studio-live-review",{roomId:pilot.roomId});
-  if(pilot?.roomId!==result.roomId)return;
-  host.replaceChildren();
-  const counts=result.counts||{};
-  const summary=node("div","episode-v43-world-summary");
-  for(const text of [
-   (counts.coachingTurns||0)+" coaching turns",
-   (counts.validatedOpenAI||0)+" validated OpenAI replies",
-   (counts.fallbacks||0)+" non-model replies",
-   (counts.participantRatings||0)+" SMS quality ratings"
-  ])summary.append(node("span","",text));
-  host.append(summary);
-  const state=node("p","episode-editorial-note","Independent 8/10 human certification: not yet established. A participant's SMS rating is useful feedback, but not a formal release review.");
-  host.append(state);
-  const ratings=node("details","episode-v43-fold");
-  ratings.append(node("summary","","SMS feedback from both private coaches"));
-  for(const role of ["jack","jill"]){
-   const lines=result.participantReviews?.[role]||[];
-   ratings.append(node("strong","episode-v43-role",role==="jack"?"Jack's coach":"Jill's coach"));
-   if(!lines.length)ratings.append(node("p","episode-editorial-note","No ratings yet. Text QA LIST for the ten categories and QA 4 8 for an example rating."));
-   for(const rating of lines){
-    const line=node("p","episode-v43-world-line",
-     rating.dimension+" · "+rating.score+"/10"+
-     (rating.comment?" · "+rating.comment:"")+
-     (rating.sourceQuote?" · Source: “"+rating.sourceQuote+"”":""));
-    ratings.append(line);
-   }
-  }
-  host.append(ratings);
-  const history=node("details","episode-v43-fold");
-  history.append(node("summary","","Actual coach / character transcript ("+(result.turns||[]).length+" messages)"));
-  for(const [i,turn] of (result.turns||[]).entries()){
-   const item=node("details","episode-v43-rule");
-   item.append(node("summary","",(i+1)+". "+(turn.role==="jack"?"Jack's coach":"Jill's coach")+
-    " · Day "+(Number(turn.day)+1)+" · "+(turn.source==="model-validated"?"OpenAI verified":"Other / not live-verified")));
-   const body=node("div","episode-v43-rule-body");
-   body.append(node("strong","","Private coach advice"),node("p","",turn.advice||"—"),
-    node("strong","","Character reply"),node("p","",turn.reply||"—"),
-    node("strong","","Verified story consequence"),node("p","",turn.event||"No new event verified."),
-    node("small","episode-editorial-note",turn.responseId?
-     "Provider receipt: "+turn.responseId+" · "+turn.model:"No validated provider receipt"));
-   item.append(body);history.append(item);
-  }
-  if(!(result.turns||[]).length)history.append(node("p","episode-editorial-note","No character replies yet."));
-  host.append(history);
- }catch(error){
-  host.replaceChildren(node("p","episode-v43-error","Could not load the protected QA report: "+error.message));
- }
-}
-async function loadSmsEligible(){
- const box=$("episodePilotSmsStatus"),select=$("episodePilotSmsCouple"),
-  button=$("episodePilotSmsSetup");
- button.disabled=true;
- select.replaceChildren();
- const initial=document.createElement("option");initial.value="";initial.textContent="Select a verified registered couple";
- select.append(initial);
- try{
-  const result=await request("episode-studio-sms-eligible");
-  for(const couple of result.couples||[]){
-   const option=document.createElement("option");
-   option.value=couple.husbandCustomerId;option.textContent=couple.label;
-   select.append(option);
-  }
-  box.textContent=result.enabled?
-   "Select the couple to text from their existing Anthos registration consent. This is a real SMS test; carrier message rates may apply.":
-   "SMS pilot sending is not enabled in Vercel yet. The registered couples are listed, but no texts will be sent until the Telnyx connection is active.";
-  button.disabled=!result.enabled||!result.couples?.length;
- }catch(e){
-  box.textContent="Could not read eligible registered couples: "+(e.message||"Service unavailable.");
- }
-}
-async function setupPilotSms(){
- const statusBox=$("episodePilotSmsStatus");
- if(!pilot?.roomId||!pilot.timedPilot||!pilot.invitations?.jack||!pilot.invitations?.jill){
-  statusBox.textContent="Create a two-person timed 4.3 SMS pilot first.";
-  return;
- }
- const husbandCustomerId=$("episodePilotSmsCouple").value;
- if(!/^[0-9a-f-]{36}$/i.test(husbandCustomerId)){
-  statusBox.textContent="Select the registered couple and assign Jack's coach.";
-  return;
- }
- const button=$("episodePilotSmsSetup");button.disabled=true;
- try{
-  const result=await request("episode-studio-sms-setup",{
-   roomId:pilot.roomId,husbandCustomerId,invitations:pilot.invitations
-  });
-  statusBox.textContent=result.message||"SMS launch submitted to Telnyx.";
-  if(result.timedPilot){
-   pilot.daySchedule=result.daySchedule;pilot.smsStarted=true;pilot.phaseIndex=0;
-   $("episodePilotSmsCouple").disabled=true;
-   startTimedClock();
-  }
- }catch(e){
-  statusBox.textContent=e.message||"SMS pilot sending is unavailable; the browser links remain usable.";
- }finally{button.disabled=!!pilot?.smsStarted}
-}
-function startTimedClock(){
- if(timedClock)clearInterval(timedClock);
- const roomId=pilot.roomId,clock=$("episodePilotClock");
- let previousTick=0;
- const tick=async()=>{
-  if(pilot?.roomId!==roomId||!pilot.smsStarted)return;
-  const next=pilot.daySchedule?.[Math.min((pilot.phaseIndex||0)+1,5)];
-  const s=Math.max(0,Math.ceil((Date.parse(next)-Date.now())/1000));
-  clock.textContent=pilot.finished?"Saturday reflection complete.":pilot.paused?"Pilot paused.":"Day "+((pilot.phaseIndex||0)+1)+"/6 · Next check-in in "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
-  if(pilot.finished||tickBusy||Date.now()-previousTick<12000)return;
-  previousTick=Date.now();tickBusy=true;
-  try{
-   const result=await request("episode-studio-sms-tick",{roomId});
-   if(pilot?.roomId!==roomId)return;
-   if(!result.active&&!result.finished){clock.textContent="SMS pilot stopped or inactive.";clearInterval(timedClock);timedClock=null;return;}
-   pilot.phaseIndex=result.phaseIndex??pilot.phaseIndex;pilot.paused=result.paused;pilot.finished=result.finished;
-   if(result.nextDayAt)pilot.daySchedule[pilot.phaseIndex+1]=result.nextDayAt;
-   if(result.finished){clock.textContent="Saturday reflection complete.";clearInterval(timedClock);timedClock=null;}
-  }catch(e){clock.textContent="Clock reconnecting: "+e.message;}finally{tickBusy=false;}
- };
- timedClock=setInterval(tick,1000);tick();
+  jack.href=room.invitations.jack;jill.href=room.invitations.jill;
+  $("episodePilotStatus").textContent="One shared chapter · two contributions · automatic illustrations. Fast-forward preview.";
+  pilotPlayers=[window.Anthos4Player.mount($("episodeSharedPlayer"),new URL(jack.href).searchParams.get("invite"),{secondInvite:new URL(jill.href).searchParams.get("invite")})];
+  board.scrollIntoView({behavior:"smooth",block:"start"});note("Your storybook is open. Join both roles below, or share the individual links.");
+ }catch(e){note(e.message,true)}finally{setBusy(false);updatePilotControls43();$("episodePilotReset").disabled=false}
 }
 async function copyPilot(which){
  const url=pilot?.invitations?.[which];
@@ -828,7 +487,7 @@ async function openEditor(id,petal,mode){
   document.dispatchEvent(new CustomEvent("anthos-episode-selected",{detail:{id:current.id,petal:current.petal}}));
   if($("episodeStudioPicker"))$("episodeStudioPicker").value=String(id);
   try{localStorage.setItem("anthos.studio.lastEpisodeId",String(id))}catch{}
-  note(data.scenario.episode_saved?"Saved Deep Dive 4.3 editorial draft loaded. Story rules appear under Story World.":"Episode selected. Draft the foundation, verify its 4.3 story world, then save to enable testing.");
+  note(data.scenario.episode_saved?"Saved story guidance loaded.":"Episode selected. Choose a skill and premise, then launch the storybook.");
   // Never silently AI-draft a saved episode on open; this previously
   // marked completed drafts "Unsaved edits" and blocked launch.
   // Editorial AI drafting is an explicit user action.
@@ -856,7 +515,7 @@ async function save(){
   note("Before saving, add a clear title, a descriptive premise, and a learning objective.",true);
   return false;
  }
- setBusy(true);note("Saving the Deep Dive 4.3 editorial draft and approved story world…");
+ setBusy(true);note("Saving story guidance…");
  try{
   const result=await request("episode-studio-save",{id:current.id,content_version:current.version,mode:current.mode,status:current.status,studio:s});
   current.version=result.content_version;current.studio=result.studio;current.mode=result.mode||current.mode;current.status=result.status||current.status;current.hasSaved=true;current.dirty=false;updatePilotControls43();
@@ -864,7 +523,7 @@ async function save(){
   current.skillUsage=result.skillUsage||current.skillUsage;paintSkills();
   $("episodeSavedState").textContent="Saved · v"+current.version;
   $("episodeSavedState").classList.remove("modified");
-  note("4.3 episode saved. Existing pilot conversations are unaffected. No SMS was sent.");
+  note("Story guidance saved. Existing chapters are unchanged.");
   renderReadiness();
   return true;
  }catch(error){note(error.message,true);return false}finally{setBusy(false)}
@@ -983,9 +642,9 @@ function setup(){
  const stage=document.createElement("div");stage.className="episode-panel-stage";
  const specs=[
   ["01","Foundation","foundation","♡","Primary skill, supporting skills and conflict"],
-  ["02","Story World","story","⌖","Scene, characters, verified decisions and humor"],
-  ["03","Coaching & Evidence","flow","▤","Six learning phases, observed behavior and ending"],
-  ["04","Pilot & Review","pilot","✉","Browser QA, real SMS and human quality review"]
+  ["02","Story Design","story","⌖","Scene, characters, verified decisions and humor"],
+  ["03","Weekly Rhythm","flow","▤","Six learning phases, observed behavior and ending"],
+  ["04","Storybook Preview","pilot","✉","Browser QA, real SMS and human quality review"]
  ];
  const panels={};
  for(const [number,title,key,symbol,description] of specs){
@@ -1162,12 +821,12 @@ function setup(){
  ));
  panels.flow.append(endDraft);
 
- // Build the one-screen-at-a-time 4.3 editorial workflow.
+ // Build the one-screen-at-a-time storybook editorial workflow.
  // Only the real graph is the source of story events; archived scripts never show.
  const endHeading=node("h5","episode-v43-subheading","Sophia's earned ending & research");
  panels.flow.insertBefore(endHeading,ending);
- const worldHeading=node("h5","episode-v43-subheading","Verified 4.3 story world");
- const worldHost=node("section","episode-v43-world");worldHost.id="episodeWorld43";
+ const worldHeading=node("h5","episode-v43-subheading","Story continuity");
+ const worldHost=node("section","episode-v43-world","The approved pages establish the facts. Each new scene follows both contributions and preserves character, location, objects, and promises. No scripted ending required.");worldHost.id="episodeWorld44";
  panels.story.append(worldHeading,worldHost);
  const creativeDetails=node("details","episode-v43-fold");
  creativeDetails.append(node("summary","","Voice, humor & tone"));
@@ -1182,24 +841,14 @@ function setup(){
  const board=$("episodePilotBoard");
  panels.pilot.append(board);
  const pilotActions=node("div","episode-v43-pilot-actions");
- pilotActions.append($("episodeLaunchPilot44"),$("episodeLaunchPilot43"),$("episodeLaunchPilot43Timed"));
+ pilotActions.append($("episodeLaunchPilot44"));
  panels.pilot.insertBefore(pilotActions,board);
  const help=node("p","episode-v43-pilot-help",
-  "Launch 4.4 for an illustrated shared chapter with two co-authors. The older 4.3 browser and SMS modes are retained for existing pilot workflows.");
+  "Preview one illustrated chapter. Read the shared page, answer Sophia, and turn the page together. No text messages are sent in this preview.");
  panels.pilot.insertBefore(help,board);
  const pilotEmpty=node("p","episode-v43-empty","Choose a shared episode with a primary skill and premise to launch 4.4.");
  pilotEmpty.id="episodePilotEmpty";
  panels.pilot.insertBefore(pilotEmpty,board);
- const reviewPanel=node("section","episode-v43-review");
- reviewPanel.append(node("h5","episode-v43-subheading","Live transcript & human feedback"));
- const reviewLead=node("p","episode-editorial-note",
-  "Review what the model really said to each coach, the verified consequences, and each spouse's SMS ratings. No fictional QA response is counted as a live model reply.");
- const refresh=node("button","episode-panel-draft","↻ Refresh QA evidence");refresh.type="button";
- refresh.addEventListener("click",refreshPilotReview43);
- const report=node("div","episode-v43-report");report.id="episodeReviewReport43";
- reviewPanel.append(reviewLead,refresh,report);
- panels.pilot.append(reviewPanel);
- refreshPilotReview43();
  for(const old of Array.from(layout.children))if(old!==nav&&old!==stage)old.remove();
  studio.querySelector(".episode-workflow").hidden=true;
  panels.flow.prepend(readinessHost);
@@ -1237,17 +886,11 @@ function setup(){
   current.studio.supportingSkills=current.studio.supportingSkills.filter(x=>x!==current.studio.primarySkill);
   markDirty();paintSkills();paintSupports();
  });
- $("episodeLaunchPilot").addEventListener("click",()=>pilotEpisode(false,"4.0.0"));
- $("episodeLaunchPilot41").addEventListener("click",()=>pilotEpisode(false,"4.1.0"));
- $("episodeLaunchPilot42").addEventListener("click",()=>pilotEpisode(false,"4.2.0"));
- $("episodeLaunchPilot43").addEventListener("click",()=>pilotEpisode(false,"4.3.0"));
- $("episodeLaunchPilot44").addEventListener("click",()=>pilotEpisode(false,"4.4.0"));
- $("episodeLaunchPilot43Timed").addEventListener("click",()=>pilotEpisode(false,"4.3.0",true));
- $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true,pilot?.engine||"4.4.0",!!pilot?.timedPilot));
+     $("episodeLaunchPilot44").addEventListener("click",()=>pilotEpisode(false));
+  $("episodePilotReset").addEventListener("click",()=>pilotEpisode(true));
  $("episodePilotClose").addEventListener("click",()=>closePilot(false));
  $("episodeCopyHusband").addEventListener("click",()=>copyPilot("jack"));
  $("episodeCopyWife").addEventListener("click",()=>copyPilot("jill"));
- $("episodePilotSmsSetup").addEventListener("click",setupPilotSms);
  $("episodeGenerate").addEventListener("click",generate);
  $("episodeIntroDraft").addEventListener("click",()=>draftOnly(["sophiaIntro"],"Write a lively, SHORT Sophia message to the actual clients using literal <<husband>> and <<wife>> tokens in shared episodes (only the applicable token in solo episodes). This message is delivered after scene preparation but before Jack or Jill contacts their coach. Introduce Jack and Jill as characters, describe a vivid awkward moment, and define emotional bid plainly as a little attempt to connect, such as asking to sit together. Avoid academic jargon and bullet points."));
  $("episodeExamplesDraft").addEventListener("click",()=>draftOnly(["jackExample","jillExample"],"Write short, distinct, believable Jack and Jill examples as lived moments: physical action, specific household detail, an awkward misunderstanding and a consequential reaction. No therapy-speak, no skill names, no academic descriptions. Respect boundaries and original premise."));
