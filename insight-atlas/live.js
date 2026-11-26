@@ -88,7 +88,7 @@ async function loadEpisodes(){
 }
 async function linkRoom(){
  const invite=$("atlasInvite").value.trim();
- if(!/^[A-Za-z0-9_-]{43}$/.test(invite))throw Error("Paste the individual token from your private 4.3 invitation.");
+ if(!/^[A-Za-z0-9_-]{43}$/.test(invite))throw Error("Paste the individual token from your private episode invitation.");
  const result=await api("",{action:"link",inviteToken:invite});
  $("atlasInvite").value="";
  status(result.message||"Invitation verified.");
