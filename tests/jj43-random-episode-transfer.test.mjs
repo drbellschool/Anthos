@@ -217,14 +217,11 @@ test("Serialized Episode Studio graph matches the 10-turn QA-approved source",()
  assert.equal(studio.scenarioGraph.rules.length,12);
 });
 
-test("Admin launch no longer blocks approved second-episode 4.3 SMS on microwave-only title",()=>{
+test("Storybook launch does not require a microwave-only title or legacy story graph",()=>{
  const frontend=readFileSync(new URL("../admin/episode-studio.js",import.meta.url),"utf8");
- assert.match(frontend,/approvedScenarioGraph=pilotVersion==="4\.3\.0"/);
- assert.match(frontend,/current\.studio\.scenarioGraph\.episodeId===current\.id/);
- assert.match(frontend,/pilotVersion==="4\.3\.0"&&!originalMicrowave&&!approvedScenarioGraph/);
- assert.doesNotMatch(frontend,/4\.2\/4\.3 currently pilot The Four-Hundred-Dollar Surprise/);
- assert.match(frontend,/pilotEpisode\(false,"4\.3\.0",true\)/);
- assert.match(frontend,/episode-studio-sms-setup/);
+ assert.match(frontend,/function canLaunch44/);
+ assert.match(frontend,/pilotVersion:"4\.4\.0"/);
+ assert.doesNotMatch(frontend,/approvedScenarioGraph|episode-studio-sms-setup/);
 });
 
 test("4.3 actual provider prompt uses Studio humor, style and persona rather than abandoned 4.1 script fields",async()=>{
