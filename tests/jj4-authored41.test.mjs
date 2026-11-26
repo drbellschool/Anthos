@@ -127,6 +127,6 @@ test("4.1 uses existing JJ4 API, admin pilot, and client rather than a parallel 
  assert.match(core,/rpc\/anthos_jj4_submit_coaching/);
  assert.match(api,/case "choice"/);
  assert.match(admin,/body\.pilotVersion/);
- assert.match(player,/state\.version==="4\.1\.0"/);
+ assert.match(player,/data\.version!=="4\.4\.0"/);
  assert.doesNotMatch(load("api/jj4-authored41.mjs"),/api\.openai\.com|SUPABASE_SECRET_KEY/);
 });
