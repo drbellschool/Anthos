@@ -1103,7 +1103,7 @@ export async function illustrate44(token,day){
   const p=await artPage44(room,prior);
   const entry=room.episode.storybook44.artwork?.[prior];
   const artState=publicArt44(entry,p.digest);
-  if(artState==="unavailable")continue;
+  if(artState==="unavailable"||artState==="retry")continue;
   if(artState!=="ready")error("Illustrate the earlier pages first to preserve character consistency.",409);
   references.push(await readArt44(artPath44(room.id,prior,p.digest,entry.lease)));
  }
