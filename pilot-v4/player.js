@@ -89,7 +89,7 @@ function mount(root,invite,options={}){
    if(s.pausedBy?.length){for(const k of keys)if(states[k]?.paused)button(inputs,"Resume story",()=>perform(k,"resume"))}
    else if(s.joined&&!s.finished)button(inputs,"Pause story",()=>perform(key,"pause"));
    if(failed&&s.canContinue)button(inputs,"Retry writing the page",()=>perform(key,"advance"),true);
-   if(failed&&s.finished&&!s.hasSophia)button(inputs,"Retry Sophia's reflection",()=>perform(key,"closure"),true);
+   if(failed&&s.finished&&!s.hasSophia)button(inputs,"Continue to Sophia’s reflection",()=>perform(key,"closure"),true);
    if(focusKey){const field=Array.from(inputs.querySelectorAll?.("[data-draft-key]")||[]).find(x=>x.getAttribute("data-draft-key")===focusKey);if(field){field.focus();if(selection&&typeof field.setSelectionRange==="function")field.setSelectionRange(...selection)}}
   }
   if(busy)return;
@@ -97,7 +97,7 @@ function mount(root,invite,options={}){
   if(!s.bothJoined){say("Both co-authors need to join before Monday begins.");return}
   if(s.pausedBy?.length){say("The story is paused.");return}
   const needsArt=scenes.find(x=>x.artState==="missing");
-  if(needsArt&&!requested.has(needsArt.phase_index)&&scenes.filter(x=>x.phase_index<needsArt.phase_index).every(x=>["ready","unavailable"].includes(x.artState))){
+  if(needsArt&&!requested.has(needsArt.phase_index)&&scenes.filter(x=>x.phase_index<needsArt.phase_index).every(x=>["ready","unavailable","retry"].includes(x.artState))){
    requested.add(needsArt.phase_index);say("Creating your illustration…");queue(key,"illustrate",{phaseIndex:needsArt.phase_index});return;
   }
   if(last&&["missing","generating"].includes(last.artState)){say(last.artState==="retry"?"The illustration needs another try.":"The illustrator is preparing your page…");return}
