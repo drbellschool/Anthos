@@ -49,9 +49,10 @@ test("later pages submit both approved references to artist and visual reviewer"
  const output=await generateIllustration44({page,references:[image,nextImage],apiKey:"synthetic",fetchImpl:async(url,options)=>{
   calls++;
   if(url.endsWith("/edits")){
-   assert.equal(options.body.getAll("image[]").length,2);
-   assert.match(options.body.get("prompt"),/Reference images establish/);
-   assert.equal(options.headers["Content-Type"],undefined);
+   const payload=JSON.parse(options.body);
+   assert.deepEqual(payload.images,[image,nextImage].map(x=>({image_url:"data:image/jpeg;base64,"+x.toString("base64")})));
+   assert.match(payload.prompt,/Reference images establish/);
+   assert.equal(options.headers["Content-Type"],"application/json");
    return json({data:[{b64_json:image.toString("base64")}]});
   }
   const c=JSON.parse(options.body).input[0].content;
@@ -116,3 +117,16 @@ test("authenticated production room setup may provision only the fixed private i
  let calls=0;await assert.rejects(ensureArtBucket44({env,allowCreate:true,fetchImpl:async(url,o)=>{calls++;assert.notEqual(o.method,"POST");return calls===1?json({},400):result()}}),/not configured/);assert.equal(calls,2);
  }
  });
+
+test("previously failed artwork gets a fresh bounded retry budget without touching published artwork",()=>{
+ const digest=digestArt44("saved story"),t=Date.now();
+ const old={state:"failed",digest,lease,at:new Date(t-10000).toISOString(),attempts:3};
+ assert.equal(publicArt44(old,digest,t),"retry");
+ assert.equal(artClaim44(old,digest,lease,t).attempts,1);
+ assert.equal(artClaim44({...old,state:"ready"},digest,lease,t),null);
+ assert.equal(artClaim44({...old,state:"generating"},digest,lease,t),null);
+});
+test("reference image errors are classified without exposing provider response bodies",async()=>{
+ await assert.rejects(generateIllustration44({page,references:[image],apiKey:"synthetic",fetchImpl:async()=>json({error:{message:"secret"}},429)}),e=>e.artCode==="IMAGE_HTTP_429"&&!e.message.includes("secret"));
+ await assert.rejects(generateIllustration44({page,references:[image],apiKey:"synthetic",fetchImpl:async()=>{throw Object.assign(new Error("private"),{name:"TimeoutError"})}}),e=>e.artCode==="IMAGE_TIMEOUT"&&!e.message.includes("private"));
+});
