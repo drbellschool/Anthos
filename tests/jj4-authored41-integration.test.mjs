@@ -582,7 +582,7 @@ test("4.4 HTTP artwork: rejected image never stored; both partners see one appro
  const modelFixture=p=>{
   const name=p.text.format.name;
   const val=name==="jj44_editor"?{pass:true,issues:[]}:{
-   title:"A kitchen conversation",story:"Jack and Jill sat at the kitchen table and discussed their broken microwave. They agreed to talk about their options before spending any money.",
+   title:"A kitchen conversation",story:JSON.parse(p.input).day==="Monday"?"Jack and Jill sat at the kitchen table and discussed their broken microwave. They agreed to talk about their options before spending any money.":"Jill opened her laptop and found a sale at the appliance store. Jack called the repair shop and compared the quote. They agreed to visit the shop tomorrow.",
    sophia:"Notice how they listen to one another.",jackPrompt:"What should Jack choose to do next?",jillPrompt:"How should Jill respond to this moment?",
    events:["They discussed the broken microwave."],openThreads:["They still need a decision."],artBrief:"Watercolor of Jack and Jill sitting at the kitchen table."};
   return new Response(JSON.stringify({output:[{content:[{type:"output_text",text:JSON.stringify(val)}]}]}));
