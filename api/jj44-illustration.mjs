@@ -9,6 +9,23 @@ const attempts44=(entry)=>entry?.revision===ART_REVISION?(entry.attempts||0):0;
 export const ART_STYLE="Warm detailed watercolor for an adult romantic comedy. Jack: middle-aged man, tousled dark brown hair, short stubble, blue plaid or scene-appropriate clothing. Jill: middle-aged woman, brown hair often in a loose bun, small hoop earrings, cream or scene-appropriate clothing. Same faces, age, proportions and painterly style throughout. Natural expressions, cinematic composition, landscape. No letters, numbers, captions, speech bubbles, readable screens, signage, UI, watermarks or page layout. Depict one actual moment, not a montage. Modest non-explicit portrayal of affection.";
 const fail=message=>{throw Error(message)};
 const artError=(code,message)=>Object.assign(new Error(message),{artCode:code});
+const reviewCategories=["SEXUAL_CONTENT","OTHER_SAFETY","CHARACTER_IDENTITY","STORY_CONTRADICTION","WRITING_OR_LAYOUT","UNCERTAIN","OTHER"];
+const safeCategories=(values,allowed)=>Array.isArray(values)?[...new Set(values.filter(x=>allowed.includes(x)))].slice(0,8):[];
+const providerCategories=["sexual","violence","harassment","self-harm","hate","illicit","sexual/minors","violence/graphic","harassment/threatening","hate/threatening","self-harm/intent","self-harm/instructions","illicit/violent"];
+const requestId44=response=>{const id=response.headers.get("x-request-id");return typeof id==="string"&&/^req_[A-Za-z0-9_-]{1,100}$/.test(id)?id:undefined};
+async function providerError44(response,stage){
+ let payload;try{payload=await response.json()}catch{}
+ const err=payload?.error,requestId=requestId44(response);
+ if(err?.code==="moderation_blocked"){
+  const info=err.moderation_details;
+  const moderationStage=["input","output","unknown"].includes(info?.moderation_stage)?info.moderation_stage:"unknown";
+  const categories=safeCategories(info?.categories,providerCategories);
+  console.warn("[jj44-art-detail] "+JSON.stringify({stage,code:"MODERATION_BLOCKED",http:response.status,moderationStage,categories,requestId}));
+  return artError(stage+"_MODERATION_BLOCKED","The illustration was blocked by the image service’s content safeguards.");
+ }
+ console.warn("[jj44-art-detail] "+JSON.stringify({stage,code:"HTTP_ERROR",http:response.status,requestId}));
+ return artError(stage+"_HTTP_"+response.status,(stage==="IMAGE"?"Artwork generation":"Visual review")+" unavailable (HTTP "+response.status+").");
+}
 async function artFetch(fetchImpl,url,options,ms,stage){
  try{return await fetchImpl(url,{...options,signal:AbortSignal.timeout(ms)})}
  catch(e){throw artError(stage+(e?.name==="TimeoutError"||e?.name==="AbortError"?"_TIMEOUT":"_NETWORK"),"The "+stage.toLowerCase()+" service did not finish. Retry the same page.")}
@@ -58,7 +75,7 @@ export async function generateIllustration44({page,references=[],apiKey,fetchImp
   const body=JSON.stringify({...fields,...(references.length?{images:references.map(bytes=>({image_url:"data:image/jpeg;base64,"+bytes.toString("base64")}))}:{})});
   const generated=await artFetch(fetchImpl,"https://api.openai.com/v1/images/"+(references.length?"edits":"generations"),
    {method:"POST",headers:{...headers,"Content-Type":"application/json"},body},Math.min(145000,remaining-35000),"IMAGE");
-  if(!generated.ok)throw artError("IMAGE_HTTP_"+generated.status,"Artwork generation unavailable (HTTP "+generated.status+").");
+  if(!generated.ok)throw await providerError44(generated,"IMAGE");
   const data=await generated.json();
   const encoded=data?.data?.[0]?.b64_json;
   if(typeof encoded!=="string"||encoded.length>4*1024*1024)fail("Invalid artwork response.");
@@ -66,13 +83,15 @@ export async function generateIllustration44({page,references=[],apiKey,fetchImp
   if(!jpeg(bytes))fail("Artwork was not a bounded JPEG.");
   const review=await artFetch(fetchImpl,"https://api.openai.com/v1/responses",{method:"POST",headers:{...headers,"Content-Type":"application/json"},
    body:JSON.stringify({model:visionModel,store:false,max_output_tokens:600,
-    instructions:"You are a strict visual continuity editor. Evaluate the actual candidate pixels, not just the prompt. Compare characters to references and actions, objects, setting, time, mood to the approved text. Reject captions, speech bubbles, prominent readable writing, collage, nudity, clear identity drift, or material contradiction. Ignore incidental abstract texture, minor style differences, and omitted nonessential objects. Do not reject new pose, clothing, expression or perspective merely for differing from the reference. References precede the final candidate. Return only the structured verdict. If uncertain about a material detail, reject.",
+    instructions:"You are a strict visual continuity editor. Evaluate the actual candidate pixels, not just the prompt. Compare characters to references and actions, objects, setting, time, mood to the approved text. Reject captions, speech bubbles, prominent readable writing, collage, nudity, clear identity drift, or material contradiction. Ignore incidental abstract texture, minor style differences, and omitted nonessential objects. Do not reject new pose, clothing, expression or perspective merely for differing from the reference. References precede the final candidate. Return the structured verdict with categories chosen only from the schema enum. Classify sexual or overly explicit imagery separately from other safety issues; never assume a safety violation merely because the story mentions romance. Classify material contradictions, character identity changes, and writing or layout separately. If uncertain about a material detail, use UNCERTAIN. If passing, both arrays must be empty. Do not include personal information or intimate quotations in issues.",
     input:[{role:"user",content:[{type:"input_text",text:JSON.stringify({story:page.story,events:page.events,artBrief:page.artBrief,referenceCount:references.length})},...references.map(imageInput),imageInput(bytes)]}],
-    text:{format:{type:"json_schema",name:"jj44_art_review",strict:true,schema:{type:"object",additionalProperties:false,required:["pass","issues"],properties:{pass:{type:"boolean"},issues:{type:"array",items:{type:"string"}}}}}}}),
+    text:{format:{type:"json_schema",name:"jj44_art_review",strict:true,schema:{type:"object",additionalProperties:false,required:["pass","issues","categories"],properties:{pass:{type:"boolean"},issues:{type:"array",items:{type:"string"}},categories:{type:"array",items:{type:"string",enum:reviewCategories}}}}}}}),
    },Math.min(30000,Math.max(1000,deadline-Date.now())),"REVIEW");
-  if(!review.ok)throw artError("REVIEW_HTTP_"+review.status,"Visual review unavailable (HTTP "+review.status+").");
+  if(!review.ok)throw await providerError44(review,"REVIEW");
   let result;try{result=JSON.parse(responseText(await review.json()))}catch{throw artError("REVIEW_INVALID","Invalid visual review.")}
-  if(result.pass===true&&Array.isArray(result.issues)&&!result.issues.length)return bytes;
+  if(result.pass===true&&Array.isArray(result.issues)&&!result.issues.length&&(!result.categories||result.categories.length===0))return bytes;
+  const categories=safeCategories(result.categories,reviewCategories);
+  console.warn("[jj44-art-detail] "+JSON.stringify({stage:"REVIEW",code:"CANDIDATE_REJECTED",candidate:attempt+1,categories:categories.length?categories:["OTHER"],requestId:requestId44(review)}));
   feedback=Array.isArray(result.issues)?result.issues.filter(x=>typeof x==="string").join("; ").slice(0,600):"Visual review failed.";
  }
  throw artError("REVIEW_REJECTED","Illustration did not pass visual review.");
