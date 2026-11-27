@@ -24,7 +24,7 @@ function mount(root,invite,options={}){
   const labels={advance:"Writing the next page…",illustrate:"Our illustrator is painting this page…",coach:"Saving your contribution…",closure:"Sophia is preparing the final reflection…",join:"Opening your chapter…"};
   say(labels[action]||"Updating the storybook…");
   try{const result=await api(key,action,details);if(result.safetyNotice)safetyNotices[key]=result.safetyNotice;if(action==="resume")delete safetyNotices[key];if(action==="coach"&&result.submitted)delete drafts[key+":"+details.phaseIndex];await sync()}
-  catch(e){failed=e.message;say(failed,true);signature=""}
+  catch(e){failed=e.message;try{await sync()}catch{}say(failed,true);signature=""}
   finally{busy=false;root.removeAttribute("aria-busy");if(!dead)render()}
  }
  function queue(key,action,details={}){
@@ -52,7 +52,7 @@ function mount(root,invite,options={}){
    page.replaceChildren();inputs.replaceChildren();
    if(view==="chapter"&&reflection){
     page.append(el("p","jj44-kicker","YOUR COMPLETED CHAPTER"));
-    for(const scene of scenes){const section=el("article","jj44-chapter-page");section.append(el("p","jj44-kicker",days[scene.phase_index]),el("h3","jj44-page-title",scene.storyTitle));const holder=el("div","jj44-art");section.append(holder);if(scene.artState==="ready")image(holder,key,scene);else holder.append(el("p","jj44-art-note","Illustration unavailable."));section.append(el("p","jj44-story-text",scene.storyText));page.append(section)}
+    for(const scene of scenes){const section=el("article","jj44-chapter-page");section.append(el("p","jj44-kicker",days[scene.phase_index]),el("h3","jj44-page-title",scene.storyTitle));const holder=el("div","jj44-art");section.append(holder);if(scene.artState==="ready")image(holder,key,scene);else holder.append(el("p","jj44-art-note","Illustration unavailable."));section.append(el("p","jj44-story-text",scene.storyText));if(scene.takeawayText)section.append(el("p","jj44-takeaway",scene.takeawayText));page.append(section)}
     page.append(el("h3","jj44-page-title","Sunday · A moment with Sophia"),el("p","jj44-story-text",reflection.body));
    }else if(view===6&&reflection){
     page.append(el("p","jj44-kicker","SUNDAY · YOUR COMPLETED CHAPTER"),el("h3","jj44-page-title","A moment with Sophia"),el("p","jj44-story-text",reflection.body));
@@ -64,7 +64,8 @@ function mount(root,invite,options={}){
     else{holder.append(el("p","jj44-art-note",item.artState==="unavailable"?"The artwork could not be approved. Your written page is saved.":"The illustrator is preparing this scene…"));
      if(item.artState==="retry"||failed&&item.artState==="missing")button(holder,"Retry illustration",()=>perform(key,"illustrate",{phaseIndex:view}));
     }
-    page.append(el("p","jj44-story-text",item.storyText));const sophia=el("aside","jj44-sophia");sophia.append(el("strong","","✿ Sophia"),el("p","",item.sophiaText));page.append(sophia);
+    page.append(el("p","jj44-story-text",item.storyText));const notes=el("div","jj44-page-notes"),sophia=el("aside","jj44-sophia");sophia.append(el("strong","","✿ Sophia"),el("p","",item.sophiaText));notes.append(sophia);
+    if(item.takeawayText){const takeaway=el("aside","jj44-takeaway");takeaway.append(el("strong","","The Takeaway"),el("p","",item.takeawayText));notes.append(takeaway)}page.append(notes);
    }else page.append(el("p","jj44-story-text",s.joined?"Your opening page is being prepared.":"Welcome! Join the chapter and help Jack and Jill write their story."));
    for(const k of keys){
     const st=states[k];if(!st)continue;
@@ -77,7 +78,7 @@ function mount(root,invite,options={}){
     card.append(el("h4","",(st.firstName||"Your turn")+" — Guide "+character),el("p","jj44-question",prompt.body));
     if(st.submitted||!st.needsReply)card.append(el("p","jj44-saved","✓ Contribution saved"));
     else if(s.pausedBy?.length)card.append(el("p","jj44-art-note","The story is paused."));
-    else if(item.artState==="ready"||item.artState==="unavailable"){
+    else if(item.artState==="ready"||item.artState==="unavailable"||item.artState==="retry"){
      const field=el("textarea","jj4-advice");field.rows=3;field.maxLength=900;field.placeholder="What should "+character+" do next?";field.setAttribute("aria-label","Your contribution for "+character);
      const dk=k+":"+view;field.setAttribute("data-draft-key",dk);field.value=drafts[dk]||"";field.oninput=()=>{drafts[dk]=field.value};card.append(field);
      button(card,"Contribute to the next page",()=>{if(field.value.trim().length<2){say("Write a suggestion for "+character+".",true);return}perform(k,"coach",{phaseIndex:view,message:field.value.trim(),requestKey:crypto.randomUUID()})},true);
@@ -99,7 +100,7 @@ function mount(root,invite,options={}){
   if(needsArt&&!requested.has(needsArt.phase_index)&&scenes.filter(x=>x.phase_index<needsArt.phase_index).every(x=>["ready","unavailable"].includes(x.artState))){
    requested.add(needsArt.phase_index);say("Creating your illustration…");queue(key,"illustrate",{phaseIndex:needsArt.phase_index});return;
   }
-  if(last&&["missing","generating","retry"].includes(last.artState)){say(last.artState==="retry"?"The illustration needs another try.":"The illustrator is preparing your page…");return}
+  if(last&&["missing","generating"].includes(last.artState)){say(last.artState==="retry"?"The illustration needs another try.":"The illustrator is preparing your page…");return}
   if(s.finished){if(s.hasSophia)say("Your chapter is complete. Read any page above.");else if(s.closureDue){say("Sophia is preparing Sunday’s reflection…");queue(key,"closure")}else say("Your final reflection opens Sunday.");return}
   if(s.canContinue){say("Writing "+(s.nextStoryDay||days[s.phaseIndex])+"…");queue(key,"advance");return}
   if(s.stage==="generating"){say("The next page is being written…");return}
