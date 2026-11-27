@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {buildStorybook44,dueStorybook44,history44,validatePage44,writeStorybookPage44,closeStorybook44} from "../api/jj44-storybook.mjs";
 const episode={title:"Fictional test chapter",...buildStorybook44({}, {fastForward:true,now:new Date("2026-11-24T18:00:00Z")})};
-const page=(day=0)=>({title:"A morning disagreement",story:"Jack sat down at the kitchen table and asked Jill about the broken appliance. She explained that the delay had bothered her. They agreed to consider their options.",sophia:"Notice how they raised the practical concern.",jackPrompt:day<5?"What should Jack suggest doing next?":"",jillPrompt:day<5?"How should Jill respond to his suggestion?":"",events:["Jack and Jill discussed the broken appliance."],openThreads:["They have not decided on a solution."],artBrief:"Watercolor scene of Jack and Jill at a kitchen table, no lettering."});
+const page=(day=0)=>({title:"A morning disagreement",story:day===0?"Jack sat down at the kitchen table and asked Jill about the broken appliance. She explained that the delay had bothered her. They agreed to consider their options.":"Jill searched for replacement prices while Jack phoned a repair shop. The technician quoted a price higher than expected. They compared the two options and set a budget.",sophia:"Notice how they raised the practical concern.",jackPrompt:day<5?"What should Jack suggest doing next?":"",jillPrompt:day<5?"How should Jill respond to his suggestion?":"",events:["Jack and Jill discussed the broken appliance."],openThreads:["They have not decided on a solution."],artBrief:"Watercolor scene of Jack and Jill at a kitchen table, no lettering."});
 const row=i=>({role:"shared",kind:"scene",phase_index:i,body:JSON.stringify(page(i))});
 const coach=(role,phase_index,body)=>({role,kind:"coach",phase_index,body});
 test("seven-day schedule and both-spouse checkpoints",()=>{
@@ -118,4 +118,21 @@ test("story author and editor explicitly preserve healthy adult marital intimacy
   return {pass:true,issues:[]};
  });
  assert.deepEqual(result,romantic);
+});
+
+test("duplicate or lightly edited earlier prose is blocked before the AI editor can approve it",async()=>{
+ const rows=[row(0),coach("jack",0,"Compare prices."),coach("jill",0,"Call the shop.")];
+ let authorCalls=0,reviewCalls=0;
+ const result=await writeStorybookPage44(episode,1,rows,async args=>{
+  if(args.name==="jj44_storyboard"){
+   authorCalls++;
+   if(authorCalls===1)return {...page(0),title:"A new title"};
+   if(authorCalls===2){assert.match(args.input.revisionIssues.join(" "),/Story repeats Monday/);return {...page(0),story:page(0).story+" He smiled."}}
+   assert.match(args.input.revisionIssues.join(" "),/Story repeats Monday/);
+   assert.equal(args.input.previousPrompts.jack,page(0).jackPrompt);
+   return page(1);
+  }
+  reviewCalls++;return {pass:true,issues:[]};
+ });
+ assert.deepEqual(result,page(1));assert.equal(authorCalls,3);assert.equal(reviewCalls,1);
 });
