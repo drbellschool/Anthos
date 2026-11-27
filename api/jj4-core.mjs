@@ -219,7 +219,7 @@ export async function status(token){
  const visibleScenes=storybook?scenes.flatMap(x=>{
   if(x.kind!=="scene")return [x];
   const p=parsePage44(x.body,x.phase_index);
-  return p?[{...x,body:p.title+"\n\n"+p.story+"\n\nSophia: "+p.sophia,storyTitle:p.title,storyText:p.story,sophiaText:p.sophia,artState:publicArt44(room.episode.storybook44.artwork?.[x.phase_index],digestArt44(x.body))}]:[];
+  return p?[{...x,body:p.title+"\n\n"+p.story+"\n\nSophia: "+p.sophia,storyTitle:p.title,storyText:p.story,sophiaText:p.sophia,takeawayText:p.takeaway||"",artState:publicArt44(room.episode.storybook44.artwork?.[x.phase_index],digestArt44(x.body))}]:[];
  }):weekly?scenes.filter(x=>x.kind==="sophia"||x.kind==="introduction"):scenes;
  // An immediate character-to-friend reaction follows the private advice in
  // the browser. It expresses uncertainty, NOT a completed fictional action.
