@@ -1116,8 +1116,11 @@ export async function illustrate44(token,day){
   await saveArt44(artPath44(room.id,day,digest,lease),bytes);
   if(!await finishArt44(token,day,lease,"ready"))error("The artwork claim changed. Refresh the story.",409);
  }catch(e){
+  // Only a fixed category and day are logged; never prompts, images, credentials or personal data.
+  const code=typeof e?.artCode==="string"&&/^(IMAGE|REVIEW)_[A-Z0-9_]+$/.test(e.artCode)?e.artCode:"STORAGE_OR_RESPONSE";
+  console.warn("[jj44-art] "+code+" day="+day+" attempt="+claim.attempts);
   await finishArt44(token,day,lease,"failed").catch(()=>{});
-  error("Illustration could not be approved or saved. The story is unchanged; retry when available.",502);
+  error(code.startsWith("IMAGE_")?"The illustrator could not finish this page. Your story is saved; retry the illustration.":code.startsWith("REVIEW_")?"The illustration needs another visual check. Your story is saved; retry the illustration.":"Illustration could not be saved. Your story is unchanged; retry when available.",502);
  }
  return status(token);
 }
