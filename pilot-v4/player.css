@@ -31,3 +31,10 @@
 .jj4-button{border:1px solid #c4d9c7;border-radius:8px;background:#fff;color:#154932;padding:11px 14px;font:650 13px system-ui;cursor:pointer}
 .jj4-button.primary{color:#fff;background:#0f573b;border-color:#0f573b}.jj44-reader[aria-busy="true"] .jj4-button{opacity:.65;cursor:wait}
 @media(max-width:600px){.jj4-standalone{padding:8px}.jj44-reader{padding:12px}.jj44-sheet{padding:14px}.jj44-story-text{font-size:16px}.jj44-day{font-size:10px}}
+
+/* Illustrated storybook editorial spread: live text remains sharp and accessible. */
+.jj44-reader{max-width:1080px;background:#f4ead6;border-color:#d5bc92;padding:clamp(12px,3vw,28px)}
+.jj44-heading{border-bottom:1px solid #dbc79e;padding-bottom:6px}.jj44-kicker{color:#496846;letter-spacing:.12em}.jj44-chapter{font-style:italic;color:#563b25}
+.jj44-sheet{background:#fffaf0;border-color:#d9c29c;padding:clamp(16px,3vw,30px)}.jj44-art{border:1px solid #d3b68e;background:#f4e4c9}.jj44-art-image{object-fit:contain}.jj44-story-text{font-size:19px;line-height:1.75;color:#3f3026;white-space:pre-wrap}.jj44-page-title{font-size:clamp(25px,4vw,35px);color:#28573c}
+.jj44-page-notes{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}.jj44-sophia,.jj44-takeaway{background:#f1eddb;border:1px solid #d5c6a1;border-left:3px solid #70906a;border-radius:7px;padding:14px 16px;color:#365945;font:15px/1.6 Georgia,serif}.jj44-sophia strong,.jj44-takeaway strong{font-size:20px;color:#275438}.jj44-takeaway p{margin:6px 0 0}.jj44-chapter-page{border-bottom:1px solid #dac49e;padding-bottom:18px;margin-bottom:24px}
+@media(max-width:600px){.jj44-story-text{font-size:17px}.jj44-page-notes{grid-template-columns:1fr}}
