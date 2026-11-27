@@ -162,3 +162,19 @@ test("review logs explicit safety versus continuity categories without logging f
   assert.doesNotMatch(logs.join(" "),/private quote|private data/);
  }finally{console.warn=old}
 });
+
+test("illustrator and reviewer distinguish non-explicit romantic affection from prohibited depictions",async()=>{
+ const romantic={story:"Jack and Jill put on pajamas and cuddled while discussing their sex life.",events:["They talked about intimacy."],artBrief:"Warm portrait of the married couple cuddling on the couch."};
+ const result=await generateIllustration44({page:romantic,apiKey:"synthetic",fetchImpl:async(url,options)=>{
+  const payload=JSON.parse(options.body);
+  if(url.endsWith("/generations")){
+   assert.match(payload.prompt,/ordinary kissing and tasteful non-sexualized sleepwear are welcome/);
+   assert.match(payload.prompt,/Do not depict nudity, sexual activity/);
+   return json({data:[{b64_json:image.toString("base64")}]});
+  }
+  assert.match(payload.instructions,/do not flag them solely because the written story discusses sex/);
+  assert.match(payload.instructions,/Do not approve explicit imagery or bypass provider safeguards/);
+  return json({output:[{content:[{type:"output_text",text:JSON.stringify({pass:true,issues:[],categories:[]})}]}]});
+ }});
+ assert.deepEqual(result,image);
+});
