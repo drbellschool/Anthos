@@ -102,3 +102,20 @@ test("editor feedback revises the same draft, not an unrelated fresh start",asyn
  });
  assert.deepEqual(result,second);assert.equal(attempts,2);
 });
+
+test("story author and editor explicitly preserve healthy adult marital intimacy",async()=>{
+ const rows=[row(0),coach("jack",0,"Invite Jill to talk about their sex life."),coach("jill",0,"Wear a favorite nightgown and invite him to watch a movie.")];
+ const romantic={...page(1),story:"Jack asked Jill if they could talk about their sex life. She smiled and suggested a movie together first. He brought popcorn, and they curled up together on the couch.",artBrief:"Jack and Jill cuddle on the couch in ordinary sleepwear, sharing popcorn."};
+ const result=await writeStorybookPage44(episode,1,rows,async args=>{
+  if(args.name==="jj44_storyboard"){
+   assert.match(args.instructions,/welcome non-graphic discussion of sex/);
+   assert.match(args.instructions,/Do not erase or shame an intimate contribution/);
+   assert.match(args.instructions,/never sex as payment for chores/);
+   return romantic;
+  }
+  assert.match(args.instructions,/Do not reject consensual adult romantic affection/);
+  assert.match(args.instructions,/Explicit sexual depictions, coercion/);
+  return {pass:true,issues:[]};
+ });
+ assert.deepEqual(result,romantic);
+});
