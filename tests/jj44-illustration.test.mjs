@@ -130,3 +130,35 @@ test("reference image errors are classified without exposing provider response b
  await assert.rejects(generateIllustration44({page,references:[image],apiKey:"synthetic",fetchImpl:async()=>json({error:{message:"secret"}},429)}),e=>e.artCode==="IMAGE_HTTP_429"&&!e.message.includes("secret"));
  await assert.rejects(generateIllustration44({page,references:[image],apiKey:"synthetic",fetchImpl:async()=>{throw Object.assign(new Error("private"),{name:"TimeoutError"})}}),e=>e.artCode==="IMAGE_TIMEOUT"&&!e.message.includes("private"));
 });
+
+test("provider moderation blocks log only public categories, stage, and request ID",async()=>{
+ const logs=[],old=console.warn;console.warn=(s)=>logs.push(s);
+ try{
+  let calls=0;
+  await assert.rejects(generateIllustration44({page,apiKey:"synthetic",fetchImpl:async()=>{
+   calls++;return new Response(JSON.stringify({error:{code:"moderation_blocked",message:"private prompt must not be logged",moderation_details:{moderation_stage:"input",categories:["sexual","private words"]}}}),{status:400,headers:{"x-request-id":"req_synthetic"}});
+  }}),e=>e.artCode==="IMAGE_MODERATION_BLOCKED");
+  assert.equal(calls,1);
+  const detail=JSON.parse(logs[0].split("[jj44-art-detail] ")[1]);
+  assert.deepEqual(detail,{stage:"IMAGE",code:"MODERATION_BLOCKED",http:400,moderationStage:"input",categories:["sexual"],requestId:"req_synthetic"});
+  assert.doesNotMatch(logs.join(" "),/private prompt|private words/);
+ }finally{console.warn=old}
+});
+test("review logs explicit safety versus continuity categories without logging free-form issues",async()=>{
+ const logs=[],old=console.warn;console.warn=s=>logs.push(s);
+ try{
+  await assert.rejects(generateIllustration44({page,apiKey:"synthetic",fetchImpl:async(url,options)=>{
+   if(url.endsWith("/generations"))return json({data:[{b64_json:image.toString("base64")}]});
+   const schema=JSON.parse(options.body).text.format.schema;
+   assert.ok(schema.required.includes("categories"));
+   return json({output:[{content:[{type:"output_text",text:JSON.stringify({pass:false,issues:["private quote"],categories:["SEXUAL_CONTENT","STORY_CONTRADICTION","private data"]})}]}]});
+  }}),e=>e.artCode==="REVIEW_REJECTED");
+  assert.equal(logs.length,2);
+  for(const line of logs){
+   const detail=JSON.parse(line.split("[jj44-art-detail] ")[1]);
+   assert.equal(detail.code,"CANDIDATE_REJECTED");
+   assert.deepEqual(detail.categories,["SEXUAL_CONTENT","STORY_CONTRADICTION"]);
+  }
+  assert.doesNotMatch(logs.join(" "),/private quote|private data/);
+ }finally{console.warn=old}
+});
