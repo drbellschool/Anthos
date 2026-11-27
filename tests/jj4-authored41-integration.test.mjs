@@ -602,7 +602,7 @@ test("4.4 HTTP artwork: rejected image never stored; both partners see one appro
    assert.ok(!files.has(path));files.set(path,Buffer.from(o.body));return json({});
   }
   if(u.pathname==="/v1/images/generations"){gen++;return json({data:[{b64_json:(gen===1?bytes:approved).toString("base64")}]})}
-  if(u.pathname==="/v1/images/edits"){edits++;assert.equal(o.body.getAll("image[]").length,1);return json({data:[{b64_json:approved.toString("base64")}]})}
+  if(u.pathname==="/v1/images/edits"){edits++;assert.equal(JSON.parse(o.body).images.length,1);return json({data:[{b64_json:approved.toString("base64")}]})}
   if(u.hostname==="api.openai.com"&&JSON.parse(o.body).text.format.name==="jj44_art_review"){
    reviews++;const pass=reviews>1;
    return json({output:[{content:[{type:"output_text",text:JSON.stringify({pass,issues:pass?[]:["Wrong appliance state"]})}]}]});
