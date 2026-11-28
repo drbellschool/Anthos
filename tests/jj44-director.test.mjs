@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {scopeOpening44,planIssues44,directorReviewIssues44} from "../api/jj44-director.mjs";
+import {scopeOpening44,planIssues44,directorReviewIssues44,directStory44,normalizePlan44} from "../api/jj44-director.mjs";
 import {buildStorybook44,writeStorybookPage44,closeStorybook44} from "../api/jj44-storybook.mjs";
 const ep={title:"Synthetic microwave chapter",premise:"This is one uninterrupted evening with one purchase, not a recurring arrival.",creativeDirection:"Stage six continuous developments in one kitchen.",...buildStorybook44({}, {fastForward:true,director:true})};
 const prose=[
@@ -49,4 +49,31 @@ test("six directed pages preserve world state and reject missing contribution ev
  assert.equal(rejected,true);
  const closure=await closeStorybook44(ep,rows,async()=>({reflection:"They made choices and followed through on a shared plan.",question:"What could you decide together next week?"}));
  assert.match(closure,/decide together/);
+});
+
+test("Monday cannot be blocked by invented contribution arrays or malformed planner output",async()=>{
+ const invented={...plan(0),jack:[{id:"invented",intention:"Invent advice",action:"Invent action"}],jill:[{id:"bad",intention:"Invent advice",action:"Invent action"}]};
+ assert.deepEqual(normalizePlan44(invented,0).jack,[]);
+ assert.deepEqual(normalizePlan44(invented,0).jill,[]);
+ let calls=0;
+ const result=await directStory44({contributions:{},pages:[]},0,async args=>{calls++;assert.equal(args.input.dayIndex,0);assert.match(args.instructions,/OPENING ONLY/);return {...invented,time:""}});
+ assert.equal(calls,2);
+ assert.deepEqual(planIssues44(result,0),[]);
+ assert.deepEqual(result.jack,[]);
+ assert.match(result.time,/premise/);
+});
+test("Monday fallback still requires a valid authored scene and editor approval",async()=>{
+ let authors=0,reviews=0;
+ const result=await writeStorybookPage44(ep,0,[],async args=>{
+  if(args.name==="jj44_director")return {};
+  if(args.name==="jj44_storyboard"){authors++;return page(0)}
+  reviews++;return {...review(0,page(0)),jack:[{id:"invented"}],jill:[]};
+ });
+ assert.equal(authors,1);assert.equal(reviews,1);assert.equal(result.director.j,"");
+ await assert.rejects(writeStorybookPage44(ep,0,[],async args=>args.name==="jj44_director"?{}:args.name==="jj44_storyboard"?page(0):{pass:false,issues:["Contradiction"]}),/did not pass/);
+});
+test("Continuation assigns intent IDs in code but never invents missing contributions",async()=>{
+ const candidate=plan(1);candidate.jack[0].id="Jack 1";candidate.jill[0].id="";
+ assert.deepEqual(planIssues44(normalizePlan44(candidate,1),1),[]);
+ await assert.rejects(directStory44({contributions:{jack:"Act",jill:"Help"}},1,async()=>({...candidate,jill:[]})),/could not produce/);
 });
