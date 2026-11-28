@@ -4,7 +4,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { reviewConnected, reviewList, reviewSubmit, reviewResolve } from "./review-workflow.mjs";
 import { createRoom as createPilotRoom, createCustomerRoom, adminFeedback as listPilotFeedback } from "./pilot-core.mjs";
 import { createRoom as createJackJillRoom } from "./jj3-core.mjs";
-import { createRoom as createV4PilotRoom,adminPilotReview43 } from "./jj4-core.mjs";
+import { createRoom as createV4PilotRoom,adminPilotReview43,adminStorybookReview44 } from "./jj4-core.mjs";
 import {registerPilotSms,listEligiblePilotSmsCouples,pilotSmsReady,tickPilotSms} from "./jj41-sms-core.mjs";
 import {listCustomers,editCustomer,listCoupleRegistrations} from "./customer-directory.mjs";
 import {getAdminHomeMetrics} from "./admin-home-metrics.mjs";
@@ -306,6 +306,9 @@ export default {
     if(action==="episode-studio-sms-tick"){
       try{return json(await tickPilotSms(body.roomId));}
       catch(e){return json({error:e.message||"SMS pilot clock unavailable."},e.status||502)}
+    }
+    if(action==="episode-studio-storybook-review"){
+      try{return json(await adminStorybookReview44(body.roomId));}catch(e){return json({error:e.message||"Storybook review unavailable."},e.status||502);}
     }
     if(action==="episode-studio-live-review"){
       try{return json(await adminPilotReview43(body.roomId));}
