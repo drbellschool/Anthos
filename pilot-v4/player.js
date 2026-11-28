@@ -59,12 +59,12 @@ function mount(root,invite,options={}){
     button(page,"Read the complete chapter",()=>{selected="chapter";render()});
    }else if(item){
     page.append(el("p","jj44-kicker",days[view].toUpperCase()+" · PAGE "+(view+1)),el("h3","jj44-page-title",item.storyTitle));
-    const holder=el("div","jj44-art");page.append(holder);
+    const spread=el("div","jj44-spread"),narration=el("div","jj44-narration"),holder=el("div","jj44-art");narration.append(el("p","jj44-story-text",item.storyText));spread.append(narration,holder);page.append(spread);
     if(item.artState==="ready")image(holder,key,item);
     else{holder.append(el("p","jj44-art-note",item.artState==="unavailable"?"The artwork could not be approved. Your written page is saved.":"The illustrator is preparing this scene…"));
      if(item.artState==="retry"||failed&&item.artState==="missing")button(holder,"Retry illustration",()=>perform(key,"illustrate",{phaseIndex:view}));
     }
-    page.append(el("p","jj44-story-text",item.storyText));const notes=el("div","jj44-page-notes"),sophia=el("aside","jj44-sophia");sophia.append(el("strong","","✿ Sophia"),el("p","",item.sophiaText));notes.append(sophia);
+    const notes=el("div","jj44-page-notes"),sophia=el("aside","jj44-sophia");sophia.append(el("strong","","✿ Sophia"),el("p","",item.sophiaText));notes.append(sophia);
     if(item.takeawayText){const takeaway=el("aside","jj44-takeaway");takeaway.append(el("strong","","The Takeaway"),el("p","",item.takeawayText));notes.append(takeaway)}page.append(notes);
    }else page.append(el("p","jj44-story-text",s.joined?"Your opening page is being prepared.":"Welcome! Join the chapter and help Jack and Jill write their story."));
    for(const k of keys){
