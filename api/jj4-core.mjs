@@ -88,7 +88,7 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
  const authored=pilotVersion==="4.1.0",developmental=pilotVersion==="4.3.0",weekly=pilotVersion==="4.2.0"||developmental;
  if(!storybook&&!authored&&!weekly&&pilotVersion!=="4.0.0")error("Unsupported Deep Dive pilot version.");
  if(storybook){
-  Object.assign(draft,buildStorybook44(draft,{fastForward:options.fastForward===true}));
+  Object.assign(draft,buildStorybook44(draft,{fastForward:options.fastForward===true,director:true}));
  }
  if(authored)Object.assign(draft,buildAuthored41(draft));
  if(weekly)Object.assign(draft,(developmental?buildConversation43:buildConversation42)(draft,{
@@ -301,7 +301,7 @@ function storybookGenerator44(){
  const key=process.env.OPENAI_API_KEY?.trim();
  if(!key)error("OpenAI is not configured for this pilot.",503);
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
- return args=>generateStructured({...args,key,model,maxTokens:2500,timeout:23000});
+ return async args=>{const role=args.name==="jj44_director"?"DIRECTOR":args.name==="jj44_editor"?"REVIEWER":args.name==="jj44_sunday"?"SOPHIA":"AUTHOR";const selected=process.env["ANTHOS_JJ44_"+role+"_MODEL"]?.trim()||model;const start=Date.now();try{return await generateStructured({...args,key,model:selected,maxTokens:2500,timeout:30000});}finally{console.info("[jj44-stage] "+JSON.stringify({role,model:selected,ms:Date.now()-start}));}};
 }
 async function directScene(room,phaseIndex){
  if(isStorybook44(room)){
