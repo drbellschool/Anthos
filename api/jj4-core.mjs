@@ -146,6 +146,17 @@ export async function createRoom(origin,scenarioId,previousRoomId=null,pilotVers
 }
 // Authenticated administrator-only read model for the 4.3 Studio review.
 // Neither invite tokens nor customer phone numbers are part of this response.
+export async function adminStorybookReview44(roomId){
+ if(!UUID.test(roomId||""))error("Select a storybook room.",400);
+ const room=(await db(R,{id:"eq."+roomId,select:"id,title,stage,phase_index,episode,updated_at",limit:"1"}))?.[0];
+ if(!room||!isStorybook44(room))error("Storybook room not found.",404);
+ const rows=await db(M,{room_id:"eq."+roomId,role:"eq.shared",kind:"eq.scene",order:"id.asc",limit:"6",select:"body,phase_index"});
+ const art=room.episode.storybook44.artwork||{};
+ return {ok:true,title:room.title,stage:room.stage,revision:room.episode.storybook44.directorRevision||0,pages:(rows||[]).flatMap(row=>{
+  const page=parsePage44(row.body,row.phase_index);if(!page)return [];
+  return [{day:STORYBOOK_DAYS[row.phase_index],title:page.title,world:page.director?.w||[],jack:page.director?.j||"",jill:page.director?.l||"",art:publicArt44(art[row.phase_index],digestArt44(row.body)),attempts:art[row.phase_index]?.attempts||0}];
+ })};
+}
 export async function adminPilotReview43(roomId){
  if(!UUID.test(roomId||""))error("Select a real 4.3 pilot room.",400);
  const room=(await db(R,{id:"eq."+roomId,select:"id,title,scenario_id,stage,phase_index,episode,updated_at",limit:"1"}))?.[0];
