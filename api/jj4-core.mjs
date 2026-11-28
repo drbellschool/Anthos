@@ -308,7 +308,7 @@ async function generateStructured({model,key,name,schema,input,instructions,maxT
  }catch{error("The story AI returned an incomplete response. Retry this scene.",502)}
  return value;
 }
-function storybookGenerator44(){
+export function storybookGenerator44(){
  const key=process.env.OPENAI_API_KEY?.trim();
  if(!key)error("OpenAI is not configured for this pilot.",503);
  const model=process.env.ANTHOS_JJ4_MODEL?.trim()||process.env.OPENAI_MODEL?.trim()||"gpt-4.1-mini";
