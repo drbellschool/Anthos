@@ -1,0 +1,173 @@
+{
+  "contractVersion": "anthos-4.3-release-gate-v1",
+  "releaseAllowed": false,
+  "lastReviewed": "2026-11-23",
+  "note": "Nov 23 corrected production 4.3 exchange mechanics. Deployed cc7ed0727e8bcd8d8705324bf8659e8d394defcd: 136/136 focused tests passed; protected real OpenAI graph exchange completed 10/10 unique provider replies, 10 verified actions, 10/10 independent recipient validations, 58 source-backed room-only observations, and Sophia closing. Two drafts rejected/repaired. Signed SMS and encrypted durable retry regression pass with mock providers, not real handsets. Production database inbox migration verified, no active SMS routes or queued messages. Next deliberate one-couple engineering handset pilot may proceed; independent human 8/10, actual carrier delivery/retry and authenticated annual Atlas linkage are not certified. Broad CI and G8 release gate remain red. Do not claim general production readiness.",
+  "gates": [
+    {
+      "id": "G1",
+      "title": "Episode skill opportunities",
+      "status": "partial",
+      "evidence": [
+        "api/atlas-opportunities.mjs",
+        "tests/atlas-opportunities.test.mjs"
+      ]
+    },
+    {
+      "id": "G2",
+      "title": "Coaching contingent causality",
+      "status": "partial",
+      "evidence": [
+        "api/jj42-conversations.mjs",
+        "tests/atlas-feedback-loop.test.mjs"
+      ]
+    },
+    {
+      "id": "G3",
+      "title": "Persistent four-subject scored observations",
+      "status": "partial",
+      "evidence": [
+        "supabase/migrations/20261122140000_atlas_evidence_atomic_rpc.sql",
+        "api/atlas-runtime.mjs"
+      ]
+    },
+    {
+      "id": "G4",
+      "title": "Enduring score influences next actual dialogue",
+      "status": "partial",
+      "evidence": [
+        "api/jj42-conversations.mjs",
+        "api/jj4-core.mjs"
+      ]
+    },
+    {
+      "id": "G5",
+      "title": "Incidental evidence persists and can affect later stories",
+      "status": "partial",
+      "evidence": [
+        "api/atlas-incidental.mjs",
+        "api/atlas-runtime.mjs"
+      ]
+    },
+    {
+      "id": "G6",
+      "title": "Authenticated two-coach MAXQDA-style Atlas",
+      "status": "partial",
+      "evidence": [
+        "api/insight-atlas.mjs",
+        "insight-atlas/live.js"
+      ]
+    },
+    {
+      "id": "G7",
+      "title": "Yearlong couple-scoped rollover and safe retention",
+      "status": "partial",
+      "evidence": [
+        "supabase/migrations/20261122150000_atlas_couple_binding_and_transcript.sql",
+        "api/atlas-runtime.mjs"
+      ]
+    },
+    {
+      "id": "G8",
+      "title": "8/10 certified real story quality under multiple coaching paths",
+      "status": "blocked",
+      "evidence": [
+        "api/insight-atlas-model.mjs"
+      ]
+    }
+  ],
+  "qualityHardening": {
+    "lockedAt": "2026-11-23",
+    "engine": "4.3",
+    "status": "live-second-episode-sms-failed-full-process-audit-complete",
+    "commitments": [
+      "humanlike-role-grounded-conversation",
+      "episode-specific-semantic-continuity",
+      "coaching-contingent-consequences",
+      "ten-dimension-evidence-backed-certification"
+    ],
+    "implemented": [
+      "approved-world-contract-schema-and-microwave-contract",
+      "cross-episode-unit-fixtures",
+      "actual-4.3-open-turn-validator",
+      "ten-dimension-citation-and-hard-review-gates",
+      "pilot-audit-fields",
+      "scenario-agnostic-graph-driven-4.3-state-actions",
+      "second-production-editorial-draft-graph-stored-Supabase",
+      "episode-studio-graph-read-save-and-room-creation-path",
+      "five-days-ten-two-role-mocked-model-handler-transcript-and-closed-Sophia",
+      "contradictory-coaching-divergence-and-semantic-repair-regressions",
+      "preview-branch-READY-deployment",
+      "verified-consented-couple-confirmed-in-existing-directory",
+      "sms-provider-no-fallback-release-check",
+      "per-role-signed-sms-human-rating-anchored-to-verified-response",
+      "second-episode-verified-couple-sms-handler-and-review-mock-test",
+      "timed-pilot-flag-for-scenario-graph-worlds"
+    ],
+    "unverified": [
+      "real-OpenAI-live-reply-receipts-from-second-episode",
+      "live-Telnyx-two-handset-delivery-and-inbound-webhook",
+      "ten-dimension-independent-human-8-10-certification",
+      "all-complete-100-turn-live-provider-pilots",
+      "G8-production-release-approval",
+      "real-Telnyx-SMS-event-failure-recovery",
+      "conversation-dependent-advance-through-six-phases",
+      "second-episode-Sophia-closing-in-production",
+      "incident-replay-without-stale-premise-repetition",
+      "full-two-coach-human-reviewed-8-10-live-model-qualification"
+    ]
+  },
+  "nextPilotAllowed": true,
+  "livePilotIncident": {
+    "date": "2026-11-23",
+    "episode": "What Makes Us Feel Close",
+    "environment": "production",
+    "deployedCommit": "f50f83b0fe3dbb73aa4a1c7a4cc1c709a95c595b",
+    "outcome": "failed-end-to-end",
+    "narrativeChanged": false,
+    "sixDaysAdvanced": 6,
+    "successfulRealModelTurns": 1,
+    "committedCharacterActions": 0,
+    "signedInboundEventsCompleted": 1,
+    "signedInboundEventsErrored": 1,
+    "sophiaMessagesStored": 0,
+    "atlasCoupleRoomClaims": 0,
+    "pausedRoutingForFailedRoom": true,
+    "auditPath": "docs/4.3-A-TO-Z-PRODUCTION-SMS-FORENSIC-AUDIT-2026-11-23.md",
+    "blockers": [
+      "time-only-auto-day-completion-without-coaching",
+      "unrecognized-ordinary-advice-no-character-action",
+      "no-character-choice-outside-fixed-classified-action",
+      "daily-unchanged-opening-prompt-recycling",
+      "sms-error-events-never-requeued",
+      "second-episode-Sophia-scene-query-omits-role-and-kind",
+      "atlas-not-couple-bound-in-real-run",
+      "untested-live-handoff-and-stale-8-of-10-certification"
+    ]
+  },
+  "recoveryVerification": {
+    "deployedCommit": "cc7ed0727e8bcd8d8705324bf8659e8d394defcd",
+    "deployment": "dpl_BxYe4kSxA52i1RcWMMDu3aUTEmKM",
+    "focusedTests": {
+      "passed": 136,
+      "failed": 0,
+      "workflowRun": 45319194745
+    },
+    "liveOpenAI": {
+      "fictional": true,
+      "handsetSMS": false,
+      "realReplies": 10,
+      "distinctProviderReceipts": 10,
+      "verifiedActions": 10,
+      "verifiedRecipients": 10,
+      "sourceBackedRoomObservations": 58,
+      "repairedDrafts": 2,
+      "sophiaCompleted": true
+    },
+    "roomScope": "current-pilot-only; SMS directory pair lacks authenticated Atlas account membership",
+    "smsDurableInboxMigration": "applied and verified",
+    "episodeNarrativeChanged": false,
+    "nextPilot": "deliberate one-couple controlled handset verification; no automatic send",
+    "fullRelease": "blocked"
+  }
+}

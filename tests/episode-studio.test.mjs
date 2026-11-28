@@ -18,8 +18,11 @@ const scenario={
 };
 
 test("Research skill catalog covers three researchers without an eight-milestone gate",()=>{
- assert.equal(SKILLS.length,24);
- assert.deepEqual([...new Set(SKILLS.map(x=>x.researcher))].sort(),["Aron","Gottman","Schnarch"]);
+ assert.equal(SKILLS.length,27);
+ assert.ok(SKILLS.some(x=>x.id==="i-sexual-respect"));
+ assert.ok(SKILLS.some(x=>x.id==="i-consent-boundaries"));
+ assert.ok(SKILLS.some(x=>x.id==="i-nontransactional"));
+ assert.ok(["Aron","Gottman","Schnarch"].every(name=>SKILLS.some(x=>x.researcher===name)));
  assert.deepEqual(PHASES.map(x=>x.id),["hook","conflict","discovery","reattempt","outcome","reflection"]);
  assert.equal(new Set(SKILLS.map(x=>x.id)).size,SKILLS.length);
  assert.deepEqual(CHECKPOINT_AFTER,["hook","conflict","discovery","reattempt","outcome"]);
@@ -109,7 +112,7 @@ test("AI must draft targeted interventions, while saved drafts remain admin-only
  assert.match(backend,/action==="episode-studio-generate"/);
  assert.match(backend,/action==="episode-studio-save"/);
  assert.match(ui,/Discard unsaved changes/);
- assert.match(ui,/No SMS or pilot was launched/);
+ assert.match(ui,/No SMS was sent/);
  assert.doesNotMatch(ui,/pilot-create-jack-jill|\/pilot\/?\?/);
 });
 

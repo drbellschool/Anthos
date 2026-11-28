@@ -37,7 +37,7 @@ test("clear real-person danger stops fiction rather than becoming coaching",()=>
  assert.equal(classifyCoachTurn("Tell Jack to say that he is scared of Jill").kind,"advice");
  assert.match(core,/safetyNotice/);
  assert.match(core,/await pause\(token\)/);
- assert.match(player,/state\.safetyNotice/);
+ assert.match(player,/result\.safetyNotice/);
 });
 test("question prompt is isolated to role and doesn't include the other coach's input",()=>{
  const q=privateQuestionPrompt({
@@ -65,11 +65,11 @@ test("API and UI offer distinct ask, pause, resume, no-advice paths",()=>{
  assert.match(core,/paused_at/);
  assert.match(core,/return pause\(token\)/);
  assert.match(core,/return ask\(token,words,requestKey\)/);
- assert.match(player,/Pause episode/);
- assert.match(player,/Resume episode/);
- assert.match(player,/No advice this time/);
- assert.match(player,/Ask /);
- assert.match(player,/\["coach","question","reply"\]/);
+ assert.match(player,/Pause story/);
+ assert.match(player,/Resume story/);
+ assert.match(player,/Contribute to the next page/);
+ assert.doesNotMatch(player,/Send private advice/);
+ assert.match(player,/safetyNotices/);
 });
 test("schema enforces role-private Q&A, rate limit, and pause-aware scene claims",()=>{
  assert.match(migration,/paused_at timestamptz/);

@@ -37,10 +37,10 @@ function harness(role,joined=true){
  const root=new FakeElement("main");
  const token=role==="jack"?"A".repeat(43):"B".repeat(43);
  const state={
-  ok:true,role,character:role==="jack"?"Jack":"Jill",phase:"Hook",phaseIndex:0,
+  ok:true,version:"4.4.0",title:"A chapter",role,character:role==="jack"?"Jack":"Jill",phase:"Hook",phaseIndex:0,
   joined,bothJoined:joined,stage:joined?"awaiting":"needs_scene",
   needsReply:joined,submitted:false,finished:false,canContinue:false,
-  scenes:[{id:1,kind:"scene",phase_index:0,body:"A story scene"}],
+  scenes:[{id:1,kind:"scene",phase_index:0,body:"A story scene",storyTitle:"Monday",storyText:"A story scene",sophiaText:"Welcome",artState:"unavailable"}],
   messages:[{id:2,kind:"prompt",phase_index:0,body:"What should I do?"}],
   waitingFor:["jack","jill"]
  };
@@ -80,7 +80,7 @@ for(const role of ["jack","jill"]){
   assert.ok(input,"first coaching textarea is visible");
   const draft="Please hear your partner out before making assumptions.";
   input.value=draft;
-  input.handlers.input();
+  input.oninput();
   app.responses.push({...app.state,waitingFor:[role]});
   await app.poll();
   assert.equal(app.find("textarea"),input,"polling should not replace the focused textarea");
@@ -99,7 +99,7 @@ test("a pending first name survives a manual status refresh before joining",asyn
  const name=app.find("input");
  assert.ok(name);
  name.value="Adam";
- name.handlers.input();
+ name.oninput();
  await app.refresh();
  assert.equal(app.find("input"),name);
  assert.equal(name.value,"Adam");

@@ -94,29 +94,37 @@ test("changing author emphasis changes the next decision opportunity, not just a
 });
 
 
-test("open 4.3: a volunteered claim is not a fact, and repeated purchase does not duplicate an action",async()=>{
- const e=buildConversation43({...structuredClone(savedMicrowaveStudio),pilotMode:"shared"},{fastForward:true,openConversation:true});
+test("open 4.3: original purchase is already true and can never happen again",async()=>{
+ const e=buildConversation43({...structuredClone(savedMicrowaveStudio),pilotMode:"shared"},
+  {fastForward:true,openConversation:true});
  const initial=renderConversation42(e,0,[]);
+ const world=parseLedger42(initial.scene);
+ assert.equal(world.state.purchase,"bought_unannounced");
+ assert.equal(world.state.box,"sealed");
+ assert.match(world.event,/already happened/);
+ assert.equal(initial.recipient,"jack");
  const history=[{role:"shared",kind:"scene",phase_index:0,body:initial.scene}];
  const send=async(role,text,key)=>{
   const t=await prepareOpenTurn43(e,role,0,history,text,key);
   e.authored43.turns.push(t);return t;
  };
- const rumor=await send("jack","My wife told me Jill already bought the microwave.","a");
+ const rumor=await send("jack","My wife told me Jill already bought the microwave.","rumor");
  assert.equal(rumor.reportedByCoach,true);
- assert.equal(rumor.stateAfter.purchase,"not_bought");
+ assert.equal(rumor.stateAfter.purchase,"bought_unannounced");
  assert.equal(rumor.event,"");
- assert.equal(rumor.assessment,null);
- const buy=await send("jill","Buy the microwave now.","b");
+ const buy=await send("jill","Buy the microwave now.","buy");
+ assert.equal(buy.event,"");
  assert.equal(buy.stateAfter.purchase,"bought_unannounced");
- const repeat=await send("jill","Buy the microwave now.","c");
+ assert.equal(buy.stateAfter.box,"sealed");
+ const repeat=await send("jill","Buy the microwave now.","repeat");
+ assert.equal(repeat.duplicateCoaching,true);
  assert.equal(repeat.event,"");
  assert.equal(repeat.stateAfter.box,"sealed");
- assert.equal(repeat.stateAfter.events.filter(x=>x.includes("Jill purchased")).length,1);
- const open=await send("jill","Open the box.","d");
+ const open=await send("jill","Open the box now.","open");
  assert.equal(open.stateAfter.box,"opened");
- const reverse=await send("jill","Wait and leave it sealed.","e");
+ const reverse=await send("jill","Wait and leave it sealed.","reverse");
  assert.equal(reverse.stateAfter.box,"opened");
+ assert.equal(reverse.event,"");
 });
 test("open 4.3 private model reaction sees only the current character's volunteered information",async()=>{
  const e=buildConversation43({...structuredClone(savedMicrowaveStudio),pilotMode:"shared"},{fastForward:true,openConversation:true});
@@ -129,7 +137,11 @@ test("open 4.3 private model reaction sees only the current character's voluntee
    const name=req.text.format.name;
    if(name==="jj43_coach_rubric")return {ok:false};
    if(name==="jj43_open_intent")return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({action:"plan"})}]}]})};
-   return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({reaction:"Apparently this microwave has a bigger fan club than I do."})}]}]})};
+   return {ok:true,json:async()=>({output:[{content:[{type:"output_text",text:JSON.stringify({
+    message:"Apparently this microwave has a bigger fan club than I do. I have the model number, and I'll call a shop tomorrow instead of making another empty promise. I haven't made the call yet.",
+    coachReference:"Our wives were talking",
+    replyReference:"bigger fan club than I do"
+   })}]}]})};
   }
  });
  assert.ok(result.reply.startsWith("Apparently this microwave"));

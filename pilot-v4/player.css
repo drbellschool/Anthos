@@ -1,41 +1,43 @@
-/* Private browser-only Jack & Jill 4.0 tester; no SMS, no shared private coach messages. */
-.jj4-player{display:flex;flex-direction:column;min-width:0;height:100%;min-height:360px;background:#f7faf8;border:1px solid #bcd2c7;border-radius:12px;overflow:hidden;color:#173f31;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-.jj4-top{padding:10px 12px;display:flex;gap:8px;justify-content:space-between;align-items:center;background:#0d4433;color:#fff}
-.jj4-player-title{font-size:13px}
-.jj4-phase{font-size:10px;color:#d6eadc;white-space:nowrap}
-.jj4-state{padding:8px 12px;border-bottom:1px solid #e1e9e3;background:#ecf5ef;color:#295c43;font-size:11px;line-height:1.4}
-.jj4-state.error{background:#fff0ed;color:#9b3931}
-.jj4-scroll{overflow-y:auto;flex:1;min-height:190px;padding:10px;display:grid;align-content:start;gap:8px;background:#fff;scrollbar-width:thin}
-.jj4-entry{border:1px solid #dbe8df;padding:9px 10px;border-radius:10px;background:#f7fbf8}
-.jj4-entry.scene{border-color:#dfd2b8;background:#fffaf0}
-.jj4-entry.prompt{border-color:#a3cdb7;background:#edf8f0}
-.jj4-entry.coach{border-color:#bbd0e2;background:#f1f6fd;margin-left:12px}
-.jj4-entry-label{font-size:9px;font-weight:800;letter-spacing:.1em;color:#53725a}
-.jj4-entry p{font-size:12px;line-height:1.5;margin:5px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
-.jj4-empty{font-size:12px;color:#778679;text-align:center;padding:42px 12px}
-.jj4-controls{padding:10px 12px;display:grid;gap:8px;background:#f3f8f4;border-top:1px solid #dde9df}
-.jj4-label{display:grid;gap:4px;font-size:11px;font-weight:750;color:#335e4b}
-.jj4-name,.jj4-advice{width:100%;font:12px/1.4 system-ui;border:1px solid #b7cfc1;border-radius:7px;box-sizing:border-box;padding:8px;background:white;resize:vertical}
-.jj4-button{border:1px solid #c4d9c7;border-radius:8px;background:#fff;color:#154932;padding:9px 12px;font-size:12px;font-weight:750;cursor:pointer}
-.jj4-button.primary{color:white;background:#0f573b;border-color:#0f573b}
-.jj4-button:disabled{opacity:.5;cursor:wait}
-.jj4-standalone{max-width:530px;min-height:100vh;box-sizing:border-box;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:12px}
-.jj4-standalone h1{font:400 29px Georgia,serif;margin:3px 0;color:#153f30}
-.jj4-standalone .jj4-player{flex:1;min-height:560px}
-.jj4-notice{font:12px/1.4 system-ui;color:#617b6d;margin:0}
-@media(max-width:670px){.jj4-standalone{padding:8px}.jj4-standalone .jj4-player{min-height:calc(100vh - 100px)}}
+/* Anthos illustrated storybook */
+.jj4-page-body{margin:0;background:#f4efe5;color:#284738}
+.jj4-standalone{max-width:760px;margin:0 auto;padding:16px;box-sizing:border-box}
+.jj4-standalone>header{padding:8px 0 18px;text-align:center}
+.jj4-standalone h1{font:400 25px Georgia,serif;margin:0 0 5px;color:#294b38}
+.jj4-notice{font:13px/1.5 system-ui;color:#586d5f;margin:0}
+.jj44-reader{max-width:760px;width:100%;min-width:0;margin:0 auto;box-sizing:border-box;background:#f8f3e8;border:1px solid #d9cbb3;border-radius:16px;padding:clamp(12px,3vw,26px);color:#2e4739;font-family:system-ui,sans-serif;overflow-wrap:anywhere}
+.jj44-reader *{box-sizing:border-box}
+.jj44-heading{text-align:center}
+.jj44-kicker{font:700 10px/1.5 system-ui;letter-spacing:.13em;color:#6a826d;margin:0 0 6px}
+.jj44-chapter{font:500 clamp(25px,4vw,36px)/1.15 Georgia,serif;margin:8px 0 20px;color:#244b36}
+.jj44-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:12px}
+.jj44-day{border:0;border-radius:20px;padding:9px 0;background:#eee8dc;color:#746e60;font:700 11px system-ui;min-width:0;cursor:pointer}
+.jj44-day.done{background:#dceade;color:#296345}.jj44-day.active{background:#28694c;color:#fff}.jj44-day:disabled{cursor:default;opacity:.7}
+.jj44-notice{font:12px/1.5 system-ui;color:#597362;text-align:center;margin:10px 0 16px;min-height:18px}
+.jj44-notice.error{color:#923c31;background:#fff0eb;border-radius:8px;padding:10px}
+.jj44-sheet{padding:clamp(13px,3vw,26px);background:#fffdf7;border:1px solid #dfd2bb;border-radius:12px;box-shadow:0 4px 12px #4c3c2110}
+.jj44-page-title{font:500 clamp(24px,4vw,32px)/1.18 Georgia,serif;color:#294d3c;margin:5px 0 18px}
+.jj44-art{display:grid;place-items:center;min-height:100px;border-radius:9px;overflow:hidden;background:#eee5d6;margin:0 0 18px}
+.jj44-art-image{display:block;width:100%;aspect-ratio:3/2;object-fit:contain}
+.jj44-art-note{font:13px/1.5 system-ui;color:#70685b;text-align:center;padding:12px;margin:0}
+.jj44-story-text{font:17px/1.8 Georgia,serif;white-space:pre-wrap;color:#3b392f;margin:12px 0 20px}
+.jj44-sophia{border-left:3px solid #67917a;border-radius:7px;background:#edf4e9;padding:14px 16px;color:#365945;font:14px/1.65 system-ui}
+.jj44-sophia p{margin:6px 0 0}
+.jj44-contributions{display:grid;gap:12px;margin-top:18px}
+.jj44-contribution{padding:16px;border:1px solid #cfded0;background:#fcfdf9;border-radius:12px;display:grid;gap:10px;min-width:0}
+.jj44-contribution h4{font:700 15px system-ui;color:#264e39;margin:0}
+.jj44-question{font:15px/1.5 system-ui;margin:0;color:#365345}
+.jj44-saved{color:#246447;margin:0;font:13px system-ui}
+.jj4-name,.jj4-advice{display:block;width:100%;font:16px/1.4 system-ui;border:1px solid #b7cfc1;border-radius:8px;padding:10px;background:#fff;resize:vertical}
+.jj4-button{border:1px solid #c4d9c7;border-radius:8px;background:#fff;color:#154932;padding:11px 14px;font:650 13px system-ui;cursor:pointer}
+.jj4-button.primary{color:#fff;background:#0f573b;border-color:#0f573b}.jj44-reader[aria-busy="true"] .jj4-button{opacity:.65;cursor:wait}
+@media(max-width:600px){.jj4-standalone{padding:8px}.jj44-reader{padding:12px}.jj44-sheet{padding:14px}.jj44-story-text{font-size:16px}.jj44-day{font-size:10px}}
 
-/* Sophia is a distinct post-story educator, not a seventh forced scene. */
-.jj4-entry.sophia{background:#edf4ec;border:1px solid #7ba690;border-left:4px solid #2c8057;padding:13px}
-.jj4-entry.sophia .jj4-entry-label{color:#276048;font-size:10px}
-.jj4-entry.sophia p{font-size:12.5px;line-height:1.7;white-space:pre-wrap}
-.jj4-sources{display:grid;gap:5px;border-top:1px solid #c9dbc9;padding-top:9px;margin-top:10px}
-.jj4-source{color:#185b43;font-size:11px;text-decoration:underline;line-height:1.4}
-.jj4-source:hover{text-decoration:none}
+/* Illustrated storybook editorial spread: live text remains sharp and accessible. */
+.jj44-reader{max-width:1080px;background:#f4ead6;border-color:#d5bc92;padding:clamp(12px,3vw,28px)}
+.jj44-heading{border-bottom:1px solid #dbc79e;padding-bottom:6px}.jj44-kicker{color:#496846;letter-spacing:.12em}.jj44-chapter{font-style:italic;color:#563b25}
+.jj44-sheet{background:#fffaf0;border-color:#d9c29c;padding:clamp(16px,3vw,30px)}.jj44-art{border:1px solid #d3b68e;background:#f4e4c9}.jj44-art-image{object-fit:contain}.jj44-story-text{font-size:19px;line-height:1.75;color:#3f3026;white-space:pre-wrap}.jj44-page-title{font-size:clamp(25px,4vw,35px);color:#28573c}
+.jj44-page-notes{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}.jj44-sophia,.jj44-takeaway{background:#f1eddb;border:1px solid #d5c6a1;border-left:3px solid #70906a;border-radius:7px;padding:14px 16px;color:#365945;font:15px/1.6 Georgia,serif}.jj44-sophia strong,.jj44-takeaway strong{font-size:20px;color:#275438}.jj44-takeaway p{margin:6px 0 0}.jj44-chapter-page{border-bottom:1px solid #dac49e;padding-bottom:18px;margin-bottom:24px}
+@media(max-width:600px){.jj44-story-text{font-size:17px}.jj44-page-notes{grid-template-columns:1fr}}
 
-/* Distinguish private clarification turns from submitted coaching. */
-.jj4-entry.question{background:#f0f5ff;border-color:#adc4e6;margin-left:10px}
-.jj4-entry.reply{background:#eff8ff;border-color:#8dc2de;margin-right:10px}
-.jj4-entry.question .jj4-entry-label{color:#3555a4}
-.jj4-entry.reply .jj4-entry-label{color:#24668e}
-.jj4-controls .jj4-button{min-width:0;white-space:normal}
+/* Desktop illustrated spread, responsive to narrow phones. */
+.jj44-spread{display:grid;grid-template-columns:minmax(220px, .85fr) minmax(0,1.65fr);align-items:start;gap:22px;margin-bottom:18px}.jj44-narration .jj44-story-text{margin:0;font-size:17px;line-height:1.65}.jj44-spread .jj44-art{margin:0}.jj44-page-title{border-bottom:2px solid #b6a17d;padding-bottom:10px}.jj44-day.done:after{content:" ✓"}.jj44-page-notes{border-top:1px solid #d5c6a1;padding-top:14px}@media(max-width:800px){.jj44-spread{grid-template-columns:1fr;gap:14px}.jj44-spread .jj44-art{grid-row:1}.jj44-narration .jj44-story-text{font-size:17px}}

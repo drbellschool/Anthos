@@ -2,6 +2,7 @@
 // Scenario drafts are NOT automatically published to live Jack & Jill rooms.
 import {getScenario,persistEpisodeStudio,listEpisodeSkillUsage} from "./jj2-library.mjs";
 import {normalizeDevelopmentalFlow,MICROWAVE_RUBRICS,BEHAVIOR_SCALE} from "./jj43-developmental.mjs";
+import {validateScenarioGraph43} from "./jj43-scenario-graph.mjs";
 
 export const SKILLS=Object.freeze([
  {id:"g-bids",researcher:"Gottman",title:"Recognize emotional bids",description:"Notice invitations for attention, comfort or connection."},
@@ -27,7 +28,10 @@ export const SKILLS=Object.freeze([
  {id:"a-support",researcher:"Aron",title:"Support individual growth",description:"Encourage a partner's meaningful interests."},
  {id:"a-strengths",researcher:"Aron",title:"Share perspectives and abilities",description:"Learn from each other's strengths."},
  {id:"a-routines",researcher:"Aron",title:"Refresh familiar routines",description:"Introduce meaningful variety together."},
- {id:"a-expansion",researcher:"Aron",title:"Grow through shared experiences",description:"Recognize how shared activities broaden connection."}
+ {id:"a-expansion",researcher:"Aron",title:"Grow through shared experiences",description:"Recognize how shared activities broaden connection."},
+ {id:"i-sexual-respect",researcher:"Gottman + Schnarch (Anthos interpretation)",title:"Practice sexual respect",description:"Express desire without entitlement, objectification or disrespect for the other person."},
+ {id:"i-consent-boundaries",researcher:"Sexual-health consent standards (Anthos interpretation)",title:"Respect consent and boundaries",description:"Treat consent as freely chosen, ongoing, specific and reversible, without pressure or retaliation."},
+ {id:"i-nontransactional",researcher:"Schnarch + sexual-motivation research (Anthos interpretation)",title:"Keep intimacy nontransactional",description:"Avoid treating sexual affection as a debt, reward or payment; prioritize mutual choice."}
 ]);
 export const PHASES=Object.freeze([
  {id:"hook",title:"Hook",hint:"Establish the concrete problem and each character's needs."},
@@ -82,6 +86,9 @@ export function preserveLockedText(generated,source){
  result.locks=normalizeLocks(source.locks);
  result.toneApproach=source.toneApproach;result.toneIntensity=source.toneIntensity;
  result.developmentalFlow=source.developmentalFlow;
+ // AI-assisted editorial drafting must NEVER replace or discard the saved
+ // approved 4.3 story graph. Only deliberate graph edits may change canon.
+ if(source.scenarioGraph)result.scenarioGraph=structuredClone(source.scenarioGraph);
  return result;
 }
 const bad=(message,status=400)=>{throw Object.assign(new Error(message),{status})};
@@ -125,6 +132,14 @@ export function normalizeStudio(input,scenario){
  out.toneApproach=["balanced","humor","serious"].includes(value.toneApproach)?value.toneApproach:"balanced";
  out.toneIntensity=Number.isInteger(value.toneIntensity)&&value.toneIntensity>=1&&value.toneIntensity<=5?value.toneIntensity:3;
  out.locks=normalizeLocks(value.locks);
+ // Keep approved episode rules when other fields change, instead of
+ // silently replacing the graph with a microwave-specific fallback.
+ if(value.scenarioGraph){
+  const graph=structuredClone(value.scenarioGraph);
+  validateScenarioGraph43(graph,{id:scenario.id,primarySkill:out.primarySkill,
+   supportingSkills:out.supportingSkills});
+  out.scenarioGraph=graph;
+ }
  return out;
 }
 export async function readEpisodeStudio(id){
@@ -169,7 +184,10 @@ export async function saveEpisodeStudio(body){
  if(!Array.isArray(input.supportingSkills)||input.supportingSkills.length>2||
   input.supportingSkills.some(s=>!ID_SET.has(s)||s===input.primarySkill))bad("Choose at most two distinct supporting objectives.");
  if(!["balanced","humor","serious"].includes(input.toneApproach)||!Number.isInteger(input.toneIntensity)||input.toneIntensity<1||input.toneIntensity>5)bad("Review episode tone settings.");
- const studio=normalizeStudio(input,{...scenario,mode});
+ const studio=normalizeStudio({
+  ...input,scenarioGraph:input.scenarioGraph===undefined?
+   (scenario.episode_studio?.scenarioGraph||null):input.scenarioGraph
+ },{...scenario,mode});
  if(studio.title.length<5||studio.premise.length<75||studio.learningObjective.length<12)
   bad("Add a title, a 75-character premise, and a clear relationship objective before saving.");
  const saved=await persistEpisodeStudio(scenario.id,expected,studio,mode,status);

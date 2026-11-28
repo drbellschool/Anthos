@@ -73,13 +73,10 @@ test("Admin reset requires saved edits, creates a fresh snapshot and retires pri
  assert.match(editor,/Previous test archived and its links retired/);
  assert.match(editor,/closePilot\(true\)/);
 });
-test("Sophia appears as a distinct final card with linked research sources",()=>{
- assert.match(client,/isSophia=item\.kind==="sophia"/);
- assert.match(client,/SOPHIA · THE RESEARCH & THE TAKEAWAY/);
- assert.match(client,/state\.researchSources/);
- assert.match(client,/state\.finished/);
- assert.match(client,/state\.hasSophia/);
- assert.match(client,/act\("closure"\)/);
- assert.match(css,/\.jj4-entry\.sophia/);
- assert.match(client,/anchor\.rel="noopener noreferrer"/);
+test("Sophia appears in the final chapter and daily page without a chat transcript",()=>{
+ assert.match(client,/A moment with Sophia/);
+ assert.match(client,/Read the complete chapter/);
+ assert.match(client,/s\.hasSophia/);
+ assert.match(client,/queue\(key,"closure"\)/);
+ assert.match(css,/\.jj44-sophia/);
 });

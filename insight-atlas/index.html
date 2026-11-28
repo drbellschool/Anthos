@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#522254">
+<title>Sophia's Insight Atlas · Anthos</title>
+<style>
+:root{color-scheme:light;--ink:#301b36;--muted:#6c6071;--plum:#60336f;--wash:#f5f0f6;--line:#e8dce9;--white:#fff;--pink:#db7590;--violet:#9477de;--teal:#1ea795;--gold:#d49a39;--red:#db646a;--blue:#4f85d4}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#faf6fc 0,#f9faf5 45%,#f2f1f6 100%);font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+a{color:var(--plum)}button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--teal);outline-offset:3px}.shell{max-width:1180px;margin:auto;padding:24px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:6px 0 20px}.brand{font:600 24px Georgia,serif;text-decoration:none;color:var(--plum)}.brand span{font:11px system-ui;letter-spacing:.2em;color:#916f86;padding-left:10px}.small-link{font-weight:650;text-decoration:none}
+.hero{background:radial-gradient(circle at 80% 10%,#c9a5d45c,transparent 55%),linear-gradient(120deg,#421a54,#6d345f 74%,#93456f);padding:28px 30px 29px;border-radius:22px;color:white;box-shadow:0 12px 35px #3b204325}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;font-weight:800;opacity:.82}.hero h1{font:italic 400 clamp(34px,5vw,54px)/1.08 Georgia,serif;letter-spacing:-.035em;margin:10px 0 9px}.hero p{max-width:720px;margin:0;opacity:.91}
+.preview{display:inline-block;margin-top:12px;background:#ffffff23;border:1px solid #fff7;border-radius:20px;padding:5px 10px;font-size:12px;font-weight:700}
+.tabs{display:flex;gap:9px;margin:21px 0;flex-wrap:wrap}.tab{border:1px solid var(--line);background:white;border-radius:100px;padding:10px 17px;color:var(--ink);font-weight:750}.tab.active{background:#60336f;color:white;border-color:#60336f}
+.layout{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(260px,.9fr);gap:18px;align-items:start}.card{background:#fff;border-radius:16px;border:1px solid var(--line);box-shadow:0 4px 20px #5a3d5210;padding:18px;min-width:0}.stack{display:grid;gap:18px}.head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.head h2{font:600 25px/1.12 Georgia,serif;margin:0}.muted{color:var(--muted)}.tiny{font-size:12px}.caps{font-size:11px;text-transform:uppercase;letter-spacing:.11em;font-weight:800;color:#7f6184}.chip{padding:5px 9px;border-radius:99px;background:#f7f0f9;color:#674576;font-size:11px;font-weight:750;white-space:nowrap}
+.skill-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0 9px}.skill[data-skill="s-decisions"]{grid-column:1/-1;background:linear-gradient(115deg,#fff4f0,#fff);min-height:84px}.skill[data-skill="s-decisions"]::before{content:"THIS WEEK'S PRIMARY SKILL";display:block;letter-spacing:.12em;font-size:10px;color:#ac524f;font-weight:800;margin-bottom:6px}.skill[data-skill="s-decisions"] .skill-title{font-size:16px}.skill .skill-title{display:block;line-height:1.25}.skill{border:1px solid var(--line);background:#fff;border-top:4px solid var(--accent);border-radius:10px;padding:10px;text-align:left;color:var(--ink);font-size:12px;font-weight:700;min-height:75px}.skill.active{background:#f8f3fa;outline:2px solid var(--accent);outline-offset:-2px}.skill small{display:block;font-weight:500;color:var(--muted);line-height:1.3;margin-top:3px}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--accent)}.legend{margin-top:8px}.legend span{margin-right:16px}.plot{width:100%;height:auto;display:block;margin-top:8px;touch-action:manipulation}.svg-point{cursor:pointer}.svg-point:focus{outline:none}.svg-point circle.focus{opacity:0}.svg-point[aria-pressed=true] circle.focus,.svg-point:hover circle.focus,.svg-point:focus circle.focus{opacity:.75}
+.days{display:flex;gap:5px;margin:12px 0 4px}.day{flex:1;border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 3px;font-size:12px;font-weight:700;color:var(--muted)}.day.active{background:#e9daf2;color:#592667;border-color:#bfa3d6}
+.streams{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:14px}.stream{border-radius:12px;border:1px solid var(--line);overflow:hidden}.stream-title{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:750;background:#f2eafa;padding:10px 12px}.stream-title.blue{background:#edf3ff}.stream-body{padding:11px;display:grid;gap:11px}.msg{padding:11px 12px;border-radius:10px;background:#f7f5f8;border:1px solid #ece8ed;font-size:13px;overflow-wrap:anywhere}.character{background:#f5fdf9;border-left:4px solid #27ab96}.character.jack{border-left-color:#4f85d4}.evidence{background:linear-gradient(#f8f6ff,#fff);border-left:4px solid var(--selected);border-radius:10px;padding:12px;margin-top:12px}.coded{background:color-mix(in srgb,var(--selected) 24%,transparent);border-bottom:2px solid var(--selected);padding:1px 2px;border-radius:3px}.citation{font-size:11px;color:#775e7d;font-weight:700}.annotation-action{border:1px solid var(--selected);background:#fff;padding:5px 9px;border-radius:100px;font-size:11px;font-weight:750;color:var(--ink)}
+.score{font:600 32px Georgia,serif}.score b{font-family:system-ui;font-size:13px}.note{font-size:12px;color:#675f6a;margin:7px 0 0}.memory{padding:12px;border:1px solid var(--line);border-left:4px solid var(--violet);background:#fcfaff;border-radius:10px}
+.extra-notes{margin-top:10px;border:1px solid var(--line);border-radius:12px;background:#fffdfd;overflow:hidden}.extra-notes summary{cursor:pointer;padding:13px 15px;list-style:none;display:flex;gap:10px;justify-content:space-between;align-items:center;color:var(--ink)}.extra-notes summary::-webkit-details-marker{display:none}.extra-notes summary::after{content:"⌄";font-size:22px;color:var(--muted);line-height:1}.extra-notes[open] summary::after{content:"⌃"}.extra-notes-body{border-top:1px solid var(--line);padding:13px 15px;display:grid;gap:11px}.incident-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border-left:3px solid var(--accent);padding:8px 10px;background:#fcf8fa;border-radius:7px}.incident-row b{font-size:13px}.incident-row button{background:#fff;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12px;font-weight:750;color:var(--plum)}.incident-note{border:1px solid #ebdce9;border-radius:10px;padding:11px;background:#fff;color:#5a4e5b;font-size:12px}.live-panel{margin-top:18px}.live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.live-grid input{font:inherit;width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;margin-top:6px}.live-panel label{display:block;font-weight:650;font-size:13px;margin-top:10px}.live-panel button{border:1px solid #78508c;border-radius:9px;padding:9px 12px;background:#673578;color:white;font-weight:750;margin-top:9px}.live-panel button:disabled{opacity:.55}.live-panel .quietbtn{color:#683f72;background:white}.live-panel .info{padding:10px 13px;border-radius:10px;background:#f6effa;color:#634773;font-size:12px}.live-episode{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding:12px 0}.live-episode button{margin:0}.live-evidence{padding:11px;background:#f6f0fa;border-left:4px solid #a47ce8;border-radius:9px;margin-top:10px}.live-transcript{display:grid;grid-template-columns:1fr 1fr;gap:10px}.live-transcript>div{padding:9px;border:1px solid var(--line);border-radius:8px}.live-transcript .quote{margin-top:8px;background:#f7f5fa;border-radius:7px;padding:7px 9px;font-size:13px;white-space:pre-wrap}.live-evidence-list button{background:white;color:var(--plum);border-color:var(--line);width:100%;text-align:left}.live-evidence-list button[aria-pressed="true"]{border-color:var(--violet);background:#f6effa}.annual-bars{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}.annual-bars span{padding:6px;border-radius:7px;background:#f4eff8;font-size:11px}.section-title{font:600 20px Georgia,serif;margin:0 0 8px}.annual-only{display:none}.annual .annual-only{display:block}.annual .episode-only{display:none}.mini{margin-top:10px;padding:10px;background:#f7f4f9;border-radius:8px}
+footer{padding:26px 0 14px;font-size:12px;color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:780px){.layout{grid-template-columns:1fr}.streams{grid-template-columns:1fr 1fr}}
+@media(max-width:525px){.live-grid,.live-transcript{grid-template-columns:1fr}.shell{padding:12px}.hero{padding:24px 18px}.skill-list{grid-template-columns:repeat(2,minmax(0,1fr))}.streams{grid-template-columns:1fr}.card{padding:13px}.hero h1{font-size:37px}}
+</style></head><body><div class="shell" id="atlas">
+<header class="top"><a class="brand" href="/">✿ anthos<span>LOVE IN BLOOM</span></a><a href="/" class="small-link">Back to Anthos</a></header>
+<section class="hero"><div class="eyebrow">Sophia's yearlong evidence journal</div><h1>Insight Atlas</h1><p>Every Deep Dive leaves a trail. Revisit what you both coached, what Jack and Jill chose, and how 27 relationship skills evolved—scene by scene, across the year.</p><span class="preview">INTERACTIVE DESIGN PREVIEW · Fictional demonstration only</span></section>
+<section class="card live-panel" id="realAtlas" aria-label="Authenticated couple Insight Atlas">
+ <div class="head"><div><div class="caps">Your real story · Authenticated workspace</div><h2>Our Insight Atlas</h2></div><span class="chip">Shared between spouses</span></div>
+ <p class="tiny muted">The preview below uses invented examples. This separate area displays actual coaching and cited skill movements only for a verified couple. Both spouses can see the coaching and character responses as the story unfolds. No separate permission step is required.</p>
+ <div id="atlasAuthOff" class="info">Checking whether secure Anthos account sign-in is available…</div>
+ <div id="atlasAuthArea" hidden>
+  <form id="atlasSignIn" autocomplete="on">
+   <div class="live-grid">
+    <div><label for="atlasEmail">Account email</label><input id="atlasEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+    <div><label for="atlasCode">Email verification code (if sent)</label><input id="atlasCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Optional six-digit code"></div>
+   </div>
+   <button id="atlasEmailSend" type="submit">Send a secure sign-in link</button>
+   <button class="quietbtn" type="button" id="atlasVerifyCode">Verify email code</button>
+  </form>
+ </div>
+ <p id="atlasAuthStatus" class="tiny muted" aria-live="polite"></p>
+ <div id="atlasConnected" hidden>
+  <div class="head"><strong>Authenticated couple workspace</strong><button class="quietbtn" type="button" id="atlasSignOut">Sign out</button></div>
+  <div class="live-grid" style="margin-top:10px">
+   <section class="mini" aria-label="Link an eligible episode">
+    <h3 class="section-title">Connect a new Deep Dive</h3>
+    <p class="tiny muted">Each spouse signs in and connects their character invitation. Both coaching streams belong to your shared couple account. Older unlinked pilot conversations are not imported automatically.</p>
+    <label for="atlasInvite">Your personal invitation token</label>
+    <input id="atlasInvite" type="password" autocomplete="off" placeholder="Your invitation token">
+    <button type="button" id="atlasLink">Connect my character</button>
+   </section>
+   <section class="mini" aria-label="Shared episode reviews">
+    <h3 class="section-title">Our episodes</h3>
+    <div id="atlasEpisodes">No linked episodes yet.</div>
+   </section>
+  </div>
+  <section class="mini" style="margin-top:12px" id="atlasLiveReview" hidden>
+    <h3 class="section-title" id="atlasReviewTitle">Episode Evidence</h3>
+    <div id="atlasLiveConversation" class="live-transcript"></div>
+    <h3 class="section-title" style="margin-top:14px">Skill citations & coding memos</h3>
+    <div id="atlasLiveEvidence" class="live-evidence-list"></div>
+    <div class="live-evidence" id="atlasLiveAnnotation">Select a citation to see the source, score movement, and Sophia's memo.</div>
+  </section>
+  <section class="mini" style="margin-top:12px">
+   <div class="head"><h3 class="section-title">Our year in skills</h3><button class="quietbtn" id="atlasRefreshAnnual" type="button">Refresh</button></div>
+   <div id="atlasLiveAnnual" class="tiny muted">Your yearlong skill history appears here as characters grow.</div>
+  </section>
+ </div>
+</section>
+<nav class="tabs" aria-label="Atlas view"><button type="button" class="tab active" data-tab="episode" aria-pressed="true">✦ Episode Evidence</button><button type="button" class="tab" data-tab="annual" aria-pressed="false">↗ Yearlong Skill Trails</button></nav>
+<div class="layout"><div class="stack">
+<section class="card episode-only" id="weeklyFocus">
+ <div class="head"><div><div class="caps">01 · Deep Dive learning objectives</div><h2>This week's three skills</h2></div><span class="chip">1 primary + 2 supporting</span></div>
+ <p class="tiny muted">The Four-Hundred-Dollar Surprise is about difficult decisions, gentle communication, and hearing each other. These three skills guide the story and the weekly trajectory below.</p>
+ <div class="skill-list" id="skills" aria-label="The three selected episode skills"></div>
+ <p class="tiny muted" style="margin:4px 0 0">Other behaviors may be recorded quietly for the year, but they do not replace this week's learning objectives.</p>
+</section>
+<section class="card annual-only" id="annualLibrary">
+ <div class="head"><div><div class="caps">01 · Our full-year journey</div><h2>Explore all 27 skills</h2></div><span class="chip">Yearlong Atlas</span></div>
+ <p class="tiny muted">The annual view includes selected and incidental observations across episodes. An unobserved skill does not get an invented score.</p>
+ <label class="tiny muted" for="otherSkills" style="display:block;margin-top:12px;font-weight:700">Choose a skill to see its yearlong evidence</label>
+ <select id="otherSkills" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:white;margin-top:4px"></select>
+</section>
+<section class="card episode-only">
+ <div class="head"><div><div class="caps">02 · This week's trajectory</div><h2 id="weekSkill">Face Hard Decisions</h2></div><span class="chip">Microwave · Week 1</span></div>
+ <div class="row tiny legend"><span>● Jill — solid</span><span>◆ Jack — dashed</span><span class="muted">Tap any observation</span></div>
+ <svg class="plot" id="weeklyPlot" viewBox="0 0 660 284" role="group" aria-label="Clickable fictional character skill observations"></svg>
+ <div class="days" id="days"></div>
+</section>
+<section class="card annual-only">
+ <div class="head"><div><div class="caps">02 · Twelve-month continuity</div><h2 id="annualSkill">Accept Influence</h2></div><span class="chip">Year 1</span></div>
+ <div class="row tiny legend"><span>● Jill — solid</span><span>◆ Jack — dashed</span><span class="muted">Gaps mean no observed evidence</span></div>
+ <svg class="plot" id="annualPlot" viewBox="0 0 660 284" role="img" aria-label="Fictional annual skill observations"></svg>
+ <div class="memory" id="memoryBox" style="margin-top:13px"><div class="caps">Turning point · January</div><strong>The microwave incident</strong><p class="note">A choice made here changes future possibilities. Recalling that choice later does not score it again.</p></div>
+</section>
+<section class="card episode-only">
+ <div class="head"><div><div class="caps">03 · Side-by-side transcript</div><h2>Evidence Threads</h2></div><span class="chip" id="dayName">Friday</span></div>
+ <p class="tiny muted">Both coaching streams appear together in the couple's shared Insight Atlas. Each partner coaches their own character, but the review is a joint experience.</p>
+ <div class="streams">
+ <div class="stream"><div class="stream-title">♀ Wife → Jill</div><div class="stream-body"><div><div class="caps">Wife's coaching</div><div id="wifeText" class="msg"></div></div><div><div class="caps">Jill's observed action or response</div><div class="msg character" id="jillText"></div><button type="button" id="jillInspect" class="annotation-action" style="margin-top:8px">View citation</button></div></div></div>
+ <div class="stream"><div class="stream-title blue">♂ Husband → Jack</div><div class="stream-body"><div><div class="caps">Husband's coaching</div><div id="husbandText" class="msg"></div><div><div class="caps">Jack's observed action or response</div><div class="msg character jack" id="jackText"></div><button type="button" id="jackInspect" class="annotation-action" style="margin-top:8px">View citation</button></div></div></div>
+ </div>
+</section>
+<section class="card episode-only" aria-label="Incidental observations kept separate from the weekly focus">
+ <div class="caps">04 · Optional yearlong notes</div>
+ <details class="extra-notes" id="incidentalDetails">
+  <summary><span><strong>Other moments Sophia noticed</strong><span class="tiny muted" style="display:block">Two incidental observations, saved for future Deep Dives</span></span></summary>
+  <div class="extra-notes-body">
+   <p class="tiny muted" style="margin:0">These observations do <strong>not</strong> become this week's goals. They are linked to the original evidence and can influence Jack and Jill in a later episode.</p>
+   <div class="incident-row" style="--accent:#d865a2"><div><b>Nontransactional Intimacy</b><div class="tiny muted">Jack · Wednesday · fictional example</div></div><button type="button" data-incident="i-nontransactional">Inspect</button></div>
+   <div class="incident-row" style="--accent:#d78e59"><div><b>Sexual Respect</b><div class="tiny muted">Jack · Wednesday · fictional example</div></div><button type="button" data-incident="i-sexual-respect">Inspect</button></div>
+   <div class="incident-note" id="incidentalInspector" role="status" aria-live="polite">Select an observation to inspect its source and explanation. The main Deep Dive trajectory remains focused on the three episode skills.</div>
+   <p class="tiny muted" style="margin:0"><strong>Consent & boundaries:</strong> always protected as a safety requirement, not an extra teaching objective or an automatic skill penalty.</p>
+  </div>
+ </details>
+</section>
+</div>
+<aside class="stack">
+ <section class="card">
+  <div class="caps">Sophia's annotation inspector</div>
+  <h2 class="section-title" id="inspectorTitle" style="margin-top:7px">Jill · Friday</h2>
+  <div class="head"><span class="citation" id="ref">SIM-J05-GI</span><span class="score" id="rating">4<b>/5</b></span></div>
+  <p class="tiny muted" id="observation">Character behavior · Observed</p>
+  <div class="evidence" id="evidenceBox"><div class="caps">Coded quote</div><p id="quoted">“I asked Jack what spending limit felt safe to him.”</p></div>
+  <h3 class="section-title" style="font-size:17px;margin-top:16px">Sophia's coding memo</h3>
+  <p id="memo">The action invites the other person's perspective before deciding. It does not mean the disagreement is resolved.</p>
+  <div class="mini tiny muted">Two different records: the coaching message receives a coaching observation; the character's action receives a separate behavioral observation. These are not measurements of the real marriage.</div>
+ </section>
+ <section class="card">
+  <div class="caps">05 · Story continuity</div><h2 class="section-title" style="margin-top:8px">Remembered, not repeated</h2>
+  <div class="memory"><strong>January · Microwave</strong><p class="tiny">Jack made the repair call. The shop did not confirm a price. The later scene should develop that situation—not announce the call again.</p><div class="citation">STORY-MEM-01 · linked event</div></div>
+
+ </section>
+ <section class="card">
+  <div class="caps">Quality standard</div><h2 class="section-title" style="margin-top:8px">8/10 release gate</h2><p class="tiny">A scene must pass continuity, advancement, coaching impact, character autonomy, nonrepetition, research skills, realism, humor, safety and evidence integrity.</p><p class="tiny"><strong>Blocking failures:</strong> invented irreversible facts, uncited score changes, repeated stale announcements, privacy leaks, or coercion presented as success.</p>
+  <p class="note"><strong>Important:</strong> 8/10 is a test threshold, not a promise that every real-life interaction will be perfect.</p>
+ </section>
+</aside></div>
+<footer>Anthos · Sophia's Insight Atlas · Design preview uses invented dialogue and illustrative scores. Real couple accounts and live records appear only after secure sign-in; preview conversations are fictional.</footer></div>
+<script src="/insight-atlas/atlas.js" defer></script><script src="/insight-atlas/live.js" defer></script></body></html>
