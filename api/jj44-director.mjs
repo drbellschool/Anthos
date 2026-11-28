@@ -37,7 +37,7 @@ export function directorReviewIssues44(review,plan,page,day){
  const problems=[];
  if(!review||review.pass!==true||!Array.isArray(review.issues)||review.issues.length)problems.push(...(Array.isArray(review?.issues)&&review.issues.length?review.issues:["Director review did not approve the scene."]));
  for(const role of ["jack","jill"]){
-  const expected=plan[role],actual=review?.[role];
+  const expected=plan[role],actual=day===0?[]:review?.[role];
   if(!Array.isArray(actual)||actual.length!==expected.length){problems.push("Missing "+role+" intent evidence.");continue}
   for(const intent of expected){
    const matches=actual.filter(x=>x.id===intent.id);
@@ -71,6 +71,11 @@ export async function directStory44(input,day,generate){
   previousPlan=normalized;
   // Only validator-generated field names, never model content or private advice.
   console.warn("[jj44-director] "+JSON.stringify({day,attempt:i+1,issues:feedback}));
+ }
+ if(day===0){
+  // No author input exists yet. Use opening guidance rather than making mechanical planning a launch gate.
+  console.warn("[jj44-director] "+JSON.stringify({day,code:"OPENING_GUIDANCE_FALLBACK"}));
+  return {jack:[],jill:[],time:"Opening time established by the premise",location:"Opening setting established by the premise",newEvent:"Dramatize the initial dilemma once, from both characters’ perspectives.",consequence:"Reveal the stakes through concrete action or dialogue.",ending:"Leave each author a distinct consequential choice."};
  }
  throw Error("Story director could not produce a valid plan. Retry the same page.");
 }
