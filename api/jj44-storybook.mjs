@@ -106,7 +106,9 @@ export async function writeStorybookPage44(episode,day,rows,generate){
   if(directed){
    const evidenceIssues=directorReviewIssues44(review,input.direction,page,day);
    if(!evidenceIssues.length){const committed={...page,director:compactDirector44(review)};if(!pageIssues44(committed,day).length)return committed;evidenceIssues.push("Shorten narrative metadata to leave room for continuity state, keeping story actions and dialogue.");}
-   editorFailures++;issues=evidenceIssues.slice(0,12);previousCandidate=page;continue;
+   editorFailures++;issues=evidenceIssues.slice(0,12);previousCandidate=page;
+   if(attempt===0&&issues.some(x=>/omitt|missed|missing intent|plan.*intent/i.test(x)))input.direction=await directStory44({...input,direction:undefined,revisionIssues:issues},day,generate);
+   continue;
   }
   if(review?.pass===true&&Array.isArray(review.issues)&&review.issues.length===0)return page;
   editorFailures++;issues=Array.isArray(review?.issues)?review.issues.filter(x=>typeof x==="string"&&x.trim()).slice(0,8):[];
