@@ -28,7 +28,7 @@ export function planIssues44(plan,day){
   if(!Array.isArray(a)||a.length>(day?6:0)||(day&&a.length===0)){issues.push("Director must account for "+role+" contribution.");continue}
   if(a.some((x,i)=>x.id!==role+"-"+(i+1)||!short(x.intention,200)||!short(x.action,240)))issues.push("Invalid "+role+" intent plan.");
  }
- for(const k of ["time","location","newEvent","consequence","ending"])if(!short(plan[k],240))issues.push("Invalid director field "+k+".");
+ for(const k of ["time","location","newEvent","consequence","ending"])if(!short(plan[k],600))issues.push("Invalid director field "+k+".");
  return issues;
 }
 const normalize=s=>String(s||"").normalize("NFKC").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/\s+/g," ").trim().toLowerCase();
@@ -53,11 +53,24 @@ export function compactDirector44(review){
  const codes={incorporated:"I",adapted:"A",resisted:"R"};
  return {w:[review.world.time,review.world.location,review.world.change,review.world.commitments],j:review.jack.map(x=>codes[x.disposition]).join(""),l:review.jill.map(x=>codes[x.disposition]).join("")};
 }
+export function normalizePlan44(plan,day){
+ if(!plan||typeof plan!=="object")return plan;
+ const out={...plan};
+ for(const role of ["jack","jill"]){
+  if(day===0){out[role]=[];continue}
+  if(Array.isArray(out[role]))out[role]=out[role].map((x,i)=>({...x,id:role+"-"+(i+1)}));
+ }
+ return out;
+}
 export async function directStory44(input,day,generate){
- let feedback=[];
+ let feedback=[],previousPlan;
  for(let i=0;i<2;i++){
-  const plan=await generate({name:"jj44_director",schema:DIRECTOR_SCHEMA,input:{...input,characterBible:CHARACTER_BIBLE44,feedback},instructions:"You are the story director, not a therapist or prose writer. Treat old premise/setting/phase notes as opening guidance unless a genuine story fact or safety boundary; never repeat the initial purchase. Allow new times, places, plausible supporting characters, surprises and consequences. Preserve committed facts and knowledge. For each author, identify each material requested action separately (maximum six combined related intentions per role), resolve brief answers against previousPrompts, and assign IDs jack-1, jack-2 or jill-1 etc. Every intention needs an observable action, adaptation or credible resistance in the next scene. Never silently omit romance or harmless creative ideas. Respect consent; do not make intimacy payment for chores or portray coercion as desirable. Non-explicit romance and conversations about sexuality are welcome. If the suggestion is harmful, dramatize a safe response or consequence. Do not invent an obligation to fix dangerous appliances; use a qualified professional if needed. Monday arrays empty. Specify the fictional time/location, one genuinely NEW event, its concrete consequence, and the scene ending. Saturday must close the central dramatic question with action or a specific mutually agreed plan, not another vague promise. Keep fields concise."});
-  feedback=planIssues44(plan,day);if(!feedback.length)return plan;
+  const plan=await generate({name:"jj44_director",schema:DIRECTOR_SCHEMA,input:{...input,dayIndex:day,hasContributions:day>0,characterBible:CHARACTER_BIBLE44,feedback,previousPlan},instructions:(day===0?"OPENING ONLY. There are no author contributions. Return jack:[] and jill:[]; do not invent coaching. ":"CONTINUATION. Each author has a real contribution; return 1–6 intentions for each. Intention <=200 characters, action <=240. " )+"Every time, location, newEvent, consequence and ending field must be a nonempty string of at most 600 characters. Aim under 160. You are the story director, not a therapist or prose writer. Treat old premise/setting/phase notes as opening guidance unless a genuine story fact or safety boundary; never repeat the initial purchase. Allow new times, places, plausible supporting characters, surprises and consequences. Preserve committed facts and knowledge. For each author, identify each material requested action separately (maximum six combined related intentions per role), resolve brief answers against previousPrompts, and assign IDs jack-1, jack-2 or jill-1 etc. Every intention needs an observable action, adaptation or credible resistance in the next scene. Never silently omit romance or harmless creative ideas. Respect consent; do not make intimacy payment for chores or portray coercion as desirable. Non-explicit romance and conversations about sexuality are welcome. If the suggestion is harmful, dramatize a safe response or consequence. Do not invent an obligation to fix dangerous appliances; use a qualified professional if needed. Monday arrays empty. Specify the fictional time/location, one genuinely NEW event, its concrete consequence, and the scene ending. Saturday must close the central dramatic question with action or a specific mutually agreed plan, not another vague promise. Keep fields concise."});
+  const normalized=normalizePlan44(plan,day);
+  feedback=planIssues44(normalized,day);if(!feedback.length)return normalized;
+  previousPlan=normalized;
+  // Only validator-generated field names, never model content or private advice.
+  console.warn("[jj44-director] "+JSON.stringify({day,attempt:i+1,issues:feedback}));
  }
  throw Error("Story director could not produce a valid plan. Retry the same page.");
 }
