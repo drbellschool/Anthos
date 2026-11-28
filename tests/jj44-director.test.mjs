@@ -39,7 +39,7 @@ test("six directed pages preserve world state and reject missing contribution ev
    if(day===3&&!rejected){rejected=true;return {...r,jill:[]}}
    return r;
   });
-  assert.equal(result.director.w[0],"Evening "+day);
+  assert.equal(result.director.w[0],day?"Evening "+day:"Opening time: see scene");
   assert.equal(result.director.j,day?"I":"");
   assert.equal(result.director.l,day?"A":"");
   assert.ok(JSON.stringify(result).length<=2500);
@@ -76,4 +76,25 @@ test("Continuation assigns intent IDs in code but never invents missing contribu
  const candidate=plan(1);candidate.jack[0].id="Jack 1";candidate.jill[0].id="";
  assert.deepEqual(planIssues44(normalizePlan44(candidate,1),1),[]);
  await assert.rejects(directStory44({contributions:{jack:"Act",jill:"Help"}},1,async()=>({...candidate,jill:[]})),/could not produce/);
+});
+
+test("Monday accepts the proven basic reviewer schema without fabricated event quotes or world fields",async()=>{
+ let reviews=0;
+ const result=await writeStorybookPage44(ep,0,[],async args=>{
+  if(args.name==="jj44_director")return plan(0);
+  if(args.name==="jj44_storyboard")return page(0);
+  reviews++;assert.deepEqual(args.schema.required,["pass","issues"]);
+  assert.doesNotMatch(args.instructions,/Return one disposition/);
+  return {pass:true,issues:[]};
+ });
+ assert.equal(reviews,1);
+ assert.equal(result.director.j,"");
+ assert.equal(result.director.l,"");
+});
+test("Monday basic reviewer still rejects substantive editorial failures",async()=>{
+ await assert.rejects(writeStorybookPage44(ep,0,[],async args=>{
+  if(args.name==="jj44_director")return plan(0);
+  if(args.name==="jj44_storyboard")return page(0);
+  return {pass:false,issues:["Material premise contradiction"]};
+ }),/did not pass/);
 });
